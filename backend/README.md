@@ -2,6 +2,23 @@
 
 FastAPI-сервер для AI Image Generator.
 
+## Настройки (.env)
+
+Скопируйте шаблон и при необходимости отредактируйте значения:
+
+```bash
+cd backend
+copy .env.example .env
+```
+
+Файл `.env` не коммитится в git (см. `.gitignore` в корне репозитория). Реальные ключи храните только локально.
+
+| Переменная | Описание |
+|------------|----------|
+| `APP_NAME` | Название приложения |
+| `ENVIRONMENT` | Окружение (`development`, `production`, …) |
+| `GEMINI_API_KEY` | Ключ Gemini (пока не используется) |
+
 ## Запуск
 
 ```bash
@@ -19,9 +36,11 @@ uvicorn app.main:app --reload
 ```
 app/
 ├── main.py              # FastAPI routes
+├── config.py            # Настройки из .env (pydantic-settings)
 ├── schemas.py           # Pydantic-модели запросов/ответов
 └── services/
     └── image_service.py # Логика генерации (сейчас mock)
+.env.example             # Шаблон переменных окружения
 ```
 
 ## Endpoints
