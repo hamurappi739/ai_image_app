@@ -17,7 +17,17 @@ copy .env.example .env
 |------------|----------|
 | `APP_NAME` | Название приложения |
 | `ENVIRONMENT` | Окружение (`development`, `production`, …) |
-| `GEMINI_API_KEY` | Ключ Gemini (пока не используется) |
+| `GEMINI_API_KEY` | Ключ Gemini API |
+| `GEMINI_MODEL` | Модель для генерации изображений |
+
+## Gemini integration preparation
+
+Для будущей реальной генерации через Gemini в `.env` понадобятся:
+
+- `GEMINI_API_KEY` — ключ из Google AI Studio
+- `GEMINI_MODEL` — по умолчанию `gemini-2.5-flash-image`
+
+В `app/services/image_service.py` уже есть `generate_image_with_gemini()` (пока возвращает mock). Endpoint `POST /generate` по-прежнему использует `generate_mock_image()`.
 
 ## Запуск
 

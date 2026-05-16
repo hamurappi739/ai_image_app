@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     app_name: str = "AI Image Generator Backend"
     environment: str = "development"
     gemini_api_key: str | None = None
+    gemini_model: str = "gemini-2.5-flash-image"
 
 
 settings = Settings()
