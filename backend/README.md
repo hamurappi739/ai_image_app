@@ -26,13 +26,14 @@ copy .env.example .env
 
 ## Supabase connection
 
-Backend подключается к Supabase через `app/services/supabase_service.py` → `get_supabase_admin_client()`.
+Backend обращается к Supabase через **REST API** (`httpx`), без Python SDK `supabase` (избегаем тяжёлых нативных зависимостей).
 
-- Используется **`SUPABASE_SERVICE_ROLE_KEY`** — полный доступ к БД, обходит RLS.
-- Этот ключ **никогда** не должен попадать во Flutter или в публичный репозиторий.
-- **`SUPABASE_ANON_KEY`** зарезервирован для клиента; в backend-логике пока не вызывается.
+- `app/services/supabase_service.py` → `check_supabase_connection()` — GET `{SUPABASE_URL}/rest/v1/...`
+- Заголовки: `apikey` и `Authorization: Bearer` с **`SUPABASE_SERVICE_ROLE_KEY`**
+- Service role key — полный доступ к БД, обходит RLS; **никогда** не отдавать во Flutter
+- **`SUPABASE_ANON_KEY`** — для клиента; backend пока не использует
 
-Функция `get_supabase_admin_client()` пока не используется в routes — только подготовка к этапу credits/history.
+Проверка в разработке: `GET /debug/supabase` (удалить или защитить перед production).
 
 ## Gemini integration preparation
 
@@ -64,7 +65,7 @@ app/
 ├── schemas.py           # Pydantic-модели запросов/ответов
 └── services/
     ├── image_service.py    # Логика генерации (сейчас mock)
-    └── supabase_service.py # Supabase admin client (подготовка)
+    └── supabase_service.py # Supabase REST (httpx + service role)
 .env.example             # Шаблон переменных окружения
 ```
 
@@ -73,7 +74,14 @@ app/
 | Метод | Путь | Описание |
 |-------|------|----------|
 | GET | `/health` | Проверка работоспособности |
+| GET | `/debug/supabase` | Проверка подключения к Supabase (**только разработка**) |
 | POST | `/generate` | Mock-генерация изображения по prompt |
+
+### GET /debug/supabase (временный)
+
+Проверяет, что backend может подключиться к Supabase (`profiles`, `select id limit 1`). Успех: `{"status": "ok", "supabase": "connected"}`. Ошибка: `500` с `detail: "Supabase connection failed"` (без ключей и данных пользователей).
+
+**Перед production** этот endpoint нужно удалить или защитить (auth, IP allowlist, отключение вне `development`).
 
 ### Пример: POST /generate
 
