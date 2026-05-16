@@ -14,6 +14,16 @@ uvicorn app.main:app --reload
 
 Сервер: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
+## Структура
+
+```
+app/
+├── main.py              # FastAPI routes
+├── schemas.py           # Pydantic-модели запросов/ответов
+└── services/
+    └── image_service.py # Логика генерации (сейчас mock)
+```
+
 ## Endpoints
 
 | Метод | Путь | Описание |

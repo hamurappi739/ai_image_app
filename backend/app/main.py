@@ -1,18 +1,9 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+
+from app.schemas import GenerateRequest, GenerateResponse
+from app.services.image_service import generate_mock_image
 
 app = FastAPI(title="AI Image Generator API")
-
-MOCK_IMAGE_URL = "https://placehold.co/1024x1024?text=Generated+Image"
-
-
-class GenerateRequest(BaseModel):
-    prompt: str
-
-
-class GenerateResponse(BaseModel):
-    image_url: str
-    prompt: str
 
 
 @app.get("/health")
@@ -25,4 +16,4 @@ def generate(body: GenerateRequest):
     prompt = body.prompt.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt cannot be empty")
-    return GenerateResponse(image_url=MOCK_IMAGE_URL, prompt=prompt)
+    return GenerateResponse(image_url=generate_mock_image(prompt), prompt=prompt)
