@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-2.5-flash-image"
+    free_generations_limit: int = 3
 
 
 settings = Settings()

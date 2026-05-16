@@ -19,6 +19,7 @@ copy .env.example .env
 | `ENVIRONMENT` | Окружение (`development`, `production`, …) |
 | `GEMINI_API_KEY` | Ключ Gemini API |
 | `GEMINI_MODEL` | Модель для генерации изображений |
+| `FREE_GENERATIONS_LIMIT` | Сколько бесплатных генераций доступно пользователю (MVP: **3** по умолчанию; меняется через env без правок кода) |
 
 ## Gemini integration preparation
 
