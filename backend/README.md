@@ -20,6 +20,19 @@ copy .env.example .env
 | `GEMINI_API_KEY` | Ключ Gemini API |
 | `GEMINI_MODEL` | Модель для генерации изображений |
 | `FREE_GENERATIONS_LIMIT` | Сколько бесплатных генераций доступно пользователю (MVP: **3** по умолчанию; меняется через env без правок кода) |
+| `SUPABASE_URL` | URL проекта Supabase |
+| `SUPABASE_ANON_KEY` | Публичный anon key (для Flutter; backend пока не использует) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key — **только на сервере** |
+
+## Supabase connection
+
+Backend подключается к Supabase через `app/services/supabase_service.py` → `get_supabase_admin_client()`.
+
+- Используется **`SUPABASE_SERVICE_ROLE_KEY`** — полный доступ к БД, обходит RLS.
+- Этот ключ **никогда** не должен попадать во Flutter или в публичный репозиторий.
+- **`SUPABASE_ANON_KEY`** зарезервирован для клиента; в backend-логике пока не вызывается.
+
+Функция `get_supabase_admin_client()` пока не используется в routes — только подготовка к этапу credits/history.
 
 ## Gemini integration preparation
 
@@ -50,7 +63,8 @@ app/
 ├── config.py            # Настройки из .env (pydantic-settings)
 ├── schemas.py           # Pydantic-модели запросов/ответов
 └── services/
-    └── image_service.py # Логика генерации (сейчас mock)
+    ├── image_service.py    # Логика генерации (сейчас mock)
+    └── supabase_service.py # Supabase admin client (подготовка)
 .env.example             # Шаблон переменных окружения
 ```
 
