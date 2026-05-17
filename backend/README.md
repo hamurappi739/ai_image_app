@@ -85,6 +85,7 @@ app/
 | GET | `/debug/supabase` | Проверка подключения к Supabase (**только разработка**) |
 | GET | `/debug/profile` | Профиль по `TEST_USER_ID` (**только разработка**) |
 | GET | `/debug/credits` | Решение free/paid без списания (**только разработка**) |
+| POST | `/debug/consume-generation` | Тестовое списание в Supabase (**только разработка**) |
 | POST | `/generate` | Mock-генерация изображения по prompt |
 
 ### GET /debug/supabase (временный)
@@ -110,6 +111,18 @@ app/
 Успех: `{"status": "ok", "profile": {...}, "decision": {"allowed": ..., "payment_type": ..., "reason": ...}}`.
 
 **Перед production** удалить или защитить вместе с остальными `/debug/*` routes.
+
+### POST /debug/consume-generation (временный)
+
+**Реально изменяет Supabase:** списывает free/paid, пишет в `generations` и `credit_transactions` (mock prompt и image URL).
+
+1. Профиль по `TEST_USER_ID`
+2. `determine_generation_payment()` — если нельзя → `402` с `detail` из `reason`
+3. `consume_generation()` — PATCH `profiles`, POST `generations`, POST `credit_transactions`
+
+Успех: `{"status": "ok", "decision": {...}, "result": {"profile", "generation", "transaction"}}`.
+
+**Перед production** удалить или защитить. Не путать с `POST /generate` — публичный generate **не списывает** кредиты.
 
 ### Пример: POST /generate
 

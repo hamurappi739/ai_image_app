@@ -4,6 +4,8 @@ import httpx
 
 from app.config import settings
 
+_SUCCESS_STATUSES = (200, 201, 204, 206)
+
 
 def _require_supabase_config() -> str:
     # Service role key is backend-only; never expose it to the Flutter frontend.
@@ -19,6 +21,27 @@ def _supabase_headers() -> dict[str, str]:
         "apikey": settings.supabase_service_role_key,
         "Authorization": f"Bearer {settings.supabase_service_role_key}",
     }
+
+
+def _supabase_write_headers() -> dict[str, str]:
+    return {
+        **_supabase_headers(),
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+
+
+def _parse_supabase_response(response: httpx.Response, error_message: str) -> dict:
+    if response.status_code not in _SUCCESS_STATUSES:
+        raise RuntimeError(error_message)
+    if not response.content:
+        return {}
+    data = response.json()
+    if isinstance(data, list):
+        return data[0] if data else {}
+    if isinstance(data, dict):
+        return data
+    return {}
 
 
 def check_supabase_connection() -> bool:
@@ -48,3 +71,30 @@ def get_profile_by_id(user_id: str) -> dict | None:
     if not rows:
         return None
     return rows[0]
+
+
+def update_profile(user_id: str, data: dict) -> dict:
+    base_url = _require_supabase_config()
+    url = f"{base_url}/rest/v1/profiles?id=eq.{quote(user_id, safe='')}"
+    response = httpx.patch(
+        url, headers=_supabase_write_headers(), json=data, timeout=10.0
+    )
+    return _parse_supabase_response(response, "Failed to update profile")
+
+
+def insert_generation(data: dict) -> dict:
+    base_url = _require_supabase_config()
+    url = f"{base_url}/rest/v1/generations"
+    response = httpx.post(
+        url, headers=_supabase_write_headers(), json=data, timeout=10.0
+    )
+    return _parse_supabase_response(response, "Failed to insert generation")
+
+
+def insert_credit_transaction(data: dict) -> dict:
+    base_url = _require_supabase_config()
+    url = f"{base_url}/rest/v1/credit_transactions"
+    response = httpx.post(
+        url, headers=_supabase_write_headers(), json=data, timeout=10.0
+    )
+    return _parse_supabase_response(response, "Failed to insert credit transaction")
