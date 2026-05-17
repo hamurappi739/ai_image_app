@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException
 from app.config import settings
 from app.schemas import GenerateRequest, GenerateResponse
 from app.services.image_service import generate_mock_image
+from app.services.credits_service import determine_generation_payment
 from app.services.supabase_service import check_supabase_connection, get_profile_by_id
 
 app = FastAPI(title="AI Image Generator API")
@@ -33,6 +34,20 @@ def debug_profile():
     if profile is None:
         raise HTTPException(status_code=404, detail="Profile not found")
     return {"status": "ok", "profile": profile}
+
+
+@app.get("/debug/credits")
+def debug_credits():
+    if not settings.test_user_id:
+        raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
+    try:
+        profile = get_profile_by_id(settings.test_user_id)
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail="Failed to fetch profile")
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    decision = determine_generation_payment(profile, settings.free_generations_limit)
+    return {"status": "ok", "profile": profile, "decision": decision}
 
 
 @app.post("/generate", response_model=GenerateResponse)

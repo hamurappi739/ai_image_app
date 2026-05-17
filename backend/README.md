@@ -72,7 +72,8 @@ app/
 ├── schemas.py           # Pydantic-модели запросов/ответов
 └── services/
     ├── image_service.py    # Логика генерации (сейчас mock)
-    └── supabase_service.py # Supabase REST (httpx + service role)
+    ├── supabase_service.py # Supabase REST (httpx + service role)
+    └── credits_service.py  # Проверка free/paid (без списания)
 .env.example             # Шаблон переменных окружения
 ```
 
@@ -83,6 +84,7 @@ app/
 | GET | `/health` | Проверка работоспособности |
 | GET | `/debug/supabase` | Проверка подключения к Supabase (**только разработка**) |
 | GET | `/debug/profile` | Профиль по `TEST_USER_ID` (**только разработка**) |
+| GET | `/debug/credits` | Решение free/paid без списания (**только разработка**) |
 | POST | `/generate` | Mock-генерация изображения по prompt |
 
 ### GET /debug/supabase (временный)
@@ -98,6 +100,14 @@ app/
 - Нет `TEST_USER_ID` → `500` — `"TEST_USER_ID is not configured"`
 - Профиль не найден → `404` — `"Profile not found"`
 - Успех → `{"status": "ok", "profile": {...}}`
+
+**Перед production** удалить или защитить вместе с остальными `/debug/*` routes.
+
+### GET /debug/credits (временный)
+
+Загружает профиль по `TEST_USER_ID` и вызывает `determine_generation_payment()` — только чтение, **без списания** и без записи в Supabase.
+
+Успех: `{"status": "ok", "profile": {...}, "decision": {"allowed": ..., "payment_type": ..., "reason": ...}}`.
 
 **Перед production** удалить или защитить вместе с остальными `/debug/*` routes.
 
