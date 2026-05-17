@@ -23,6 +23,13 @@ copy .env.example .env
 | `SUPABASE_URL` | URL проекта Supabase |
 | `SUPABASE_ANON_KEY` | Публичный anon key (для Flutter; backend пока не использует) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key — **только на сервере** |
+| `TEST_USER_ID` | UUID тестового пользователя (только development) |
+
+### TEST_USER_ID (development only)
+
+`TEST_USER_ID` нужен для проверки пользовательской и кредитной логики до подключения настоящей авторизации. Задайте UUID существующей строки в `profiles` из Supabase.
+
+**В production использовать `TEST_USER_ID` нельзя** — только реальная auth (Supabase JWT / session).
 
 ## Supabase connection
 

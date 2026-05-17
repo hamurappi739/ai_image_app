@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     supabase_url: str | None = None
     supabase_anon_key: str | None = None
     supabase_service_role_key: str | None = None
+    test_user_id: str | None = None
 
 
 settings = Settings()
