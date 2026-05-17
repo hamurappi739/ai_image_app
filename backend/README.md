@@ -82,6 +82,7 @@ app/
 |-------|------|----------|
 | GET | `/health` | Проверка работоспособности |
 | GET | `/debug/supabase` | Проверка подключения к Supabase (**только разработка**) |
+| GET | `/debug/profile` | Профиль по `TEST_USER_ID` (**только разработка**) |
 | POST | `/generate` | Mock-генерация изображения по prompt |
 
 ### GET /debug/supabase (временный)
@@ -89,6 +90,16 @@ app/
 Проверяет, что backend может подключиться к Supabase (`profiles`, `select id limit 1`). Успех: `{"status": "ok", "supabase": "connected"}`. Ошибка: `500` с `detail: "Supabase connection failed"` (без ключей и данных пользователей).
 
 **Перед production** этот endpoint нужно удалить или защитить (auth, IP allowlist, отключение вне `development`).
+
+### GET /debug/profile (временный)
+
+Читает профиль из `profiles` для `TEST_USER_ID` из `.env` (`id`, `email`, `free_generations_used`, `paid_credits`).
+
+- Нет `TEST_USER_ID` → `500` — `"TEST_USER_ID is not configured"`
+- Профиль не найден → `404` — `"Profile not found"`
+- Успех → `{"status": "ok", "profile": {...}}`
+
+**Перед production** удалить или защитить вместе с остальными `/debug/*` routes.
 
 ### Пример: POST /generate
 
