@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     supabase_anon_key: str | None = None
     supabase_service_role_key: str | None = None
     test_user_id: str | None = None
+    enable_credit_consumption: bool = False
 
 
 settings = Settings()

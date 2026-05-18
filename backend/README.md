@@ -24,6 +24,13 @@ copy .env.example .env
 | `SUPABASE_ANON_KEY` | Публичный anon key (для Flutter; backend пока не использует) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key — **только на сервере** |
 | `TEST_USER_ID` | UUID тестового пользователя (только development) |
+| `ENABLE_CREDIT_CONSUMPTION` | Включить проверку и списание кредитов в `POST /generate` (по умолчанию `false`) |
+
+### ENABLE_CREDIT_CONSUMPTION
+
+- `ENABLE_CREDIT_CONSUMPTION=false` — `POST /generate` работает **без** проверки и списания кредитов (текущее поведение для разработки).
+- `ENABLE_CREDIT_CONSUMPTION=true` — позже будет включать проверку баланса и `consume_generation()` в `/generate` (ещё не подключено).
+- По умолчанию для разработки оставляйте **`false`**.
 
 ### TEST_USER_ID (development only)
 
