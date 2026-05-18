@@ -8,3 +8,7 @@ class GenerateRequest(BaseModel):
 class GenerateResponse(BaseModel):
     image_url: str
     prompt: str
+    payment_type: str | None = None
+    credit_consumed: bool = False
+    remaining_free_generations: int | None = None
+    remaining_paid_credits: int | None = None

@@ -90,4 +90,44 @@ def generate(body: GenerateRequest):
     prompt = body.prompt.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt cannot be empty")
-    return GenerateResponse(image_url=generate_mock_image(prompt), prompt=prompt)
+
+    if not settings.enable_credit_consumption:
+        return GenerateResponse(
+            image_url=generate_mock_image(prompt),
+            prompt=prompt,
+        )
+
+    if not settings.test_user_id:
+        raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
+    try:
+        profile = get_profile_by_id(settings.test_user_id)
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail="Failed to fetch profile")
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    decision = determine_generation_payment(profile, settings.free_generations_limit)
+    if not decision["allowed"]:
+        raise HTTPException(status_code=402, detail=decision["reason"])
+
+    image_url = generate_mock_image(prompt)
+    try:
+        result = consume_generation(
+            profile, decision["payment_type"], prompt, image_url
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    updated_profile = result["profile"]
+    remaining_free = max(
+        settings.free_generations_limit - updated_profile["free_generations_used"],
+        0,
+    )
+    return GenerateResponse(
+        image_url=image_url,
+        prompt=prompt,
+        payment_type=decision["payment_type"],
+        credit_consumed=True,
+        remaining_free_generations=remaining_free,
+        remaining_paid_credits=updated_profile["paid_credits"],
+    )

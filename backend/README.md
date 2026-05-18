@@ -129,9 +129,37 @@ app/
 
 Успех: `{"status": "ok", "decision": {...}, "result": {"profile", "generation", "transaction"}}`.
 
-**Перед production** удалить или защитить. Не путать с `POST /generate` — публичный generate **не списывает** кредиты.
+**Перед production** удалить или защитить.
 
-### Пример: POST /generate
+### POST /generate
+
+Управляется флагом **`ENABLE_CREDIT_CONSUMPTION`** в `backend/.env` (шаблон: `.env.example`).
+
+#### a) Credit consumption disabled (`ENABLE_CREDIT_CONSUMPTION=false`, по умолчанию)
+
+- Проверка prompt → mock `image_url`
+- **Без** чтения профиля, **без** списания, **без** записи в Supabase
+- Ответ: `image_url`, `prompt` (остальные поля ответа — значения по умолчанию)
+
+#### b) Credit consumption enabled (`ENABLE_CREDIT_CONSUMPTION=true`)
+
+Для development задайте в `backend/.env`:
+
+```env
+ENABLE_CREDIT_CONSUMPTION=true
+TEST_USER_ID=<uuid из profiles>
+```
+
+Поток: prompt → профиль по `TEST_USER_ID` → `determine_generation_payment` → при отказе `402` → mock image → `consume_generation` (Supabase) → расширенный ответ:
+
+- `image_url`, `prompt`
+- `payment_type` (`free` / `paid`)
+- `credit_consumed: true`
+- `remaining_free_generations`, `remaining_paid_credits`
+
+Ошибки: пустой prompt → `400`; нет `TEST_USER_ID` → `500`; профиль не найден → `404`; нет генераций → `402`.
+
+#### Пример (режим disabled)
 
 ```bash
 curl -X POST http://127.0.0.1:8000/generate ^
@@ -139,13 +167,15 @@ curl -X POST http://127.0.0.1:8000/generate ^
   -d "{\"prompt\": \"a sunset over mountains\"}"
 ```
 
-Ответ:
-
 ```json
 {
   "image_url": "https://placehold.co/1024x1024?text=Generated+Image",
-  "prompt": "a sunset over mountains"
+  "prompt": "a sunset over mountains",
+  "payment_type": null,
+  "credit_consumed": false,
+  "remaining_free_generations": null,
+  "remaining_paid_credits": null
 }
 ```
 
-Пустой prompt (после trim) → `400` с телом `{"detail": "Prompt cannot be empty"}`.
+Пустой prompt (после trim) → `400` с `{"detail": "Prompt cannot be empty"}`.
