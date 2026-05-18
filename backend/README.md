@@ -93,6 +93,7 @@ app/
 | GET | `/debug/profile` | Профиль по `TEST_USER_ID` (**только разработка**) |
 | GET | `/debug/credits` | Решение free/paid без списания (**только разработка**) |
 | POST | `/debug/consume-generation` | Тестовое списание в Supabase (**только разработка**) |
+| POST | `/debug/add-credits` | Ручное начисление paid credits (**только разработка**) |
 | POST | `/generate` | Mock-генерация изображения по prompt |
 
 ### GET /debug/supabase (временный)
@@ -130,6 +131,24 @@ app/
 Успех: `{"status": "ok", "decision": {...}, "result": {"profile", "generation", "transaction"}}`.
 
 **Перед production** удалить или защитить.
+
+### POST /debug/add-credits (временный)
+
+**Реально изменяет Supabase:** увеличивает `profiles.paid_credits` для `TEST_USER_ID` и пишет запись в `credit_transactions` (`admin_adjustment` / `admin`).
+
+Тело запроса:
+
+```json
+{
+  "amount": 25,
+  "description": "Test pack"
+}
+```
+
+- `amount <= 0` → `400` — `"Amount must be positive"`
+- Успех → `{"status": "ok", "result": {"profile", "transaction"}}`
+
+**Только для development.** Удалить или защитить перед production (не замена RuStore Billing).
 
 ### POST /generate
 

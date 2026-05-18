@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 
 
+class AddCreditsRequest(BaseModel):
+    amount: int
+    description: str | None = None
+
+
 class GenerateRequest(BaseModel):
     prompt: str
 

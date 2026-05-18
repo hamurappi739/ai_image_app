@@ -85,3 +85,24 @@ def consume_generation(
         "generation": generation,
         "transaction": transaction,
     }
+
+
+def add_paid_credits(
+    profile: dict, amount: int, description: str | None = None
+) -> dict:
+    if amount <= 0:
+        raise RuntimeError("Amount must be positive")
+
+    user_id = profile["id"]
+    new_paid_credits = profile["paid_credits"] + amount
+    updated_profile = update_profile(user_id, {"paid_credits": new_paid_credits})
+    transaction = insert_credit_transaction(
+        {
+            "user_id": user_id,
+            "amount": amount,
+            "transaction_type": "admin_adjustment",
+            "source": "admin",
+            "description": description or "Manual paid credits adjustment",
+        }
+    )
+    return {"profile": updated_profile, "transaction": transaction}

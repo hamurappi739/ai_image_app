@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException
 
 from app.config import settings
-from app.schemas import GenerateRequest, GenerateResponse
+from app.schemas import AddCreditsRequest, GenerateRequest, GenerateResponse
 from app.services.image_service import generate_mock_image
 from app.services.credits_service import (
+    add_paid_credits,
     consume_generation,
     determine_generation_payment,
 )
@@ -83,6 +84,25 @@ def debug_consume_generation():
         raise HTTPException(status_code=500, detail=str(exc))
 
     return {"status": "ok", "decision": decision, "result": result}
+
+
+@app.post("/debug/add-credits")
+def debug_add_credits(request: AddCreditsRequest):
+    if request.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+    if not settings.test_user_id:
+        raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
+    try:
+        profile = get_profile_by_id(settings.test_user_id)
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail="Failed to fetch profile")
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    try:
+        result = add_paid_credits(profile, request.amount, request.description)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    return {"status": "ok", "result": result}
 
 
 @app.post("/generate", response_model=GenerateResponse)
