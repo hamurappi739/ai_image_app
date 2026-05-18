@@ -54,6 +54,14 @@ def check_supabase_connection() -> bool:
     raise RuntimeError("Supabase connection failed")
 
 
+def _fetch_supabase_list(url: str, error_message: str) -> list[dict]:
+    response = httpx.get(url, headers=_supabase_headers(), timeout=10.0)
+    if response.status_code not in (200, 206):
+        raise RuntimeError(error_message)
+    data = response.json()
+    return data if isinstance(data, list) else []
+
+
 def get_profile_by_id(user_id: str) -> dict | None:
     base_url = _require_supabase_config()
     url = (
@@ -71,6 +79,30 @@ def get_profile_by_id(user_id: str) -> dict | None:
     if not rows:
         return None
     return rows[0]
+
+
+def get_generations_by_user_id(user_id: str, limit: int = 10) -> list[dict]:
+    base_url = _require_supabase_config()
+    url = (
+        f"{base_url}/rest/v1/generations"
+        f"?user_id=eq.{quote(user_id, safe='')}"
+        "&select=id,prompt,image_url,payment_type,created_at"
+        "&order=created_at.desc"
+        f"&limit={limit}"
+    )
+    return _fetch_supabase_list(url, "Failed to fetch generations")
+
+
+def get_credit_transactions_by_user_id(user_id: str, limit: int = 10) -> list[dict]:
+    base_url = _require_supabase_config()
+    url = (
+        f"{base_url}/rest/v1/credit_transactions"
+        f"?user_id=eq.{quote(user_id, safe='')}"
+        "&select=id,amount,transaction_type,source,description,created_at"
+        "&order=created_at.desc"
+        f"&limit={limit}"
+    )
+    return _fetch_supabase_list(url, "Failed to fetch credit transactions")
 
 
 def update_profile(user_id: str, data: dict) -> dict:

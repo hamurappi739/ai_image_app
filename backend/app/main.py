@@ -8,7 +8,12 @@ from app.services.credits_service import (
     consume_generation,
     determine_generation_payment,
 )
-from app.services.supabase_service import check_supabase_connection, get_profile_by_id
+from app.services.supabase_service import (
+    check_supabase_connection,
+    get_credit_transactions_by_user_id,
+    get_generations_by_user_id,
+    get_profile_by_id,
+)
 
 app = FastAPI(title="AI Image Generator API")
 
@@ -52,6 +57,31 @@ def debug_credits():
         raise HTTPException(status_code=404, detail="Profile not found")
     decision = determine_generation_payment(profile, settings.free_generations_limit)
     return {"status": "ok", "profile": profile, "decision": decision}
+
+
+@app.get("/debug/history")
+def debug_history():
+    if not settings.test_user_id:
+        raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
+    try:
+        profile = get_profile_by_id(settings.test_user_id)
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail="Failed to fetch profile")
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    try:
+        generations = get_generations_by_user_id(settings.test_user_id, limit=10)
+        transactions = get_credit_transactions_by_user_id(
+            settings.test_user_id, limit=10
+        )
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail="Failed to fetch history")
+    return {
+        "status": "ok",
+        "profile": profile,
+        "generations": generations,
+        "credit_transactions": transactions,
+    }
 
 
 _DEBUG_MOCK_PROMPT = "debug test prompt"

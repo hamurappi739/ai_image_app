@@ -92,6 +92,7 @@ app/
 | GET | `/debug/supabase` | Проверка подключения к Supabase (**только разработка**) |
 | GET | `/debug/profile` | Профиль по `TEST_USER_ID` (**только разработка**) |
 | GET | `/debug/credits` | Решение free/paid без списания (**только разработка**) |
+| GET | `/debug/history` | История генераций и транзакций (**только разработка**) |
 | POST | `/debug/consume-generation` | Тестовое списание в Supabase (**только разработка**) |
 | POST | `/debug/add-credits` | Ручное начисление paid credits (**только разработка**) |
 | POST | `/generate` | Mock-генерация изображения по prompt |
@@ -119,6 +120,14 @@ app/
 Успех: `{"status": "ok", "profile": {...}, "decision": {"allowed": ..., "payment_type": ..., "reason": ...}}`.
 
 **Перед production** удалить или защитить вместе с остальными `/debug/*` routes.
+
+### GET /debug/history (временный)
+
+Только чтение: последние 10 записей из `generations` и `credit_transactions` для `TEST_USER_ID`, плюс текущий `profile`.
+
+Успех: `{"status": "ok", "profile": {...}, "generations": [...], "credit_transactions": [...]}`.
+
+**Development-only.** Удалить или защитить перед production.
 
 ### POST /debug/consume-generation (временный)
 
