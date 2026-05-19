@@ -70,6 +70,20 @@ uvicorn app.main:app --reload
 
 Сервер: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
+## CORS for Flutter web development
+
+Для **Flutter web** (`flutter run -d chrome`) backend отдаёт CORS-заголовки через `CORSMiddleware` в `app/main.py`.
+
+Текущие настройки (только **development**):
+
+- `allow_origins=["*"]`
+- `allow_credentials=False`
+- `allow_methods=["*"]`, `allow_headers=["*"]`
+
+Это нужно, потому что dev-сервер Flutter слушает случайный порт (`localhost:5173`, `8080`, и т.д.).
+
+**Перед production** замените `allow_origins=["*"]` на явный список доверенных origins (ваш домен, app URL). Не используйте `*` в prod.
+
 ## Структура
 
 ```

@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.schemas import AddCreditsRequest, GenerateRequest, GenerateResponse
@@ -16,6 +17,16 @@ from app.services.supabase_service import (
 )
 
 app = FastAPI(title="AI Image Generator API")
+
+# Development only: allow any origin so Flutter web (random localhost port) can call the API.
+# Before production, replace allow_origins=["*"] with an explicit list of trusted origins.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
