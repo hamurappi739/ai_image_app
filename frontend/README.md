@@ -20,10 +20,12 @@ uvicorn app.main:app --reload
 
 Single screen (`lib/main.dart`):
 
+- **Generation status** card (ready / credits left / demo mode)
 - Describe your image (multiline field, 3–6 lines)
 - Quick idea chips → fill the field
 - **Generate image** → `POST /generate` via `ApiService`
-- Result: `Image.network` + credits block when `creditConsumed` is true
+- Square image result card with loading and error states
+- **No generations** warning card + SnackBar on HTTP 402
 
 Light premium style, English copy. No Supabase / payments / auth yet.
 
