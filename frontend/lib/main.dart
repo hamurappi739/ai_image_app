@@ -73,10 +73,7 @@ class _MainShellState extends State<MainShell> {
       title: 'History',
       message: 'Your generated images will appear here',
     ),
-    _PlaceholderScreen(
-      title: 'Credits',
-      message: 'Credit packages and balance will be added here',
-    ),
+    CreditsScreen(),
     _PlaceholderScreen(
       title: 'Settings',
       message: 'App settings will be added here',
@@ -118,6 +115,211 @@ class _MainShellState extends State<MainShell> {
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Settings',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CreditsScreen extends StatelessWidget {
+  const CreditsScreen({super.key});
+
+  static const _packages = [
+    (
+      title: 'Starter',
+      generations: 25,
+      price: '199 ₽',
+      description: 'Best for trying ideas',
+      popular: false,
+    ),
+    (
+      title: 'Creator',
+      generations: 100,
+      price: '599 ₽',
+      description: 'Most popular',
+      popular: true,
+    ),
+    (
+      title: 'Pro',
+      generations: 250,
+      price: '1190 ₽',
+      description: 'Best value',
+      popular: false,
+    ),
+  ];
+
+  void _showPaymentsLaterSnackBar(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Payments will be added later'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: AiImageGeneratorApp.scaffoldBackground,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Credits', style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 6),
+              Text(
+                'Buy generation packs and continue creating images',
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
+              _SoftCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Current balance', style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Free generations: Coming soon',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Paid credits: Coming soon',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Balance will be synced after authentication is added.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+              Text('Credit packages', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 16),
+              ..._packages.map(
+                (package) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _CreditPackageCard(
+                    title: package.title,
+                    generations: package.generations,
+                    price: package.price,
+                    description: package.description,
+                    popular: package.popular,
+                    onComingSoon: () => _showPaymentsLaterSnackBar(context),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CreditPackageCard extends StatelessWidget {
+  const _CreditPackageCard({
+    required this.title,
+    required this.generations,
+    required this.price,
+    required this.description,
+    required this.popular,
+    required this.onComingSoon,
+  });
+
+  final String title;
+  final int generations;
+  final String price;
+  final String description;
+  final bool popular;
+  final VoidCallback onComingSoon;
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(title, style: theme.textTheme.titleMedium),
+              ),
+              if (popular)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Popular',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$generations generations',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AiImageGeneratorApp.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            price,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontSize: 22,
+              color: _accentColor,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(description, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: OutlinedButton(
+              onPressed: onComingSoon,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AiImageGeneratorApp.textSecondary,
+                side: BorderSide(color: Colors.grey.shade300),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Coming soon',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
           ),
         ],
       ),

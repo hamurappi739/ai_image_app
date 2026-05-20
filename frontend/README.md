@@ -25,8 +25,18 @@ Bottom navigation with 5 tabs:
 | **Create** | Working — image generation via `ApiService` |
 | Templates | Placeholder |
 | History | Placeholder |
-| Credits | Placeholder |
+| **Credits** | UI stub — balance + 3 credit packages (no real payments) |
 | Settings | Placeholder |
+
+## Credits tab
+
+UI placeholder for future RuStore / in-app purchases:
+
+- Current balance card (Coming soon)
+- **Starter** (25 / 199 ₽), **Creator** (100 / 599 ₽, Popular badge), **Pro** (250 / 1190 ₽)
+- **Coming soon** buttons → SnackBar *Payments will be added later*
+
+Real billing is **not** connected yet.
 
 ## Create tab
 
