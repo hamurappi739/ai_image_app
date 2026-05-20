@@ -46,19 +46,125 @@ class AiImageGeneratorApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: const MainShell(),
     );
   }
 }
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class MainShell extends StatefulWidget {
+  const MainShell({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<MainShell> createState() => _MainShellState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _MainShellState extends State<MainShell> {
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  int _selectedIndex = 0;
+
+  static const _screens = <Widget>[
+    CreateScreen(),
+    _PlaceholderScreen(
+      title: 'Templates',
+      message: 'Prompt templates will be added here',
+    ),
+    _PlaceholderScreen(
+      title: 'History',
+      message: 'Your generated images will appear here',
+    ),
+    _PlaceholderScreen(
+      title: 'Credits',
+      message: 'Credit packages and balance will be added here',
+    ),
+    _PlaceholderScreen(
+      title: 'Settings',
+      message: 'App settings will be added here',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _selectedIndex,
+        selectedItemColor: _accentColor,
+        unselectedItemColor: AiImageGeneratorApp.textSecondary,
+        backgroundColor: Colors.white,
+        elevation: 8,
+        onTap: (index) => setState(() => _selectedIndex = index),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.auto_awesome),
+            label: 'Create',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.grid_view),
+            label: 'Templates',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'History',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet),
+            label: 'Credits',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlaceholderScreen extends StatelessWidget {
+  const _PlaceholderScreen({
+    required this.title,
+    required this.message,
+  });
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: AiImageGeneratorApp.scaffoldBackground,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 12),
+              Text(message, style: theme.textTheme.bodyMedium),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class CreateScreen extends StatefulWidget {
+  const CreateScreen({super.key});
+
+  @override
+  State<CreateScreen> createState() => _CreateScreenState();
+}
+
+class _CreateScreenState extends State<CreateScreen> {
   static const _quickIdeas = [
     'Cyberpunk cat',
     'Cozy cabin',
@@ -140,6 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: AiImageGeneratorApp.scaffoldBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),

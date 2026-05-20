@@ -1,6 +1,6 @@
 # Frontend
 
-Flutter MVP UI for **AI Image Generator** (Android / iOS).
+Flutter MVP UI for **AI Image Generator** (Android / iOS / Web).
 
 ## Backend
 
@@ -16,18 +16,24 @@ uvicorn app.main:app --reload
 | Web / Chrome | `http://127.0.0.1:8000` |
 | Android emulator | `http://10.0.2.2:8000` |
 
-Выбор URL автоматический (`kIsWeb` в `api_service.dart`).
+## Navigation
 
-## UI (MVP)
+Bottom navigation with 5 tabs:
 
-Single screen (`lib/main.dart`):
+| Tab | Status |
+|-----|--------|
+| **Create** | Working — image generation via `ApiService` |
+| Templates | Placeholder |
+| History | Placeholder |
+| Credits | Placeholder |
+| Settings | Placeholder |
 
-- **Generation status** card (ready / credits left / demo mode)
-- Describe your image (multiline field, 3–6 lines)
-- Quick idea chips → fill the field
-- **Generate image** → `POST /generate` via `ApiService`
-- Square image result card with loading and error states
-- **No generations** warning card + SnackBar on HTTP 402
+## Create tab
+
+- **Generation status** card
+- Describe your image + quick idea chips
+- **Generate image** → `POST /generate`
+- Square result card, no-generations warning on 402
 
 Light premium style, English copy. No Supabase / payments / auth yet.
 
@@ -48,7 +54,7 @@ flutter test
 
 ```
 lib/
-├── main.dart
+├── main.dart              # Shell + Create tab + placeholders
 └── services/
     └── api_service.dart
 ```
