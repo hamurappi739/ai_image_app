@@ -23,20 +23,28 @@ Bottom navigation with 5 tabs:
 | Tab | Status |
 |-----|--------|
 | **Create** | Working — image generation via `ApiService` |
-| Templates | Placeholder |
+| **Photoshoots** | UI stub — 3 free + 5 paid photo sets (no backend / no payment) |
 | History | Placeholder |
-| **Credits** | UI stub — balance + 3 credit packages (no real payments) |
+| **Credits** | UI stub — generation packages (no real payments) |
 | Settings | Placeholder |
+
+## Photoshoots tab
+
+Former **Templates** tab. Ready-made **photo sets** (3 images per theme):
+
+- Info card: upload and payments coming later
+- **Free:** Studio, Business, Cozy Home → **Try free**
+- **Paid (100 ₽):** Luxury, Winter, City, Evening Dress, Travel → **Pay later**
+
+SnackBars only — no API calls, no navigation to Create. Real uploads and RuStore billing later.
 
 ## Credits tab
 
-UI placeholder for future RuStore / in-app purchases:
+UI placeholder for future in-app purchases:
 
 - Current balance card (Coming soon)
-- **Starter** (25 / 199 ₽), **Creator** (100 / 599 ₽, Popular badge), **Pro** (250 / 1190 ₽)
-- **Coming soon** buttons → SnackBar *Payments will be added later*
-
-Real billing is **not** connected yet.
+- **Starter** (25 / 199 ₽), **Creator** (100 / 599 ₽, Popular), **Pro** (250 / 1190 ₽)
+- **Coming soon** → SnackBar *Payments will be added later*
 
 ## Create tab
 
@@ -45,7 +53,7 @@ Real billing is **not** connected yet.
 - **Generate image** → `POST /generate`
 - Square result card, no-generations warning on 402
 
-Light premium style, English copy. No Supabase / payments / auth yet.
+Light premium style, English copy. No Supabase / auth yet.
 
 ## Run
 
@@ -64,7 +72,7 @@ flutter test
 
 ```
 lib/
-├── main.dart              # Shell + Create tab + placeholders
+├── main.dart              # Shell, Create, Photoshoots, Credits, placeholders
 └── services/
     └── api_service.dart
 ```

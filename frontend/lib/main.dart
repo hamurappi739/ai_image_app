@@ -65,10 +65,7 @@ class _MainShellState extends State<MainShell> {
 
   static const _screens = <Widget>[
     CreateScreen(),
-    _PlaceholderScreen(
-      title: 'Templates',
-      message: 'Prompt templates will be added here',
-    ),
+    PhotoshootsScreen(),
     _PlaceholderScreen(
       title: 'History',
       message: 'Your generated images will appear here',
@@ -101,8 +98,8 @@ class _MainShellState extends State<MainShell> {
             label: 'Create',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view),
-            label: 'Templates',
+            icon: Icon(Icons.photo_camera),
+            label: 'Photoshoots',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
@@ -320,6 +317,257 @@ class _CreditPackageCard extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PhotoshootsScreen extends StatelessWidget {
+  const PhotoshootsScreen({super.key});
+
+  static const _photoshoots = [
+    (
+      title: 'Studio Portrait',
+      description: 'Clean studio look with soft light',
+      isFree: true,
+    ),
+    (
+      title: 'Business Portrait',
+      description: 'Professional portrait for work and social media',
+      isFree: true,
+    ),
+    (
+      title: 'Cozy Home Portrait',
+      description: 'Warm home atmosphere with natural light',
+      isFree: true,
+    ),
+    (
+      title: 'Luxury Portrait',
+      description: 'Premium elegant look with cinematic lighting',
+      isFree: false,
+    ),
+    (
+      title: 'Winter Photoshoot',
+      description: 'Snowy outdoor atmosphere with soft winter colors',
+      isFree: false,
+    ),
+    (
+      title: 'City Portrait',
+      description: 'Modern city background with stylish lighting',
+      isFree: false,
+    ),
+    (
+      title: 'Evening Dress',
+      description: 'Elegant evening look with a premium background',
+      isFree: false,
+    ),
+    (
+      title: 'Travel Portrait',
+      description: 'Vacation-style portraits in beautiful locations',
+      isFree: false,
+    ),
+  ];
+
+  void _showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: AiImageGeneratorApp.scaffoldBackground,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Photoshoots', style: theme.textTheme.headlineSmall),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Choose a ready-made style and get a set of images',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 24),
+                  _SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Simple photo sets',
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Pick a style, upload your photo later, and get 3 images in one theme.',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Payments and uploads will be added later.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 13,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ..._photoshoots.map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _PhotoshootCard(
+                        title: item.title,
+                        description: item.description,
+                        isFree: item.isFree,
+                        onAction: () {
+                          if (item.isFree) {
+                            _showSnackBar(
+                              context,
+                              'Photoshoot generation will be added later',
+                            );
+                          } else {
+                            _showSnackBar(
+                              context,
+                              'Payment for photoshoots will be added later',
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PhotoshootCard extends StatelessWidget {
+  const _PhotoshootCard({
+    required this.title,
+    required this.description,
+    required this.isFree,
+    required this.onAction,
+  });
+
+  final String title;
+  final String description;
+  final bool isFree;
+  final VoidCallback onAction;
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final badgeLabel = isFree ? 'Free' : '100 ₽';
+    final badgeColor = isFree
+        ? const Color(0xFFE8F5E9)
+        : const Color(0xFFEDE9FF);
+    final badgeTextColor =
+        isFree ? const Color(0xFF2E7D32) : _accentColor;
+
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(title, style: theme.textTheme.titleMedium),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: badgeColor,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  badgeLabel,
+                  style: TextStyle(
+                    color: badgeTextColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '3 photos',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AiImageGeneratorApp.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(description, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: isFree
+                ? DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: onAction,
+                        borderRadius: BorderRadius.circular(12),
+                        child: const Center(
+                          child: Text(
+                            'Try free',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : OutlinedButton(
+                    onPressed: onAction,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _accentColor,
+                      side: const BorderSide(color: _accentColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Pay later',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
           ),
         ],
       ),
