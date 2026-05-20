@@ -7,6 +7,8 @@ void main() {
 
     expect(find.text('AI Image Generator'), findsOneWidget);
     expect(find.text('Create images from your ideas'), findsOneWidget);
+    expect(find.text('Generation status'), findsOneWidget);
+    expect(find.text('Ready to create'), findsOneWidget);
     expect(find.text('Describe your image...'), findsOneWidget);
     expect(find.text('Generate image'), findsOneWidget);
     expect(find.text('Try an idea'), findsOneWidget);
