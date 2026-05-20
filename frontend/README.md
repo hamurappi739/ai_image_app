@@ -11,10 +11,12 @@ cd backend
 uvicorn app.main:app --reload
 ```
 
-| Platform | `ApiService.baseUrl` in `lib/services/api_service.dart` |
-|----------|--------------------------------------------------------|
-| iOS simulator, desktop | `http://127.0.0.1:8000` |
+| Platform | `ApiService.baseUrl` |
+|----------|----------------------|
+| Web / Chrome | `http://127.0.0.1:8000` |
 | Android emulator | `http://10.0.2.2:8000` |
+
+Выбор URL автоматический (`kIsWeb` в `api_service.dart`).
 
 ## UI (MVP)
 

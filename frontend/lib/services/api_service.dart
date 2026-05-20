@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class GenerateImageResponse {
@@ -32,7 +33,12 @@ class GenerateImageResponse {
 }
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://127.0.0.1:8000';
+    }
+    return 'http://10.0.2.2:8000';
+  }
 
   Future<GenerateImageResponse> generateImage(String prompt) async {
     final uri = Uri.parse('$baseUrl/generate');
