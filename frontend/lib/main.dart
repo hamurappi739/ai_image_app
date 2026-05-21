@@ -66,10 +66,7 @@ class _MainShellState extends State<MainShell> {
   static const _screens = <Widget>[
     CreateScreen(),
     PhotoshootsScreen(),
-    _PlaceholderScreen(
-      title: 'History',
-      message: 'Your generated images will appear here',
-    ),
+    GalleryScreen(),
     PacksScreen(),
     _PlaceholderScreen(
       title: 'Settings',
@@ -102,8 +99,8 @@ class _MainShellState extends State<MainShell> {
             label: 'Photoshoots',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
+            icon: Icon(Icons.photo_library),
+            label: 'Gallery',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_bag),
@@ -573,6 +570,82 @@ class _PhotoshootCard extends StatelessWidget {
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class GalleryScreen extends StatelessWidget {
+  const GalleryScreen({super.key});
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: AiImageGeneratorApp.scaffoldBackground,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Gallery', style: theme.textTheme.headlineSmall),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Your generated images will appear here',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 28),
+                  _SoftCard(
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEDE9FF),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.photo_library_outlined,
+                            size: 36,
+                            color: _accentColor,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'No images yet',
+                          style: theme.textTheme.titleMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Create your first image or photoshoot to see it here.',
+                          style: theme.textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Generated images will be saved here after user accounts and storage are added.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

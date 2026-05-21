@@ -24,7 +24,7 @@ Bottom navigation with 5 tabs:
 |-----|--------|
 | **Create** | Working — image generation via `ApiService` |
 | **Photoshoots** | UI stub — free + paid photo sets |
-| History | Placeholder |
+| **Gallery** | Placeholder — your generated images (history later) |
 | **Packs** | UI stub — generation packs (no credits/tokens in UI) |
 | Settings | Placeholder |
 
@@ -43,6 +43,13 @@ Real RuStore billing not connected.
 ## Photoshoots tab
 
 Ready-made photo sets (3 images per theme): 3 free + 5 paid (100 ₽) placeholders.
+
+## Gallery tab
+
+Former **History** tab. Placeholder for saved **generated images**:
+
+- Empty state: *No images yet*
+- Real gallery / Supabase history will be connected later
 
 ## Create tab
 
