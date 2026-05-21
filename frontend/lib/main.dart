@@ -70,7 +70,7 @@ class _MainShellState extends State<MainShell> {
       title: 'History',
       message: 'Your generated images will appear here',
     ),
-    CreditsScreen(),
+    PacksScreen(),
     _PlaceholderScreen(
       title: 'Settings',
       message: 'App settings will be added here',
@@ -106,8 +106,8 @@ class _MainShellState extends State<MainShell> {
             label: 'History',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet),
-            label: 'Credits',
+            icon: Icon(Icons.shopping_bag),
+            label: 'Packs',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
@@ -119,8 +119,8 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-class CreditsScreen extends StatelessWidget {
-  const CreditsScreen({super.key});
+class PacksScreen extends StatelessWidget {
+  const PacksScreen({super.key});
 
   static const _packages = [
     (
@@ -133,14 +133,14 @@ class CreditsScreen extends StatelessWidget {
     (
       title: 'Creator',
       generations: 100,
-      price: '599 ₽',
+      price: '499 ₽',
       description: 'Most popular',
       popular: true,
     ),
     (
       title: 'Pro',
       generations: 250,
-      price: '1190 ₽',
+      price: '1199 ₽',
       description: 'Best value',
       popular: false,
     ),
@@ -168,10 +168,10 @@ class CreditsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Credits', style: theme.textTheme.headlineSmall),
+              Text('Packs', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'Buy generation packs and continue creating images',
+                'Buy generation packs when you need more images',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 24),
@@ -179,7 +179,10 @@ class CreditsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Current balance', style: theme.textTheme.titleMedium),
+                    Text(
+                      'Available generations',
+                      style: theme.textTheme.titleMedium,
+                    ),
                     const SizedBox(height: 12),
                     Text(
                       'Free generations: Coming soon',
@@ -187,7 +190,7 @@ class CreditsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Paid credits: Coming soon',
+                      'Paid generations: Coming soon',
                       style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 12),
@@ -202,12 +205,12 @@ class CreditsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 28),
-              Text('Credit packages', style: theme.textTheme.titleMedium),
+              Text('Generation packs', style: theme.textTheme.titleMedium),
               const SizedBox(height: 16),
               ..._packages.map(
                 (package) => Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: _CreditPackageCard(
+                  child: _GenerationPackCard(
                     title: package.title,
                     generations: package.generations,
                     price: package.price,
@@ -225,8 +228,8 @@ class CreditsScreen extends StatelessWidget {
   }
 }
 
-class _CreditPackageCard extends StatelessWidget {
-  const _CreditPackageCard({
+class _GenerationPackCard extends StatelessWidget {
+  const _GenerationPackCard({
     required this.title,
     required this.generations,
     required this.price,
@@ -668,7 +671,7 @@ class _CreateScreenState extends State<CreateScreen> {
       _showSnackBar('Describe your image first');
     } else if (message == 'No available generations') {
       setState(() => _showNoGenerationsWarning = true);
-      _showSnackBar('No generations left. Please buy credits.');
+      _showSnackBar('No generations left. Please buy a pack.');
     } else {
       _showSnackBar('Something went wrong. Please try again.');
     }
@@ -801,17 +804,25 @@ class _StatusCard extends StatelessWidget {
             Text('Ready to create', style: theme.textTheme.bodyMedium)
           else if (response!.creditConsumed) ...[
             Text(
+              'Generations updated',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AiImageGeneratorApp.textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
               'Free left: ${response!.remainingFreeGenerations ?? 0}',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 4),
             Text(
-              'Paid left: ${response!.remainingPaidCredits ?? 0}',
+              'Paid generations left: ${response!.remainingPaidCredits ?? 0}',
               style: theme.textTheme.bodyMedium,
             ),
           ] else
             Text(
-              'Demo mode: credits are not consumed',
+              'Demo mode: generations are not consumed',
               style: theme.textTheme.bodyMedium,
             ),
         ],
@@ -847,7 +858,7 @@ class _NoGenerationsWarningCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Buy credits to continue creating images',
+            'Buy a generation pack to continue creating images',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF9A5B00),
             ),

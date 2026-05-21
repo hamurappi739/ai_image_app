@@ -23,37 +23,32 @@ Bottom navigation with 5 tabs:
 | Tab | Status |
 |-----|--------|
 | **Create** | Working — image generation via `ApiService` |
-| **Photoshoots** | UI stub — 3 free + 5 paid photo sets (no backend / no payment) |
+| **Photoshoots** | UI stub — free + paid photo sets |
 | History | Placeholder |
-| **Credits** | UI stub — generation packages (no real payments) |
+| **Packs** | UI stub — generation packs (no credits/tokens in UI) |
 | Settings | Placeholder |
+
+User-facing copy uses **generations** and **packs**, not credits or tokens.
+
+## Packs tab
+
+Former **Credits** tab. **Generation packs** for advanced / custom flow:
+
+- **Available generations** (Coming soon)
+- **Starter** (25 / 199 ₽), **Creator** (100 / 499 ₽, Popular), **Pro** (250 / 1199 ₽)
+- **Coming soon** → SnackBar *Payments will be added later*
+
+Real RuStore billing not connected.
 
 ## Photoshoots tab
 
-Former **Templates** tab. Ready-made **photo sets** (3 images per theme):
-
-- Info card: upload and payments coming later
-- **Free:** Studio, Business, Cozy Home → **Try free**
-- **Paid (100 ₽):** Luxury, Winter, City, Evening Dress, Travel → **Pay later**
-
-SnackBars only — no API calls, no navigation to Create. Real uploads and RuStore billing later.
-
-## Credits tab
-
-UI placeholder for future in-app purchases:
-
-- Current balance card (Coming soon)
-- **Starter** (25 / 199 ₽), **Creator** (100 / 599 ₽, Popular), **Pro** (250 / 1190 ₽)
-- **Coming soon** → SnackBar *Payments will be added later*
+Ready-made photo sets (3 images per theme): 3 free + 5 paid (100 ₽) placeholders.
 
 ## Create tab
 
-- **Generation status** card
-- Describe your image + quick idea chips
-- **Generate image** → `POST /generate`
-- Square result card, no-generations warning on 402
-
-Light premium style, English copy. No Supabase / auth yet.
+- **Generation status** — generations updated, free / paid generations left
+- Describe your image + chips → `POST /generate`
+- No-generations state → buy a **pack** (no “credits” wording)
 
 ## Run
 
@@ -72,7 +67,7 @@ flutter test
 
 ```
 lib/
-├── main.dart              # Shell, Create, Photoshoots, Credits, placeholders
+├── main.dart
 └── services/
     └── api_service.dart
 ```
