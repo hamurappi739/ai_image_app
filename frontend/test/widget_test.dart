@@ -5,13 +5,16 @@ void main() {
   testWidgets('shows generate screen', (WidgetTester tester) async {
     await tester.pumpWidget(const AiImageGeneratorApp());
 
-    expect(find.text('AI Image Generator'), findsOneWidget);
-    expect(find.text('Create images from your ideas'), findsOneWidget);
-    expect(find.text('Generation status'), findsOneWidget);
-    expect(find.text('Ready to create'), findsOneWidget);
-    expect(find.text('Describe your image...'), findsOneWidget);
-    expect(find.text('Generate image'), findsOneWidget);
-    expect(find.text('Try an idea'), findsOneWidget);
-    expect(find.text('Cyberpunk cat'), findsOneWidget);
+    expect(find.text('AI Фотогенератор'), findsOneWidget);
+    expect(
+      find.text('Создавайте изображения по вашему описанию'),
+      findsOneWidget,
+    );
+    expect(find.text('Статус генераций'), findsOneWidget);
+    expect(find.text('Готово к созданию'), findsOneWidget);
+    expect(find.text('Например: портрет в деловом стиле'), findsOneWidget);
+    expect(find.text('Создать изображение'), findsOneWidget);
+    expect(find.text('Попробуйте идею'), findsOneWidget);
+    expect(find.text('Создать'), findsOneWidget);
   });
 }

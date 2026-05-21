@@ -1,63 +1,46 @@
 # Frontend
 
-Flutter MVP UI for **AI Image Generator** (Android / iOS / Web).
+Flutter MVP UI для **AI Image Generator** (Android / iOS / Web).
+
+**Основной язык интерфейса:** русский.
 
 ## Backend
 
-Start the API before generating:
+Перед генерацией запустите API:
 
 ```bash
 cd backend
 uvicorn app.main:app --reload
 ```
 
-| Platform | `ApiService.baseUrl` |
+| Платформа | `ApiService.baseUrl` |
 |----------|----------------------|
 | Web / Chrome | `http://127.0.0.1:8000` |
 | Android emulator | `http://10.0.2.2:8000` |
 
-## Navigation
+## Навигация
 
-Bottom navigation with 5 tabs:
+Нижнее меню (5 вкладок):
 
-| Tab | Status |
-|-----|--------|
-| **Create** | Working — image generation via `ApiService` |
-| **Photoshoots** | UI stub — free + paid photo sets |
-| **Gallery** | Placeholder — your generated images (history later) |
-| **Packs** | UI stub — generation packs (no credits/tokens in UI) |
-| Settings | Placeholder |
+| Вкладка | Статус |
+|---------|--------|
+| **Создать** | Работает — `POST /generate` через `ApiService` |
+| **Фотосессии** | UI-заглушка — бесплатные и платные наборы |
+| **Галерея** | Заглушка — история изображений позже |
+| **Пакеты** | UI-заглушка — пакеты генераций (без слов credits/tokens) |
+| **Профиль** | Заглушка — настройки |
 
-User-facing copy uses **generations** and **packs**, not credits or tokens.
+## Создать
 
-## Packs tab
+- Статус генераций, поле описания, быстрые идеи
+- Кнопка **Создать изображение**
+- Результат и предупреждение при отсутствии генераций
 
-Former **Credits** tab. **Generation packs** for advanced / custom flow:
+## Фотосессии / Галерея / Пакеты
 
-- **Available generations** (Coming soon)
-- **Starter** (25 / 199 ₽), **Creator** (100 / 499 ₽, Popular), **Pro** (250 / 1199 ₽)
-- **Coming soon** → SnackBar *Payments will be added later*
+Заглушки под будущие фотосессии, галерею и RuStore. Оплата и аккаунты не подключены.
 
-Real RuStore billing not connected.
-
-## Photoshoots tab
-
-Ready-made photo sets (3 images per theme): 3 free + 5 paid (100 ₽) placeholders.
-
-## Gallery tab
-
-Former **History** tab. Placeholder for saved **generated images**:
-
-- Empty state: *No images yet*
-- Real gallery / Supabase history will be connected later
-
-## Create tab
-
-- **Generation status** — generations updated, free / paid generations left
-- Describe your image + chips → `POST /generate`
-- No-generations state → buy a **pack** (no “credits” wording)
-
-## Run
+## Запуск
 
 ```bash
 cd frontend

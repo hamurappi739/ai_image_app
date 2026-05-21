@@ -17,7 +17,7 @@ class AiImageGeneratorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AI Image Generator',
+      title: 'AI Фотогенератор',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -69,8 +69,8 @@ class _MainShellState extends State<MainShell> {
     GalleryScreen(),
     PacksScreen(),
     _PlaceholderScreen(
-      title: 'Settings',
-      message: 'App settings will be added here',
+      title: 'Профиль',
+      message: 'Настройки профиля будут добавлены позже',
     ),
   ];
 
@@ -92,23 +92,23 @@ class _MainShellState extends State<MainShell> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.auto_awesome),
-            label: 'Create',
+            label: 'Создать',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.photo_camera),
-            label: 'Photoshoots',
+            label: 'Фотосессии',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.photo_library),
-            label: 'Gallery',
+            label: 'Галерея',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_bag),
-            label: 'Packs',
+            label: 'Пакеты',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
-            label: 'Settings',
+            label: 'Профиль',
           ),
         ],
       ),
@@ -121,24 +121,24 @@ class PacksScreen extends StatelessWidget {
 
   static const _packages = [
     (
-      title: 'Starter',
+      title: 'Стартовый',
       generations: 25,
       price: '199 ₽',
-      description: 'Best for trying ideas',
+      description: 'Для первых идей',
       popular: false,
     ),
     (
-      title: 'Creator',
+      title: 'Авторский',
       generations: 100,
       price: '499 ₽',
-      description: 'Most popular',
+      description: 'Популярный',
       popular: true,
     ),
     (
-      title: 'Pro',
+      title: 'Профи',
       generations: 250,
       price: '1199 ₽',
-      description: 'Best value',
+      description: 'Выгодно',
       popular: false,
     ),
   ];
@@ -146,7 +146,7 @@ class PacksScreen extends StatelessWidget {
   void _showPaymentsLaterSnackBar(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Payments will be added later'),
+        content: const Text('Оплата будет добавлена позже'),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -165,10 +165,10 @@ class PacksScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Packs', style: theme.textTheme.headlineSmall),
+              Text('Пакеты', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'Buy generation packs when you need more images',
+                'Покупайте пакеты генераций, когда нужно больше изображений',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 24),
@@ -177,22 +177,22 @@ class PacksScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Available generations',
+                      'Доступные генерации',
                       style: theme.textTheme.titleMedium,
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Free generations: Coming soon',
+                      'Бесплатные генерации: скоро',
                       style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Paid generations: Coming soon',
+                      'Купленные генерации: скоро',
                       style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Balance will be synced after authentication is added.',
+                      'Баланс будет синхронизироваться после добавления аккаунта.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontSize: 13,
                         fontStyle: FontStyle.italic,
@@ -202,7 +202,7 @@ class PacksScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 28),
-              Text('Generation packs', style: theme.textTheme.titleMedium),
+              Text('Пакеты генераций', style: theme.textTheme.titleMedium),
               const SizedBox(height: 16),
               ..._packages.map(
                 (package) => Padding(
@@ -271,7 +271,7 @@ class _GenerationPackCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
-                    'Popular',
+                    'Популярный',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -283,7 +283,7 @@ class _GenerationPackCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '$generations generations',
+            '$generations генераций',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: AiImageGeneratorApp.textPrimary,
               fontWeight: FontWeight.w500,
@@ -313,7 +313,7 @@ class _GenerationPackCard extends StatelessWidget {
                 ),
               ),
               child: const Text(
-                'Coming soon',
+                'Скоро',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -329,43 +329,43 @@ class PhotoshootsScreen extends StatelessWidget {
 
   static const _photoshoots = [
     (
-      title: 'Studio Portrait',
-      description: 'Clean studio look with soft light',
+      title: 'Студийный портрет',
+      description: 'Чистый студийный свет и мягкий фон',
       isFree: true,
     ),
     (
-      title: 'Business Portrait',
-      description: 'Professional portrait for work and social media',
+      title: 'Деловой портрет',
+      description: 'Профессиональный портрет для работы и соцсетей',
       isFree: true,
     ),
     (
-      title: 'Cozy Home Portrait',
-      description: 'Warm home atmosphere with natural light',
+      title: 'Домашний портрет',
+      description: 'Тёплая домашняя атмосфера с естественным светом',
       isFree: true,
     ),
     (
-      title: 'Luxury Portrait',
-      description: 'Premium elegant look with cinematic lighting',
+      title: 'Премиум-портрет',
+      description: 'Элегантный образ с кинематографичным светом',
       isFree: false,
     ),
     (
-      title: 'Winter Photoshoot',
-      description: 'Snowy outdoor atmosphere with soft winter colors',
+      title: 'Зимняя фотосессия',
+      description: 'Снежная атмосфера с мягкими зимними оттенками',
       isFree: false,
     ),
     (
-      title: 'City Portrait',
-      description: 'Modern city background with stylish lighting',
+      title: 'Городской портрет',
+      description: 'Современный городской фон и стильный свет',
       isFree: false,
     ),
     (
-      title: 'Evening Dress',
-      description: 'Elegant evening look with a premium background',
+      title: 'Вечерний образ',
+      description: 'Элегантный вечерний образ с премиальным фоном',
       isFree: false,
     ),
     (
-      title: 'Travel Portrait',
-      description: 'Vacation-style portraits in beautiful locations',
+      title: 'Портрет в путешествии',
+      description: 'Портреты в красивых локациях в стиле отпуска',
       isFree: false,
     ),
   ];
@@ -395,10 +395,10 @@ class PhotoshootsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Photoshoots', style: theme.textTheme.headlineSmall),
+                  Text('Фотосессии', style: theme.textTheme.headlineSmall),
                   const SizedBox(height: 6),
                   Text(
-                    'Choose a ready-made style and get a set of images',
+                    'Выберите готовый стиль и получите серию изображений',
                     style: theme.textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 24),
@@ -407,17 +407,17 @@ class PhotoshootsScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Simple photo sets',
+                          'Готовые фотосессии',
                           style: theme.textTheme.titleMedium,
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Pick a style, upload your photo later, and get 3 images in one theme.',
+                          'Выберите стиль, позже загрузите фото и получите 3 изображения в одной теме.',
                           style: theme.textTheme.bodyMedium,
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Payments and uploads will be added later.',
+                          'Загрузка фото и оплата будут добавлены позже.',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontSize: 13,
                             fontStyle: FontStyle.italic,
@@ -438,12 +438,12 @@ class PhotoshootsScreen extends StatelessWidget {
                           if (item.isFree) {
                             _showSnackBar(
                               context,
-                              'Photoshoot generation will be added later',
+                              'Генерация фотосессий будет добавлена позже',
                             );
                           } else {
                             _showSnackBar(
                               context,
-                              'Payment for photoshoots will be added later',
+                              'Оплата фотосессий будет добавлена позже',
                             );
                           }
                         },
@@ -478,7 +478,7 @@ class _PhotoshootCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final badgeLabel = isFree ? 'Free' : '100 ₽';
+    final badgeLabel = isFree ? 'Бесплатно' : '100 ₽';
     final badgeColor = isFree
         ? const Color(0xFFE8F5E9)
         : const Color(0xFFEDE9FF);
@@ -517,7 +517,7 @@ class _PhotoshootCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '3 photos',
+            '3 фото',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: AiImageGeneratorApp.textPrimary,
               fontWeight: FontWeight.w500,
@@ -544,7 +544,7 @@ class _PhotoshootCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         child: const Center(
                           child: Text(
-                            'Try free',
+                            'Попробовать бесплатно',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w600,
@@ -564,7 +564,7 @@ class _PhotoshootCard extends StatelessWidget {
                       ),
                     ),
                     child: const Text(
-                      'Pay later',
+                      'Оплата позже',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -595,10 +595,10 @@ class GalleryScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Gallery', style: theme.textTheme.headlineSmall),
+                  Text('Галерея', style: theme.textTheme.headlineSmall),
                   const SizedBox(height: 6),
                   Text(
-                    'Your generated images will appear here',
+                    'Здесь появятся ваши созданные изображения',
                     style: theme.textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 28),
@@ -620,13 +620,13 @@ class GalleryScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          'No images yet',
+                          'Пока нет изображений',
                           style: theme.textTheme.titleMedium,
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Create your first image or photoshoot to see it here.',
+                          'Создайте первое изображение или фотосессию, чтобы увидеть его здесь.',
                           style: theme.textTheme.bodyMedium,
                           textAlign: TextAlign.center,
                         ),
@@ -635,7 +635,7 @@ class GalleryScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Generated images will be saved here after user accounts and storage are added.',
+                    'Изображения будут сохраняться здесь после добавления аккаунтов и хранения.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: 13,
                       fontStyle: FontStyle.italic,
@@ -715,7 +715,7 @@ class _CreateScreenState extends State<CreateScreen> {
   Future<void> _onGenerate() async {
     final text = _descriptionController.text.trim();
     if (text.isEmpty) {
-      _showSnackBar('Describe your image first');
+      _showSnackBar('Сначала опишите изображение');
       return;
     }
 
@@ -741,12 +741,14 @@ class _CreateScreenState extends State<CreateScreen> {
 
   void _handleError(String message) {
     if (message == 'Prompt cannot be empty') {
-      _showSnackBar('Describe your image first');
+      _showSnackBar('Сначала опишите изображение');
     } else if (message == 'No available generations') {
       setState(() => _showNoGenerationsWarning = true);
-      _showSnackBar('No generations left. Please buy a pack.');
+      _showSnackBar(
+        'Генерации закончились. Купите пакет, чтобы продолжить.',
+      );
     } else {
-      _showSnackBar('Something went wrong. Please try again.');
+      _showSnackBar('Что-то пошло не так. Попробуйте ещё раз.');
     }
   }
 
@@ -779,10 +781,10 @@ class _CreateScreenState extends State<CreateScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('AI Image Generator', style: theme.textTheme.headlineSmall),
+              Text('AI Фотогенератор', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'Create images from your ideas',
+                'Создавайте изображения по вашему описанию',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 20),
@@ -790,7 +792,7 @@ class _CreateScreenState extends State<CreateScreen> {
               const SizedBox(height: 20),
               _InputCard(controller: _descriptionController),
               const SizedBox(height: 24),
-              Text('Try an idea', style: theme.textTheme.titleMedium),
+              Text('Попробуйте идею', style: theme.textTheme.titleMedium),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
@@ -871,13 +873,13 @@ class _StatusCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Generation status', style: theme.textTheme.titleMedium),
+          Text('Статус генераций', style: theme.textTheme.titleMedium),
           const SizedBox(height: 10),
           if (response == null)
-            Text('Ready to create', style: theme.textTheme.bodyMedium)
+            Text('Готово к созданию', style: theme.textTheme.bodyMedium)
           else if (response!.creditConsumed) ...[
             Text(
-              'Generations updated',
+              'Генерации обновлены',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: AiImageGeneratorApp.textPrimary,
                 fontWeight: FontWeight.w500,
@@ -885,17 +887,17 @@ class _StatusCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Free left: ${response!.remainingFreeGenerations ?? 0}',
+              'Бесплатных осталось: ${response!.remainingFreeGenerations ?? 0}',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 4),
             Text(
-              'Paid generations left: ${response!.remainingPaidCredits ?? 0}',
+              'Купленных осталось: ${response!.remainingPaidCredits ?? 0}',
               style: theme.textTheme.bodyMedium,
             ),
           ] else
             Text(
-              'Demo mode: generations are not consumed',
+              'Демо-режим: генерации не списываются',
               style: theme.textTheme.bodyMedium,
             ),
         ],
@@ -921,7 +923,7 @@ class _NoGenerationsWarningCard extends StatelessWidget {
               Icon(Icons.info_outline, size: 20, color: Colors.orange.shade800),
               const SizedBox(width: 8),
               Text(
-                'No generations left',
+                'Генерации закончились',
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: const Color(0xFF9A5B00),
                   fontSize: 15,
@@ -931,7 +933,7 @@ class _NoGenerationsWarningCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Buy a generation pack to continue creating images',
+            'Купите пакет генераций, чтобы продолжить создавать изображения',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF9A5B00),
             ),
@@ -955,7 +957,7 @@ class _InputCard extends StatelessWidget {
         minLines: 3,
         maxLines: 6,
         decoration: InputDecoration(
-          hintText: 'Describe your image...',
+          hintText: 'Например: портрет в деловом стиле',
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 16),
           border: InputBorder.none,
           isDense: true,
@@ -1018,7 +1020,7 @@ class _GenerateButton extends StatelessWidget {
                       ),
                     )
                   : const Text(
-                      'Generate image',
+                      'Создать изображение',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 17,
@@ -1066,7 +1068,7 @@ class _ResultSection extends StatelessWidget {
                   alignment: Alignment.center,
                   padding: const EdgeInsets.all(24),
                   child: Text(
-                    'Image preview unavailable',
+                    'Превью изображения недоступно',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium,
                   ),
@@ -1077,7 +1079,7 @@ class _ResultSection extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Generated from: ${response.prompt}',
+          'Создано по описанию: ${response.prompt}',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AiImageGeneratorApp.textPrimary,
           ),
