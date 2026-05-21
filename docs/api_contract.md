@@ -126,20 +126,39 @@
 
 ---
 
-## 6. Flutter notes
+## 6. Flutter UI mapping
 
-- **Основной endpoint приложения:** `POST /generate`.
+Текущее Flutter-приложение (русский UI, нижняя навигация). См. [app_design_strategy.md](app_design_strategy.md).
+
+| Вкладка (RU) | Backend сейчас | Статус |
+|--------------|----------------|--------|
+| **Создать** | `POST /generate` через `ApiService.generateImage()` | **Работает** |
+| **Фотосессии** | — | UI-заглушка, **не** вызывает API |
+| **Галерея** | — | Placeholder, история позже |
+| **Пакеты** | — | UI-заглушка под будущую оплату (RuStore) |
+| **Профиль** | — | Placeholder |
+
+- **Production / release** Flutter **не должен** вызывать `/debug/*` (только ручная отладка backend).
+- **Фотосессии** и **Пакеты:** кнопки показывают SnackBar «будет добавлено позже», без записи в БД.
+- **Создать:** при `402` в UI — переход к идее покупки **пакета генераций** (не слово «кредиты»).
+
+---
+
+## 7. Flutter notes
+
+- **Основной рабочий endpoint:** `POST /generate` (вкладка **Создать**).
 - **Не вызывать** `/debug/*` из release-сборки.
-- **Не хранить и не встраивать** `SUPABASE_SERVICE_ROLE_KEY` во Flutter — только backend; клиент в будущем использует `SUPABASE_ANON_KEY` + Supabase Auth.
-- При **`HTTP 402`** показывать экран покупки / пополнения кредитов (RuStore Billing позже).
-- **`image_url`** сейчас ведёт на mock (`placehold.co`); позже — реальный URL (Gemini / Supabase Storage).
-- Для Android emulator укажите base URL `http://10.0.2.2:8000`, для остальных платформ в dev — `http://127.0.0.1:8000`.
-- Опционально: `GET /health` перед первым `POST /generate` для диагностики сети.
+- **Не хранить** `SUPABASE_SERVICE_ROLE_KEY` во Flutter.
+- При **`HTTP 402`** — сообщение про окончание генераций и экран **Пакеты** (позже RuStore).
+- Поля ответа `credit_consumed`, `remaining_paid_credits` — **технические**; в UI: «генерации обновлены», «бесплатных / купленных осталось» (см. [dev_notes.md](dev_notes.md)).
+- **`image_url`** — пока mock (`placehold.co`).
+- Base URL: Web `127.0.0.1:8000`, Android emulator `10.0.2.2:8000` (`ApiService` + `kIsWeb`).
+- Опционально: `GET /health` для проверки связи с backend.
 
 ---
 
 ## Связанные документы
 
 - [dev_notes.md](dev_notes.md) — debug endpoints и env
-- [product_strategy.md](product_strategy.md) — кредиты и пакеты
+- [product_strategy.md](product_strategy.md) — пакеты и фотосессии
 - `backend/README.md` — запуск сервера

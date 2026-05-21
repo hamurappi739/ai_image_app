@@ -66,7 +66,26 @@ curl -X POST http://127.0.0.1:8000/debug/add-credits \
 
 ---
 
-## 4. Current backend modes
+## 4. Flutter UI vs backend API
+
+- **Интерфейс Flutter** сейчас на **русском** (вкладки: Создать, Фотосессии, Галерея, Пакеты, Профиль).
+- **Backend API** (JSON-поля, `detail` ошибок, env) остаётся на **английском** — это нормально.
+- Технические поля ответа не показывать пользователю как есть:
+
+| API (внутреннее) | Показ в UI |
+|------------------|------------|
+| `credit_consumed` | Генерации обновлены / списание учтено |
+| `remaining_free_generations` | Бесплатных осталось |
+| `remaining_paid_credits` | Купленных осталось |
+| `paid_credits` (баланс) | Купленные генерации, осталось генераций |
+
+В UI **не** использовать слова credits, tokens, кредиты.
+
+Только вкладка **Создать** вызывает `POST /generate`. **Фотосессии**, **Галерея**, **Пакеты** — без backend (пока).
+
+---
+
+## 5. Current backend modes
 
 Флаг **`ENABLE_CREDIT_CONSUMPTION`** управляет `POST /generate`.
 
@@ -88,7 +107,7 @@ curl -X POST http://127.0.0.1:8000/debug/add-credits \
 
 ---
 
-## 5. Before production checklist
+## 6. Before production checklist
 
 - [ ] Удалить или защитить все **`/debug/*`** endpoints
 - [ ] Заменить логику **`TEST_USER_ID`** на реальную **аутентификацию** (Supabase JWT / session)
@@ -107,6 +126,6 @@ curl -X POST http://127.0.0.1:8000/debug/add-credits \
 ## Связанные документы
 
 - [database_schema.md](database_schema.md) — схема БД
-- [product_strategy.md](product_strategy.md) — продукт и кредиты
+- [product_strategy.md](product_strategy.md) — продукт и генерации
 - [roadmap.md](roadmap.md) — этапы проекта
 - `backend/README.md` — запуск API и описание endpoints
