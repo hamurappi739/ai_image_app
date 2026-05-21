@@ -324,48 +324,92 @@ class _GenerationPackCard extends StatelessWidget {
   }
 }
 
+class _PhotoshootStyle {
+  const _PhotoshootStyle({
+    required this.title,
+    required this.description,
+    required this.initials,
+    required this.icon,
+    required this.gradientColors,
+    required this.isFree,
+  });
+
+  final String title;
+  final String description;
+  final String initials;
+  final IconData icon;
+  final List<Color> gradientColors;
+  final bool isFree;
+}
+
 class PhotoshootsScreen extends StatelessWidget {
   const PhotoshootsScreen({super.key});
 
-  static const _photoshoots = [
-    (
+  static const _gridBreakpoint = 560.0;
+
+  static const _photoshoots = <_PhotoshootStyle>[
+    _PhotoshootStyle(
       title: 'Студийный портрет',
       description: 'Чистый студийный свет и мягкий фон',
+      initials: 'СП',
+      icon: Icons.portrait_outlined,
+      gradientColors: [Color(0xFFD8D4E8), Color(0xFFB8B0D4)],
       isFree: true,
     ),
-    (
+    _PhotoshootStyle(
       title: 'Деловой портрет',
       description: 'Профессиональный портрет для работы и соцсетей',
+      initials: 'ДП',
+      icon: Icons.business_center_outlined,
+      gradientColors: [Color(0xFFB8C8DC), Color(0xFF8EA4BE)],
       isFree: true,
     ),
-    (
+    _PhotoshootStyle(
       title: 'Домашний портрет',
       description: 'Тёплая домашняя атмосфера с естественным светом',
+      initials: 'ДМ',
+      icon: Icons.home_outlined,
+      gradientColors: [Color(0xFFF0E2D0), Color(0xFFD4B896)],
       isFree: true,
     ),
-    (
+    _PhotoshootStyle(
       title: 'Премиум-портрет',
       description: 'Элегантный образ с кинематографичным светом',
+      initials: 'ПР',
+      icon: Icons.diamond_outlined,
+      gradientColors: [Color(0xFFC8B0F0), Color(0xFF9070D8)],
       isFree: false,
     ),
-    (
+    _PhotoshootStyle(
       title: 'Зимняя фотосессия',
       description: 'Снежная атмосфера с мягкими зимними оттенками',
+      initials: 'ЗМ',
+      icon: Icons.ac_unit,
+      gradientColors: [Color(0xFFB8E4F8), Color(0xFF6CB8E8)],
       isFree: false,
     ),
-    (
+    _PhotoshootStyle(
       title: 'Городской портрет',
       description: 'Современный городской фон и стильный свет',
+      initials: 'ГР',
+      icon: Icons.location_city_outlined,
+      gradientColors: [Color(0xFFA8B8F0), Color(0xFF6878D0)],
       isFree: false,
     ),
-    (
+    _PhotoshootStyle(
       title: 'Вечерний образ',
       description: 'Элегантный вечерний образ с премиальным фоном',
+      initials: 'ВЧ',
+      icon: Icons.nightlife_outlined,
+      gradientColors: [Color(0xFF6A5098), Color(0xFF3A2868)],
       isFree: false,
     ),
-    (
+    _PhotoshootStyle(
       title: 'Портрет в путешествии',
       description: 'Портреты в красивых локациях в стиле отпуска',
+      initials: 'ПТ',
+      icon: Icons.flight_outlined,
+      gradientColors: [Color(0xFFB0E8D8), Color(0xFF58B8A8)],
       isFree: false,
     ),
   ];
@@ -380,6 +424,17 @@ class PhotoshootsScreen extends StatelessWidget {
     );
   }
 
+  void _onPhotoshootAction(BuildContext context, _PhotoshootStyle style) {
+    if (style.isFree) {
+      _showSnackBar(
+        context,
+        'Генерация фотосессий будет добавлена позже',
+      );
+    } else {
+      _showSnackBar(context, 'Оплата фотосессий будет добавлена позже');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -390,68 +445,46 @@ class PhotoshootsScreen extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Фотосессии', style: theme.textTheme.headlineSmall),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Выберите готовый стиль и получите серию изображений',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 24),
-                  _SoftCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Готовые фотосессии',
-                          style: theme.textTheme.titleMedium,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final columns =
+                    constraints.maxWidth >= _gridBreakpoint ? 2 : 1;
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Фотосессии', style: theme.textTheme.headlineSmall),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Выберите готовый стиль. Позже вы сможете загрузить фото и получить 3 изображения в одной теме.',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 24),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: columns == 2 ? 0.62 : 0.78,
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Выберите стиль, позже загрузите фото и получите 3 изображения в одной теме.',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Загрузка фото и оплата будут добавлены позже.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 13,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ..._photoshoots.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _PhotoshootCard(
-                        title: item.title,
-                        description: item.description,
-                        isFree: item.isFree,
-                        onAction: () {
-                          if (item.isFree) {
-                            _showSnackBar(
-                              context,
-                              'Генерация фотосессий будет добавлена позже',
-                            );
-                          } else {
-                            _showSnackBar(
-                              context,
-                              'Оплата фотосессий будет добавлена позже',
-                            );
-                          }
+                        itemCount: _photoshoots.length,
+                        itemBuilder: (context, index) {
+                          final style = _photoshoots[index];
+                          return _PhotoshootCard(
+                            style: style,
+                            onAction: () =>
+                                _onPhotoshootAction(context, style),
+                          );
                         },
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ),
@@ -462,15 +495,11 @@ class PhotoshootsScreen extends StatelessWidget {
 
 class _PhotoshootCard extends StatelessWidget {
   const _PhotoshootCard({
-    required this.title,
-    required this.description,
-    required this.isFree,
+    required this.style,
     required this.onAction,
   });
 
-  final String title;
-  final String description;
-  final bool isFree;
+  final _PhotoshootStyle style;
   final VoidCallback onAction;
 
   static const _accentColor = Color(0xFF5B6CFF);
@@ -478,98 +507,221 @@ class _PhotoshootCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final badgeLabel = isFree ? 'Бесплатно' : '100 ₽';
-    final badgeColor = isFree
-        ? const Color(0xFFE8F5E9)
-        : const Color(0xFFEDE9FF);
+    final badgeLabel = style.isFree ? 'Бесплатно' : '100 ₽';
+    final badgeColor =
+        style.isFree ? const Color(0xFFE8F5E9) : const Color(0xFFEDE9FF);
     final badgeTextColor =
-        isFree ? const Color(0xFF2E7D32) : _accentColor;
+        style.isFree ? const Color(0xFF2E7D32) : _accentColor;
+    final onDarkPreview = style.gradientColors.first.computeLuminance() < 0.45;
 
-    return _SoftCard(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(title, style: theme.textTheme.titleMedium),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: badgeColor,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  badgeLabel,
-                  style: TextStyle(
-                    color: badgeTextColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+          _PhotoshootPreview(
+            initials: style.initials,
+            icon: style.icon,
+            gradientColors: style.gradientColors,
+            onDark: onDarkPreview,
           ),
-          const SizedBox(height: 8),
-          Text(
-            '3 фото',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AiImageGeneratorApp.textPrimary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(description, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: isFree
-                ? DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        style.title,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontSize: 15,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: onAction,
-                        borderRadius: BorderRadius.circular(12),
-                        child: const Center(
-                          child: Text(
-                            'Попробовать бесплатно',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badgeColor,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        badgeLabel,
+                        style: TextStyle(
+                          color: badgeTextColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                  )
-                : OutlinedButton(
-                    onPressed: onAction,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _accentColor,
-                      side: const BorderSide(color: _accentColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Оплата позже',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '3 фото в одном стиле',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AiImageGeneratorApp.textPrimary,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
                   ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  style.description,
+                  style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 40,
+                  child: style.isFree
+                      ? DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: onAction,
+                              borderRadius: BorderRadius.circular(12),
+                              child: const Center(
+                                child: Text(
+                                  'Попробовать',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      : OutlinedButton(
+                          onPressed: onAction,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _accentColor,
+                            side: const BorderSide(color: _accentColor),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: const Text(
+                            'Оплата позже',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                ),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PhotoshootPreview extends StatelessWidget {
+  const _PhotoshootPreview({
+    required this.initials,
+    required this.icon,
+    required this.gradientColors,
+    required this.onDark,
+  });
+
+  final String initials;
+  final IconData icon;
+  final List<Color> gradientColors;
+  final bool onDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconColor = onDark ? Colors.white.withValues(alpha: 0.9) : Colors.white;
+    final initialsBg = onDark
+        ? Colors.white.withValues(alpha: 0.2)
+        : Colors.white.withValues(alpha: 0.35);
+    final initialsText = onDark ? Colors.white : AiImageGeneratorApp.textPrimary;
+
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradientColors,
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -12,
+              bottom: -16,
+              child: Icon(
+                icon,
+                size: 88,
+                color: (onDark ? Colors.white : Colors.black)
+                    .withValues(alpha: 0.08),
+              ),
+            ),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: initialsBg,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        initials,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: initialsText,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Icon(icon, size: 28, color: iconColor),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
