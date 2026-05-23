@@ -68,6 +68,17 @@ class GenerationHistoryItem {
   }
 }
 
+const _hiddenDevDescriptionPatterns = [
+  'debug test prompt',
+  'debug',
+  'test prompt',
+];
+
+bool _isHiddenDevGenerationDescription(String description) {
+  final lower = description.toLowerCase();
+  return _hiddenDevDescriptionPatterns.any((pattern) => lower.contains(pattern));
+}
+
 class ApiService {
   static String get baseUrl {
     if (kIsWeb) {
@@ -106,12 +117,15 @@ class ApiService {
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body) as Map<String, dynamic>;
       final rawList = json['generations'] as List<dynamic>? ?? [];
-      return rawList
+      final items = rawList
           .map(
             (item) => GenerationHistoryItem.fromJson(
               item as Map<String, dynamic>,
             ),
           )
+          .toList();
+      return items
+          .where((item) => !_isHiddenDevGenerationDescription(item.prompt))
           .toList();
     }
     throw Exception('Failed to fetch generations');

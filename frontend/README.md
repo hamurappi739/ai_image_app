@@ -53,7 +53,7 @@ uvicorn app.main:app --reload
 
 ## Галерея
 
-- При старте: `ApiService.fetchGenerations()` → `GET /generations` (тихо при ошибке backend)
+- При старте: `ApiService.fetchGenerations()` → `GET /generations` (тихо при ошибке backend); служебные debug-записи dev-истории скрываются
 - После генерации новый результат сразу добавляется **сверху** (локально)
 - Сетка карточек: preview, описание, время; responsive 1–3 колонки
 - Пустой список → empty state; кнопка **Создать первое изображение** → вкладка «Создать»
