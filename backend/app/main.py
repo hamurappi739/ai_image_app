@@ -1,8 +1,14 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.schemas import AddCreditsRequest, GenerateRequest, GenerateResponse
+from app.schemas import (
+    AddCreditsRequest,
+    GenerateRequest,
+    GenerateResponse,
+    GenerationItem,
+    GenerationsListResponse,
+)
 from app.services.image_service import generate_mock_image
 from app.services.credits_service import (
     add_paid_credits,
@@ -32,6 +38,20 @@ app.add_middleware(
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/generations", response_model=GenerationsListResponse)
+def list_generations(
+    limit: int = Query(default=20, ge=1, le=100, description="Max items to return"),
+):
+    if not settings.test_user_id:
+        raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
+    try:
+        rows = get_generations_by_user_id(settings.test_user_id, limit=limit)
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail="Failed to fetch generations")
+    generations = [GenerationItem.model_validate(row) for row in rows]
+    return GenerationsListResponse(generations=generations)
 
 
 @app.get("/debug/supabase")

@@ -103,6 +103,7 @@ app/
 | Метод | Путь | Описание |
 |-------|------|----------|
 | GET | `/health` | Проверка работоспособности |
+| GET | `/generations` | История генераций тестового пользователя (`TEST_USER_ID`) |
 | GET | `/debug/supabase` | Проверка подключения к Supabase (**только разработка**) |
 | GET | `/debug/profile` | Профиль по `TEST_USER_ID` (**только разработка**) |
 | GET | `/debug/credits` | Решение free/paid без списания (**только разработка**) |
@@ -110,6 +111,27 @@ app/
 | POST | `/debug/consume-generation` | Тестовое списание в Supabase (**только разработка**) |
 | POST | `/debug/add-credits` | Ручное начисление paid credits (**только разработка**) |
 | POST | `/generate` | Mock-генерация изображения по prompt |
+
+### GET /generations
+
+Список записей из таблицы `generations` для **`TEST_USER_ID`** (dev-mode, без JWT). Сортировка: новые сверху.
+
+Query: `limit` (по умолчанию **20**, минимум **1**, максимум **100**), например `GET /generations?limit=10`.
+
+Поля каждого элемента: `id`, `prompt`, `image_url`, `payment_type`, `created_at`.
+
+- Нет `TEST_USER_ID` → `500` — `"TEST_USER_ID is not configured"`
+- Ошибка Supabase → `500` — `"Failed to fetch generations"`
+- Нет записей → `200` — `{"generations": []}`
+
+Проверка:
+
+```bash
+curl -s "http://127.0.0.1:8000/generations"
+curl -s "http://127.0.0.1:8000/generations?limit=5"
+```
+
+В production позже: тот же endpoint с **auth user id** вместо `TEST_USER_ID`.
 
 ### GET /debug/supabase (временный)
 

@@ -94,7 +94,60 @@
 
 ---
 
-## 4. Response fields
+## 4. GET /generations
+
+**Назначение:** список ранее созданных генераций пользователя (история для вкладки **Галерея** / синхронизация с backend).
+
+**Query parameters:**
+
+| Параметр | Тип | По умолчанию | Описание |
+|----------|-----|--------------|----------|
+| `limit` | int | `20` | Сколько записей вернуть (мин. `1`, макс. `100`) |
+
+Примеры: `GET /generations`, `GET /generations?limit=10`.
+
+**Пользователь (сейчас):** без JWT. Backend читает историю для **`TEST_USER_ID`** из env (только development).  
+**Позже:** тот же endpoint с **id авторизованного пользователя** из Supabase Auth.
+
+**Response `200`:**
+
+```json
+{
+  "generations": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "prompt": "cat in cyberpunk city",
+      "image_url": "https://placehold.co/1024x1024?text=Generated+Image",
+      "payment_type": "free",
+      "created_at": "2026-05-21T12:34:56.789012+00:00"
+    }
+  ]
+}
+```
+
+| Поле (элемент) | Тип | Описание |
+|----------------|-----|----------|
+| `id` | string (uuid) | ID записи в `generations` |
+| `prompt` | string | Текст запроса при генерации |
+| `image_url` | string | URL результата |
+| `payment_type` | string | `"free"` или `"paid"` |
+| `created_at` | string (ISO 8601) | Время создания |
+
+Пустая история: `{"generations": []}` — это **нормальный** ответ, не ошибка.
+
+### Errors
+
+| HTTP | `detail` (пример) | Когда |
+|------|-------------------|--------|
+| `422` | validation error | `limit` &lt; 1 или &gt; 100 |
+| `500` | `TEST_USER_ID is not configured` | Нет тестового пользователя в env |
+| `500` | `Failed to fetch generations` | Ошибка Supabase REST |
+
+Записи появляются в таблице после `POST /generate` с `ENABLE_CREDIT_CONSUMPTION=true` или `POST /debug/consume-generation`.
+
+---
+
+## 5. POST /generate — response fields
 
 | Поле | Тип | Значения | Описание |
 |------|-----|----------|----------|
@@ -109,7 +162,7 @@
 
 ---
 
-## 5. Development-only endpoints
+## 6. Development-only endpoints
 
 **Не использовать во Flutter production.** Не документировать в публичном SDK приложения.
 
@@ -126,7 +179,7 @@
 
 ---
 
-## 6. Flutter UI mapping
+## 7. Flutter UI mapping
 
 Текущее Flutter-приложение (русский UI, нижняя навигация). См. [app_design_strategy.md](app_design_strategy.md).
 
@@ -134,7 +187,7 @@
 |--------------|----------------|--------|
 | **Создать** | `POST /generate` через `ApiService.generateImage()` | **Работает** |
 | **Фотосессии** | — | UI-заглушка, **не** вызывает API |
-| **Галерея** | — | Placeholder, история позже |
+| **Галерея** | `GET /generations` (позже) | Сейчас локальная история сессии во Flutter |
 | **Пакеты** | — | UI-заглушка под будущую оплату (RuStore) |
 | **Профиль** | — | Placeholder |
 
@@ -144,9 +197,10 @@
 
 ---
 
-## 7. Flutter notes
+## 8. Flutter notes
 
 - **Основной рабочий endpoint:** `POST /generate` (вкладка **Создать**).
+- **`GET /generations`** — для синхронизации галереи с backend после auth (пока не подключено во Flutter).
 - **Не вызывать** `/debug/*` из release-сборки.
 - **Не хранить** `SUPABASE_SERVICE_ROLE_KEY` во Flutter.
 - При **`HTTP 402`** — сообщение про окончание генераций и экран **Пакеты** (позже RuStore).
