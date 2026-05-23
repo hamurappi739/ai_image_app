@@ -116,32 +116,70 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
+class _GenerationPack {
+  const _GenerationPack({
+    required this.title,
+    required this.price,
+    required this.imageCount,
+    required this.description,
+    this.badge,
+    this.featured = false,
+  });
+
+  final String title;
+  final String price;
+  final int imageCount;
+  final String description;
+  final String? badge;
+  final bool featured;
+}
+
 class PacksScreen extends StatelessWidget {
   const PacksScreen({super.key});
 
-  static const _packages = [
-    (
+  static const _breakpointMedium = 560.0;
+  static const _breakpointWide = 900.0;
+
+  static const _packages = <_GenerationPack>[
+    _GenerationPack(
       title: 'Стартовый',
-      generations: 25,
       price: '199 ₽',
-      description: 'Для первых идей',
-      popular: false,
+      imageCount: 25,
+      description: 'Для первых идей и быстрых проб',
     ),
-    (
+    _GenerationPack(
       title: 'Авторский',
-      generations: 100,
       price: '499 ₽',
-      description: 'Популярный',
-      popular: true,
+      imageCount: 100,
+      description: 'Оптимальный выбор для регулярного создания',
+      badge: 'Популярный',
+      featured: true,
     ),
-    (
+    _GenerationPack(
       title: 'Профи',
-      generations: 250,
       price: '1199 ₽',
-      description: 'Выгодно',
-      popular: false,
+      imageCount: 250,
+      description: 'Максимум изображений по лучшей цене',
+      badge: 'Выгодно',
     ),
   ];
+
+  static int _columnCount(double width) {
+    if (width >= _breakpointWide) return 3;
+    if (width >= _breakpointMedium) return 2;
+    return 1;
+  }
+
+  static double _aspectRatio(int columns) {
+    switch (columns) {
+      case 3:
+        return 0.58;
+      case 2:
+        return 0.68;
+      default:
+        return 0.82;
+    }
+  }
 
   void _showPaymentsLaterSnackBar(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -160,64 +198,95 @@ class PacksScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AiImageGeneratorApp.scaffoldBackground,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Пакеты', style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 6),
-              Text(
-                'Покупайте пакеты генераций, когда нужно больше изображений',
-                style: theme.textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 24),
-              _SoftCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Доступные генерации',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Бесплатные генерации: скоро',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Купленные генерации: скоро',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Баланс будет синхронизироваться после добавления аккаунта.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 13,
-                        fontStyle: FontStyle.italic,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = _columnCount(constraints.maxWidth);
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Пакеты генераций',
+                        style: theme.textTheme.headlineSmall,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-              Text('Пакеты генераций', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 16),
-              ..._packages.map(
-                (package) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _GenerationPackCard(
-                    title: package.title,
-                    generations: package.generations,
-                    price: package.price,
-                    description: package.description,
-                    popular: package.popular,
-                    onComingSoon: () => _showPaymentsLaterSnackBar(context),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Покупайте пакеты, когда нужно больше изображений',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 24),
+                      _SoftCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEDE9FF),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.auto_awesome_outlined,
+                                    color: Color(0xFF5B6CFF),
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Всё просто',
+                                  style: theme.textTheme.titleMedium,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              '1 генерация = 1 изображение. Выберите пакет и создавайте изображения, когда захотите.',
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Оплата будет подключена позже.',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontSize: 13,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: _aspectRatio(columns),
+                        ),
+                        itemCount: _packages.length,
+                        itemBuilder: (context, index) {
+                          final pack = _packages[index];
+                          return _GenerationPackCard(
+                            pack: pack,
+                            onComingSoon: () =>
+                                _showPaymentsLaterSnackBar(context),
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                ),
-              ),
-            ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -227,94 +296,172 @@ class PacksScreen extends StatelessWidget {
 
 class _GenerationPackCard extends StatelessWidget {
   const _GenerationPackCard({
-    required this.title,
-    required this.generations,
-    required this.price,
-    required this.description,
-    required this.popular,
+    required this.pack,
     required this.onComingSoon,
   });
 
-  final String title;
-  final int generations;
-  final String price;
-  final String description;
-  final bool popular;
+  final _GenerationPack pack;
   final VoidCallback onComingSoon;
 
   static const _accentColor = Color(0xFF5B6CFF);
+  static const _featuredGradient = LinearGradient(
+    colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return _SoftCard(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: pack.featured
+            ? Border.all(
+                width: 2,
+                color: const Color(0xFF6B5CFF),
+              )
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: (pack.featured ? _accentColor : Colors.black)
+                .withValues(alpha: pack.featured ? 0.12 : 0.05),
+            blurRadius: pack.featured ? 28 : 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(title, style: theme.textTheme.titleMedium),
-              ),
-              if (popular)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
+          if (pack.featured)
+            Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: const BoxDecoration(gradient: _featuredGradient),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.star_rounded,
+                    size: 18,
+                    color: Colors.white.withValues(alpha: 0.95),
                   ),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Популярный',
-                    style: TextStyle(
+                  const SizedBox(width: 6),
+                  Text(
+                    pack.badge ?? 'Популярный',
+                    style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '$generations генераций',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AiImageGeneratorApp.textPrimary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            price,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontSize: 22,
-              color: _accentColor,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(description, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: OutlinedButton(
-              onPressed: onComingSoon,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AiImageGeneratorApp.textSecondary,
-                side: BorderSide(color: Colors.grey.shade300),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                ],
               ),
-              child: const Text(
-                'Скоро',
-                style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          pack.title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontSize: 17,
+                          ),
+                        ),
+                      ),
+                      if (pack.badge != null && !pack.featured)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            pack.badge!,
+                            style: const TextStyle(
+                              color: Color(0xFF2E7D32),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${pack.imageCount}',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w800,
+                      color: AiImageGeneratorApp.textPrimary,
+                      height: 1,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'изображений',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AiImageGeneratorApp.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    pack.price,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: _accentColor,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    pack.description,
+                    style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 42,
+                    child: OutlinedButton(
+                      onPressed: onComingSoon,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: pack.featured
+                            ? _accentColor
+                            : AiImageGeneratorApp.textSecondary,
+                        side: BorderSide(
+                          color: pack.featured
+                              ? _accentColor.withValues(alpha: 0.5)
+                              : Colors.grey.shade300,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Скоро',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
