@@ -67,6 +67,8 @@ class _MainShellState extends State<MainShell> {
 
   void _goToCreateTab() => setState(() => _selectedIndex = 0);
 
+  void _goToGalleryTab() => setState(() => _selectedIndex = 2);
+
   void _onImageGenerated(GeneratedImageItem item) {
     setState(() => _generatedImages.insert(0, item));
   }
@@ -74,7 +76,10 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final screens = <Widget>[
-      CreateScreen(onImageGenerated: _onImageGenerated),
+      CreateScreen(
+        onImageGenerated: _onImageGenerated,
+        onOpenGallery: _goToGalleryTab,
+      ),
       const PhotoshootsScreen(),
       GalleryScreen(
         images: _generatedImages,
@@ -1485,9 +1490,14 @@ class _ProfileListRow extends StatelessWidget {
 }
 
 class CreateScreen extends StatefulWidget {
-  const CreateScreen({super.key, required this.onImageGenerated});
+  const CreateScreen({
+    super.key,
+    required this.onImageGenerated,
+    required this.onOpenGallery,
+  });
 
   final ValueChanged<GeneratedImageItem> onImageGenerated;
+  final VoidCallback onOpenGallery;
 
   @override
   State<CreateScreen> createState() => _CreateScreenState();
@@ -1634,7 +1644,10 @@ class _CreateScreenState extends State<CreateScreen> {
               ],
               if (_lastResponse != null) ...[
                 const SizedBox(height: 32),
-                _ResultSection(response: _lastResponse!),
+                _ResultSection(
+                  response: _lastResponse!,
+                  onOpenGallery: widget.onOpenGallery,
+                ),
               ],
             ],
           ),
@@ -2002,9 +2015,15 @@ class _GenerationResultPreviewFallback extends StatelessWidget {
 }
 
 class _ResultSection extends StatelessWidget {
-  const _ResultSection({required this.response});
+  const _ResultSection({
+    required this.response,
+    required this.onOpenGallery,
+  });
 
   final GenerateImageResponse response;
+  final VoidCallback onOpenGallery;
+
+  static const _accentColor = Color(0xFF5B6CFF);
 
   @override
   Widget build(BuildContext context) {
@@ -2040,6 +2059,26 @@ class _ResultSection extends StatelessWidget {
           'Создано по описанию: ${response.prompt}',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AiImageGeneratorApp.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: onOpenGallery,
+            icon: const Icon(Icons.photo_library_outlined, size: 22),
+            label: const Text(
+              'Открыть в Галерее',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _accentColor,
+              side: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
           ),
         ),
       ],
