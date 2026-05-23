@@ -1298,11 +1298,11 @@ class CreateScreen extends StatefulWidget {
 
 class _CreateScreenState extends State<CreateScreen> {
   static const _quickIdeas = [
-    'Cyberpunk cat',
-    'Cozy cabin',
-    'Luxury product photo',
-    'Anime portrait',
-    'Futuristic city',
+    'Киберпанк-кот',
+    'Уютный дом',
+    'Премиум-реклама',
+    'Аниме-портрет',
+    'Город будущего',
   ];
 
   final _apiService = ApiService();
@@ -1417,6 +1417,8 @@ class _CreateScreenState extends State<CreateScreen> {
                     )
                     .toList(),
               ),
+              const SizedBox(height: 20),
+              const _CreateTipsCard(),
               const SizedBox(height: 24),
               _GenerateButton(
                 isLoading: _isLoading,
@@ -1433,6 +1435,102 @@ class _CreateScreenState extends State<CreateScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CreateTipsCard extends StatelessWidget {
+  const _CreateTipsCard();
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  static const _tips = [
+    'Опишите человека, предмет или сцену',
+    'Добавьте стиль: реализм, кино, портрет, реклама',
+    'Укажите настроение: уютно, премиально, ярко, спокойно',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDE9FF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.lightbulb_outline,
+                  color: _accentColor,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Как получить хороший результат',
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ..._tips.map(
+            (tip) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.check_circle_outline,
+                      size: 18,
+                      color: _accentColor,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      tip,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AiImageGeneratorApp.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F8FC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE8EAEF)),
+            ),
+            child: Text(
+              'Например: Женский деловой портрет в светлой студии, реализм, мягкий свет',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 13,
+                color: AiImageGeneratorApp.textSecondary,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
