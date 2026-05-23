@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'models/generated_image_item.dart';
 import 'services/api_service.dart';
 
 void main() {
@@ -62,15 +63,23 @@ class _MainShellState extends State<MainShell> {
   static const _accentColor = Color(0xFF5B6CFF);
 
   int _selectedIndex = 0;
+  final List<GeneratedImageItem> _generatedImages = [];
 
   void _goToCreateTab() => setState(() => _selectedIndex = 0);
+
+  void _onImageGenerated(GeneratedImageItem item) {
+    setState(() => _generatedImages.insert(0, item));
+  }
 
   @override
   Widget build(BuildContext context) {
     final screens = <Widget>[
-      const CreateScreen(),
+      CreateScreen(onImageGenerated: _onImageGenerated),
       const PhotoshootsScreen(),
-      GalleryScreen(onCreateFirst: _goToCreateTab),
+      GalleryScreen(
+        images: _generatedImages,
+        onCreateFirst: _goToCreateTab,
+      ),
       const PacksScreen(),
       const ProfileScreen(),
     ];
@@ -873,8 +882,112 @@ class _PhotoshootPreview extends StatelessWidget {
   }
 }
 
+String _formatGalleryTimestamp(DateTime dateTime) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(dateTime.year, dateTime.month, dateTime.day);
+  final hours = dateTime.hour.toString().padLeft(2, '0');
+  final minutes = dateTime.minute.toString().padLeft(2, '0');
+  final time = '$hours:$minutes';
+
+  if (day == today) {
+    return 'Сегодня, $time';
+  }
+  final yesterday = today.subtract(const Duration(days: 1));
+  if (day == yesterday) {
+    return 'Вчера, $time';
+  }
+  return time;
+}
+
 class GalleryScreen extends StatelessWidget {
-  const GalleryScreen({super.key, required this.onCreateFirst});
+  const GalleryScreen({
+    super.key,
+    required this.images,
+    required this.onCreateFirst,
+  });
+
+  final List<GeneratedImageItem> images;
+  final VoidCallback onCreateFirst;
+
+  static const _breakpointMedium = 560.0;
+  static const _breakpointWide = 900.0;
+
+  static int _columnCount(double width) {
+    if (width >= _breakpointWide) return 3;
+    if (width >= _breakpointMedium) return 2;
+    return 1;
+  }
+
+  static double _aspectRatio(int columns) {
+    switch (columns) {
+      case 3:
+        return 0.62;
+      case 2:
+        return 0.72;
+      default:
+        return 0.88;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (images.isEmpty) {
+      return _GalleryEmptyState(onCreateFirst: onCreateFirst);
+    }
+
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: AiImageGeneratorApp.scaffoldBackground,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = _columnCount(constraints.maxWidth);
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Галерея', style: theme.textTheme.headlineSmall),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Ваши изображения за текущую сессию',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 24),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: _aspectRatio(columns),
+                        ),
+                        itemCount: images.length,
+                        itemBuilder: (context, index) {
+                          return _GalleryImageCard(item: images[index]);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GalleryEmptyState extends StatelessWidget {
+  const _GalleryEmptyState({required this.onCreateFirst});
 
   final VoidCallback onCreateFirst;
 
@@ -1025,6 +1138,88 @@ class GalleryScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GalleryImageCard extends StatelessWidget {
+  const _GalleryImageCard({required this.item});
+
+  final GeneratedImageItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Image.network(
+              item.imageUrl,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return Container(
+                  color: const Color(0xFFF0F2F8),
+                  alignment: Alignment.center,
+                  child: const SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) =>
+                  const _GenerationResultPreviewFallback(compact: true),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Создано по описанию:',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 12,
+                    color: AiImageGeneratorApp.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.description,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AiImageGeneratorApp.textPrimary,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _formatGalleryTimestamp(item.createdAt),
+                  style: theme.textTheme.bodyMedium?.copyWith(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1290,7 +1485,9 @@ class _ProfileListRow extends StatelessWidget {
 }
 
 class CreateScreen extends StatefulWidget {
-  const CreateScreen({super.key});
+  const CreateScreen({super.key, required this.onImageGenerated});
+
+  final ValueChanged<GeneratedImageItem> onImageGenerated;
 
   @override
   State<CreateScreen> createState() => _CreateScreenState();
@@ -1334,6 +1531,13 @@ class _CreateScreenState extends State<CreateScreen> {
     try {
       final response = await _apiService.generateImage(text);
       if (!mounted) return;
+      widget.onImageGenerated(
+        GeneratedImageItem(
+          description: text,
+          imageUrl: response.imageUrl,
+          createdAt: DateTime.now(),
+        ),
+      );
       setState(() {
         _lastResponse = response;
         _isLoading = false;
@@ -1740,7 +1944,9 @@ class _GenerateButton extends StatelessWidget {
 }
 
 class _GenerationResultPreviewFallback extends StatelessWidget {
-  const _GenerationResultPreviewFallback();
+  const _GenerationResultPreviewFallback({this.compact = false});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -1756,33 +1962,35 @@ class _GenerationResultPreviewFallback extends StatelessWidget {
       ),
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(compact ? 12 : 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 Icons.auto_awesome,
-                size: 56,
+                size: compact ? 32 : 56,
                 color: Colors.white.withValues(alpha: 0.95),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: compact ? 8 : 16),
               Text(
                 'Изображение создано',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: compact ? 13 : 18,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: compact ? 4 : 8),
               Text(
                 'Превью появится после подключения реальной генерации',
                 textAlign: TextAlign.center,
+                maxLines: compact ? 2 : null,
+                overflow: compact ? TextOverflow.ellipsis : null,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: Colors.white.withValues(alpha: 0.88),
-                  fontSize: 13,
-                  height: 1.4,
+                  fontSize: compact ? 10 : 13,
+                  height: 1.35,
                 ),
               ),
             ],
