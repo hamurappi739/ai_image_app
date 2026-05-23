@@ -1739,6 +1739,60 @@ class _GenerateButton extends StatelessWidget {
   }
 }
 
+class _GenerationResultPreviewFallback extends StatelessWidget {
+  const _GenerationResultPreviewFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFEDE9FF), Color(0xFFB8C4FF), Color(0xFF7C8CFF)],
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.auto_awesome,
+                size: 56,
+                color: Colors.white.withValues(alpha: 0.95),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Изображение создано',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Превью появится после подключения реальной генерации',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.88),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ResultSection extends StatelessWidget {
   const _ResultSection({required this.response});
 
@@ -1767,16 +1821,8 @@ class _ResultSection extends StatelessWidget {
                     child: const CircularProgressIndicator(),
                   );
                 },
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: const Color(0xFFF0F2F8),
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    'Превью изображения недоступно',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ),
+                errorBuilder: (context, error, stackTrace) =>
+                    const _GenerationResultPreviewFallback(),
               ),
             ),
           ),
