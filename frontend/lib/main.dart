@@ -63,20 +63,22 @@ class _MainShellState extends State<MainShell> {
 
   int _selectedIndex = 0;
 
-  static const _screens = <Widget>[
-    CreateScreen(),
-    PhotoshootsScreen(),
-    GalleryScreen(),
-    PacksScreen(),
-    ProfileScreen(),
-  ];
+  void _goToCreateTab() => setState(() => _selectedIndex = 0);
 
   @override
   Widget build(BuildContext context) {
+    final screens = <Widget>[
+      const CreateScreen(),
+      const PhotoshootsScreen(),
+      GalleryScreen(onCreateFirst: _goToCreateTab),
+      const PacksScreen(),
+      const ProfileScreen(),
+    ];
+
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
-        children: _screens,
+        children: screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -872,7 +874,9 @@ class _PhotoshootPreview extends StatelessWidget {
 }
 
 class GalleryScreen extends StatelessWidget {
-  const GalleryScreen({super.key});
+  const GalleryScreen({super.key, required this.onCreateFirst});
+
+  final VoidCallback onCreateFirst;
 
   static const _accentColor = Color(0xFF5B6CFF);
 
@@ -894,7 +898,7 @@ class GalleryScreen extends StatelessWidget {
                   Text('Галерея', style: theme.textTheme.headlineSmall),
                   const SizedBox(height: 6),
                   Text(
-                    'Здесь появятся ваши созданные изображения',
+                    'Здесь будут ваши созданные изображения',
                     style: theme.textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 28),
@@ -902,39 +906,118 @@ class GalleryScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         Container(
-                          width: 72,
-                          height: 72,
+                          width: 96,
+                          height: 96,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEDE9FF),
-                            borderRadius: BorderRadius.circular(20),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                const Color(0xFFEDE9FF),
+                                _accentColor.withValues(alpha: 0.25),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(28),
                           ),
                           child: const Icon(
                             Icons.photo_library_outlined,
-                            size: 36,
+                            size: 48,
                             color: _accentColor,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         Text(
                           'Пока нет изображений',
-                          style: theme.textTheme.titleMedium,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontSize: 18,
+                          ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         Text(
-                          'Создайте первое изображение или фотосессию, чтобы увидеть его здесь.',
+                          'Создайте первое изображение или фотосессию, чтобы увидеть результат здесь.',
                           style: theme.textTheme.bodyMedium,
                           textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 28),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF7C5CFF),
+                                  Color(0xFF4A7CFF),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _accentColor.withValues(alpha: 0.3),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: onCreateFirst,
+                                borderRadius: BorderRadius.circular(14),
+                                child: const Center(
+                                  child: Text(
+                                    'Создать первое изображение',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Text(
-                    'Изображения будут сохраняться здесь после добавления аккаунтов и хранения.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
+                  _SoftCard(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEDE9FF),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.schedule_outlined,
+                            color: _accentColor,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Скоро',
+                                style: theme.textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'После добавления аккаунта здесь появится история ваших изображений и фотосессий.',
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
