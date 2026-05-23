@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:ai_image_generator/models/generated_image_item.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -32,6 +33,41 @@ class GenerateImageResponse {
   }
 }
 
+class GenerationHistoryItem {
+  const GenerationHistoryItem({
+    required this.id,
+    required this.prompt,
+    required this.imageUrl,
+    required this.paymentType,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String prompt;
+  final String imageUrl;
+  final String paymentType;
+  final DateTime createdAt;
+
+  factory GenerationHistoryItem.fromJson(Map<String, dynamic> json) {
+    return GenerationHistoryItem(
+      id: json['id'] as String,
+      prompt: json['prompt'] as String,
+      imageUrl: json['image_url'] as String,
+      paymentType: json['payment_type'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  GeneratedImageItem toGalleryItem() {
+    return GeneratedImageItem(
+      id: id,
+      description: prompt,
+      imageUrl: imageUrl,
+      createdAt: createdAt,
+    );
+  }
+}
+
 class ApiService {
   static String get baseUrl {
     if (kIsWeb) {
@@ -59,5 +95,25 @@ class ApiService {
       throw Exception('No available generations');
     }
     throw Exception('Failed to generate image');
+  }
+
+  Future<List<GenerationHistoryItem>> fetchGenerations({int limit = 20}) async {
+    final uri = Uri.parse('$baseUrl/generations').replace(
+      queryParameters: {'limit': limit.toString()},
+    );
+    final response = await http.get(uri);
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final rawList = json['generations'] as List<dynamic>? ?? [];
+      return rawList
+          .map(
+            (item) => GenerationHistoryItem.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList();
+    }
+    throw Exception('Failed to fetch generations');
   }
 }

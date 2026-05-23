@@ -62,15 +62,45 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   static const _accentColor = Color(0xFF5B6CFF);
 
+  final _apiService = ApiService();
+
   int _selectedIndex = 0;
   final List<GeneratedImageItem> _generatedImages = [];
+  bool _backendHistoryUnavailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGenerationsFromBackend();
+  }
+
+  Future<void> _loadGenerationsFromBackend() async {
+    try {
+      final history = await _apiService.fetchGenerations();
+      if (!mounted) return;
+      setState(() {
+        _backendHistoryUnavailable = false;
+        _generatedImages
+          ..clear()
+          ..addAll(history.map((item) => item.toGalleryItem()));
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _backendHistoryUnavailable = true);
+    }
+  }
 
   void _goToCreateTab() => setState(() => _selectedIndex = 0);
 
   void _goToGalleryTab() => setState(() => _selectedIndex = 2);
 
   void _onImageGenerated(GeneratedImageItem item) {
-    setState(() => _generatedImages.insert(0, item));
+    setState(() {
+      if (item.id != null) {
+        _generatedImages.removeWhere((existing) => existing.id == item.id);
+      }
+      _generatedImages.insert(0, item);
+    });
   }
 
   @override
@@ -84,6 +114,7 @@ class _MainShellState extends State<MainShell> {
       GalleryScreen(
         images: _generatedImages,
         onCreateFirst: _goToCreateTab,
+        backendHistoryUnavailable: _backendHistoryUnavailable,
       ),
       const PacksScreen(),
       const ProfileScreen(),
@@ -910,10 +941,12 @@ class GalleryScreen extends StatelessWidget {
     super.key,
     required this.images,
     required this.onCreateFirst,
+    this.backendHistoryUnavailable = false,
   });
 
   final List<GeneratedImageItem> images;
   final VoidCallback onCreateFirst;
+  final bool backendHistoryUnavailable;
 
   static const _breakpointMedium = 560.0;
   static const _breakpointWide = 900.0;
@@ -938,7 +971,10 @@ class GalleryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (images.isEmpty) {
-      return _GalleryEmptyState(onCreateFirst: onCreateFirst);
+      return _GalleryEmptyState(
+        onCreateFirst: onCreateFirst,
+        backendHistoryUnavailable: backendHistoryUnavailable,
+      );
     }
 
     final theme = Theme.of(context);
@@ -961,7 +997,7 @@ class GalleryScreen extends StatelessWidget {
                       Text('Галерея', style: theme.textTheme.headlineSmall),
                       const SizedBox(height: 6),
                       Text(
-                        'Ваши изображения за текущую сессию',
+                        'Ваши созданные изображения',
                         style: theme.textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 24),
@@ -992,9 +1028,13 @@ class GalleryScreen extends StatelessWidget {
 }
 
 class _GalleryEmptyState extends StatelessWidget {
-  const _GalleryEmptyState({required this.onCreateFirst});
+  const _GalleryEmptyState({
+    required this.onCreateFirst,
+    this.backendHistoryUnavailable = false,
+  });
 
   final VoidCallback onCreateFirst;
+  final bool backendHistoryUnavailable;
 
   static const _accentColor = Color(0xFF5B6CFF);
 
@@ -1100,6 +1140,16 @@ class _GalleryEmptyState extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (backendHistoryUnavailable) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'Не удалось загрузить историю с сервера. Создайте новое изображение — оно появится здесь.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   _SoftCard(
                     child: Row(
@@ -1129,7 +1179,7 @@ class _GalleryEmptyState extends StatelessWidget {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'После добавления аккаунта здесь появится история ваших изображений и фотосессий.',
+                                'После добавления аккаунта здесь появится полная история ваших изображений и фотосессий.',
                                 style: theme.textTheme.bodyMedium,
                               ),
                             ],
