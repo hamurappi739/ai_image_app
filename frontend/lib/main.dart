@@ -103,6 +103,10 @@ class _MainShellState extends State<MainShell> {
     });
   }
 
+  void _clearGallery() {
+    setState(() => _generatedImages.clear());
+  }
+
   @override
   Widget build(BuildContext context) {
     final screens = <Widget>[
@@ -114,6 +118,7 @@ class _MainShellState extends State<MainShell> {
       GalleryScreen(
         images: _generatedImages,
         onCreateFirst: _goToCreateTab,
+        onClearGallery: _clearGallery,
         backendHistoryUnavailable: _backendHistoryUnavailable,
       ),
       const PacksScreen(),
@@ -941,12 +946,25 @@ class GalleryScreen extends StatelessWidget {
     super.key,
     required this.images,
     required this.onCreateFirst,
+    required this.onClearGallery,
     this.backendHistoryUnavailable = false,
   });
 
   final List<GeneratedImageItem> images;
   final VoidCallback onCreateFirst;
+  final VoidCallback onClearGallery;
   final bool backendHistoryUnavailable;
+
+  void _onClearPressed(BuildContext context) {
+    onClearGallery();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Галерея очищена на этом устройстве'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
 
   static const _breakpointMedium = 560.0;
   static const _breakpointWide = 900.0;
@@ -994,11 +1012,45 @@ class GalleryScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Галерея', style: theme.textTheme.headlineSmall),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Ваши созданные изображения',
-                        style: theme.textTheme.bodyMedium,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Галерея',
+                                  style: theme.textTheme.headlineSmall,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Ваши созданные изображения',
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () => _onClearPressed(context),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                            ),
+                            label: const Text(
+                              'Очистить',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            style: TextButton.styleFrom(
+                              foregroundColor:
+                                  AiImageGeneratorApp.textSecondary,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 24),
                       GridView.builder(
