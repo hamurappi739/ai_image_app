@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     app_name: str = "AI Image Generator Backend"
     environment: str = "development"
+    image_provider: str = "mock"
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-2.5-flash-image"
     free_generations_limit: int = 3

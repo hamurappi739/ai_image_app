@@ -17,6 +17,7 @@ copy .env.example .env
 |------------|----------|
 | `APP_NAME` | Название приложения |
 | `ENVIRONMENT` | Окружение (`development`, `production`, …) |
+| `IMAGE_PROVIDER` | Провайдер генерации: `mock` (по умолчанию) или `gemini` (зарезервирован) |
 | `GEMINI_API_KEY` | Ключ Gemini API |
 | `GEMINI_MODEL` | Модель для генерации изображений |
 | `FREE_GENERATIONS_LIMIT` | Сколько бесплатных генераций доступно пользователю (MVP: **3** по умолчанию; меняется через env без правок кода) |
@@ -25,6 +26,14 @@ copy .env.example .env
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key — **только на сервере** |
 | `TEST_USER_ID` | UUID тестового пользователя (только development) |
 | `ENABLE_CREDIT_CONSUMPTION` | Включить проверку и списание кредитов в `POST /generate` (по умолчанию `false`) |
+
+### IMAGE_PROVIDER
+
+- **`mock`** (по умолчанию) — `POST /generate` возвращает placeholder URL (`placehold.co`). Режим для MVP и разработки UI.
+- **`gemini`** — зарезервирован для следующего этапа. Сейчас **`501`** с текстом `Gemini image generation is not implemented yet` (внешний API **не** вызывается).
+- Любое другое значение → **`500`** `Unsupported image provider`.
+
+Логика: `app/services/image_service.py` → `generate_image()`.
 
 ### ENABLE_CREDIT_CONSUMPTION
 
@@ -51,12 +60,12 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 
 ## Gemini integration preparation
 
-Для будущей реальной генерации через Gemini в `.env` понадобятся:
+Для будущей реальной генерации через Gemini:
 
-- `GEMINI_API_KEY` — ключ из Google AI Studio
-- `GEMINI_MODEL` — по умолчанию `gemini-2.5-flash-image`
+1. Установить `IMAGE_PROVIDER=gemini` (после реализации провайдера).
+2. Заполнить `GEMINI_API_KEY`, при необходимости `GEMINI_MODEL` (по умолчанию `gemini-2.5-flash-image`).
 
-В `app/services/image_service.py` уже есть `generate_image_with_gemini()` (пока возвращает mock). Endpoint `POST /generate` по-прежнему использует `generate_mock_image()`.
+Пока `IMAGE_PROVIDER=gemini` **не** вызывает Gemini API — только ответ **501**.
 
 ## Запуск
 

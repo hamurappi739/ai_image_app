@@ -16,6 +16,7 @@
 | **Локальная очистка Галереи** | ✅ | Кнопка «Очистить» — только in-memory на устройстве; backend/Supabase не меняются |
 | **Навигация Создать ↔ Галерея** | ✅ | «Открыть в Галерее», «Создать первое изображение» |
 | **Demo UI загрузки фото (Фотосессии)** | ✅ | Bottom sheet: стиль, badge, заглушка upload, «Что получится»; без файлов и backend |
+| **Provider switch (`IMAGE_PROVIDER`)** | ✅ | `mock` / `gemini` в config; `gemini` → 501, без вызова API |
 
 ### Flutter UI MVP (детали)
 
@@ -33,7 +34,7 @@
 
 | Этап | Статус | Примечание |
 |------|--------|------------|
-| **Gemini integration** | 🔶 | Код подготовлен; в production пока **mock** (`placehold.co`) |
+| **Gemini integration** | 🔶 | `IMAGE_PROVIDER=gemini` зарезервирован (501); реальный API не подключён |
 | **Supabase credits** | 🔶 | Backend: profiles, generations, `ENABLE_CREDIT_CONSUMPTION`; Flutter **без** Supabase SDK |
 | **История в галерее** | 🔶 | Загрузка есть; полноценная **персональная** история по аккаунту — после auth |
 
@@ -41,7 +42,7 @@
 
 ## Следующие крупные этапы
 
-1. **Реальная Gemini-генерация** — включить настоящие `image_url` вместо placeholder.
+1. **Implement Gemini provider** — реализовать `IMAGE_PROVIDER=gemini` (вызов API, настоящие `image_url`).
 2. **Реальная загрузка пользовательского фото** — image picker, отправка снимка на backend (фотосессии).
 3. **Обработка фото через backend** — генерация **3 изображений** в выбранном стиле по загруженному фото.
 4. **Платная фотосессия** — оплата **100 ₽** (RuStore) перед запуском платных стилей.
