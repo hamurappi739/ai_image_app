@@ -620,15 +620,19 @@ class PhotoshootsScreen extends StatelessWidget {
     );
   }
 
-  void _onPhotoshootAction(BuildContext context, _PhotoshootStyle style) {
-    if (style.isFree) {
-      _showSnackBar(
-        context,
-        'Генерация фотосессий будет добавлена позже',
-      );
-    } else {
-      _showSnackBar(context, 'Оплата фотосессий будет добавлена позже');
-    }
+  void _openPhotoshootSheet(BuildContext context, _PhotoshootStyle style) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _PhotoshootDetailSheet(
+        style: style,
+        onShowMessage: (message) {
+          Navigator.of(sheetContext).pop();
+          _showSnackBar(context, message);
+        },
+      ),
+    );
   }
 
   @override
@@ -673,7 +677,7 @@ class PhotoshootsScreen extends StatelessWidget {
                           return _PhotoshootCard(
                             style: style,
                             onAction: () =>
-                                _onPhotoshootAction(context, style),
+                                _openPhotoshootSheet(context, style),
                           );
                         },
                       ),
@@ -840,6 +844,282 @@ class _PhotoshootCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PhotoshootDetailSheet extends StatelessWidget {
+  const _PhotoshootDetailSheet({
+    required this.style,
+    required this.onShowMessage,
+  });
+
+  final _PhotoshootStyle style;
+  final void Function(String message) onShowMessage;
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  static const _outcomes = [
+    '3 изображения в одном стиле',
+    'Мягкая обработка лица и света',
+    'Результат появится в Галерее',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final badgeLabel = style.isFree ? 'Бесплатно' : '100 ₽';
+    final badgeColor =
+        style.isFree ? const Color(0xFFE8F5E9) : const Color(0xFFEDE9FF);
+    final badgeTextColor =
+        style.isFree ? const Color(0xFF2E7D32) : _accentColor;
+    final laterLabel =
+        style.isFree ? 'Попробовать позже' : 'Оплата позже';
+    final laterMessage = style.isFree
+        ? 'Загрузка фото будет добавлена позже'
+        : 'Оплата будет добавлена позже';
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+          maxWidth: 520,
+        ),
+        child: Material(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          clipBehavior: Clip.antiAlias,
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          style.title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: badgeColor,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          badgeLabel,
+                          style: TextStyle(
+                            color: badgeTextColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Загрузите своё фото, и приложение подготовит 3 изображения в выбранном стиле.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 28,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F8FC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _accentColor.withValues(alpha: 0.25),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEDE9FF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.add_photo_alternate_outlined,
+                            size: 30,
+                            color: _accentColor,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Загрузка фото будет добавлена позже',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Сейчас это демо-экран без отправки файлов',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Что получится',
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 14),
+                        ..._outcomes.map(
+                          (line) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 2),
+                                  child: Icon(
+                                    Icons.check_circle_outline,
+                                    size: 18,
+                                    color: _accentColor,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    line,
+                                    style: theme.textTheme.bodyMedium
+                                        ?.copyWith(
+                                      color: AiImageGeneratorApp.textPrimary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AiImageGeneratorApp.textSecondary,
+                            side: BorderSide(color: Colors.grey.shade300),
+                            minimumSize: const Size(0, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text(
+                            'Понятно',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: style.isFree
+                            ? SizedBox(
+                                height: 48,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF7C5CFF),
+                                        Color(0xFF4A7CFF),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () =>
+                                          onShowMessage(laterMessage),
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: Center(
+                                        child: Text(
+                                          laterLabel,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : OutlinedButton(
+                                onPressed: () =>
+                                    onShowMessage(laterMessage),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: _accentColor,
+                                  side: const BorderSide(color: _accentColor),
+                                  minimumSize: const Size(0, 48),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: Text(
+                                  laterLabel,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
