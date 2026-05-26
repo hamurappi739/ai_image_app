@@ -33,7 +33,14 @@ copy .env.example .env
 - **`gemini`** — зарезервирован для следующего этапа. Сейчас **`501`** с текстом `Gemini image generation is not implemented yet` (внешний API **не** вызывается).
 - Любое другое значение → **`500`** `Unsupported image provider`.
 
-Логика: `app/services/image_service.py` → `generate_image()`.
+Логика: `app/services/image_service.py` — **`ImageService`** выбирает provider:
+
+| Класс | `IMAGE_PROVIDER` | Поведение |
+|-------|------------------|-----------|
+| **`MockImageProvider`** | `mock` | Placeholder URL (работает сейчас) |
+| **`GeminiImageProvider`** | `gemini` | Placeholder: **501**, без вызова API |
+
+Публичная точка входа: `generate_image(prompt)`.
 
 ### ENABLE_CREDIT_CONSUMPTION
 
@@ -101,7 +108,7 @@ app/
 ├── config.py            # Настройки из .env (pydantic-settings)
 ├── schemas.py           # Pydantic-модели запросов/ответов
 └── services/
-    ├── image_service.py    # Логика генерации (сейчас mock)
+    ├── image_service.py    # ImageService, MockImageProvider, GeminiImageProvider
     ├── supabase_service.py # Supabase REST (httpx + service role)
     └── credits_service.py  # Проверка free/paid (без списания)
 .env.example             # Шаблон переменных окружения

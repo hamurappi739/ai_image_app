@@ -9,11 +9,7 @@ from app.schemas import (
     GenerationItem,
     GenerationsListResponse,
 )
-from app.services.image_service import (
-    GeminiNotImplementedError,
-    UnsupportedImageProviderError,
-    generate_image,
-)
+from app.services.image_service import generate_image
 from app.services.credits_service import (
     add_paid_credits,
     consume_generation,
@@ -170,18 +166,6 @@ def debug_add_credits(request: AddCreditsRequest):
     return {"status": "ok", "result": result}
 
 
-def _resolve_image_url(prompt: str) -> str:
-    try:
-        return generate_image(prompt)
-    except GeminiNotImplementedError:
-        raise HTTPException(
-            status_code=501,
-            detail="Gemini image generation is not implemented yet",
-        )
-    except UnsupportedImageProviderError:
-        raise HTTPException(status_code=500, detail="Unsupported image provider")
-
-
 @app.post("/generate", response_model=GenerateResponse)
 def generate(body: GenerateRequest):
     prompt = body.prompt.strip()
@@ -190,7 +174,7 @@ def generate(body: GenerateRequest):
 
     if not settings.enable_credit_consumption:
         return GenerateResponse(
-            image_url=_resolve_image_url(prompt),
+            image_url=generate_image(prompt),
             prompt=prompt,
         )
 
@@ -207,7 +191,7 @@ def generate(body: GenerateRequest):
     if not decision["allowed"]:
         raise HTTPException(status_code=402, detail=decision["reason"])
 
-    image_url = _resolve_image_url(prompt)
+    image_url = generate_image(prompt)
     try:
         result = consume_generation(
             profile, decision["payment_type"], prompt, image_url
