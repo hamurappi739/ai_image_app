@@ -16,7 +16,7 @@
 | **Локальная очистка Галереи** | ✅ | Кнопка «Очистить» — только in-memory на устройстве; backend/Supabase не меняются |
 | **Навигация Создать ↔ Галерея** | ✅ | «Открыть в Галерее», «Создать первое изображение» |
 | **Demo UI загрузки фото (Фотосессии)** | ✅ | Bottom sheet: стиль, badge, заглушка upload, «Что получится»; без файлов и backend |
-| **Provider switch (`IMAGE_PROVIDER`)** | ✅ | `mock` / `gemini` в config; `gemini` → 501, без вызова API |
+| **Provider switch (`IMAGE_PROVIDER`)** | ✅ | `mock` по умолчанию; `gemini` через `GeminiImageProvider` |
 
 ### Flutter UI MVP (детали)
 
@@ -34,7 +34,8 @@
 
 | Этап | Статус | Примечание |
 |------|--------|------------|
-| **Gemini integration** | 🔶 | `IMAGE_PROVIDER=gemini` зарезервирован (501); реальный API не подключён |
+| **Gemini provider implementation** | ✅ | `GeminiImageProvider` + `google-genai`; data URL в `image_url`; готово к **ручному** тесту с ключом |
+| **Gemini manual API test** | 🔶 | Следующий шаг: `IMAGE_PROVIDER=gemini`, реальный `GEMINI_API_KEY`, короткий контролируемый prompt |
 | **Supabase credits** | 🔶 | Backend: profiles, generations, `ENABLE_CREDIT_CONSUMPTION`; Flutter **без** Supabase SDK |
 | **История в галерее** | 🔶 | Загрузка есть; полноценная **персональная** история по аккаунту — после auth |
 
@@ -42,7 +43,7 @@
 
 ## Следующие крупные этапы
 
-1. **Implement Gemini provider** — реализовать `IMAGE_PROVIDER=gemini` (вызов API, настоящие `image_url`).
+1. **Ручной тест Gemini** — `IMAGE_PROVIDER=gemini`, ключ в локальном `.env`, проверить `POST /generate` и отображение data URL во Flutter.
 2. **Реальная загрузка пользовательского фото** — image picker, отправка снимка на backend (фотосессии).
 3. **Обработка фото через backend** — генерация **3 изображений** в выбранном стиле по загруженному фото.
 4. **Платная фотосессия** — оплата **100 ₽** (RuStore) перед запуском платных стилей.

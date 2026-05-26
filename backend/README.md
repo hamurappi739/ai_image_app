@@ -17,7 +17,7 @@ copy .env.example .env
 |------------|----------|
 | `APP_NAME` | Название приложения |
 | `ENVIRONMENT` | Окружение (`development`, `production`, …) |
-| `IMAGE_PROVIDER` | Провайдер генерации: `mock` (по умолчанию) или `gemini` (зарезервирован) |
+| `IMAGE_PROVIDER` | Провайдер генерации: `mock` (по умолчанию, безопасный режим) или `gemini` |
 | `GEMINI_API_KEY` | Ключ Gemini API |
 | `GEMINI_MODEL` | Модель для генерации изображений |
 | `FREE_GENERATIONS_LIMIT` | Сколько бесплатных генераций доступно пользователю (MVP: **3** по умолчанию; меняется через env без правок кода) |
@@ -29,18 +29,34 @@ copy .env.example .env
 
 ### IMAGE_PROVIDER
 
-- **`mock`** (по умолчанию) — `POST /generate` возвращает placeholder URL (`placehold.co`). Режим для MVP и разработки UI.
-- **`gemini`** — зарезервирован для следующего этапа. Сейчас **`501`** с текстом `Gemini image generation is not implemented yet` (внешний API **не** вызывается).
+- **`mock`** (по умолчанию) — `POST /generate` возвращает placeholder URL (`placehold.co`). **Безопасный режим** для MVP, разработки UI и демо без расхода API.
+- **`gemini`** — реальная генерация через Google Gen AI SDK (`google-genai`). Вызов API **только** при `IMAGE_PROVIDER=gemini` и настроенном `GEMINI_API_KEY`.
 - Любое другое значение → **`500`** `Unsupported image provider`.
 
 Логика: `app/services/image_service.py` — **`ImageService`** выбирает provider:
 
 | Класс | `IMAGE_PROVIDER` | Поведение |
 |-------|------------------|-----------|
-| **`MockImageProvider`** | `mock` | Placeholder URL (работает сейчас) |
-| **`GeminiImageProvider`** | `gemini` | Placeholder: **501**, без вызова API |
+| **`MockImageProvider`** | `mock` | Placeholder URL (по умолчанию) |
+| **`GeminiImageProvider`** | `gemini` | Gemini API → `image_url` как data URL (`data:image/png;base64,...`) |
 
 Публичная точка входа: `generate_image(prompt)`.
+
+#### Включить Gemini
+
+В `backend/.env` (не коммитить; шаблон — `.env.example`):
+
+```env
+IMAGE_PROVIDER=gemini
+GEMINI_API_KEY=your_key_here
+GEMINI_MODEL=gemini-2.5-flash-image
+```
+
+- Нет `GEMINI_API_KEY` → **`500`** `GEMINI_API_KEY is not configured`
+- Модель без изображения в ответе → **`502`** `Gemini did not return an image`
+- Ошибка SDK/API → **`502`** с понятным текстом (без секретов в ответе)
+
+Для ежедневной разработки оставляйте **`IMAGE_PROVIDER=mock`**.
 
 ### ENABLE_CREDIT_CONSUMPTION
 
@@ -65,14 +81,11 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 
 Проверка в разработке: `GET /debug/supabase` (удалить или защитить перед production).
 
-## Gemini integration preparation
+## Gemini image generation
 
-Для будущей реальной генерации через Gemini:
+Реализовано в **`GeminiImageProvider`** (`google-genai`). По умолчанию **`IMAGE_PROVIDER=mock`** — внешний API не вызывается.
 
-1. Установить `IMAGE_PROVIDER=gemini` (после реализации провайдера).
-2. Заполнить `GEMINI_API_KEY`, при необходимости `GEMINI_MODEL` (по умолчанию `gemini-2.5-flash-image`).
-
-Пока `IMAGE_PROVIDER=gemini` **не** вызывает Gemini API — только ответ **501**.
+Ручная проверка: задать ключ в локальном `.env`, перезапустить uvicorn, `POST /generate` с коротким описанием.
 
 ## Запуск
 

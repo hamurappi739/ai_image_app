@@ -10,7 +10,7 @@
 - **Backend** — **FastAPI**, генерация изображений, учёт генераций, история.
 - **Supabase (PostgreSQL)** — профили, история генераций (`generations`), транзакции (`credit_transactions`).
 - Проект в стадии **MVP / demo-mode**: mock-генерация, заглушки оплаты и загрузки фото, dev-пользователь `TEST_USER_ID`.
-- **`IMAGE_PROVIDER`**: `mock` → **`MockImageProvider`**; `gemini` → **`GeminiImageProvider`** (placeholder, **501**, без реального API).
+- **`IMAGE_PROVIDER`**: `mock` (по умолчанию) → **`MockImageProvider`**; `gemini` → **`GeminiImageProvider`** (реальный API, data URL в `image_url`).
 
 ---
 
@@ -69,8 +69,8 @@ flutter run -d chrome
 
 ### `POST /generate`
 
-- **`IMAGE_PROVIDER=mock`** → `MockImageProvider`: placeholder `image_url`.
-- **`IMAGE_PROVIDER=gemini`** → `GeminiImageProvider`: **501**, реальный API **не вызывается**.
+- **`IMAGE_PROVIDER=mock`** (по умолчанию) → `MockImageProvider`: placeholder `image_url`.
+- **`IMAGE_PROVIDER=gemini`** + `GEMINI_API_KEY` → `GeminiImageProvider`: Gemini API, `image_url` как `data:image/...;base64,...`.
 - **`ENABLE_CREDIT_CONSUMPTION=false`** (часто по умолчанию): **demo-mode** — не читает профиль, **не списывает** генерации, **не пишет** в `generations`.
 - **`ENABLE_CREDIT_CONSUMPTION=true`**: профиль по **`TEST_USER_ID`**, списание free/paid, запись в Supabase (`generations`, `credit_transactions`).
 
@@ -161,7 +161,7 @@ flutter run -d chrome
 
 ## 9. Что сейчас demo / заглушка
 
-- Реальная **Gemini**-генерация (mock / placehold.co).
+- **Gemini** в production-потоке (по умолчанию mock / placehold.co; ручной тест с ключом — отдельно).
 - **Загрузка** пользовательского фото (фотосессии).
 - **RuStore Billing** и оплата фотосессий 100 ₽.
 - **Авторизация** (Supabase Auth во Flutter).
