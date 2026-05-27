@@ -12,11 +12,14 @@
 - Проект в стадии **MVP / demo-mode**: mock-генерация, заглушки оплаты и загрузки фото, dev-пользователь `TEST_USER_ID`.
 - **`IMAGE_PROVIDER`**: `mock` (по умолчанию, безопасный режим) → **`MockImageProvider`**; `gemini` → **`GeminiImageProvider`** (реализован в backend, но не используется по умолчанию).
 
-### Подготовка к авторизации (backend + frontend)
+### Авторизация (текущий статус)
 
-- **Backend:** `get_current_user_id()` принимает **`Authorization: Bearer <access_token>`** и валидирует токен через Supabase Auth REST; при **отсутствии** заголовка в **`ENVIRONMENT=development`** используется fallback **`TEST_USER_ID`** (как раньше для локальной разработки).
-- **Frontend:** `ApiService` подготовлен к будущему access token (`setAccessToken` + общие headers); **сейчас токен не передаётся**, отдельного экрана входа/регистрации **нет**.
-- Текущий Flutter UI продолжает работать через **development fallback** на стороне backend (без Bearer в запросах).
+- **Flutter, вкладка Профиль:** базовая форма **входа / регистрации** через Supabase Auth (email + пароль, выход).
+- **Supabase Auth во Flutter** включается **только** при запуске с **`--dart-define=SUPABASE_URL=...`** и **`--dart-define=SUPABASE_ANON_KEY=...`** (`Supabase.initialize` в `main.dart`).
+- **Без dart-define:** авторизация в UI недоступна; приложение работает в **demo / development fallback** (`TEST_USER_ID` на backend).
+- **После входа:** access token из `AuthService` передаётся в **`ApiService.setAccessToken(...)`** → backend получает **`Authorization: Bearer`**.
+- **Backend:** `get_current_user_id()` валидирует Bearer через Supabase Auth REST (`/auth/v1/user`) и возвращает **user_id** авторизованного пользователя.
+- **Проверено:** после входа вкладки **Создать** и **Галерея** работают (генерация и загрузка истории).
 
 ---
 
@@ -52,6 +55,14 @@ cd C:\Users\shuly\Desktop\ai_image_app\frontend
 flutter pub get
 flutter run -d chrome
 ```
+
+**С Supabase Auth** (локально, ключи не в git):
+
+```powershell
+flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+```
+
+См. [flutter_auth_setup.md](flutter_auth_setup.md).
 
 | Платформа | Backend URL (`ApiService`) |
 |-----------|----------------------------|
@@ -140,7 +151,9 @@ flutter run -d chrome
 
 ### Профиль
 
-- Placeholder: вход, будущие разделы, безопасность.
+- **С Supabase config:** форма входа/регистрации, карточка «Вы вошли», кнопка **Выйти**; мягкие SnackBar при ошибках.
+- **Без Supabase config:** placeholder «Вход недоступен в этом запуске» + подсказка про `dart-define`.
+- Блок **Безопасность** при включённом Supabase.
 
 ---
 
@@ -178,8 +191,8 @@ flutter run -d chrome
 - **Gemini** в production-потоке (по умолчанию mock / placehold.co; ручной тест с ключом — отдельно).
 - **Загрузка** пользовательского фото (фотосессии).
 - **RuStore Billing** и оплата фотосессий 100 ₽.
-- **Авторизация** (Supabase Auth во Flutter).
-- Полноценная **история по аккаунту** (не `TEST_USER_ID`).
+- **Подтверждение email**, восстановление пароля, auto-create профиля в Supabase (см. roadmap).
+- Убрать **development `TEST_USER_ID` fallback** перед production.
 - **Удаление** изображений из backend.
 - **Production security** (debug routes, CORS, RLS audit).
 
@@ -188,8 +201,8 @@ flutter run -d chrome
 ## 10. Что важно перед production
 
 - Удалить или **защитить** `/debug/*`.
-- Заменить **`TEST_USER_ID`** на **auth user id**.
-- Включить **авторизацию** end-to-end.
+- Убрать **`TEST_USER_ID` fallback**; обязательный Bearer в non-development.
+- Доработать auth: email confirmation UX, восстановление пароля, profile sync.
 - Подключить **реальные платежи** (RuStore).
 - Ограничить **CORS** доверенными origin.
 - Проверить **RLS** policies в Supabase.
@@ -203,6 +216,7 @@ flutter run -d chrome
 
 - **UI-MVP** проверен вручную (Flutter web).
 - Backend **`/generate`** и **`/generations`** работают при настроенном `.env`.
+- **Авторизация:** вход через Профиль + Bearer token → **Создать** / **Галерея** проверены после входа.
 - **Flutter web** + backend на `127.0.0.1:8000`.
 - Перед новым крупным шагом: **`git status`** чистый или осознанный коммит.
 
@@ -216,5 +230,6 @@ flutter run -d chrome
 | [app_design_strategy.md](app_design_strategy.md) | UX, вкладки |
 | [roadmap.md](roadmap.md) | Этапы |
 | [demo_script.md](demo_script.md) | Сценарий демо |
+| [flutter_auth_setup.md](flutter_auth_setup.md) | Запуск Flutter с Supabase Auth |
 | `frontend/README.md` | Запуск Flutter |
 | `backend/README.md` | Env, endpoints |

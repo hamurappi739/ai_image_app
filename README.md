@@ -2,9 +2,9 @@
 
 **Flutter + FastAPI** приложение для AI-генерации изображений.
 
-Сейчас проект в **MVP / demo-mode**: пользовательский flow уже работает. **Реальная генерация** (Gemini), **загрузка фото**, **авторизация** и **платежи** будут подключены следующими этапами.
+Сейчас проект в **MVP / demo-mode**: пользовательский flow уже работает. **Реальная генерация** (Gemini), **загрузка фото** и **платежи** — следующие этапы.
 
-**Статус авторизации:** backend и Flutter **`ApiService`** подготовлены к **`Authorization: Bearer`**; сейчас токен из приложения **не передаётся**, реальный экран входа будет добавлен позже (см. `docs/project_status.md`, `docs/roadmap.md`).
+**Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход). Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. **Без** этих define приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
 ---
 
@@ -20,7 +20,8 @@
 - Локальная кнопка **«Очистить»** (без удаления данных в Supabase)
 - Вкладка **Фотосессии** — готовые стили (бесплатные и 100 ₽)
 - **Demo modal** будущей загрузки фото
-- Вкладки **Пакеты** и **Профиль** (placeholder)
+- Вкладка **Профиль** — вход / регистрация через Supabase Auth (при dart-define)
+- Вкладка **Пакеты** (без реальной оплаты)
 - Supabase: таблицы **`profiles`**, **`generations`**, **`credit_transactions`**
 - Backend: списание бесплатных / платных генераций **подготовлено** (`ENABLE_CREDIT_CONSUMPTION`)
 
@@ -96,6 +97,7 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 | [docs/roadmap.md](docs/roadmap.md) | Roadmap |
 | [docs/database_schema.md](docs/database_schema.md) | Схема Supabase |
 | [docs/gemini_test_checklist.md](docs/gemini_test_checklist.md) | Чек-лист безопасного ручного теста Gemini |
+| [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md) | Запуск Flutter с Supabase Auth |
 
 ---
 
@@ -112,8 +114,7 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 - Реальная **Gemini**-генерация
 - **Загрузка** пользовательского фото (фотосессии)
 - **RuStore Billing**
-- **Авторизация**
-- Полноценное **сохранение истории по аккаунту**
+- Подтверждение email, восстановление пароля, production без `TEST_USER_ID`
 - **Production security** (debug routes, CORS, RLS)
 
 Gemini provider уже реализован в backend, но по умолчанию используется **`IMAGE_PROVIDER=mock`**.  
@@ -124,8 +125,8 @@ Gemini provider уже реализован в backend, но по умолчан
 ## Перед production
 
 - Удалить или защитить **`/debug/*`** endpoints
-- Заменить **`TEST_USER_ID`** на **auth user id**
-- Подключить **авторизацию**
+- Убрать **`TEST_USER_ID` fallback**; обязательный Bearer в production
+- Доработать auth: email confirmation, восстановление пароля
 - Подключить **реальные платежи**
 - Защитить **CORS**
 - Проверить **Supabase RLS**
