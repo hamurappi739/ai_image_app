@@ -12,6 +12,12 @@
 - Проект в стадии **MVP / demo-mode**: mock-генерация, заглушки оплаты и загрузки фото, dev-пользователь `TEST_USER_ID`.
 - **`IMAGE_PROVIDER`**: `mock` (по умолчанию, безопасный режим) → **`MockImageProvider`**; `gemini` → **`GeminiImageProvider`** (реализован в backend, но не используется по умолчанию).
 
+### Подготовка к авторизации (backend + frontend)
+
+- **Backend:** `get_current_user_id()` принимает **`Authorization: Bearer <access_token>`** и валидирует токен через Supabase Auth REST; при **отсутствии** заголовка в **`ENVIRONMENT=development`** используется fallback **`TEST_USER_ID`** (как раньше для локальной разработки).
+- **Frontend:** `ApiService` подготовлен к будущему access token (`setAccessToken` + общие headers); **сейчас токен не передаётся**, отдельного экрана входа/регистрации **нет**.
+- Текущий Flutter UI продолжает работать через **development fallback** на стороне backend (без Bearer в запросах).
+
 ---
 
 ## 2. Текущая структура проекта

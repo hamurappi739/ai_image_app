@@ -9,7 +9,7 @@
 | Этап | Статус | Примечание |
 |------|--------|------------|
 | **Backend MVP** | ✅ | FastAPI: `GET /health`, `POST /generate` (mock image URL), Supabase credits через REST + httpx, debug endpoints |
-| **GET /generations** | ✅ | История из таблицы `generations` для `TEST_USER_ID`, limit 1–100, сортировка новые сверху |
+| **GET /generations** | ✅ | История из `generations` (Bearer user id или dev fallback `TEST_USER_ID`), limit 1–100, новые сверху |
 | **Flutter UI MVP** | ✅ | 5 вкладок (русский UI), premium-стиль, responsive карточки |
 | **Галерея + backend** | ✅ | При старте `fetchGenerations()`; новые кадры после генерации — сразу сверху |
 | **Фильтр debug в UI** | ✅ | Скрытие служебных записей (`debug test prompt` и т.п.) в галерее; Supabase не трогаем |
@@ -17,6 +17,8 @@
 | **Навигация Создать ↔ Галерея** | ✅ | «Открыть в Галерее», «Создать первое изображение» |
 | **Demo UI загрузки фото (Фотосессии)** | ✅ | Bottom sheet: стиль, badge, заглушка upload, «Что получится»; без файлов и backend |
 | **Provider switch (`IMAGE_PROVIDER`)** | ✅ | `mock` по умолчанию; `gemini` через `GeminiImageProvider` |
+| **Backend bearer token auth support** | ✅ | `Authorization: Bearer` → Supabase Auth REST; в development без токена — fallback `TEST_USER_ID` |
+| **Frontend ApiService bearer token preparation** | ✅ | optional access token + общий helper заголовков; токен пока не задаётся из UI |
 
 ### Flutter UI MVP (детали)
 
@@ -36,7 +38,6 @@
 |------|--------|------------|
 | **Gemini provider implementation** | ✅ | Код провайдера готов: `GeminiImageProvider` + `google-genai`; `mock` остаётся режимом по умолчанию |
 | **Gemini manual API test** | 🔶 | Pending: прошлый ручной тест отложен из-за отсутствия баланса/доступа к платным запросам |
-| **Backend Authorization Bearer token support** | ✅ | `get_current_user_id()` поддерживает Bearer token через Supabase Auth REST + dev fallback `TEST_USER_ID` |
 | **Supabase credits** | 🔶 | Backend: profiles, generations, `ENABLE_CREDIT_CONSUMPTION`; Flutter **без** Supabase SDK |
 | **История в галерее** | 🔶 | Загрузка есть; полноценная **персональная** история по аккаунту — после auth |
 
@@ -47,7 +48,7 @@
 1. **Ручной тест Gemini (контролируемый)** — заранее пополнить баланс или подтвердить доступ к Gemini API/квотам, выполнить один тестовый `POST /generate` с коротким prompt.
 2. **После успешного Gemini-теста** — принять решение по хранению результата (`generated image URL/data`) для production-потока.
 3. **Безопасные интеграционные тесты backend** — использовать `ENABLE_CREDIT_CONSUMPTION=false`, чтобы не списывать генерации из Supabase.
-4. **Flutter auth integration step** — добавить авторизацию во Flutter и передавать access token в `ApiService` (`Authorization: Bearer ...`).
+4. **Auth в продукте (следующий шаг)** — добавить экран входа/регистрации; подключить **Supabase Auth** во Flutter; сохранять access token безопасно; передавать токен в **`ApiService`** (`Authorization: Bearer ...`).
 5. **Реальная загрузка пользовательского фото** — image picker, отправка снимка на backend (фотосессии).
 6. **Обработка фото через backend** — генерация **3 изображений** в выбранном стиле по загруженному фото.
 7. **Платная фотосессия** — оплата **100 ₽** (RuStore) перед запуском платных стилей.
