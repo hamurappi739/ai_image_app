@@ -20,9 +20,12 @@ uvicorn app.main:app --reload
 
 ## ApiService и будущая авторизация
 
+- Зависимость **`supabase_flutter`** добавлена для будущей **Supabase Auth** (вход/сессии).
+- Скелетон **`AuthService`** (`lib/services/auth_service.dart`): `currentUser`, `accessToken`, `isSignedIn`, `signOut()`, поток `onAuthStateChange`. Пока **`Supabase.initialize` не вызывается** в `main.dart` — сервис безопасно возвращает `null`/пустой stream до подключения конфигурации.
 - `ApiService` подготовлен к передаче **`Authorization: Bearer <access_token>`** через `setAccessToken(...)`.
 - Сейчас токен **не задаётся**: запросы идут без заголовка авторизации, backend в development использует fallback **`TEST_USER_ID`**.
-- Реальная авторизация и вызов `setAccessToken` из UI будут добавлены позже. Токен **не логируется** и **не сохраняется** в `ApiService`.
+- **Экран входа** и реальные auth flows будут добавлены следующим этапом. Токен в `ApiService` **не логируется** и **не сохраняется** там.
+- Реальные **`SUPABASE_URL`** и **anon key** не должны хардкодиться в production-коде; задавайте их через безопасную конфигурацию сборки/окружения (без коммита секретов в git).
 
 ## Навигация
 
@@ -94,5 +97,6 @@ lib/
 ├── models/
 │   └── generated_image_item.dart
 └── services/
-    └── api_service.dart
+    ├── api_service.dart
+    └── auth_service.dart
 ```
