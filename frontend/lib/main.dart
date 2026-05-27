@@ -1,9 +1,26 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/generated_image_item.dart';
 import 'services/api_service.dart';
 
-void main() {
+const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final url = supabaseUrl.trim();
+  final anonKey = supabaseAnonKey.trim();
+
+  if (url.isNotEmpty && anonKey.isNotEmpty) {
+    await Supabase.initialize(url: url, anonKey: anonKey);
+  } else if (kDebugMode) {
+    // ignore: avoid_print
+    print('Supabase is not configured for Flutter; auth disabled');
+  }
+
   runApp(const AiImageGeneratorApp());
 }
 

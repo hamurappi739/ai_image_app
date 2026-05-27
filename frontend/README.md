@@ -21,7 +21,8 @@ uvicorn app.main:app --reload
 ## ApiService и будущая авторизация
 
 - Зависимость **`supabase_flutter`** добавлена для будущей **Supabase Auth** (вход/сессии).
-- Скелетон **`AuthService`** (`lib/services/auth_service.dart`): `currentUser`, `accessToken`, `isSignedIn`, `signOut()`, поток `onAuthStateChange`. Пока **`Supabase.initialize` не вызывается** в `main.dart` — сервис безопасно возвращает `null`/пустой stream до подключения конфигурации.
+- Скелетон **`AuthService`** (`lib/services/auth_service.dart`): `currentUser`, `accessToken`, `isSignedIn`, `signOut()`, поток `onAuthStateChange`. Без инициализации Supabase — `isSignedIn == false`, `accessToken == null`, `signOut` не падает.
+- **`Supabase.initialize`** в `main.dart` вызывается **только** если заданы compile-time **`SUPABASE_URL`** и **`SUPABASE_ANON_KEY`** (`--dart-define`). Иначе приложение стартует без Supabase Auth.
 - `ApiService` подготовлен к передаче **`Authorization: Bearer <access_token>`** через `setAccessToken(...)`.
 - Сейчас токен **не задаётся**: запросы идут без заголовка авторизации, backend в development использует fallback **`TEST_USER_ID`**.
 - **Экран входа** и реальные auth flows будут добавлены следующим этапом. Токен в `ApiService` **не логируется** и **не сохраняется** там.
@@ -81,8 +82,29 @@ uvicorn app.main:app --reload
 ```bash
 cd frontend
 flutter pub get
-flutter run
 ```
+
+### Без Supabase (по умолчанию)
+
+Генерация и галерея работают через backend development fallback (`TEST_USER_ID`). Auth во Flutter отключён.
+
+```bash
+flutter run -d chrome
+```
+
+В debug в консоли может появиться: `Supabase is not configured for Flutter; auth disabled` (без вывода ключей).
+
+### С конфигурацией Supabase Auth (dart-define)
+
+Подставьте значения из Supabase Dashboard. **Не коммитьте** реальные URL и anon key в git.
+
+```bash
+flutter run -d chrome ^
+  --dart-define=SUPABASE_URL=https://your-project.supabase.co ^
+  --dart-define=SUPABASE_ANON_KEY=your_anon_key_here
+```
+
+Экран входа и привязка токена к `ApiService` будут добавлены позже.
 
 ```bash
 flutter analyze
