@@ -10,7 +10,7 @@
 - **Backend** — **FastAPI**, генерация изображений, учёт генераций, история.
 - **Supabase (PostgreSQL)** — профили, история генераций (`generations`), транзакции (`credit_transactions`).
 - Проект в стадии **MVP / demo-mode**: mock-генерация, заглушки оплаты и загрузки фото, dev-пользователь `TEST_USER_ID`.
-- **`IMAGE_PROVIDER`**: `mock` (по умолчанию) → **`MockImageProvider`**; `gemini` → **`GeminiImageProvider`** (реальный API, data URL в `image_url`).
+- **`IMAGE_PROVIDER`**: `mock` (по умолчанию, безопасный режим) → **`MockImageProvider`**; `gemini` → **`GeminiImageProvider`** (реализован в backend, но не используется по умолчанию).
 
 ---
 
@@ -71,7 +71,10 @@ flutter run -d chrome
 
 - **`IMAGE_PROVIDER=mock`** (по умолчанию) → `MockImageProvider`: placeholder `image_url`.
 - **`IMAGE_PROVIDER=gemini`** + `GEMINI_API_KEY` → `GeminiImageProvider`: Gemini API, `image_url` как `data:image/...;base64,...`.
-- **`ENABLE_CREDIT_CONSUMPTION=false`** (часто по умолчанию): **demo-mode** — не читает профиль, **не списывает** генерации, **не пишет** в `generations`.
+- Ручной тест с `IMAGE_PROVIDER=gemini` был **остановлен/отложен** из-за отсутствия баланса/доступа к платным запросам.
+- Приложение возвращено в **`IMAGE_PROVIDER=mock`**.
+- Для следующего Gemini-теста заранее проверить баланс, квоты и доступ к модели.
+- **`ENABLE_CREDIT_CONSUMPTION=false`** (безопасный режим тестов): **не списывает** генерации из Supabase и не выполняет запись в `generations`.
 - **`ENABLE_CREDIT_CONSUMPTION=true`**: профиль по **`TEST_USER_ID`**, списание free/paid, запись в Supabase (`generations`, `credit_transactions`).
 
 ### `GET /generations`
