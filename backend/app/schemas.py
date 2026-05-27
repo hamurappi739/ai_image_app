@@ -31,3 +31,17 @@ class GenerationItem(BaseModel):
 
 class GenerationsListResponse(BaseModel):
     generations: list[GenerationItem] = Field(default_factory=list)
+
+
+class DebugConfigResponse(BaseModel):
+    """Safe subset of settings for GET /debug/config (development only)."""
+
+    environment: str
+    image_provider: str
+    credit_consumption_enabled: bool
+    gemini_model: str
+    gemini_api_key_configured: bool
+    supabase_url_configured: bool
+    supabase_anon_key_configured: bool
+    supabase_service_role_key_configured: bool
+    test_user_id_configured: bool

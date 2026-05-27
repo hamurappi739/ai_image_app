@@ -85,9 +85,9 @@ flutter run -d chrome
 
 ### Development only
 
-**`/debug/*`** — только для разработки. **Не вызывать** из production Flutter. Перед релизом — удалить или защитить.
+**`/debug/*`** — только для разработки. **`GET /debug/config`** — безопасный helper: флаги конфигурации без секретов (доступен только при `ENVIRONMENT=development`, иначе 404). **Не вызывать** из production Flutter. Перед релизом — **удалить или защитить все** `/debug/*` routes.
 
-Примеры: `/debug/supabase`, `/debug/profile`, `/debug/history`, `/debug/consume-generation`, `/debug/add-credits`.
+Примеры: `/debug/config`, `/debug/supabase`, `/debug/profile`, `/debug/history`, `/debug/consume-generation`, `/debug/add-credits`.
 
 Подробнее: [api_contract.md](api_contract.md), [dev_notes.md](dev_notes.md).
 

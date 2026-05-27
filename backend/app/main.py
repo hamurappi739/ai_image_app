@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.schemas import (
     AddCreditsRequest,
+    DebugConfigResponse,
     GenerateRequest,
     GenerateResponse,
     GenerationItem,
@@ -23,6 +24,17 @@ from app.services.supabase_service import (
 )
 
 app = FastAPI(title="AI Image Generator API")
+
+
+def _require_development_for_debug() -> None:
+    """404 unless ENVIRONMENT is ``development`` (case-insensitive)."""
+    if settings.environment.strip().lower() != "development":
+        raise HTTPException(status_code=404)
+
+
+def _env_value_configured(value: str | None) -> bool:
+    return bool(value and str(value).strip())
+
 
 # Development only: allow any origin so Flutter web (random localhost port) can call the API.
 # Before production, replace allow_origins=["*"] with an explicit list of trusted origins.
@@ -52,6 +64,24 @@ def list_generations(
         raise HTTPException(status_code=500, detail="Failed to fetch generations")
     generations = [GenerationItem.model_validate(row) for row in rows]
     return GenerationsListResponse(generations=generations)
+
+
+@app.get("/debug/config", response_model=DebugConfigResponse)
+def debug_config():
+    _require_development_for_debug()
+    return DebugConfigResponse(
+        environment=settings.environment,
+        image_provider=settings.image_provider,
+        credit_consumption_enabled=settings.enable_credit_consumption,
+        gemini_model=settings.gemini_model,
+        gemini_api_key_configured=_env_value_configured(settings.gemini_api_key),
+        supabase_url_configured=_env_value_configured(settings.supabase_url),
+        supabase_anon_key_configured=_env_value_configured(settings.supabase_anon_key),
+        supabase_service_role_key_configured=_env_value_configured(
+            settings.supabase_service_role_key
+        ),
+        test_user_id_configured=_env_value_configured(settings.test_user_id),
+    )
 
 
 @app.get("/debug/supabase")

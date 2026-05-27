@@ -79,7 +79,7 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 - Service role key — полный доступ к БД, обходит RLS; **никогда** не отдавать во Flutter
 - **`SUPABASE_ANON_KEY`** — для клиента; backend пока не использует
 
-Проверка в разработке: `GET /debug/supabase` (удалить или защитить перед production).
+Проверка в разработке: `GET /debug/supabase`, `GET /debug/config` (удалить или защитить перед production).
 
 ## Gemini image generation
 
@@ -133,6 +133,7 @@ app/
 |-------|------|----------|
 | GET | `/health` | Проверка работоспособности |
 | GET | `/generations` | История генераций тестового пользователя (`TEST_USER_ID`) |
+| GET | `/debug/config` | Безопасный снимок настроек без секретов (**только `ENVIRONMENT=development`**) |
 | GET | `/debug/supabase` | Проверка подключения к Supabase (**только разработка**) |
 | GET | `/debug/profile` | Профиль по `TEST_USER_ID` (**только разработка**) |
 | GET | `/debug/credits` | Решение free/paid без списания (**только разработка**) |
@@ -161,6 +162,18 @@ curl -s "http://127.0.0.1:8000/generations?limit=5"
 ```
 
 В production позже: тот же endpoint с **auth user id** вместо `TEST_USER_ID`.
+
+### GET /debug/config (временный)
+
+Только при **`ENVIRONMENT=development`**. Иначе **`404`** (endpoint не «светится» как рабочий в production).
+
+Возвращает **только безопасные** поля: окружение, `IMAGE_PROVIDER`, флаг списания кредитов, модель Gemini, **флаги** «ключ/URL настроены» без значений. **Не** возвращает: `GEMINI_API_KEY`, `SUPABASE_*` ключи, `TEST_USER_ID`, полный `SUPABASE_URL` (только `supabase_url_configured`).
+
+Пример:
+
+```bash
+curl -s http://127.0.0.1:8000/debug/config
+```
 
 ### GET /debug/supabase (временный)
 
