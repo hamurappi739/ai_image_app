@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import get_current_user_id
@@ -56,8 +56,8 @@ def health():
 @app.get("/generations", response_model=GenerationsListResponse)
 def list_generations(
     limit: int = Query(default=20, ge=1, le=100, description="Max items to return"),
+    user_id: str = Depends(get_current_user_id),
 ):
-    user_id = get_current_user_id()
     try:
         rows = get_generations_by_user_id(user_id, limit=limit)
     except RuntimeError:
@@ -197,10 +197,17 @@ def debug_add_credits(request: AddCreditsRequest):
 
 
 @app.post("/generate", response_model=GenerateResponse)
-def generate(body: GenerateRequest):
+def generate(
+    body: GenerateRequest,
+    authorization: str | None = Header(default=None),
+):
     prompt = body.prompt.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt cannot be empty")
+
+    user_id: str | None = None
+    if authorization is not None or settings.enable_credit_consumption:
+        user_id = get_current_user_id(authorization=authorization)
 
     if not settings.enable_credit_consumption:
         return GenerateResponse(
@@ -208,7 +215,8 @@ def generate(body: GenerateRequest):
             prompt=prompt,
         )
 
-    user_id = get_current_user_id()
+    if user_id is None:
+        raise HTTPException(status_code=500, detail="User id resolution failed")
     try:
         profile = get_profile_by_id(user_id)
     except RuntimeError:

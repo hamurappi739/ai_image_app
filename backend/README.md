@@ -22,7 +22,7 @@ copy .env.example .env
 | `GEMINI_MODEL` | Модель для генерации изображений |
 | `FREE_GENERATIONS_LIMIT` | Сколько бесплатных генераций доступно пользователю (MVP: **3** по умолчанию; меняется через env без правок кода) |
 | `SUPABASE_URL` | URL проекта Supabase |
-| `SUPABASE_ANON_KEY` | Публичный anon key (для Flutter; backend пока не использует) |
+| `SUPABASE_ANON_KEY` | Публичный anon key (используется backend для валидации Bearer token через Supabase Auth REST) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key — **только на сервере** |
 | `TEST_USER_ID` | UUID тестового пользователя (только development) |
 | `ENABLE_CREDIT_CONSUMPTION` | Включить проверку и списание кредитов в `POST /generate` (по умолчанию `false`) |
@@ -132,7 +132,7 @@ app/
 | Метод | Путь | Описание |
 |-------|------|----------|
 | GET | `/health` | Проверка работоспособности |
-| GET | `/generations` | История генераций тестового пользователя (`TEST_USER_ID`) |
+| GET | `/generations` | История генераций текущего пользователя (Bearer token или dev fallback) |
 | GET | `/debug/config` | Безопасный снимок настроек без секретов (**только `ENVIRONMENT=development`**) |
 | GET | `/debug/supabase` | Проверка подключения к Supabase (**только разработка**) |
 | GET | `/debug/profile` | Профиль по `TEST_USER_ID` (**только разработка**) |
@@ -144,13 +144,20 @@ app/
 
 ### GET /generations
 
-Список записей из таблицы `generations` для **`TEST_USER_ID`** (dev-mode, без JWT). Сортировка: новые сверху.
+Список записей из таблицы `generations` для текущего пользователя. Сортировка: новые сверху.
+
+Идентификация пользователя:
+
+- Если передан `Authorization: Bearer <access_token>` — backend валидирует токен через Supabase Auth REST (`/auth/v1/user`) и использует `id` из ответа.
+- Если заголовка нет и `ENVIRONMENT=development` — используется fallback `TEST_USER_ID`.
+- Если заголовка нет и окружение не development — `401` (`Authorization required`).
 
 Query: `limit` (по умолчанию **20**, минимум **1**, максимум **100**), например `GET /generations?limit=10`.
 
 Поля каждого элемента: `id`, `prompt`, `image_url`, `payment_type`, `created_at`.
 
-- Нет `TEST_USER_ID` → `500` — `"TEST_USER_ID is not configured"`
+- Невалидный/просроченный Bearer token → `401` — `"Invalid or expired authorization token"`
+- Нет токена в development и не задан `TEST_USER_ID` → `500` — `"TEST_USER_ID is not configured for development mode"`
 - Ошибка Supabase → `500` — `"Failed to fetch generations"`
 - Нет записей → `200` — `{"generations": []}`
 
@@ -161,7 +168,7 @@ curl -s "http://127.0.0.1:8000/generations"
 curl -s "http://127.0.0.1:8000/generations?limit=5"
 ```
 
-В production позже: тот же endpoint с **auth user id** вместо `TEST_USER_ID`.
+В production ожидается Bearer token; fallback `TEST_USER_ID` предназначен только для development.
 
 ### GET /debug/config (временный)
 
@@ -241,6 +248,12 @@ curl -s http://127.0.0.1:8000/debug/config
 
 Управляется флагом **`ENABLE_CREDIT_CONSUMPTION`** в `backend/.env` (шаблон: `.env.example`).
 
+Для обычного endpoint поддерживается `Authorization: Bearer <access_token>`:
+
+- при переданном токене backend валидирует его через Supabase Auth REST;
+- невалидный/просроченный токен → `401` (`Invalid or expired authorization token`);
+- без токена в development используется fallback `TEST_USER_ID` только там, где нужен `user_id`.
+
 #### a) Credit consumption disabled (`ENABLE_CREDIT_CONSUMPTION=false`, по умолчанию)
 
 - Проверка prompt → mock `image_url`
@@ -256,14 +269,20 @@ ENABLE_CREDIT_CONSUMPTION=true
 TEST_USER_ID=<uuid из profiles>
 ```
 
-Поток: prompt → профиль по `TEST_USER_ID` → `determine_generation_payment` → при отказе `402` → mock image → `consume_generation` (Supabase) → расширенный ответ:
+Идентификация пользователя для этой ветки:
+
+- С `Authorization: Bearer <access_token>`: backend получает user id через Supabase Auth REST.
+- Без заголовка в development: используется fallback `TEST_USER_ID`.
+- Без заголовка вне development: `401` (`Authorization required`).
+
+Поток: prompt → профиль пользователя → `determine_generation_payment` → при отказе `402` → mock image → `consume_generation` (Supabase) → расширенный ответ:
 
 - `image_url`, `prompt`
 - `payment_type` (`free` / `paid`)
 - `credit_consumed: true`
 - `remaining_free_generations`, `remaining_paid_credits`
 
-Ошибки: пустой prompt → `400`; нет `TEST_USER_ID` → `500`; профиль не найден → `404`; нет генераций → `402`.
+Ошибки: пустой prompt → `400`; невалидный token → `401`; без токена вне development → `401`; нет fallback `TEST_USER_ID` в development → `500`; профиль не найден → `404`; нет генераций → `402`.
 
 #### Пример (режим disabled)
 

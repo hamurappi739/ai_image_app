@@ -74,16 +74,17 @@ flutter run -d chrome
 - Ручной тест с `IMAGE_PROVIDER=gemini` был **остановлен/отложен** из-за отсутствия баланса/доступа к платным запросам.
 - Приложение возвращено в **`IMAGE_PROVIDER=mock`**.
 - Для следующего Gemini-теста заранее проверить баланс, квоты и доступ к модели.
-- В backend добавлен auth helper/development fallback: `get_current_user_id()` (сейчас возвращает `TEST_USER_ID`).
-- Позже `get_current_user_id()` будет заменён на user id из auth token (Authorization Bearer).
+- В backend auth helper `get_current_user_id()` поддерживает `Authorization: Bearer <token>` через Supabase Auth REST (`/auth/v1/user`).
+- Если заголовка нет в development — остаётся fallback на `TEST_USER_ID`; в non-development без токена — `401`.
 - **`ENABLE_CREDIT_CONSUMPTION=false`** (безопасный режим тестов): **не списывает** генерации из Supabase и не выполняет запись в `generations`.
-- **`ENABLE_CREDIT_CONSUMPTION=true`**: профиль по **`TEST_USER_ID`**, списание free/paid, запись в Supabase (`generations`, `credit_transactions`).
+- **`ENABLE_CREDIT_CONSUMPTION=true`**: профиль по user id (из Bearer token или dev fallback `TEST_USER_ID`), списание free/paid, запись в Supabase (`generations`, `credit_transactions`).
 
 ### `GET /generations`
 
-- **Dev-mode:** пользователь = **`TEST_USER_ID`** из `backend/.env`.
+- С Bearer token: user id берётся из Supabase Auth REST.
+- Без токена в development: пользователь = **`TEST_USER_ID`** из `backend/.env`.
 - Ответ: список из таблицы **`generations`** (новые сверху).
-- **Позже:** тот же endpoint с **id авторизованного** пользователя (JWT).
+- В non-development без токена: `401` (`Authorization required`).
 
 ### Development only
 
