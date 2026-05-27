@@ -1899,6 +1899,7 @@ class _CreateScreenState extends State<CreateScreen> {
 
   bool _isLoading = false;
   bool _showNoGenerationsWarning = false;
+  bool _showGenerationErrorState = false;
   GenerateImageResponse? _lastResponse;
 
   @override
@@ -1918,6 +1919,7 @@ class _CreateScreenState extends State<CreateScreen> {
       _isLoading = true;
       _lastResponse = null;
       _showNoGenerationsWarning = false;
+      _showGenerationErrorState = false;
     });
 
     try {
@@ -1950,7 +1952,8 @@ class _CreateScreenState extends State<CreateScreen> {
         'Генерации закончились. Купите пакет, чтобы продолжить.',
       );
     } else {
-      _showSnackBar('Что-то пошло не так. Попробуйте ещё раз.');
+      setState(() => _showGenerationErrorState = true);
+      _showSnackBar('Не удалось создать изображение. Попробуйте ещё раз позже.');
     }
   }
 
@@ -2023,6 +2026,10 @@ class _CreateScreenState extends State<CreateScreen> {
               if (_showNoGenerationsWarning) ...[
                 const SizedBox(height: 20),
                 const _NoGenerationsWarningCard(),
+              ],
+              if (_showGenerationErrorState) ...[
+                const SizedBox(height: 20),
+                const _GenerationErrorCard(),
               ],
               if (_lastResponse != null) ...[
                 const SizedBox(height: 32),
@@ -2203,6 +2210,44 @@ class _StatusCard extends StatelessWidget {
               'Демо-режим: генерации не списываются',
               style: theme.textTheme.bodyMedium,
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GenerationErrorCard extends StatelessWidget {
+  const _GenerationErrorCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return _SoftCard(
+      borderColor: const Color(0xFFF5D0A8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.error_outline, size: 20, color: Colors.orange.shade800),
+              const SizedBox(width: 8),
+              Text(
+                'Изображение не создано',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: const Color(0xFF9A5B00),
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Попробуйте изменить описание или повторить позже.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF9A5B00),
+            ),
+          ),
         ],
       ),
     );
