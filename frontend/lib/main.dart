@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/generated_image_item.dart';
 import 'services/api_service.dart';
+import 'services/auth_service.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
@@ -80,6 +81,7 @@ class _MainShellState extends State<MainShell> {
   static const _accentColor = Color(0xFF5B6CFF);
 
   final _apiService = ApiService();
+  final _authService = AuthService();
 
   int _selectedIndex = 0;
   final List<GeneratedImageItem> _generatedImages = [];
@@ -88,7 +90,22 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+    _syncAccessTokenFromAuth();
     _loadGenerationsFromBackend();
+  }
+
+  void _syncAccessTokenFromAuth() {
+    if (_authService.isConfigured && _authService.isSignedIn) {
+      _apiService.setAccessToken(_authService.accessToken);
+    } else {
+      _apiService.setAccessToken(null);
+    }
+  }
+
+  void _onProfileAuthChanged() {
+    _syncAccessTokenFromAuth();
+    _loadGenerationsFromBackend();
+    setState(() {});
   }
 
   Future<void> _loadGenerationsFromBackend() async {
@@ -128,6 +145,7 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final screens = <Widget>[
       CreateScreen(
+        apiService: _apiService,
         onImageGenerated: _onImageGenerated,
         onOpenGallery: _goToGalleryTab,
       ),
@@ -139,7 +157,11 @@ class _MainShellState extends State<MainShell> {
         backendHistoryUnavailable: _backendHistoryUnavailable,
       ),
       const PacksScreen(),
-      const ProfileScreen(),
+      ProfileScreen(
+        authService: _authService,
+        apiService: _apiService,
+        onAuthChanged: _onProfileAuthChanged,
+      ),
     ];
 
     return Scaffold(
@@ -1629,9 +1651,23 @@ class _GalleryImageCard extends StatelessWidget {
   }
 }
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({
+    super.key,
+    required this.authService,
+    required this.apiService,
+    required this.onAuthChanged,
+  });
 
+  final AuthService authService;
+  final ApiService apiService;
+  final VoidCallback onAuthChanged;
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
   static const _accentColor = Color(0xFF5B6CFF);
 
   static const _comingFeatures = [
@@ -1641,7 +1677,18 @@ class ProfileScreen extends StatelessWidget {
     (icon: Icons.settings_outlined, label: 'Настройки приложения'),
   ];
 
-  void _showSnackBar(BuildContext context, String message) {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isAuthLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -1651,9 +1698,310 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void _applySessionToApi() {
+    widget.apiService.setAccessToken(widget.authService.accessToken);
+    widget.onAuthChanged();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _onSignIn() async {
+    if (_isAuthLoading) return;
+    setState(() => _isAuthLoading = true);
+    try {
+      await widget.authService.signInWithEmailPassword(
+        _emailController.text,
+        _passwordController.text,
+      );
+      if (!mounted) return;
+      _applySessionToApi();
+      _showSnackBar('Вы вошли в аккаунт');
+    } on AuthNotConfiguredException catch (e) {
+      if (!mounted) return;
+      _showSnackBar(e.message);
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar('Не удалось выполнить вход. Проверьте email и пароль.');
+    } finally {
+      if (mounted) setState(() => _isAuthLoading = false);
+    }
+  }
+
+  Future<void> _onSignUp() async {
+    if (_isAuthLoading) return;
+    setState(() => _isAuthLoading = true);
+    try {
+      await widget.authService.signUpWithEmailPassword(
+        _emailController.text,
+        _passwordController.text,
+      );
+      if (!mounted) return;
+      _applySessionToApi();
+      _showSnackBar('Аккаунт создан');
+    } on AuthNotConfiguredException catch (e) {
+      if (!mounted) return;
+      _showSnackBar(e.message);
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar('Не удалось зарегистрироваться. Проверьте email и пароль.');
+    } finally {
+      if (mounted) setState(() => _isAuthLoading = false);
+    }
+  }
+
+  Future<void> _onSignOut() async {
+    if (_isAuthLoading) return;
+    setState(() => _isAuthLoading = true);
+    try {
+      await widget.authService.signOut();
+      widget.apiService.setAccessToken(null);
+      widget.onAuthChanged();
+      if (!mounted) return;
+      _showSnackBar('Вы вышли из аккаунта');
+      setState(() {});
+    } on AuthNotConfiguredException catch (e) {
+      if (!mounted) return;
+      _showSnackBar(e.message);
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar('Не удалось выйти. Попробуйте ещё раз.');
+    } finally {
+      if (mounted) setState(() => _isAuthLoading = false);
+    }
+  }
+
+  Widget _buildHeader(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Профиль', style: theme.textTheme.headlineSmall),
+        const SizedBox(height: 6),
+        Text(
+          widget.authService.isConfigured
+              ? (widget.authService.isSignedIn
+                  ? 'Ваш аккаунт'
+                  : 'Войдите, чтобы сохранять историю')
+              : 'Аккаунт и настройки',
+          style: theme.textTheme.bodyMedium,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNotConfiguredCard(ThemeData theme) {
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.person_outline,
+                  color: Colors.white,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Вход недоступен в этом запуске',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Запустите приложение с Supabase config, чтобы включить авторизацию.',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Без входа генерация и галерея работают в режиме разработки.',
+                      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSignInForm(ThemeData theme) {
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Вход в аккаунт', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(
+            'Сохраняйте изображения, фотосессии и покупки в своём профиле',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
+            decoration: InputDecoration(
+              labelText: 'Email',
+              filled: true,
+              fillColor: const Color(0xFFF7F8FC),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade200),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade200),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _passwordController,
+            obscureText: true,
+            decoration: InputDecoration(
+              labelText: 'Пароль',
+              filled: true,
+              fillColor: const Color(0xFFF7F8FC),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade200),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade200),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: _isAuthLoading
+                    ? null
+                    : const LinearGradient(
+                        colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
+                      ),
+                color: _isAuthLoading ? Colors.grey.shade300 : null,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _isAuthLoading ? null : _onSignIn,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Center(
+                    child: _isAuthLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Войти',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: OutlinedButton(
+              onPressed: _isAuthLoading ? null : _onSignUp,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _accentColor,
+                side: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text(
+                'Зарегистрироваться',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSignedInCard(ThemeData theme) {
+    final email = widget.authService.currentUser?.email ?? '—';
+
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Вы вошли', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 10),
+          Text(
+            email,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AiImageGeneratorApp.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Теперь приложение может сохранять ваши изображения и историю в аккаунте.',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              onPressed: _isAuthLoading ? null : _onSignOut,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _accentColor,
+                side: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text(
+                'Выйти',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final auth = widget.authService;
 
     return Scaffold(
       backgroundColor: AiImageGeneratorApp.scaffoldBackground,
@@ -1666,177 +2014,102 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Профиль', style: theme.textTheme.headlineSmall),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Аккаунт и настройки будут добавлены позже',
-                    style: theme.textTheme.bodyMedium,
-                  ),
+                  _buildHeader(theme),
                   const SizedBox(height: 24),
-                  _SoftCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF7C5CFF),
-                                    Color(0xFF4A7CFF),
-                                  ],
+                  if (!auth.isConfigured) ...[
+                    _buildNotConfiguredCard(theme),
+                    const SizedBox(height: 20),
+                    _SoftCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Что появится здесь',
+                            style: theme.textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 16),
+                          ..._comingFeatures.map(
+                            (item) => Padding(
+                              padding: const EdgeInsets.only(bottom: 14),
+                              child: _ProfileListRow(
+                                icon: item.icon,
+                                label: item.label,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (auth.isSignedIn) ...[
+                    _buildSignedInCard(theme),
+                  ] else ...[
+                    _buildSignInForm(theme),
+                  ],
+                  if (auth.isConfigured) ...[
+                    const SizedBox(height: 20),
+                    _SoftCard(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEDE9FF),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.shield_outlined,
+                              color: _accentColor,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Безопасность',
+                                  style: theme.textTheme.titleMedium,
                                 ),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: const Icon(
-                                Icons.person_outline,
-                                color: Colors.white,
-                                size: 26,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Вход будет доступен позже',
-                                    style: theme.textTheme.titleMedium,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'После входа ваши изображения, фотосессии и пакеты генераций будут сохраняться в аккаунте.',
-                                    style: theme.textTheme.bodyMedium,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _SoftCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Что появится здесь',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 16),
-                        ..._comingFeatures.map(
-                          (item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 14),
-                            child: _ProfileListRow(
-                              icon: item.icon,
-                              label: item.label,
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Платежные данные не хранятся в приложении. Важные операции выполняются на сервере.',
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _SoftCard(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEDE9FF),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.shield_outlined,
-                            color: _accentColor,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Безопасность',
-                                style: theme.textTheme.titleMedium,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Секретные ключи и платежные данные не хранятся в приложении. Все важные операции будут выполняться на сервере.',
-                                style: theme.textTheme.bodyMedium,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
-                        ),
-                        borderRadius: BorderRadius.circular(14),
+                        ],
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => _showSnackBar(
-                            context,
-                            'Вход будет добавлен позже',
+                    ),
+                  ],
+                  if (!auth.isConfigured) ...[
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton(
+                        onPressed: () => _showSnackBar(
+                          'Документы будут добавлены перед релизом',
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _accentColor,
+                          side: BorderSide(
+                            color: _accentColor.withValues(alpha: 0.45),
                           ),
-                          borderRadius: BorderRadius.circular(14),
-                          child: const Center(
-                            child: Text(
-                              'Войти позже',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
+                        ),
+                        child: const Text(
+                          'Политика конфиденциальности',
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: OutlinedButton(
-                      onPressed: () => _showSnackBar(
-                        context,
-                        'Документы будут добавлены перед релизом',
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _accentColor,
-                        side: BorderSide(
-                          color: _accentColor.withValues(alpha: 0.45),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: const Text(
-                        'Политика конфиденциальности',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -1891,10 +2164,12 @@ class _ProfileListRow extends StatelessWidget {
 class CreateScreen extends StatefulWidget {
   const CreateScreen({
     super.key,
+    required this.apiService,
     required this.onImageGenerated,
     required this.onOpenGallery,
   });
 
+  final ApiService apiService;
   final ValueChanged<GeneratedImageItem> onImageGenerated;
   final VoidCallback onOpenGallery;
 
@@ -1911,7 +2186,6 @@ class _CreateScreenState extends State<CreateScreen> {
     'Город будущего',
   ];
 
-  final _apiService = ApiService();
   final _descriptionController = TextEditingController();
 
   bool _isLoading = false;
@@ -1940,7 +2214,7 @@ class _CreateScreenState extends State<CreateScreen> {
     });
 
     try {
-      final response = await _apiService.generateImage(text);
+      final response = await widget.apiService.generateImage(text);
       if (!mounted) return;
       widget.onImageGenerated(
         GeneratedImageItem(

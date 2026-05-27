@@ -18,15 +18,14 @@ uvicorn app.main:app --reload
 | Web / Chrome | `http://127.0.0.1:8000` |
 | Android emulator | `http://10.0.2.2:8000` |
 
-## ApiService и будущая авторизация
+## Авторизация (Supabase Auth)
 
-- Зависимость **`supabase_flutter`** добавлена для будущей **Supabase Auth** (вход/сессии).
-- Скелетон **`AuthService`** (`lib/services/auth_service.dart`): `currentUser`, `accessToken`, `isSignedIn`, `signOut()`, поток `onAuthStateChange`. Без инициализации Supabase — `isSignedIn == false`, `accessToken == null`, `signOut` не падает.
-- **`Supabase.initialize`** в `main.dart` вызывается **только** если заданы compile-time **`SUPABASE_URL`** и **`SUPABASE_ANON_KEY`** (`--dart-define`). Иначе приложение стартует без Supabase Auth.
-- `ApiService` подготовлен к передаче **`Authorization: Bearer <access_token>`** через `setAccessToken(...)`.
-- Сейчас токен **не задаётся**: запросы идут без заголовка авторизации, backend в development использует fallback **`TEST_USER_ID`**.
-- **Экран входа** и реальные auth flows будут добавлены следующим этапом. Токен в `ApiService` **не логируется** и **не сохраняется** там.
-- Реальные **`SUPABASE_URL`** и **anon key** не должны хардкодиться в production-коде; задавайте их через безопасную конфигурацию сборки/окружения (без коммита секретов в git).
+- **`supabase_flutter`** + **`AuthService`**: вход и регистрация по email/паролю.
+- **`Supabase.initialize`** только при `--dart-define=SUPABASE_URL=...` и `--dart-define=SUPABASE_ANON_KEY=...`.
+- **Без dart-define:** вкладка **Профиль** показывает, что вход недоступен; **Создать** и **Галерея** работают через backend development fallback (`TEST_USER_ID`).
+- **После входа:** access token передаётся в общий **`ApiService`** (`setAccessToken`); backend использует пользователя из Supabase Auth.
+- **Без входа:** запросы без `Authorization` — в development backend по-прежнему использует `TEST_USER_ID`.
+- Токен **не логируется** и **не хардкодится** в коде.
 
 ## Навигация
 
@@ -38,7 +37,7 @@ uvicorn app.main:app --reload
 | **Фотосессии** | Preview-карточки стилей, responsive layout (1–2 колонки) |
 | **Галерея** | `GET /generations` + новые за сессию; empty state + переход на «Создать» |
 | **Пакеты** | Пакеты генераций, responsive layout (1–3 колонки), без реальной оплаты |
-| **Профиль** | Placeholder для будущей авторизации и настроек |
+| **Профиль** | Вход / регистрация / выход (при Supabase config) |
 
 ## Создать
 
@@ -73,9 +72,11 @@ uvicorn app.main:app --reload
 
 ## Профиль
 
-- Placeholder: вход, список будущих возможностей, блок безопасности
-- Кнопки «Войти позже» и «Политика конфиденциальности» — заглушки со SnackBar
-- Реальная авторизация будет добавлена позже
+- **Без Supabase config:** placeholder + текст «Вход недоступен в этом запуске» и подсказка про `dart-define`
+- **С Supabase, без входа:** форма email/пароль, кнопки **Войти** и **Зарегистрироваться**
+- **После входа:** карточка «Вы вошли», email, кнопка **Выйти**
+- Мягкие SnackBar при ошибках (без технических деталей Supabase)
+- Блок **Безопасность** при включённом Supabase
 
 ## Запуск
 
