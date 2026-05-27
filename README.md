@@ -93,6 +93,7 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 | [docs/api_contract.md](docs/api_contract.md) | Контракт API |
 | [docs/roadmap.md](docs/roadmap.md) | Roadmap |
 | [docs/database_schema.md](docs/database_schema.md) | Схема Supabase |
+| [docs/gemini_test_checklist.md](docs/gemini_test_checklist.md) | Чек-лист безопасного ручного теста Gemini |
 
 ---
 
@@ -112,6 +113,9 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 - **Авторизация**
 - Полноценное **сохранение истории по аккаунту**
 - **Production security** (debug routes, CORS, RLS)
+
+Gemini provider уже реализован в backend, но по умолчанию используется **`IMAGE_PROVIDER=mock`**.  
+Реальный ручной тест Gemini выполняйте только по [docs/gemini_test_checklist.md](docs/gemini_test_checklist.md).
 
 ---
 
