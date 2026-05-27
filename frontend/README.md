@@ -18,6 +18,12 @@ uvicorn app.main:app --reload
 | Web / Chrome | `http://127.0.0.1:8000` |
 | Android emulator | `http://10.0.2.2:8000` |
 
+## ApiService и будущая авторизация
+
+- `ApiService` подготовлен к передаче **`Authorization: Bearer <access_token>`** через `setAccessToken(...)`.
+- Сейчас токен **не задаётся**: запросы идут без заголовка авторизации, backend в development использует fallback **`TEST_USER_ID`**.
+- Реальная авторизация и вызов `setAccessToken` из UI будут добавлены позже. Токен **не логируется** и **не сохраняется** в `ApiService`.
+
 ## Навигация
 
 Нижнее меню (5 вкладок):

@@ -80,6 +80,27 @@ bool _isHiddenDevGenerationDescription(String description) {
 }
 
 class ApiService {
+  String? _accessToken;
+
+  /// Sets optional Supabase (or other) access token for `Authorization: Bearer`.
+  /// Pass `null` or empty string to clear. Token is never logged or persisted here.
+  void setAccessToken(String? token) {
+    final trimmed = token?.trim();
+    _accessToken = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+  }
+
+  Map<String, String> _requestHeaders({bool jsonBody = false}) {
+    final headers = <String, String>{};
+    if (jsonBody) {
+      headers['Content-Type'] = 'application/json';
+    }
+    final token = _accessToken;
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
+
   static String get baseUrl {
     if (kIsWeb) {
       return 'http://127.0.0.1:8000';
@@ -91,7 +112,7 @@ class ApiService {
     final uri = Uri.parse('$baseUrl/generate');
     final response = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: _requestHeaders(jsonBody: true),
       body: jsonEncode({'prompt': prompt}),
     );
 
@@ -112,7 +133,7 @@ class ApiService {
     final uri = Uri.parse('$baseUrl/generations').replace(
       queryParameters: {'limit': limit.toString()},
     );
-    final response = await http.get(uri);
+    final response = await http.get(uri, headers: _requestHeaders());
 
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body) as Map<String, dynamic>;
