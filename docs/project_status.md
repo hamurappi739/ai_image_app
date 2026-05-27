@@ -74,6 +74,8 @@ flutter run -d chrome
 - Ручной тест с `IMAGE_PROVIDER=gemini` был **остановлен/отложен** из-за отсутствия баланса/доступа к платным запросам.
 - Приложение возвращено в **`IMAGE_PROVIDER=mock`**.
 - Для следующего Gemini-теста заранее проверить баланс, квоты и доступ к модели.
+- В backend добавлен auth helper/development fallback: `get_current_user_id()` (сейчас возвращает `TEST_USER_ID`).
+- Позже `get_current_user_id()` будет заменён на user id из auth token (Authorization Bearer).
 - **`ENABLE_CREDIT_CONSUMPTION=false`** (безопасный режим тестов): **не списывает** генерации из Supabase и не выполняет запись в `generations`.
 - **`ENABLE_CREDIT_CONSUMPTION=true`**: профиль по **`TEST_USER_ID`**, списание free/paid, запись в Supabase (`generations`, `credit_transactions`).
 

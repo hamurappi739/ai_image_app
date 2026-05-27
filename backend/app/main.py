@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.auth import get_current_user_id
 from app.config import settings
 from app.schemas import (
     AddCreditsRequest,
@@ -56,10 +57,9 @@ def health():
 def list_generations(
     limit: int = Query(default=20, ge=1, le=100, description="Max items to return"),
 ):
-    if not settings.test_user_id:
-        raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
+    user_id = get_current_user_id()
     try:
-        rows = get_generations_by_user_id(settings.test_user_id, limit=limit)
+        rows = get_generations_by_user_id(user_id, limit=limit)
     except RuntimeError:
         raise HTTPException(status_code=500, detail="Failed to fetch generations")
     generations = [GenerationItem.model_validate(row) for row in rows]
@@ -208,10 +208,9 @@ def generate(body: GenerateRequest):
             prompt=prompt,
         )
 
-    if not settings.test_user_id:
-        raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
+    user_id = get_current_user_id()
     try:
-        profile = get_profile_by_id(settings.test_user_id)
+        profile = get_profile_by_id(user_id)
     except RuntimeError:
         raise HTTPException(status_code=500, detail="Failed to fetch profile")
     if profile is None:
