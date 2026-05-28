@@ -19,8 +19,12 @@
 - **Без dart-define:** авторизация в UI недоступна; приложение работает в **demo / development fallback** (`TEST_USER_ID` на backend).
 - **После входа:** access token из `AuthService` передаётся в **`ApiService.setAccessToken(...)`** → backend получает **`Authorization: Bearer`**.
 - **Backend:** `get_current_user()` валидирует Bearer через Supabase Auth REST (`/auth/v1/user`) → **`CurrentUser { id, email }`**.
-- **Profiles auto-create/sync:** при первом **`GET /generations`** или **`POST /generate`** (с включённым списанием кредитов) backend вызывает **`ensure_profile_exists`** — создаёт строку в `profiles`, если её ещё нет (`free_generations_used=0`, `paid_credits=0`); существующий email не перезаписывается.
-- **Проверено:** после входа вкладки **Создать** и **Галерея** работают (генерация и загрузка истории).
+- **Profiles auto-create/sync:** backend автоматически вызывает **`ensure_profile_exists`** для пользователя на **`GET /generations`** и **`POST /generate`**; если профиля нет, создаёт строку в `profiles` (`free_generations_used=0`, `paid_credits=0`) и мягко синхронизирует `email` без перезаписи уже заполненного значения.
+- **Работает в двух режимах:** и для Bearer token пользователя, и для development fallback **`TEST_USER_ID`**.
+- **Проверено после auto-sync:**  
+  1) запуск с Supabase Auth config + вход в аккаунт;  
+  2) запуск без Supabase config через development fallback.  
+  В обоих режимах вкладки **Создать** и **Галерея** работают (генерация и загрузка истории).
 
 ---
 
@@ -92,10 +96,10 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Ручной тест с `IMAGE_PROVIDER=gemini` был **остановлен/отложен** из-за отсутствия баланса/доступа к платным запросам.
 - Приложение возвращено в **`IMAGE_PROVIDER=mock`**.
 - Для следующего Gemini-теста заранее проверить баланс, квоты и доступ к модели.
-- В backend auth helper `get_current_user_id()` поддерживает `Authorization: Bearer <token>` через Supabase Auth REST (`/auth/v1/user`).
+- В backend auth helper `get_current_user()` поддерживает `Authorization: Bearer <token>` через Supabase Auth REST (`/auth/v1/user`).
 - Если заголовка нет в development — остаётся fallback на `TEST_USER_ID`; в non-development без токена — `401`.
 - **`ENABLE_CREDIT_CONSUMPTION=false`** (безопасный режим тестов): **не списывает** генерации из Supabase и не выполняет запись в `generations`.
-- **`ENABLE_CREDIT_CONSUMPTION=true`**: профиль по user id (из Bearer token или dev fallback `TEST_USER_ID`), списание free/paid, запись в Supabase (`generations`, `credit_transactions`).
+- **`ENABLE_CREDIT_CONSUMPTION=true`**: профиль по user id (из Bearer token или dev fallback `TEST_USER_ID`), auto-sync профиля через `ensure_profile_exists`, списание free/paid, запись в Supabase (`generations`, `credit_transactions`).
 
 ### `GET /generations`
 

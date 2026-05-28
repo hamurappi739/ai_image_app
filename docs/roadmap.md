@@ -24,6 +24,7 @@
 | **Access token passed to ApiService after login** | ✅ | Общий `ApiService` в `MainShell`; галерея перезагружается после входа/выхода |
 | **Backend accepts Bearer token** | ✅ | `get_current_user()` → `CurrentUser { id, email }` из Supabase Auth |
 | **Profile auto-create/sync** | ✅ | `ensure_profile_exists` на `GET /generations` и `POST /generate` (credit path) |
+| **Development fallback check after auth/profile sync** | ✅ | Проверены оба режима: с Supabase Auth и без config через `TEST_USER_ID` fallback |
 
 ### Flutter UI MVP (детали)
 
@@ -53,16 +54,17 @@
 1. **Ручной тест Gemini (контролируемый)** — заранее пополнить баланс или подтвердить доступ к Gemini API/квотам, выполнить один тестовый `POST /generate` с коротким prompt.
 2. **После успешного Gemini-теста** — принять решение по хранению результата (`generated image URL/data`) для production-потока.
 3. **Безопасные интеграционные тесты backend** — использовать `ENABLE_CREDIT_CONSUMPTION=false`, чтобы не списывать генерации из Supabase.
-4. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation); восстановление пароля.
-5. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
-6. **Реальная загрузка пользовательского фото** — image picker, отправка снимка на backend (фотосессии).
-7. **Обработка фото через backend** — генерация **3 изображений** в выбранном стиле по загруженному фото.
-8. **Платная фотосессия** — оплата **100 ₽** (RuStore) перед запуском платных стилей.
-9. **Результаты фотосессии в Галерее** — сохранение трёх кадров в историю пользователя (backend + UI).
-10. **Синхронизация баланса генераций** с аккаунтом после auth.
-11. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
-12. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
-13. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
+4. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation).
+5. **Восстановление пароля** — добавить reset password flow в клиенте и backend UX.
+6. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
+7. **Реальная загрузка пользовательского фото** — image picker, отправка снимка на backend (фотосессии).
+8. **Обработка фото через backend** — генерация **3 изображений** в выбранном стиле по загруженному фото.
+9. **Платная фотосессия** — оплата **100 ₽** (RuStore) перед запуском платных стилей.
+10. **Результаты фотосессии в Галерее** — сохранение трёх кадров в историю пользователя (backend + UI).
+11. **Синхронизация баланса генераций** с аккаунтом после auth.
+12. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
+13. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
+14. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
 
 ---
 
