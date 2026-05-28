@@ -31,6 +31,7 @@
 | **Backend photoshoot endpoint placeholder** | ✅ | `POST /photoshoots/generate` добавлен; сейчас возвращает `501` |
 | **Frontend connected to photoshoot placeholder endpoint** | ✅ | Бесплатный сценарий Фотосессий вызывает `POST /photoshoots/generate` |
 | **Graceful handling of 501 placeholder** | ✅ | `501` обрабатывается мягким сообщением без технических деталей |
+| **Backend multipart upload validation for photoshoots** | ✅ | `POST /photoshoots/generate` валидирует `photo` по типу и размеру (до 10 MB) |
 
 ### Flutter UI MVP (детали)
 
@@ -63,9 +64,9 @@
 4. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation).
 5. **Восстановление пароля** — добавить reset password flow.
 6. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
-7. **Multipart upload selected photo to backend** — приём выбранного фото на backend.
-8. **Backend processing/generation of 3 results** — обработка фото и генерация трёх кадров в выбранном стиле.
-9. **Save photoshoot results to Gallery** — запись результатов фотосессии в историю и показ в Галерее.
+7. **Flutter upload selected photo to backend** — отправка выбранного фото из Фотосессий в multipart endpoint.
+8. **Backend image processing** — обработка фото и генерация трёх кадров в выбранном стиле.
+9. **Save generated results** — запись результатов фотосессии в историю и показ в Галерее.
 10. **Paid photoshoot flow after payment** — запуск платной фотосессии после оплаты.
 11. **Синхронизация баланса генераций** с аккаунтом после auth.
 12. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).

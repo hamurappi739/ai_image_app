@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import CurrentUser, get_current_user
@@ -10,7 +10,6 @@ from app.schemas import (
     GenerateResponse,
     GenerationItem,
     GenerationsListResponse,
-    PhotoshootGenerateRequest,
 )
 from app.services.image_service import generate_image
 from app.services.credits_service import (
@@ -157,6 +156,12 @@ def debug_history():
 
 _DEBUG_MOCK_PROMPT = "debug test prompt"
 _DEBUG_MOCK_IMAGE_URL = "https://placehold.co/1024x1024?text=Generated+Image"
+_ALLOWED_PHOTOSHOOT_CONTENT_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+_MAX_PHOTOSHOOT_FILE_SIZE_BYTES = 10 * 1024 * 1024
 
 
 @app.post("/debug/consume-generation")
@@ -261,14 +266,27 @@ def generate(
 
 @app.post("/photoshoots/generate")
 def generate_photoshoot(
-    body: PhotoshootGenerateRequest,
+    style_id: str = Form(...),
+    style_title: str | None = Form(default=None),
+    photo: UploadFile | None = File(default=None),
     user: CurrentUser = Depends(get_current_user),
 ):
-    # Placeholder endpoint for future photoshoot flow.
-    # For now we only validate auth/development fallback and request shape.
-    _ = body.style_id
-    _ = body.style_title
-    _ = user.id
+    _ensure_profile_for_user(user)
+
+    _ = style_id
+    _ = style_title
+
+    if photo is None:
+        raise HTTPException(status_code=400, detail="Photo is required")
+
+    if photo.content_type not in _ALLOWED_PHOTOSHOOT_CONTENT_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported photo format")
+
+    file_bytes = photo.file.read(_MAX_PHOTOSHOOT_FILE_SIZE_BYTES + 1)
+    if len(file_bytes) > _MAX_PHOTOSHOOT_FILE_SIZE_BYTES:
+        raise HTTPException(status_code=400, detail="Photo is too large")
+
     raise HTTPException(
-        status_code=501, detail="Photoshoot generation is not implemented yet"
+        status_code=501,
+        detail="Photoshoot image processing is not implemented yet",
     )

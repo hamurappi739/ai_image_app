@@ -151,7 +151,7 @@ app/
 | POST | `/debug/consume-generation` | Тестовое списание в Supabase (**только разработка**) |
 | POST | `/debug/add-credits` | Ручное начисление paid credits (**только разработка**) |
 | POST | `/generate` | Mock-генерация изображения по prompt |
-| POST | `/photoshoots/generate` | Placeholder для будущей генерации фотосессии (сейчас `501`) |
+| POST | `/photoshoots/generate` | Multipart валидация фото для фотосессии (сейчас `501` после проверки) |
 
 ### GET /generations
 
@@ -319,17 +319,45 @@ curl -X POST http://127.0.0.1:8000/generate ^
 
 ### POST /photoshoots/generate
 
-Endpoint-заглушка для будущего сценария фотосессии.
+Endpoint для подготовки фотосессии с multipart-валидацией файла.
 
-Текущее тело запроса:
+Поля `multipart/form-data`:
 
-```json
-{
-  "style_id": "studio_portrait",
-  "style_title": "Студийный портрет"
-}
+- `style_id` (строка, обязательно)
+- `style_title` (строка, опционально)
+- `photo` (файл, обязательно)
+
+Валидация файла:
+
+- Допустимые форматы: `image/jpeg`, `image/png`, `image/webp`
+- Максимальный размер: `10 MB`
+- Неподдерживаемый формат → `400` `Unsupported photo format`
+- Слишком большой файл → `400` `Photo is too large`
+
+Auth-логика сохраняется: Bearer user или development fallback `TEST_USER_ID`.
+
+После успешной валидации endpoint возвращает `501`:
+`Photoshoot image processing is not implemented yet`.
+
+Пока не делается: хранение файла, обработка изображения, генерация 3 кадров, запись в `generations`, списание генераций.
+
+Пример `curl` (без секретов):
+
+```bash
+curl -X POST "http://127.0.0.1:8000/photoshoots/generate" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -F "style_id=studio_portrait" \
+  -F "style_title=Студийный портрет" \
+  -F "photo=@C:/path/to/photo.jpg;type=image/jpeg"
 ```
 
-- Использует текущую auth-логику: Bearer user или development fallback `TEST_USER_ID`.
-- Сейчас **всегда** возвращает `501` — `Photoshoot generation is not implemented yet`.
-- Не принимает файл, не обрабатывает изображение, не списывает генерации и не пишет в `generations`.
+PowerShell (`Invoke-RestMethod`):
+
+```powershell
+$form = @{
+  style_id = "studio_portrait"
+  style_title = "Студийный портрет"
+  photo = Get-Item "C:\path\to\photo.jpg"
+}
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/photoshoots/generate" -Method Post -Form $form
+```

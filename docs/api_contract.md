@@ -173,9 +173,9 @@
 
 ## 6. POST /photoshoots/generate
 
-**Назначение:** placeholder endpoint для будущей фотосессии (выбор стиля + загрузка фото + генерация 3 изображений).
+**Назначение:** подготовка будущей фотосессии (выбор стиля + загрузка фото + генерация 3 изображений).
 
-**Headers:** `Content-Type: application/json`
+**Headers:** `Content-Type: multipart/form-data`
 
 **Auth:**
 
@@ -183,19 +183,20 @@
 - без токена в `development` — fallback `TEST_USER_ID`;
 - без токена вне `development` — `401`.
 
-**Request body (текущий MVP):**
-
-```json
-{
-  "style_id": "studio_portrait",
-  "style_title": "Студийный портрет"
-}
-```
+**Request body (multipart/form-data, текущий MVP):**
 
 | Поле | Тип | Описание |
 |------|-----|----------|
 | `style_id` | string | Идентификатор выбранного стиля (обязательно) |
 | `style_title` | string \| null | Человекочитаемое название стиля (опционально) |
+| `photo` | file | Фото пользователя (обязательно) |
+
+**Валидация файла:**
+
+- Допустимые форматы (`content_type`): `image/jpeg`, `image/png`, `image/webp`
+- Максимальный размер: **10 MB**
+- Неподдерживаемый формат → `400` `Unsupported photo format`
+- Слишком большой файл → `400` `Photo is too large`
 
 **Текущее поведение:** endpoint-заглушка, всегда возвращает `501 Not Implemented`.
 
@@ -203,13 +204,13 @@
 
 ```json
 {
-  "detail": "Photoshoot generation is not implemented yet"
+  "detail": "Photoshoot image processing is not implemented yet"
 }
 ```
 
-Сейчас endpoint принимает только JSON с `style_id`/`style_title`; **multipart upload и фото** ещё не подключены. Endpoint **не** вызывает генерацию, **не** списывает генерации, **не** пишет в `generations`.
+Сейчас endpoint валидирует multipart-поля и файл, но **не** сохраняет фото, **не** вызывает генерацию, **не** списывает генерации, **не** пишет в `generations`.
 
-**Будущий сценарий:** multipart upload фото, генерация **3 результатов** фотосессии в выбранном стиле, сохранение результатов в Галерею.
+**Будущий сценарий:** генерация **3 изображений** фотосессии в выбранном стиле и сохранение результатов в Галерею.
 
 ---
 

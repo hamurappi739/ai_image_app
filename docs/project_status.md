@@ -105,10 +105,11 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 ### `POST /photoshoots/generate`
 
-- Добавлен backend endpoint-заглушка для будущей фотосессии.
+- Backend endpoint теперь принимает `multipart/form-data`: `style_id`, `style_title`, `photo`.
 - Использует ту же auth-логику: Bearer token или development fallback `TEST_USER_ID`.
-- Сейчас endpoint возвращает `501` — `Photoshoot generation is not implemented yet`.
-- Реальная загрузка фото и backend-обработка фотосессии пока не реализованы.
+- Добавлена валидация файла по типу (`jpeg/png/webp`) и размеру (до `10 MB`).
+- После успешной валидации endpoint возвращает `501` — `Photoshoot image processing is not implemented yet`.
+- Хранение файла, генерация и запись результатов пока не реализованы.
 
 ### `GET /generations`
 
