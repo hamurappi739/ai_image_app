@@ -922,6 +922,7 @@ class _PhotoshootDetailSheet extends StatefulWidget {
 class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
   static const _accentColor = Color(0xFF5B6CFF);
   final _imagePicker = ImagePicker();
+  XFile? _selectedPhotoFile;
   Uint8List? _selectedPhotoBytes;
   bool _isPickingPhoto = false;
   bool _isPreparingPhotoshoot = false;
@@ -941,6 +942,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
       final bytes = await file.readAsBytes();
       if (!mounted) return;
       setState(() {
+        _selectedPhotoFile = file;
         _selectedPhotoBytes = bytes;
       });
     } catch (_) {
@@ -959,7 +961,8 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
 
   Future<void> _onSecondaryActionPressed() async {
     if (_isPreparingPhotoshoot) return;
-    final hasSelectedPhoto = _selectedPhotoBytes != null;
+    final selectedPhotoFile = _selectedPhotoFile;
+    final hasSelectedPhoto = selectedPhotoFile != null;
     if (!hasSelectedPhoto) {
       widget.onShowMessage('Сначала выберите фото');
       return;
@@ -973,12 +976,16 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
       await widget.apiService.generatePhotoshoot(
         styleId: widget.style.id,
         styleTitle: widget.style.title,
+        photoFile: selectedPhotoFile,
       );
       if (!mounted) return;
       widget.onShowMessage('Обработка фото будет добавлена позже');
     } on PhotoshootPlaceholderException {
       if (!mounted) return;
       widget.onShowMessage('Обработка фото будет добавлена позже');
+    } on PhotoshootInvalidPhotoException {
+      if (!mounted) return;
+      widget.onShowMessage('Выберите фото JPEG, PNG или WebP до 10 МБ');
     } catch (_) {
       if (!mounted) return;
       widget.onShowMessage('Не удалось подготовить фотосессию. Попробуйте позже.');

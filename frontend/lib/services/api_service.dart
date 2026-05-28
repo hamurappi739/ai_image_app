@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:ai_image_generator/models/generated_image_item.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 
 class GenerateImageResponse {
   const GenerateImageResponse({
@@ -70,6 +72,10 @@ class GenerationHistoryItem {
 
 class PhotoshootPlaceholderException implements Exception {
   const PhotoshootPlaceholderException();
+}
+
+class PhotoshootInvalidPhotoException implements Exception {
+  const PhotoshootInvalidPhotoException();
 }
 
 const _hiddenDevDescriptionPatterns = [
@@ -156,22 +162,76 @@ class ApiService {
     throw Exception('Failed to fetch generations');
   }
 
+  static const _allowedPhotoshootMimeTypes = {
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+  };
+
+  String _resolveMultipartMimeType(XFile photoFile) {
+    final declared = photoFile.mimeType?.trim().toLowerCase();
+    if (declared != null && _allowedPhotoshootMimeTypes.contains(declared)) {
+      return declared;
+    }
+
+    final path = photoFile.path.toLowerCase();
+    if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+      return 'image/jpeg';
+    }
+    if (path.endsWith('.png')) {
+      return 'image/png';
+    }
+    if (path.endsWith('.webp')) {
+      return 'image/webp';
+    }
+    return 'image/jpeg';
+  }
+
+  String _resolveFileName(XFile photoFile) {
+    final path = photoFile.path;
+    if (path.isEmpty) {
+      return 'photoshoot.jpg';
+    }
+    final slashIdx = path.lastIndexOf('/');
+    final backslashIdx = path.lastIndexOf('\\');
+    final idx = slashIdx > backslashIdx ? slashIdx : backslashIdx;
+    if (idx == -1 || idx + 1 >= path.length) {
+      return 'photoshoot.jpg';
+    }
+    return path.substring(idx + 1);
+  }
+
   Future<void> generatePhotoshoot({
     required String styleId,
     required String styleTitle,
+    required XFile photoFile,
   }) async {
-    final uri = Uri.parse('$baseUrl/photoshoots/generate');
-    final response = await http.post(
-      uri,
-      headers: _requestHeaders(jsonBody: true),
-      body: jsonEncode({
-        'style_id': styleId,
-        'style_title': styleTitle,
-      }),
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/photoshoots/generate'),
+    );
+    request.headers.addAll(_requestHeaders());
+    request.fields['style_id'] = styleId;
+    request.fields['style_title'] = styleTitle;
+
+    final photoBytes = await photoFile.readAsBytes();
+    final mimeType = _resolveMultipartMimeType(photoFile);
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'photo',
+        photoBytes,
+        filename: _resolveFileName(photoFile),
+        contentType: MediaType.parse(mimeType),
+      ),
     );
 
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
     if (response.statusCode == 501) {
       throw const PhotoshootPlaceholderException();
+    }
+    if (response.statusCode == 400) {
+      throw const PhotoshootInvalidPhotoException();
     }
     if (response.statusCode == 200) {
       return;
