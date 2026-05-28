@@ -14,7 +14,9 @@
 
 ### Авторизация (текущий статус)
 
-- **Flutter, вкладка Профиль:** базовая форма **входа / регистрации** через Supabase Auth (email + пароль, выход).
+- **Flutter, вкладка Профиль:** базовая авторизация через Supabase Auth (вход / регистрация / выход).
+- **Auth loading states:** для входа, регистрации и выхода есть локальные состояния загрузки; во время выполнения auth-действия кнопки временно disabled (и поля формы временно недоступны при входе/регистрации).
+- **Ошибки для пользователя:** технические ошибки Supabase не показываются; вместо этого отображаются мягкие пользовательские сообщения.
 - **Supabase Auth во Flutter** включается **только** при запуске с **`--dart-define=SUPABASE_URL=...`** и **`--dart-define=SUPABASE_ANON_KEY=...`** (`Supabase.initialize` в `main.dart`).
 - **Без dart-define:** авторизация в UI недоступна; приложение работает в **demo / development fallback** (`TEST_USER_ID` на backend).
 - **После входа:** access token из `AuthService` передаётся в **`ApiService.setAccessToken(...)`** → backend получает **`Authorization: Bearer`**.
