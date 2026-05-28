@@ -66,9 +66,19 @@ GEMINI_MODEL=gemini-2.5-flash-image
 
 ### TEST_USER_ID (development only)
 
-`TEST_USER_ID` нужен для проверки пользовательской и кредитной логики до подключения настоящей авторизации. Задайте UUID существующей строки в `profiles` из Supabase.
+`TEST_USER_ID` — UUID для локальной разработки без Bearer token (fallback при `ENVIRONMENT=development`).
 
 **В production использовать `TEST_USER_ID` нельзя** — только реальная auth (Supabase JWT / session).
+
+### Profile auto-create / sync
+
+При **`GET /generations`** и при **`POST /generate`** с включённым **`ENABLE_CREDIT_CONSUMPTION=true`** backend вызывает `ensure_profile_exists(user_id, email)`:
+
+- если строка в `profiles` уже есть — возвращает её (существующий `email` не перезаписывается);
+- если нет — создаёт `id`, `free_generations_used=0`, `paid_credits=0`, опционально `email` из Supabase Auth;
+- если в профиле `email` пустой, а из токена пришёл email — дописывает email один раз.
+
+Работает для **авторизованного пользователя** (Bearer) и для **development fallback** `TEST_USER_ID` (`email` может быть `None`). Ошибка создания/обновления → **`500`** `Failed to ensure user profile` (без секретов в ответе).
 
 ## Supabase connection
 
@@ -148,7 +158,8 @@ app/
 
 Идентификация пользователя:
 
-- Если передан `Authorization: Bearer <access_token>` — backend валидирует токен через Supabase Auth REST (`/auth/v1/user`) и использует `id` из ответа.
+- Если передан `Authorization: Bearer <access_token>` — backend валидирует токен через Supabase Auth REST (`/auth/v1/user`) и использует `id` (и `email`, если есть).
+- Перед выборкой истории вызывается **`ensure_profile_exists`** — профиль создаётся при первом запросе, если его ещё нет.
 - Если заголовка нет и `ENVIRONMENT=development` — используется fallback `TEST_USER_ID`.
 - Если заголовка нет и окружение не development — `401` (`Authorization required`).
 
@@ -271,18 +282,18 @@ TEST_USER_ID=<uuid из profiles>
 
 Идентификация пользователя для этой ветки:
 
-- С `Authorization: Bearer <access_token>`: backend получает user id через Supabase Auth REST.
+- С `Authorization: Bearer <access_token>`: backend получает user id и email через Supabase Auth REST.
 - Без заголовка в development: используется fallback `TEST_USER_ID`.
 - Без заголовка вне development: `401` (`Authorization required`).
 
-Поток: prompt → профиль пользователя → `determine_generation_payment` → при отказе `402` → mock image → `consume_generation` (Supabase) → расширенный ответ:
+Поток: prompt → **`ensure_profile_exists`** → `determine_generation_payment` → при отказе `402` → mock image → `consume_generation` (Supabase) → расширенный ответ:
 
 - `image_url`, `prompt`
 - `payment_type` (`free` / `paid`)
 - `credit_consumed: true`
 - `remaining_free_generations`, `remaining_paid_credits`
 
-Ошибки: пустой prompt → `400`; невалидный token → `401`; без токена вне development → `401`; нет fallback `TEST_USER_ID` в development → `500`; профиль не найден → `404`; нет генераций → `402`.
+Ошибки: пустой prompt → `400`; невалидный token → `401`; без токена вне development → `401`; нет fallback `TEST_USER_ID` в development → `500`; не удалось создать/обновить профиль → `500` (`Failed to ensure user profile`); нет генераций → `402`.
 
 #### Пример (режим disabled)
 

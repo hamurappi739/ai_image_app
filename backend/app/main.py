@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.auth import get_current_user_id
+from app.auth import CurrentUser, get_current_user
 from app.config import settings
 from app.schemas import (
     AddCreditsRequest,
@@ -19,6 +19,7 @@ from app.services.credits_service import (
 )
 from app.services.supabase_service import (
     check_supabase_connection,
+    ensure_profile_exists,
     get_credit_transactions_by_user_id,
     get_generations_by_user_id,
     get_profile_by_id,
@@ -53,13 +54,21 @@ def health():
     return {"status": "ok"}
 
 
+def _ensure_profile_for_user(user: CurrentUser) -> None:
+    try:
+        ensure_profile_exists(user.id, user.email)
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail="Failed to ensure user profile")
+
+
 @app.get("/generations", response_model=GenerationsListResponse)
 def list_generations(
     limit: int = Query(default=20, ge=1, le=100, description="Max items to return"),
-    user_id: str = Depends(get_current_user_id),
+    user: CurrentUser = Depends(get_current_user),
 ):
+    _ensure_profile_for_user(user)
     try:
-        rows = get_generations_by_user_id(user_id, limit=limit)
+        rows = get_generations_by_user_id(user.id, limit=limit)
     except RuntimeError:
         raise HTTPException(status_code=500, detail="Failed to fetch generations")
     generations = [GenerationItem.model_validate(row) for row in rows]
@@ -205,9 +214,9 @@ def generate(
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt cannot be empty")
 
-    user_id: str | None = None
+    user: CurrentUser | None = None
     if authorization is not None or settings.enable_credit_consumption:
-        user_id = get_current_user_id(authorization=authorization)
+        user = get_current_user(authorization=authorization)
 
     if not settings.enable_credit_consumption:
         return GenerateResponse(
@@ -215,14 +224,12 @@ def generate(
             prompt=prompt,
         )
 
-    if user_id is None:
+    if user is None:
         raise HTTPException(status_code=500, detail="User id resolution failed")
     try:
-        profile = get_profile_by_id(user_id)
+        profile = ensure_profile_exists(user.id, user.email)
     except RuntimeError:
-        raise HTTPException(status_code=500, detail="Failed to fetch profile")
-    if profile is None:
-        raise HTTPException(status_code=404, detail="Profile not found")
+        raise HTTPException(status_code=500, detail="Failed to ensure user profile")
 
     decision = determine_generation_payment(profile, settings.free_generations_limit)
     if not decision["allowed"]:

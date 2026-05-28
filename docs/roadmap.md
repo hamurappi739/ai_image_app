@@ -22,7 +22,8 @@
 | **Basic Flutter Supabase Auth UI** | ✅ | Вкладка **Профиль**: вход / регистрация / выход |
 | **Sign in / sign up form in Profile tab** | ✅ | Email + пароль; мягкие ошибки без технических деталей |
 | **Access token passed to ApiService after login** | ✅ | Общий `ApiService` в `MainShell`; галерея перезагружается после входа/выхода |
-| **Backend accepts Bearer token** | ✅ | `get_current_user_id()` → user id из Supabase Auth |
+| **Backend accepts Bearer token** | ✅ | `get_current_user()` → `CurrentUser { id, email }` из Supabase Auth |
+| **Profile auto-create/sync** | ✅ | `ensure_profile_exists` на `GET /generations` и `POST /generate` (credit path) |
 
 ### Flutter UI MVP (детали)
 
@@ -52,7 +53,7 @@
 1. **Ручной тест Gemini (контролируемый)** — заранее пополнить баланс или подтвердить доступ к Gemini API/квотам, выполнить один тестовый `POST /generate` с коротким prompt.
 2. **После успешного Gemini-теста** — принять решение по хранению результата (`generated image URL/data`) для production-потока.
 3. **Безопасные интеграционные тесты backend** — использовать `ENABLE_CREDIT_CONSUMPTION=false`, чтобы не списывать генерации из Supabase.
-4. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation); восстановление пароля; при необходимости — **profile auto-create/sync** в `profiles`.
+4. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation); восстановление пароля.
 5. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
 6. **Реальная загрузка пользовательского фото** — image picker, отправка снимка на backend (фотосессии).
 7. **Обработка фото через backend** — генерация **3 изображений** в выбранном стиле по загруженному фото.

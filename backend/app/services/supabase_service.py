@@ -105,6 +105,48 @@ def get_credit_transactions_by_user_id(user_id: str, limit: int = 10) -> list[di
     return _fetch_supabase_list(url, "Failed to fetch credit transactions")
 
 
+def insert_profile(data: dict) -> dict:
+    base_url = _require_supabase_config()
+    url = f"{base_url}/rest/v1/profiles"
+    response = httpx.post(
+        url, headers=_supabase_write_headers(), json=data, timeout=10.0
+    )
+    return _parse_supabase_response(response, "Failed to create profile")
+
+
+def ensure_profile_exists(user_id: str, email: str | None = None) -> dict:
+    """Ensure a row exists in profiles for user_id; create if missing."""
+    normalized_id = user_id.strip()
+    if not normalized_id:
+        raise RuntimeError("User id is required")
+
+    profile = get_profile_by_id(normalized_id)
+    normalized_email = email.strip() if email and email.strip() else None
+
+    if profile is not None:
+        if normalized_email and not profile.get("email"):
+            return update_profile(normalized_id, {"email": normalized_email})
+        return profile
+
+    payload: dict = {
+        "id": normalized_id,
+        "free_generations_used": 0,
+        "paid_credits": 0,
+    }
+    if normalized_email:
+        payload["email"] = normalized_email
+
+    try:
+        return insert_profile(payload)
+    except RuntimeError:
+        profile = get_profile_by_id(normalized_id)
+        if profile is None:
+            raise RuntimeError("Failed to create profile") from None
+        if normalized_email and not profile.get("email"):
+            return update_profile(normalized_id, {"email": normalized_email})
+        return profile
+
+
 def update_profile(user_id: str, data: dict) -> dict:
     base_url = _require_supabase_config()
     url = f"{base_url}/rest/v1/profiles?id=eq.{quote(user_id, safe='')}"

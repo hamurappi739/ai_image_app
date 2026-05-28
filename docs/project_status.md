@@ -18,7 +18,8 @@
 - **Supabase Auth во Flutter** включается **только** при запуске с **`--dart-define=SUPABASE_URL=...`** и **`--dart-define=SUPABASE_ANON_KEY=...`** (`Supabase.initialize` в `main.dart`).
 - **Без dart-define:** авторизация в UI недоступна; приложение работает в **demo / development fallback** (`TEST_USER_ID` на backend).
 - **После входа:** access token из `AuthService` передаётся в **`ApiService.setAccessToken(...)`** → backend получает **`Authorization: Bearer`**.
-- **Backend:** `get_current_user_id()` валидирует Bearer через Supabase Auth REST (`/auth/v1/user`) и возвращает **user_id** авторизованного пользователя.
+- **Backend:** `get_current_user()` валидирует Bearer через Supabase Auth REST (`/auth/v1/user`) → **`CurrentUser { id, email }`**.
+- **Profiles auto-create/sync:** при первом **`GET /generations`** или **`POST /generate`** (с включённым списанием кредитов) backend вызывает **`ensure_profile_exists`** — создаёт строку в `profiles`, если её ещё нет (`free_generations_used=0`, `paid_credits=0`); существующий email не перезаписывается.
 - **Проверено:** после входа вкладки **Создать** и **Галерея** работают (генерация и загрузка истории).
 
 ---
@@ -98,8 +99,8 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 ### `GET /generations`
 
-- С Bearer token: user id берётся из Supabase Auth REST.
-- Без токена в development: пользователь = **`TEST_USER_ID`** из `backend/.env`.
+- С Bearer token: `CurrentUser` из Supabase Auth REST; перед выборкой — **`ensure_profile_exists`**.
+- Без токена в development: **`TEST_USER_ID`** + auto-create профиля при необходимости.
 - Ответ: список из таблицы **`generations`** (новые сверху).
 - В non-development без токена: `401` (`Authorization required`).
 
@@ -191,7 +192,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **Gemini** в production-потоке (по умолчанию mock / placehold.co; ручной тест с ключом — отдельно).
 - **Загрузка** пользовательского фото (фотосессии).
 - **RuStore Billing** и оплата фотосессий 100 ₽.
-- **Подтверждение email**, восстановление пароля, auto-create профиля в Supabase (см. roadmap).
+- **Подтверждение email**, восстановление пароля (см. roadmap).
 - Убрать **development `TEST_USER_ID` fallback** перед production.
 - **Удаление** изображений из backend.
 - **Production security** (debug routes, CORS, RLS audit).
@@ -202,7 +203,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 - Удалить или **защитить** `/debug/*`.
 - Убрать **`TEST_USER_ID` fallback**; обязательный Bearer в non-development.
-- Доработать auth: email confirmation UX, восстановление пароля, profile sync.
+- Доработать auth: email confirmation UX, восстановление пароля.
 - Подключить **реальные платежи** (RuStore).
 - Ограничить **CORS** доверенными origin.
 - Проверить **RLS** policies в Supabase.
