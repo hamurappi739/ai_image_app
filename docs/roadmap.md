@@ -29,6 +29,8 @@
 | **Local photo picker for photoshoot demo** | ✅ | Во вкладке «Фотосессии» можно выбрать фото локально через `image_picker` |
 | **Photo preview in photoshoot modal** | ✅ | После выбора фото показывается preview в modal и «Фото выбрано» |
 | **Backend photoshoot endpoint placeholder** | ✅ | `POST /photoshoots/generate` добавлен; сейчас возвращает `501` |
+| **Frontend connected to photoshoot placeholder endpoint** | ✅ | Бесплатный сценарий Фотосессий вызывает `POST /photoshoots/generate` |
+| **Graceful handling of 501 placeholder** | ✅ | `501` обрабатывается мягким сообщением без технических деталей |
 
 ### Flutter UI MVP (детали)
 
@@ -61,15 +63,14 @@
 4. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation).
 5. **Восстановление пароля** — добавить reset password flow.
 6. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
-7. **Multipart upload for photoshoot** — приём выбранного фото на backend.
-8. **Image processing** — обработка исходного фото для фотосессии.
-9. **Generate 3 photoshoot results** — генерация трёх кадров в выбранном стиле.
-10. **Save photoshoot results to Gallery** — запись результатов фотосессии в историю и показ в Галерее.
-11. **Paid photoshoot flow after payment** — запуск платной фотосессии после оплаты.
-12. **Синхронизация баланса генераций** с аккаунтом после auth.
-13. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
-14. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
-15. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
+7. **Multipart upload selected photo to backend** — приём выбранного фото на backend.
+8. **Backend processing/generation of 3 results** — обработка фото и генерация трёх кадров в выбранном стиле.
+9. **Save photoshoot results to Gallery** — запись результатов фотосессии в историю и показ в Галерее.
+10. **Paid photoshoot flow after payment** — запуск платной фотосессии после оплаты.
+11. **Синхронизация баланса генераций** с аккаунтом после auth.
+12. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
+13. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
+14. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
 
 ---
 

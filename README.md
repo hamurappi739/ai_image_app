@@ -6,7 +6,7 @@
 
 **Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход) с loading states для auth-действий. Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. Backend автоматически создаёт профиль пользователя при первом **`/generate`** или **`/generations`** (profile auto-sync). **Без** Flutter Supabase config приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
-**Фотосессии (demo):** уже можно выбрать фото локально и увидеть preview в modal. Реальная отправка фото на backend и обработка будут добавлены позже.
+**Фотосессии (demo):** уже можно выбрать фото локально и увидеть preview в modal. Flutter в бесплатном сценарии уже вызывает backend placeholder endpoint **`POST /photoshoots/generate`**; реальная отправка фото на backend и обработка будут добавлены позже.
 
 ---
 
