@@ -1679,7 +1679,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isAuthLoading = false;
+  _AuthAction _authAction = _AuthAction.none;
+
+  bool get _isAuthLoading => _authAction != _AuthAction.none;
+  bool get _isSigningIn => _authAction == _AuthAction.signIn;
+  bool get _isSigningUp => _authAction == _AuthAction.signUp;
+  bool get _isSigningOut => _authAction == _AuthAction.signOut;
 
   @override
   void dispose() {
@@ -1706,7 +1711,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _onSignIn() async {
     if (_isAuthLoading) return;
-    setState(() => _isAuthLoading = true);
+    setState(() => _authAction = _AuthAction.signIn);
     try {
       await widget.authService.signInWithEmailPassword(
         _emailController.text,
@@ -1722,13 +1727,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       _showSnackBar('Не удалось выполнить вход. Проверьте email и пароль.');
     } finally {
-      if (mounted) setState(() => _isAuthLoading = false);
+      if (mounted) setState(() => _authAction = _AuthAction.none);
     }
   }
 
   Future<void> _onSignUp() async {
     if (_isAuthLoading) return;
-    setState(() => _isAuthLoading = true);
+    setState(() => _authAction = _AuthAction.signUp);
     try {
       await widget.authService.signUpWithEmailPassword(
         _emailController.text,
@@ -1744,13 +1749,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       _showSnackBar('Не удалось зарегистрироваться. Проверьте email и пароль.');
     } finally {
-      if (mounted) setState(() => _isAuthLoading = false);
+      if (mounted) setState(() => _authAction = _AuthAction.none);
     }
   }
 
   Future<void> _onSignOut() async {
     if (_isAuthLoading) return;
-    setState(() => _isAuthLoading = true);
+    setState(() => _authAction = _AuthAction.signOut);
     try {
       await widget.authService.signOut();
       widget.apiService.setAccessToken(null);
@@ -1765,7 +1770,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       _showSnackBar('Не удалось выйти. Попробуйте ещё раз.');
     } finally {
-      if (mounted) setState(() => _isAuthLoading = false);
+      if (mounted) setState(() => _authAction = _AuthAction.none);
     }
   }
 
@@ -1853,6 +1858,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 20),
           TextField(
             controller: _emailController,
+            enabled: !_isAuthLoading,
             keyboardType: TextInputType.emailAddress,
             autocorrect: false,
             decoration: InputDecoration(
@@ -1872,6 +1878,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 14),
           TextField(
             controller: _passwordController,
+            enabled: !_isAuthLoading,
             obscureText: true,
             decoration: InputDecoration(
               labelText: 'Пароль',
@@ -1907,7 +1914,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onTap: _isAuthLoading ? null : _onSignIn,
                   borderRadius: BorderRadius.circular(14),
                   child: Center(
-                    child: _isAuthLoading
+                    child: _isSigningIn
                         ? const SizedBox(
                             width: 24,
                             height: 24,
@@ -1942,10 +1949,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                'Зарегистрироваться',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+              child: _isSigningUp
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.2),
+                    )
+                  : const Text(
+                      'Зарегистрироваться',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
             ),
           ),
         ],
@@ -1987,10 +2000,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                'Выйти',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+              child: _isSigningOut
+                  ? const Text(
+                      'Выходим...',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    )
+                  : const Text(
+                      'Выйти',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
             ),
           ),
         ],
@@ -2118,6 +2136,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+}
+
+enum _AuthAction {
+  none,
+  signIn,
+  signUp,
+  signOut,
 }
 
 class _ProfileListRow extends StatelessWidget {
