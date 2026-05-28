@@ -105,11 +105,11 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 ### `POST /photoshoots/generate`
 
-- Backend endpoint теперь принимает `multipart/form-data`: `style_id`, `style_title`, `photo`.
-- Использует ту же auth-логику: Bearer token или development fallback `TEST_USER_ID`.
-- Добавлена валидация файла по типу (`jpeg/png/webp`) и размеру (до `10 MB`).
-- После успешной валидации endpoint возвращает `501` — `Photoshoot image processing is not implemented yet`.
-- Хранение файла, генерация и запись результатов пока не реализованы.
+- Backend принимает `multipart/form-data`: `style_id`, `style_title`, `photo`.
+- Использует ту же auth-логику: Bearer token или development fallback `TEST_USER_ID`; перед обработкой — profile auto-sync.
+- Валидирует формат файла: **JPEG / PNG / WebP**, максимум **10 MB**.
+- Backend **не сохраняет** загруженное фото и **не выполняет** обработку.
+- После успешной валидации возвращает **`501 Not Implemented`** (`Photoshoot image processing is not implemented yet`).
 
 ### `GET /generations`
 
@@ -145,14 +145,12 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 - 8 готовых стилей: **3 бесплатных**, **5 × 100 ₽**.
 - Карточки → **bottom sheet** с локальным выбором фото через Flutter (`image_picker`).
-- В modal после выбора показывается preview и статус **«Фото выбрано»**.
-- Выбранное фото хранится только локально в состоянии UI и не сохраняется после закрытия окна.
-- Для бесплатного сценария Flutter вызывает backend **`POST /photoshoots/generate`**.
-- Сейчас backend endpoint — placeholder и возвращает `501`; во frontend это обрабатывается как ожидаемая заглушка с сообщением **«Обработка фото будет добавлена позже»**.
-- Фото пока **не отправляется на backend** (в запрос уходит только `style_id`/`style_title`).
-- Платные фотосессии пока **не вызывают backend** и показывают **«Оплата будет добавлена позже»**.
-- Обработка фото пока **не реализована**.
-- Оплата пока **не реализована**.
+- В modal после выбора показывается preview и статус **«Фото выбрано»** (preview только в UI, до закрытия окна).
+- **Flutter** (бесплатный сценарий) отправляет выбранное фото на backend через **`multipart/form-data`** (`style_id`, `style_title`, `photo`).
+- **Backend** валидирует **JPEG / PNG / WebP** и размер до **10 MB**; файл на сервере пока не сохраняется.
+- После валидации backend возвращает **`501`**; Flutter обрабатывает это мягко: **«Обработка фото будет добавлена позже»** (без показа HTTP/501 пользователю).
+- Платные фотосессии пока **не отправляют** фото на backend → **«Оплата будет добавлена позже»**.
+- Реальная обработка, сохранение результатов и оплата — следующие этапы.
 
 ### Галерея
 

@@ -30,13 +30,15 @@
 | **Photo preview in photoshoot modal** | ✅ | После выбора фото показывается preview в modal и «Фото выбрано» |
 | **Backend photoshoot endpoint placeholder** | ✅ | `POST /photoshoots/generate` добавлен; сейчас возвращает `501` |
 | **Frontend connected to photoshoot placeholder endpoint** | ✅ | Бесплатный сценарий Фотосессий вызывает `POST /photoshoots/generate` |
-| **Graceful handling of 501 placeholder** | ✅ | `501` обрабатывается мягким сообщением без технических деталей |
 | **Backend multipart upload validation for photoshoots** | ✅ | `POST /photoshoots/generate` валидирует `photo` по типу и размеру (до 10 MB) |
+| **Flutter multipart upload for photoshoots** | ✅ | Бесплатный сценарий отправляет выбранное фото через `multipart/form-data` |
+| **Backend validation of uploaded photos** | ✅ | JPEG/PNG/WebP, max 10 MB; файл не сохраняется на сервере |
+| **Graceful placeholder handling** | ✅ | `501` → «Обработка фото будет добавлена позже», без технических деталей в UI |
 
 ### Flutter UI MVP (детали)
 
 - **Создать:** описание, подсказки, быстрые идеи, `POST /generate`, результат + «Открыть в Галерее»
-- **Фотосессии:** 8 preview-карточек → demo bottom sheet будущей загрузки фото (без реальной обработки)
+- **Фотосессии:** 8 preview-карточек → bottom sheet: выбор фото, preview, multipart upload (бесплатно); `501` → «Обработка фото будет добавлена позже»
 - **Галерея:** `GET /generations` + локальные новые; **Очистить** (только на устройстве); empty state; без падения при недоступном backend
 - **Пакеты:** 199 / 499 / 1199 ₽ (UI без реальной оплаты)
 - **Профиль:** вход / регистрация / выход (при Supabase dart-define)
@@ -64,10 +66,10 @@
 4. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation).
 5. **Восстановление пароля** — добавить reset password flow.
 6. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
-7. **Flutter upload selected photo to backend** — отправка выбранного фото из Фотосессий в multipart endpoint.
-8. **Backend image processing** — обработка фото и генерация трёх кадров в выбранном стиле.
-9. **Save generated results** — запись результатов фотосессии в историю и показ в Галерее.
-10. **Paid photoshoot flow after payment** — запуск платной фотосессии после оплаты.
+7. **Сохранить или временно обработать исходное фото** — persistence/storage загруженного файла на backend.
+8. **Подключить генерацию 3 результатов** — обработка фото и генерация трёх кадров в выбранном стиле.
+9. **Сохранить результаты в Галерее** — запись результатов фотосессии в историю и показ в UI.
+10. **Подключить оплату для платных фотосессий** — upload + обработка после оплаты.
 11. **Синхронизация баланса генераций** с аккаунтом после auth.
 12. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
 13. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».

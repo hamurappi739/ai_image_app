@@ -6,7 +6,7 @@
 
 **Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход) с loading states для auth-действий. Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. Backend автоматически создаёт профиль пользователя при первом **`/generate`** или **`/generations`** (profile auto-sync). **Без** Flutter Supabase config приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
-**Фотосессии (demo):** уже можно выбрать фото локально и увидеть preview в modal. Flutter в бесплатном сценарии уже вызывает backend placeholder endpoint **`POST /photoshoots/generate`**; реальная отправка фото на backend и обработка будут добавлены позже.
+**Фотосессии (demo):** можно выбрать фото локально, увидеть preview и для **бесплатного** сценария отправить выбранное фото на backend через **`multipart/form-data`**. Backend пока только **валидирует** файл (JPEG/PNG/WebP, до 10 MB) и возвращает placeholder **`501`**; реальная обработка и сохранение результатов — следующий этап.
 
 ---
 
@@ -20,8 +20,7 @@
 - **Галерея** загружает историю через **`GET /generations`**
 - Новые изображения добавляются **сверху**
 - Локальная кнопка **«Очистить»** (без удаления данных в Supabase)
-- Вкладка **Фотосессии** — готовые стили (бесплатные и 100 ₽)
-- **Demo modal** будущей загрузки фото
+- Вкладка **Фотосессии** — готовые стили (бесплатные и 100 ₽), выбор фото, multipart upload (бесплатно)
 - Вкладка **Профиль** — вход / регистрация через Supabase Auth (при dart-define)
 - Вкладка **Пакеты** (без реальной оплаты)
 - Supabase: таблицы **`profiles`**, **`generations`**, **`credit_transactions`**
