@@ -152,7 +152,7 @@ class _MainShellState extends State<MainShell> {
         onImageGenerated: _onImageGenerated,
         onOpenGallery: _goToGalleryTab,
       ),
-      const PhotoshootsScreen(),
+      PhotoshootsScreen(apiService: _apiService),
       GalleryScreen(
         images: _generatedImages,
         onCreateFirst: _goToCreateTab,
@@ -564,6 +564,7 @@ class _GenerationPackCard extends StatelessWidget {
 
 class _PhotoshootStyle {
   const _PhotoshootStyle({
+    required this.id,
     required this.title,
     required this.description,
     required this.initials,
@@ -572,6 +573,7 @@ class _PhotoshootStyle {
     required this.isFree,
   });
 
+  final String id;
   final String title;
   final String description;
   final String initials;
@@ -581,12 +583,18 @@ class _PhotoshootStyle {
 }
 
 class PhotoshootsScreen extends StatelessWidget {
-  const PhotoshootsScreen({super.key});
+  const PhotoshootsScreen({
+    super.key,
+    required this.apiService,
+  });
+
+  final ApiService apiService;
 
   static const _gridBreakpoint = 560.0;
 
   static const _photoshoots = <_PhotoshootStyle>[
     _PhotoshootStyle(
+      id: 'studio_portrait',
       title: 'Студийный портрет',
       description: 'Чистый студийный свет и мягкий фон',
       initials: 'СП',
@@ -595,6 +603,7 @@ class PhotoshootsScreen extends StatelessWidget {
       isFree: true,
     ),
     _PhotoshootStyle(
+      id: 'business_portrait',
       title: 'Деловой портрет',
       description: 'Профессиональный портрет для работы и соцсетей',
       initials: 'ДП',
@@ -603,6 +612,7 @@ class PhotoshootsScreen extends StatelessWidget {
       isFree: true,
     ),
     _PhotoshootStyle(
+      id: 'home_portrait',
       title: 'Домашний портрет',
       description: 'Тёплая домашняя атмосфера с естественным светом',
       initials: 'ДМ',
@@ -611,6 +621,7 @@ class PhotoshootsScreen extends StatelessWidget {
       isFree: true,
     ),
     _PhotoshootStyle(
+      id: 'premium_portrait',
       title: 'Премиум-портрет',
       description: 'Элегантный образ с кинематографичным светом',
       initials: 'ПР',
@@ -619,6 +630,7 @@ class PhotoshootsScreen extends StatelessWidget {
       isFree: false,
     ),
     _PhotoshootStyle(
+      id: 'winter_photoshoot',
       title: 'Зимняя фотосессия',
       description: 'Снежная атмосфера с мягкими зимними оттенками',
       initials: 'ЗМ',
@@ -627,6 +639,7 @@ class PhotoshootsScreen extends StatelessWidget {
       isFree: false,
     ),
     _PhotoshootStyle(
+      id: 'urban_portrait',
       title: 'Городской портрет',
       description: 'Современный городской фон и стильный свет',
       initials: 'ГР',
@@ -635,6 +648,7 @@ class PhotoshootsScreen extends StatelessWidget {
       isFree: false,
     ),
     _PhotoshootStyle(
+      id: 'evening_look',
       title: 'Вечерний образ',
       description: 'Элегантный вечерний образ с премиальным фоном',
       initials: 'ВЧ',
@@ -643,6 +657,7 @@ class PhotoshootsScreen extends StatelessWidget {
       isFree: false,
     ),
     _PhotoshootStyle(
+      id: 'travel_portrait',
       title: 'Портрет в путешествии',
       description: 'Портреты в красивых локациях в стиле отпуска',
       initials: 'ПТ',
@@ -669,6 +684,7 @@ class PhotoshootsScreen extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => _PhotoshootDetailSheet(
         style: style,
+        apiService: apiService,
         onShowMessage: (message) => _showSnackBar(context, message),
       ),
     );
@@ -891,10 +907,12 @@ class _PhotoshootCard extends StatelessWidget {
 class _PhotoshootDetailSheet extends StatefulWidget {
   const _PhotoshootDetailSheet({
     required this.style,
+    required this.apiService,
     required this.onShowMessage,
   });
 
   final _PhotoshootStyle style;
+  final ApiService apiService;
   final void Function(String message) onShowMessage;
 
   @override
@@ -906,6 +924,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
   final _imagePicker = ImagePicker();
   Uint8List? _selectedPhotoBytes;
   bool _isPickingPhoto = false;
+  bool _isPreparingPhotoshoot = false;
 
   static const _outcomes = [
     '3 изображения в одном стиле',
@@ -938,17 +957,34 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
     }
   }
 
-  void _onSecondaryActionPressed() {
+  Future<void> _onSecondaryActionPressed() async {
+    if (_isPreparingPhotoshoot) return;
     final hasSelectedPhoto = _selectedPhotoBytes != null;
     if (!hasSelectedPhoto) {
       widget.onShowMessage('Сначала выберите фото');
       return;
     }
-    if (widget.style.isFree) {
-      widget.onShowMessage('Обработка фото будет добавлена позже');
+    if (!widget.style.isFree) {
+      widget.onShowMessage('Оплата будет добавлена позже');
       return;
     }
-    widget.onShowMessage('Оплата будет добавлена позже');
+    setState(() => _isPreparingPhotoshoot = true);
+    try {
+      await widget.apiService.generatePhotoshoot(
+        styleId: widget.style.id,
+        styleTitle: widget.style.title,
+      );
+      if (!mounted) return;
+      widget.onShowMessage('Обработка фото будет добавлена позже');
+    } on PhotoshootPlaceholderException {
+      if (!mounted) return;
+      widget.onShowMessage('Обработка фото будет добавлена позже');
+    } catch (_) {
+      if (!mounted) return;
+      widget.onShowMessage('Не удалось подготовить фотосессию. Попробуйте позже.');
+    } finally {
+      if (mounted) setState(() => _isPreparingPhotoshoot = false);
+    }
   }
 
   @override
@@ -1202,24 +1238,37 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                                   child: Material(
                                     color: Colors.transparent,
                                     child: InkWell(
-                                      onTap: _onSecondaryActionPressed,
+                                      onTap: _isPreparingPhotoshoot
+                                          ? null
+                                          : _onSecondaryActionPressed,
                                       borderRadius: BorderRadius.circular(14),
                                       child: Center(
-                                        child: Text(
-                                          laterLabel,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 14,
-                                          ),
-                                        ),
+                                        child: _isPreparingPhotoshoot
+                                            ? const SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2.3,
+                                                  color: Colors.white,
+                                                ),
+                                              )
+                                            : Text(
+                                                laterLabel,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
                                       ),
                                     ),
                                   ),
                                 ),
                               )
                             : OutlinedButton(
-                                onPressed: _onSecondaryActionPressed,
+                                onPressed: _isPreparingPhotoshoot
+                                    ? null
+                                    : _onSecondaryActionPressed,
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: _accentColor,
                                   side: const BorderSide(color: _accentColor),

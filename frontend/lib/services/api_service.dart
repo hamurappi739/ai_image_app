@@ -68,6 +68,10 @@ class GenerationHistoryItem {
   }
 }
 
+class PhotoshootPlaceholderException implements Exception {
+  const PhotoshootPlaceholderException();
+}
+
 const _hiddenDevDescriptionPatterns = [
   'debug test prompt',
   'debug',
@@ -150,5 +154,28 @@ class ApiService {
           .toList();
     }
     throw Exception('Failed to fetch generations');
+  }
+
+  Future<void> generatePhotoshoot({
+    required String styleId,
+    required String styleTitle,
+  }) async {
+    final uri = Uri.parse('$baseUrl/photoshoots/generate');
+    final response = await http.post(
+      uri,
+      headers: _requestHeaders(jsonBody: true),
+      body: jsonEncode({
+        'style_id': styleId,
+        'style_title': styleTitle,
+      }),
+    );
+
+    if (response.statusCode == 501) {
+      throw const PhotoshootPlaceholderException();
+    }
+    if (response.statusCode == 200) {
+      return;
+    }
+    throw Exception('Failed to prepare photoshoot');
   }
 }
