@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/generated_image_item.dart';
@@ -666,10 +669,7 @@ class PhotoshootsScreen extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => _PhotoshootDetailSheet(
         style: style,
-        onShowMessage: (message) {
-          Navigator.of(sheetContext).pop();
-          _showSnackBar(context, message);
-        },
+        onShowMessage: (message) => _showSnackBar(context, message),
       ),
     );
   }
@@ -888,7 +888,7 @@ class _PhotoshootCard extends StatelessWidget {
   }
 }
 
-class _PhotoshootDetailSheet extends StatelessWidget {
+class _PhotoshootDetailSheet extends StatefulWidget {
   const _PhotoshootDetailSheet({
     required this.style,
     required this.onShowMessage,
@@ -897,7 +897,15 @@ class _PhotoshootDetailSheet extends StatelessWidget {
   final _PhotoshootStyle style;
   final void Function(String message) onShowMessage;
 
+  @override
+  State<_PhotoshootDetailSheet> createState() => _PhotoshootDetailSheetState();
+}
+
+class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
   static const _accentColor = Color(0xFF5B6CFF);
+  final _imagePicker = ImagePicker();
+  Uint8List? _selectedPhotoBytes;
+  bool _isPickingPhoto = false;
 
   static const _outcomes = [
     '3 изображения в одном стиле',
@@ -905,19 +913,54 @@ class _PhotoshootDetailSheet extends StatelessWidget {
     'Результат появится в Галерее',
   ];
 
+  Future<void> _pickPhoto() async {
+    if (_isPickingPhoto) return;
+    setState(() => _isPickingPhoto = true);
+    try {
+      final file = await _imagePicker.pickImage(source: ImageSource.gallery);
+      if (file == null || !mounted) return;
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _selectedPhotoBytes = bytes;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Не удалось выбрать фото. Попробуйте ещё раз.'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isPickingPhoto = false);
+    }
+  }
+
+  void _onSecondaryActionPressed() {
+    final hasSelectedPhoto = _selectedPhotoBytes != null;
+    if (!hasSelectedPhoto) {
+      widget.onShowMessage('Сначала выберите фото');
+      return;
+    }
+    if (widget.style.isFree) {
+      widget.onShowMessage('Обработка фото будет добавлена позже');
+      return;
+    }
+    widget.onShowMessage('Оплата будет добавлена позже');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final style = widget.style;
     final badgeLabel = style.isFree ? 'Бесплатно' : '100 ₽';
     final badgeColor =
         style.isFree ? const Color(0xFFE8F5E9) : const Color(0xFFEDE9FF);
     final badgeTextColor =
         style.isFree ? const Color(0xFF2E7D32) : _accentColor;
-    final laterLabel =
-        style.isFree ? 'Попробовать позже' : 'Оплата позже';
-    final laterMessage = style.isFree
-        ? 'Загрузка фото будет добавлена позже'
-        : 'Оплата будет добавлена позже';
+    final laterLabel = style.isFree ? 'Подготовить позже' : 'Оплата позже';
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -987,52 +1030,96 @@ class _PhotoshootDetailSheet extends StatelessWidget {
                     style: theme.textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 28,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF7F8FC),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: _accentColor.withValues(alpha: 0.25),
-                        width: 1.5,
+                  InkWell(
+                    onTap: _isPickingPhoto ? null : _pickPhoto,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 18,
                       ),
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEDE9FF),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.add_photo_alternate_outlined,
-                            size: 30,
-                            color: _accentColor,
-                          ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F8FC),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _accentColor.withValues(alpha: 0.25),
+                          width: 1.5,
                         ),
-                        const SizedBox(height: 14),
-                        Text(
-                          'Загрузка фото будет добавлена позже',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontSize: 15,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Сейчас это демо-экран без отправки файлов',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
+                      ),
+                      child: _selectedPhotoBytes == null
+                          ? Column(
+                              children: [
+                                Container(
+                                  width: 56,
+                                  height: 56,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEDE9FF),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: _isPickingPhoto
+                                      ? const Center(
+                                          child: SizedBox(
+                                            width: 22,
+                                            height: 22,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.4,
+                                              color: _accentColor,
+                                            ),
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.add_photo_alternate_outlined,
+                                          size: 30,
+                                          color: _accentColor,
+                                        ),
+                                ),
+                                const SizedBox(height: 14),
+                                Text(
+                                  _isPickingPhoto
+                                      ? 'Подождите...'
+                                      : 'Выберите своё фото',
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Пока фото не отправляется на сервер',
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: AspectRatio(
+                                    aspectRatio: 1.2,
+                                    child: Image.memory(
+                                      _selectedPhotoBytes!,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'Фото выбрано',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                TextButton(
+                                  onPressed: _isPickingPhoto ? null : _pickPhoto,
+                                  child: const Text('Выбрать другое фото'),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -1115,8 +1202,7 @@ class _PhotoshootDetailSheet extends StatelessWidget {
                                   child: Material(
                                     color: Colors.transparent,
                                     child: InkWell(
-                                      onTap: () =>
-                                          onShowMessage(laterMessage),
+                                      onTap: _onSecondaryActionPressed,
                                       borderRadius: BorderRadius.circular(14),
                                       child: Center(
                                         child: Text(
@@ -1133,8 +1219,7 @@ class _PhotoshootDetailSheet extends StatelessWidget {
                                 ),
                               )
                             : OutlinedButton(
-                                onPressed: () =>
-                                    onShowMessage(laterMessage),
+                                onPressed: _onSecondaryActionPressed,
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: _accentColor,
                                   side: const BorderSide(color: _accentColor),
