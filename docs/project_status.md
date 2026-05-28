@@ -103,6 +103,13 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **`ENABLE_CREDIT_CONSUMPTION=false`** (безопасный режим тестов): **не списывает** генерации из Supabase и не выполняет запись в `generations`.
 - **`ENABLE_CREDIT_CONSUMPTION=true`**: профиль по user id (из Bearer token или dev fallback `TEST_USER_ID`), auto-sync профиля через `ensure_profile_exists`, списание free/paid, запись в Supabase (`generations`, `credit_transactions`).
 
+### `POST /photoshoots/generate`
+
+- Добавлен backend endpoint-заглушка для будущей фотосессии.
+- Использует ту же auth-логику: Bearer token или development fallback `TEST_USER_ID`.
+- Сейчас endpoint возвращает `501` — `Photoshoot generation is not implemented yet`.
+- Реальная загрузка фото и backend-обработка фотосессии пока не реализованы.
+
 ### `GET /generations`
 
 - С Bearer token: `CurrentUser` из Supabase Auth REST; перед выборкой — **`ensure_profile_exists`**.

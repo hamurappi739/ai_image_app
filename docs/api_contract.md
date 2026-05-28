@@ -171,7 +171,49 @@
 
 ---
 
-## 6. Development-only endpoints
+## 6. POST /photoshoots/generate
+
+**Назначение:** placeholder endpoint для будущей фотосессии (выбор стиля + загрузка фото + генерация 3 изображений).
+
+**Headers:** `Content-Type: application/json`
+
+**Auth:**
+
+- `Authorization: Bearer <access_token>` — пользователь из Supabase Auth REST;
+- без токена в `development` — fallback `TEST_USER_ID`;
+- без токена вне `development` — `401`.
+
+**Request body (текущий MVP):**
+
+```json
+{
+  "style_id": "studio_portrait",
+  "style_title": "Студийный портрет"
+}
+```
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `style_id` | string | Идентификатор выбранного стиля (обязательно) |
+| `style_title` | string \| null | Человекочитаемое название стиля (опционально) |
+
+**Текущее поведение:** endpoint-заглушка, всегда возвращает `501`.
+
+### Response `501`
+
+```json
+{
+  "detail": "Photoshoot generation is not implemented yet"
+}
+```
+
+Сейчас endpoint **не** принимает файл, **не** вызывает генерацию, **не** списывает генерации, **не** пишет в `generations`.
+
+**Будущий сценарий:** multipart upload фото, генерация 3 изображений в выбранном стиле, сохранение результатов в Галерею.
+
+---
+
+## 7. Development-only endpoints
 
 **Не использовать во Flutter production.** Не документировать в публичном SDK приложения.
 
@@ -188,14 +230,14 @@
 
 ---
 
-## 7. Flutter UI mapping
+## 8. Flutter UI mapping
 
 Текущее Flutter-приложение (русский UI, нижняя навигация). См. [app_design_strategy.md](app_design_strategy.md).
 
 | Вкладка (RU) | Backend сейчас | Статус |
 |--------------|----------------|--------|
 | **Создать** | `POST /generate` через `ApiService.generateImage()` | **Работает** |
-| **Фотосессии** | — | UI-заглушка, **не** вызывает API |
+| **Фотосессии** | `POST /photoshoots/generate` (placeholder backend) | UI demo; реальная отправка фото и обработка позже |
 | **Галерея** | `GET /generations` при старте + локально новые сверху | **Работает** (dev: `TEST_USER_ID`; фильтр debug в UI) |
 | **Пакеты** | — | UI-заглушка под будущую оплату (RuStore) |
 | **Профиль** | — | Placeholder |
@@ -206,7 +248,7 @@
 
 ---
 
-## 8. Flutter notes
+## 9. Flutter notes
 
 - **Основной рабочий endpoint:** `POST /generate` (вкладка **Создать**).
 - **`GET /generations`** — галерея при старте; после auth — тот же endpoint с user id авторизованного пользователя.
@@ -220,7 +262,7 @@
 
 ---
 
-## Связанные документы
+## 10. Связанные документы
 
 - [dev_notes.md](dev_notes.md) — debug endpoints и env
 - [product_strategy.md](product_strategy.md) — пакеты и фотосессии

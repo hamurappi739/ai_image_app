@@ -12,6 +12,11 @@ class GenerateRequest(BaseModel):
     prompt: str
 
 
+class PhotoshootGenerateRequest(BaseModel):
+    style_id: str
+    style_title: str | None = None
+
+
 class GenerateResponse(BaseModel):
     image_url: str
     prompt: str

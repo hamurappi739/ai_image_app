@@ -10,6 +10,7 @@ from app.schemas import (
     GenerateResponse,
     GenerationItem,
     GenerationsListResponse,
+    PhotoshootGenerateRequest,
 )
 from app.services.image_service import generate_image
 from app.services.credits_service import (
@@ -255,4 +256,19 @@ def generate(
         credit_consumed=True,
         remaining_free_generations=remaining_free,
         remaining_paid_credits=updated_profile["paid_credits"],
+    )
+
+
+@app.post("/photoshoots/generate")
+def generate_photoshoot(
+    body: PhotoshootGenerateRequest,
+    user: CurrentUser = Depends(get_current_user),
+):
+    # Placeholder endpoint for future photoshoot flow.
+    # For now we only validate auth/development fallback and request shape.
+    _ = body.style_id
+    _ = body.style_title
+    _ = user.id
+    raise HTTPException(
+        status_code=501, detail="Photoshoot generation is not implemented yet"
     )

@@ -151,6 +151,7 @@ app/
 | POST | `/debug/consume-generation` | Тестовое списание в Supabase (**только разработка**) |
 | POST | `/debug/add-credits` | Ручное начисление paid credits (**только разработка**) |
 | POST | `/generate` | Mock-генерация изображения по prompt |
+| POST | `/photoshoots/generate` | Placeholder для будущей генерации фотосессии (сейчас `501`) |
 
 ### GET /generations
 
@@ -315,3 +316,20 @@ curl -X POST http://127.0.0.1:8000/generate ^
 ```
 
 Пустой prompt (после trim) → `400` с `{"detail": "Prompt cannot be empty"}`.
+
+### POST /photoshoots/generate
+
+Endpoint-заглушка для будущего сценария фотосессии.
+
+Текущее тело запроса:
+
+```json
+{
+  "style_id": "studio_portrait",
+  "style_title": "Студийный портрет"
+}
+```
+
+- Использует текущую auth-логику: Bearer user или development fallback `TEST_USER_ID`.
+- Сейчас **всегда** возвращает `501` — `Photoshoot generation is not implemented yet`.
+- Не принимает файл, не обрабатывает изображение, не списывает генерации и не пишет в `generations`.
