@@ -81,6 +81,17 @@ flutter run -d chrome
 
 ## Если тест не прошёл
 
+При ошибке Gemini смотреть **безопасный** `detail` от backend (HTTP **502**), например:
+
+`Gemini image generation failed: status=404, message=Model not found`
+
+или
+
+`Gemini image generation failed: status=429, message=Gemini API rate limit or quota exceeded`
+
+- в ответе **не должно быть** `GEMINI_API_KEY`, Bearer token, Authorization headers или stack trace
+- если видите только `ClientError` без `status` / `message` — перезапустите backend после обновления и повторите **один** контролируемый запрос
+
 Возможные причины:
 
 - Gemini **не вернул изображение** (только текст / пустой ответ)
@@ -95,6 +106,7 @@ flutter run -d chrome
 
 Что делать:
 
+- **сразу** вернуть `IMAGE_PROVIDER=mock` после неудачного теста (не оставлять `gemini` включённым)
 - не продолжать повторные платные попытки вслепую
 - проверить `POST /debug/storage-test` и `POST /debug/storage-image-test` — Storage должен работать отдельно от Gemini
 - вернуть `IMAGE_PROVIDER=mock`

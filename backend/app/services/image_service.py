@@ -1,5 +1,6 @@
 import base64
 import logging
+import re
 
 from fastapi import HTTPException
 from google import genai
@@ -10,6 +11,16 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 MOCK_IMAGE_URL = "https://placehold.co/1024x1024?text=Generated+Image"
+_MAX_GEMINI_ERROR_MESSAGE_LEN = 300
+_SENSITIVE_GEMINI_MESSAGE_TOKENS = (
+    "api key",
+    "api_key",
+    "authorization",
+    "bearer",
+    "secret",
+    "token",
+    "x-goog-api-key",
+)
 
 
 class MockImageProvider:
@@ -30,15 +41,20 @@ class GeminiImageProvider:
             client = genai.Client(api_key=api_key.strip())
             response = client.models.generate_content(
                 model=settings.gemini_model,
-                contents=prompt,
+                contents=[prompt],
                 config=types.GenerateContentConfig(
-                    response_modalities=["IMAGE"],
+                    response_modalities=["Image"],
                 ),
             )
         except HTTPException:
             raise
         except Exception as exc:
-            logger.warning("Gemini image generation failed: %s", type(exc).__name__)
+            status = _extract_gemini_error_status(exc)
+            logger.warning(
+                "Gemini image generation failed: status=%s, error=%s",
+                status,
+                type(exc).__name__,
+            )
             raise HTTPException(
                 status_code=502,
                 detail=_gemini_error_detail(exc),
@@ -76,17 +92,71 @@ def generate_mock_image(prompt: str) -> str:
 
 
 def _gemini_error_detail(exc: Exception) -> str:
-    message = str(exc).lower()
+    status = _extract_gemini_error_status(exc)
+    message = _extract_gemini_safe_message(exc)
+    if status is not None and message:
+        return f"Gemini image generation failed: status={status}, message={message}"
+    if status is not None:
+        return f"Gemini image generation failed: status={status}"
+    if message:
+        return f"Gemini image generation failed: message={message}"
+    return "Gemini image generation failed"
+
+
+def _extract_gemini_error_status(exc: Exception) -> str | None:
+    code = getattr(exc, "code", None)
+    if code is not None:
+        return str(code)
+
+    status = getattr(exc, "status", None)
+    if status is not None and str(status).strip():
+        return str(status).strip()
+
+    status_code = getattr(exc, "status_code", None)
+    if status_code is not None:
+        return str(status_code)
+
+    return type(exc).__name__
+
+
+def _extract_gemini_safe_message(exc: Exception) -> str | None:
+    raw_message = getattr(exc, "message", None)
+    if raw_message is not None and str(raw_message).strip():
+        text = _normalize_gemini_error_text(str(raw_message))
+    else:
+        text = _normalize_gemini_error_text(str(exc))
+
+    if not text:
+        return None
+
+    lowered = text.lower()
+    if any(token in lowered for token in _SENSITIVE_GEMINI_MESSAGE_TOKENS):
+        return _redact_sensitive_gemini_message(lowered)
+
+    return _truncate_gemini_error_message(text)
+
+
+def _normalize_gemini_error_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value.strip())
+
+
+def _truncate_gemini_error_message(value: str) -> str:
+    if len(value) <= _MAX_GEMINI_ERROR_MESSAGE_LEN:
+        return value
+    return value[:_MAX_GEMINI_ERROR_MESSAGE_LEN] + "..."
+
+
+def _redact_sensitive_gemini_message(lowered: str) -> str:
     if any(
-        token in message
-        for token in ("api key", "api_key", "unauthorized", "permission", "401")
+        token in lowered
+        for token in ("api key", "api_key", "unauthorized", "permission", "401", "403")
     ):
         return "Gemini API authentication failed"
-    if any(token in message for token in ("quota", "rate limit", "429", "resource exhausted")):
+    if any(token in lowered for token in ("quota", "rate limit", "429", "resource exhausted")):
         return "Gemini API rate limit or quota exceeded"
-    if any(token in message for token in ("safety", "blocked", "policy")):
+    if any(token in lowered for token in ("safety", "blocked", "policy")):
         return "Gemini blocked the request"
-    return "Gemini image generation failed"
+    return "Gemini API request failed"
 
 
 def _extract_image_data_url(response) -> str:
