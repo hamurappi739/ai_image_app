@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,6 +8,7 @@ from app.config import settings
 from app.schemas import (
     AddCreditsRequest,
     DebugConfigResponse,
+    DebugStorageTestResponse,
     GenerateRequest,
     GenerateResponse,
     GenerationItem,
@@ -17,6 +20,7 @@ from app.services.credits_service import (
     consume_generation,
     determine_generation_payment,
 )
+from app.services.storage_service import storage_service
 from app.services.supabase_service import (
     check_supabase_connection,
     ensure_profile_exists,
@@ -100,6 +104,37 @@ def debug_supabase():
             return {"status": "ok", "supabase": "connected"}
     except Exception:
         raise HTTPException(status_code=500, detail="Supabase connection failed")
+
+
+@app.post("/debug/storage-test", response_model=DebugStorageTestResponse)
+def debug_storage_test():
+    """Upload a tiny in-memory file to Supabase Storage (development only)."""
+    _require_development_for_debug()
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    filename = f"storage-test-{timestamp}.txt"
+
+    try:
+        path = storage_service.build_storage_path(
+            user_id="storage-test",
+            filename=filename,
+            folder="debug",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    public_url = storage_service.upload_bytes(
+        path,
+        b"storage test",
+        "text/plain",
+    )
+
+    return DebugStorageTestResponse(
+        status="ok",
+        bucket=storage_service.bucket,
+        path=path,
+        public_url=public_url,
+    )
 
 
 @app.get("/debug/profile")

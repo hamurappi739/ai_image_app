@@ -11,13 +11,19 @@ Not wired into `/generate` or `/photoshoots/generate` yet.
 
 from __future__ import annotations
 
+import logging
 from urllib.parse import quote
 
 import httpx
+from fastapi import HTTPException
 
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
 _UPLOAD_SUCCESS_STATUSES = (200, 201)
+_MAX_ERROR_MESSAGE_LEN = 300
+_STORAGE_UNAVAILABLE_DETAIL = "Supabase Storage is temporarily unavailable"
 
 
 def _require_storage_config() -> str:
@@ -47,6 +53,38 @@ def _encode_object_path(path: str) -> str:
     return "/".join(quote(segment, safe="") for segment in segments)
 
 
+def _short_response_message(response: httpx.Response) -> str:
+    text = (response.text or "").strip().replace("\n", " ").replace("\r", " ")
+    if not text:
+        return "empty response body"
+    if len(text) <= _MAX_ERROR_MESSAGE_LEN:
+        return text
+    return text[:_MAX_ERROR_MESSAGE_LEN] + "..."
+
+
+def _raise_storage_unavailable(exc: httpx.HTTPError) -> None:
+    logger.warning("Supabase Storage request failed: %s", exc.__class__.__name__)
+    raise HTTPException(
+        status_code=503,
+        detail=_STORAGE_UNAVAILABLE_DETAIL,
+    ) from exc
+
+
+def _raise_storage_upload_failed(response: httpx.Response) -> None:
+    message = _short_response_message(response)
+    logger.warning(
+        "Supabase Storage upload failed: HTTP %s",
+        response.status_code,
+    )
+    raise HTTPException(
+        status_code=500,
+        detail=(
+            f"Supabase Storage upload failed: status={response.status_code}, "
+            f"message={message}"
+        ),
+    )
+
+
 class SupabaseStorageService:
     """Upload and resolve URLs for objects in Supabase Storage via REST API."""
 
@@ -68,10 +106,17 @@ class SupabaseStorageService:
 
     def upload_bytes(self, path: str, content: bytes, content_type: str) -> str:
         """Upload bytes to Storage; returns a public object URL (see get_public_url)."""
-        base_url = _require_storage_config()
+        try:
+            base_url = _require_storage_config()
+        except RuntimeError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
         bucket = (self._bucket or "").strip()
         if not bucket:
-            raise RuntimeError("SUPABASE_STORAGE_BUCKET is not configured")
+            raise HTTPException(
+                status_code=500,
+                detail="SUPABASE_STORAGE_BUCKET is not configured",
+            )
 
         object_path = _encode_object_path(path)
         url = f"{base_url}/storage/v1/object/{quote(bucket, safe='')}/{object_path}"
@@ -83,11 +128,15 @@ class SupabaseStorageService:
             "x-upsert": "true",
         }
 
-        response = httpx.put(url, headers=headers, content=content, timeout=60.0)
-        if response.status_code not in _UPLOAD_SUCCESS_STATUSES:
-            raise RuntimeError(
-                f"Failed to upload to Supabase Storage (HTTP {response.status_code})"
+        try:
+            response = httpx.put(
+                url, headers=headers, content=content, timeout=60.0
             )
+        except httpx.HTTPError as exc:
+            _raise_storage_unavailable(exc)
+
+        if response.status_code not in _UPLOAD_SUCCESS_STATUSES:
+            _raise_storage_upload_failed(response)
 
         return self.get_public_url(path)
 

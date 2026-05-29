@@ -106,7 +106,37 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 - **`SUPABASE_STORAGE_BUCKET`** — имя bucket для сгенерированных изображений (по умолчанию `generated-images`; см. таблицу env выше и `.env.example`).
 - Требует **`SUPABASE_URL`**, **`SUPABASE_SERVICE_ROLE_KEY`**, **`SUPABASE_STORAGE_BUCKET`** (шаблон в `.env.example`).
 - Service role key **не** логируется и **не** возвращается клиенту.
-- **`storage_service.py` подготовлен**, но **пока не используется** в текущих endpoint flows (`POST /generate`, `POST /photoshoots/generate`, …) — будущее сохранение generated images и запись URL в `generations`.
+- **`storage_service.py` подготовлен**, но **пока не используется** в production endpoint flows (`POST /generate`, `POST /photoshoots/generate`, …) — будущее сохранение generated images и запись URL в `generations`.
+
+### Настройка bucket (MVP)
+
+1. В [Supabase Dashboard](https://supabase.com/dashboard) → **Storage** → **New bucket**.
+2. Имя: **`generated-images`** (или значение `SUPABASE_STORAGE_BUCKET` из `.env`).
+3. Для MVP сделайте bucket **public** (чтобы `get_public_url` / `upload_bytes` возвращали рабочий URL без signed URLs).
+4. Перезапустите backend с настроенными `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`.
+
+### POST /debug/storage-test (development only)
+
+Внутренний тест **backend → Supabase Storage**: загружает маленький файл `b"storage test"` (`text/plain`) без приёма файла от клиента.
+
+- Только при **`ENVIRONMENT=development`** (иначе **`404`**, как у `GET /debug/config`).
+- Успех: `{"status":"ok","bucket":"...","path":"...","public_url":"..."}` — без ключей и секретов.
+- Timeout / connection error → **`503`** `Supabase is temporarily unavailable`
+- Ошибка upload / конфигурации → **`500`** `Supabase Storage upload failed`
+
+**PowerShell:**
+
+```powershell
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/debug/storage-test" -Method Post
+```
+
+**curl:**
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/debug/storage-test
+```
+
+**Перед production** удалить или защитить вместе с остальными `/debug/*` routes. Не вызывать из Flutter release.
 
 ## Gemini image generation
 
@@ -168,6 +198,7 @@ app/
 | GET | `/debug/history` | История генераций и транзакций (**только разработка**) |
 | POST | `/debug/consume-generation` | Тестовое списание в Supabase (**только разработка**) |
 | POST | `/debug/add-credits` | Ручное начисление paid credits (**только разработка**) |
+| POST | `/debug/storage-test` | Тест upload в Supabase Storage (**только `ENVIRONMENT=development`**) |
 | POST | `/generate` | Mock-генерация изображения по prompt |
 | POST | `/photoshoots/generate` | Multipart валидация фото для фотосессии (сейчас `501` после проверки) |
 

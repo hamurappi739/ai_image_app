@@ -91,6 +91,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **Storage пока не подключён** к `/generate` и `/photoshoots/generate` — существующие endpoint flows не менялись.
 - **Будущий сценарий:** generated images сохраняются в Supabase Storage, а **URL** записывается в **`generations.image_url`** (Галерея).
 - Исходные пользовательские фото для фотосессий **не планируется** хранить долго без необходимости.
+- **`POST /debug/storage-test`** (development only) — проверка bucket/upload: маленький in-memory файл → Storage; **не** часть production flow и **не** подключён к `/generate` / фотосессиям.
 
 ### Supabase REST — ошибки и таймауты
 
@@ -139,7 +140,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 **`/debug/*`** — только для разработки. **`GET /debug/config`** — безопасный helper: флаги конфигурации без секретов (доступен только при `ENVIRONMENT=development`, иначе 404). **Не вызывать** из production Flutter. Перед релизом — **удалить или защитить все** `/debug/*` routes.
 
-Примеры: `/debug/config`, `/debug/supabase`, `/debug/profile`, `/debug/history`, `/debug/consume-generation`, `/debug/add-credits`.
+Примеры: `/debug/config`, `/debug/supabase`, `/debug/storage-test`, `/debug/profile`, `/debug/history`, `/debug/consume-generation`, `/debug/add-credits`.
 
 Подробнее: [api_contract.md](api_contract.md), [dev_notes.md](dev_notes.md).
 

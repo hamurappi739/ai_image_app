@@ -38,6 +38,15 @@ class GenerationsListResponse(BaseModel):
     generations: list[GenerationItem] = Field(default_factory=list)
 
 
+class DebugStorageTestResponse(BaseModel):
+    """Safe response for POST /debug/storage-test (development only)."""
+
+    status: str
+    bucket: str
+    path: str
+    public_url: str
+
+
 class DebugConfigResponse(BaseModel):
     """Safe subset of settings for GET /debug/config (development only)."""
 
