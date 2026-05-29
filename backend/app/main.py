@@ -23,6 +23,7 @@ from app.services.credits_service import (
     determine_generation_payment,
 )
 from app.services.photoshoot_styles import get_photoshoot_style
+from app.services.photoshoot_service import photoshoot_service
 from app.services.storage_service import storage_service
 from app.services.supabase_service import (
     check_supabase_connection,
@@ -391,8 +392,6 @@ def generate_photoshoot(
 
     style = get_photoshoot_style(style_id)
     _ = style_title  # client hint; backend title from catalog is source of truth
-    _ = style.title
-    _ = style.instruction
 
     if photo is None:
         raise HTTPException(status_code=400, detail="Photo is required")
@@ -404,7 +403,9 @@ def generate_photoshoot(
     if len(file_bytes) > _MAX_PHOTOSHOOT_FILE_SIZE_BYTES:
         raise HTTPException(status_code=400, detail="Photo is too large")
 
-    raise HTTPException(
-        status_code=501,
-        detail="Photoshoot image processing is not implemented yet",
+    photoshoot_service.generate_photoshoot(
+        user_id=user.id,
+        style=style,
+        photo_bytes=file_bytes,
+        photo_content_type=photo.content_type,
     )
