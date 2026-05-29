@@ -83,15 +83,17 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 ## 5. Backend endpoints
 
-### Supabase Storage (service placeholder)
+### Supabase Storage
 
-- Backend **Supabase Storage service placeholder** подготовлен: **`app/services/storage_service.py`** — `SupabaseStorageService` (REST через **httpx**, без Python SDK `supabase`).
+- Backend **Supabase Storage service** подготовлен: **`app/services/storage_service.py`** — `SupabaseStorageService` (REST через **httpx**, без Python SDK `supabase`).
 - **`SUPABASE_STORAGE_BUCKET`** добавлен в **`app/config.py`** и **`backend/.env.example`** (по умолчанию `generated-images`).
+- **Bucket `generated-images` создан** в Supabase Storage и предназначен для **будущего хранения generated images** (результаты текстовой генерации и фотосессий).
+- Для MVP bucket настроен как **public** — `get_public_url` / `upload_bytes` возвращают рабочий URL без signed URLs.
 - Методы: `build_storage_path`, `upload_bytes`, `get_public_url` (public URL; для private bucket позже — signed URL).
+- **`POST /debug/storage-test`** (development only) — **успешно проверен**: backend загружает маленький in-memory тестовый файл в Storage и возвращает **`public_url`**; **`public_url` проверен вручную** в браузере (файл открывается и отображается).
 - **Storage пока не подключён** к `/generate` и `/photoshoots/generate` — существующие endpoint flows не менялись.
-- **Будущий сценарий:** generated images сохраняются в Supabase Storage, а **URL** записывается в **`generations.image_url`** (Галерея).
+- **Следующий сценарий:** generated images сохраняются в Supabase Storage, а **URL** записывается в **`generations.image_url`** (Галерея).
 - Исходные пользовательские фото для фотосессий **не планируется** хранить долго без необходимости.
-- **`POST /debug/storage-test`** (development only) — проверка bucket/upload: маленький in-memory файл → Storage; **не** часть production flow и **не** подключён к `/generate` / фотосессиям.
 
 ### Supabase REST — ошибки и таймауты
 
@@ -246,7 +248,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Проверить **RLS** policies в Supabase.
 - **Не коммитить** `.env` и service role key.
 - Включить **реальную генерацию** (Gemini).
-- **Storage** для изображений (не только внешние URL).
+- **Подключить Storage** к `/generate` и фотосессиям (bucket создан, upload проверен; production flow — следующий этап).
 
 ---
 
@@ -255,6 +257,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **UI-MVP** проверен вручную (Flutter web).
 - Backend **`/generate`** и **`/generations`** работают при настроенном `.env`.
 - **Авторизация:** вход через Профиль + Bearer token → **Создать** / **Галерея** проверены после входа.
+- **Supabase Storage:** bucket `generated-images` создан; **`POST /debug/storage-test`** — upload и **`public_url`** проверены вручную.
 - **Flutter web** + backend на `127.0.0.1:8000`.
 - Перед новым крупным шагом: **`git status`** чистый или осознанный коммит.
 

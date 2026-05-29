@@ -93,7 +93,7 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 
 Проверка в разработке: `GET /debug/supabase`, `GET /debug/config` (удалить или защитить перед production).
 
-## Supabase Storage (service placeholder)
+## Supabase Storage
 
 `app/services/storage_service.py` — **`SupabaseStorageService`** (REST через **httpx**, без Python SDK `supabase`):
 
@@ -106,19 +106,22 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 - **`SUPABASE_STORAGE_BUCKET`** — имя bucket для сгенерированных изображений (по умолчанию `generated-images`; см. таблицу env выше и `.env.example`).
 - Требует **`SUPABASE_URL`**, **`SUPABASE_SERVICE_ROLE_KEY`**, **`SUPABASE_STORAGE_BUCKET`** (шаблон в `.env.example`).
 - Service role key **не** логируется и **не** возвращается клиенту.
-- **`storage_service.py` подготовлен**, но **пока не используется** в production endpoint flows (`POST /generate`, `POST /photoshoots/generate`, …) — будущее сохранение generated images и запись URL в `generations`.
+- **`storage_service.py` подготовлен**, но **пока не используется** в production endpoint flows (`POST /generate`, `POST /photoshoots/generate`, …) — следующий этап: сохранение generated images и запись URL в `generations`.
 
-### Настройка bucket (MVP)
+### Bucket (MVP)
 
 1. В [Supabase Dashboard](https://supabase.com/dashboard) → **Storage** → **New bucket**.
-2. Имя: **`generated-images`** (или значение `SUPABASE_STORAGE_BUCKET` из `.env`).
-3. Для MVP сделайте bucket **public** (чтобы `get_public_url` / `upload_bytes` возвращали рабочий URL без signed URLs).
+2. Имя: **`generated-images`** (или значение `SUPABASE_STORAGE_BUCKET` из `.env`) — **bucket должен быть создан** в Supabase Storage.
+3. Для MVP bucket **public** (чтобы `get_public_url` / `upload_bytes` возвращали рабочий URL без signed URLs).
 4. Перезапустите backend с настроенными `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`.
+
+**Текущий статус:** bucket `generated-images` создан; upload через backend проверен (см. `POST /debug/storage-test` ниже).
 
 ### POST /debug/storage-test (development only)
 
 Внутренний тест **backend → Supabase Storage**: загружает маленький файл `b"storage test"` (`text/plain`) без приёма файла от клиента.
 
+- **Проверен:** backend успешно загружает файл и возвращает **`public_url`**; URL открывается в браузере.
 - Только при **`ENVIRONMENT=development`** (иначе **`404`**, как у `GET /debug/config`).
 - Успех: `{"status":"ok","bucket":"...","path":"...","public_url":"..."}` — без ключей и секретов.
 - Timeout / connection error → **`503`** `Supabase is temporarily unavailable`

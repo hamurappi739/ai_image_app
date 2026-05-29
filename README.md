@@ -8,7 +8,7 @@
 
 **Фотосессии (demo):** можно выбрать фото локально, увидеть preview и для **бесплатного** сценария отправить выбранное фото на backend через **`multipart/form-data`**. Backend пока только **валидирует** файл (JPEG/PNG/WebP, до 10 MB) и возвращает placeholder **`501`**; реальная обработка и сохранение результатов — следующий этап.
 
-**Backend / Supabase:** подготовлен placeholder **Supabase Storage** (`storage_service.py`, `SUPABASE_STORAGE_BUCKET`) для будущего сохранения generated images; в текущих endpoint flows пока не подключён. Ошибки и **таймауты** Supabase REST обрабатываются безопаснее: при недоступности БД — **`503`** вместо необработанного **`500`** traceback.
+**Backend / Supabase:** **Supabase Storage** bucket `generated-images` подготовлен и **upload проверен** (`POST /debug/storage-test` → `public_url` открывается в браузере). **Хранение реальных generated images** в Storage и запись URL в `generations` — **следующий этап**; в `/generate` и `/photoshoots/generate` пока не подключено. Ошибки и **таймауты** Supabase REST обрабатываются безопаснее: при недоступности БД — **`503`** вместо необработанного **`500`** traceback.
 
 ---
 
@@ -27,7 +27,8 @@
 - Вкладка **Пакеты** (без реальной оплаты)
 - Supabase: таблицы **`profiles`**, **`generations`**, **`credit_transactions`**
 - Backend: списание бесплатных / платных генераций **подготовлено** (`ENABLE_CREDIT_CONSUMPTION`)
-- Backend: placeholder **Supabase Storage** + безопасная обработка **Supabase timeouts** (`503`)
+- Backend: **Supabase Storage** bucket `generated-images` создан, upload проверен (`/debug/storage-test`)
+- Backend: безопасная обработка **Supabase timeouts** (`503`)
 
 ---
 
@@ -135,4 +136,4 @@ Gemini provider уже реализован в backend, но по умолчан
 - Защитить **CORS**
 - Проверить **Supabase RLS**
 - **Не коммитить** `.env`
-- Подключить **реальное хранение** изображений
+- Подключить **Storage к `/generate` и фотосессиям** (bucket готов, upload проверен)
