@@ -198,9 +198,25 @@
 
 | Поле | Тип | Описание |
 |------|-----|----------|
-| `style_id` | string | Идентификатор выбранного стиля (обязательно) |
-| `style_title` | string \| null | Человекочитаемое название стиля (опционально) |
+| `style_id` | string | Идентификатор выбранного стиля (обязательно); backend проверяет по **catalog** |
+| `style_title` | string \| null | Человекочитаемое название стиля (опционально; **источник правды — catalog на backend**) |
 | `photo` | file | Фото пользователя (обязательно) |
+
+**Поддерживаемые `style_id` (backend catalog):**
+
+| `style_id` | Название | Бесплатно |
+|------------|----------|-----------|
+| `studio_portrait` | Студийный портрет | да |
+| `business_portrait` | Деловой портрет | да |
+| `home_portrait` | Домашний портрет | да |
+| `premium_portrait` | Премиум-портрет | нет (100 ₽) |
+| `winter_photoshoot` | Зимняя фотосессия | нет (100 ₽) |
+| `city_portrait` | Городской портрет | нет (100 ₽) |
+| `evening_look` | Вечерний образ | нет (100 ₽) |
+| `travel_portrait` | Портрет в путешествии | нет (100 ₽) |
+
+- Неизвестный `style_id` → **`400`** `Unknown photoshoot style`
+- Alias: Flutter может отправлять `urban_portrait` — backend принимает как `city_portrait`
 
 **Валидация файла:**
 
@@ -208,6 +224,7 @@
 - Максимальный размер: **10 MB**
 - Неподдерживаемый формат → `400` `Unsupported photo format`
 - Слишком большой файл → `400` `Photo is too large`
+- Неизвестный `style_id` → `400` `Unknown photoshoot style`
 
 **Текущее поведение (после валидации):** validate file and return **`501 Not Implemented`**.
 

@@ -45,6 +45,7 @@
 | **Manual Gemini API test passed** | ✅ | Контролируемый ручной тест: `IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false` |
 | **Gemini result stored in Supabase Storage** | ✅ | Generated image загружен в bucket `generated-images`, response содержит `public_url` |
 | **Generated image public_url displayed in Gallery** | ✅ | Галерея показала реальную картинку по Storage URL |
+| **Backend photoshoot style catalog** | ✅ | `photoshoot_styles.py`: 8 стилей, `instruction`, `get_photoshoot_style`; `/photoshoots/generate` валидирует `style_id` |
 
 ### Flutter UI MVP (детали)
 
@@ -71,22 +72,23 @@
 
 ## Следующие крупные этапы
 
-1. **Решить, когда включать `IMAGE_PROVIDER=gemini` для обычной разработки** — сейчас по умолчанию `mock` для безопасности и экономии квот.
-2. **Проверить стоимость / лимиты Gemini** — перед регулярным использованием и production.
-3. **Позже включить `ENABLE_CREDIT_CONSUMPTION=true`** — после полной проверки списаний free/paid и записи в `generations`.
-4. **Подключить Storage для результатов фотосессий** — результаты обработки в Storage + запись в `generations`.
-5. **Безопасные интеграционные тесты backend** — использовать `ENABLE_CREDIT_CONSUMPTION=false`, чтобы не списывать генерации из Supabase.
-6. **Use public/signed URLs** — сейчас bucket public; для private bucket позже — signed URL.
-7. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation).
-8. **Восстановление пароля** — добавить reset password flow.
-9. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
-10. **Сохранить или временно обработать исходное фото** — persistence/storage загруженного файла на backend (фотосессии).
-11. **Подключить генерацию 3 результатов** — обработка фото и генерация трёх кадров в выбранном стиле.
-12. **Подключить оплату для платных фотосессий** — upload + обработка после оплаты.
-13. **Синхронизация баланса генераций** с аккаунтом после auth.
-14. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
-15. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
-16. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
+1. **Use style instruction in Gemini photoshoot generation** — применить `instruction` из catalog к загруженному фото; 3 результата в Storage + `generations`.
+2. **Решить, когда включать `IMAGE_PROVIDER=gemini` для обычной разработки** — сейчас по умолчанию `mock` для безопасности и экономии квот.
+3. **Проверить стоимость / лимиты Gemini** — перед регулярным использованием и production.
+4. **Позже включить `ENABLE_CREDIT_CONSUMPTION=true`** — после полной проверки списаний free/paid и записи в `generations`.
+5. **Подключить Storage для результатов фотосессий** — результаты обработки в Storage + запись в `generations`.
+6. **Безопасные интеграционные тесты backend** — использовать `ENABLE_CREDIT_CONSUMPTION=false`, чтобы не списывать генерации из Supabase.
+7. **Use public/signed URLs** — сейчас bucket public; для private bucket позже — signed URL.
+8. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation).
+9. **Восстановление пароля** — добавить reset password flow.
+10. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
+11. **Сохранить или временно обработать исходное фото** — persistence/storage загруженного файла на backend (фотосессии).
+12. **Подключить генерацию 3 результатов** — обработка фото и генерация трёх кадров в выбранном стиле.
+13. **Подключить оплату для платных фотосессий** — upload + обработка после оплаты.
+14. **Синхронизация баланса генераций** с аккаунтом после auth.
+15. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
+16. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
+17. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
 
 ---
 

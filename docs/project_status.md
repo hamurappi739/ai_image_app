@@ -134,8 +134,10 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 ### `POST /photoshoots/generate`
 
 - Backend принимает `multipart/form-data`: `style_id`, `style_title`, `photo`.
+- **Catalog стилей** (`app/services/photoshoot_styles.py`): backend валидирует `style_id`, хранит `title`, `price_rub`, `is_free`, `output_count=3`, `instruction` для будущей Gemini-генерации.
 - Использует ту же auth-логику: Bearer token или development fallback `TEST_USER_ID`; перед обработкой — profile auto-sync.
 - Валидирует формат файла: **JPEG / PNG / WebP**, максимум **10 MB**.
+- Неизвестный `style_id` → **`400`** `Unknown photoshoot style`.
 - Backend **не сохраняет** загруженное фото и **не выполняет** обработку.
 - После успешной валидации возвращает **`501 Not Implemented`** (`Photoshoot image processing is not implemented yet`).
 

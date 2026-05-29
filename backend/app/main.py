@@ -22,6 +22,7 @@ from app.services.credits_service import (
     consume_generation,
     determine_generation_payment,
 )
+from app.services.photoshoot_styles import get_photoshoot_style
 from app.services.storage_service import storage_service
 from app.services.supabase_service import (
     check_supabase_connection,
@@ -388,8 +389,10 @@ def generate_photoshoot(
 ):
     _ensure_profile_for_user(user)
 
-    _ = style_id
-    _ = style_title
+    style = get_photoshoot_style(style_id)
+    _ = style_title  # client hint; backend title from catalog is source of truth
+    _ = style.title
+    _ = style.instruction
 
     if photo is None:
         raise HTTPException(status_code=400, detail="Photo is required")
