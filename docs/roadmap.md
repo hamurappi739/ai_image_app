@@ -41,6 +41,7 @@
 | **Debug storage upload test passed** | ✅ | `POST /debug/storage-test` проверен: upload успешен, `public_url` открывается в браузере |
 | **Generated image data URL storage helper** | ✅ | `upload_generated_image_data_url` в `storage_service.py`; PNG/JPEG/WebP data URL, max 10 MB; не подключён к `/generate` |
 | **Debug storage image test passed** | ✅ | `POST /debug/storage-image-test` проверен: 1×1 PNG data URL → Storage, `public_url` открывается в браузере |
+| **Connect data URL storage helper to /generate** | ✅ | `POST /generate` загружает `data:image/...` в Storage → `public_url`; mock mode без изменений |
 
 ### Flutter UI MVP (детали)
 
@@ -67,23 +68,21 @@
 
 ## Следующие крупные этапы
 
-1. **Connect Gemini result to Supabase Storage** — после успешного API-теста вызывать `upload_generated_image_data_url` для data URL из `GeminiImageProvider`.
-2. **Save `public_url` in `generations`** — записывать Storage URL в `generations.image_url` при списании генерации.
-3. **Show stored image URLs in Gallery** — Галерея отображает изображения по Storage URL из истории (`GET /generations`).
-4. **Подключить Storage для результатов фотосессий** — результаты обработки в Storage + запись в `generations`.
-5. **Ручной тест Gemini (контролируемый)** — заранее пополнить баланс или подтвердить доступ к Gemini API/квотам, выполнить один тестовый `POST /generate` с коротким prompt.
-6. **Безопасные интеграционные тесты backend** — использовать `ENABLE_CREDIT_CONSUMPTION=false`, чтобы не списывать генерации из Supabase.
-7. **Use public/signed URLs** — сейчас bucket public; для private bucket позже — signed URL.
-8. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation).
-9. **Восстановление пароля** — добавить reset password flow.
-10. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
-11. **Сохранить или временно обработать исходное фото** — persistence/storage загруженного файла на backend (фотосессии).
-12. **Подключить генерацию 3 результатов** — обработка фото и генерация трёх кадров в выбранном стиле.
-13. **Подключить оплату для платных фотосессий** — upload + обработка после оплаты.
-14. **Синхронизация баланса генераций** с аккаунтом после auth.
-15. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
-16. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
-17. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
+1. **Manual Gemini test with Storage `public_url` result** — один контролируемый `POST /generate` с `IMAGE_PROVIDER=gemini`; проверить upload и `public_url` в response.
+2. **Save and verify generated image URL in Gallery** — `generations.image_url` с Storage URL отображается во вкладке **Галерея** (`GET /generations`).
+3. **Подключить Storage для результатов фотосессий** — результаты обработки в Storage + запись в `generations`.
+4. **Безопасные интеграционные тесты backend** — использовать `ENABLE_CREDIT_CONSUMPTION=false`, чтобы не списывать генерации из Supabase.
+5. **Use public/signed URLs** — сейчас bucket public; для private bucket позже — signed URL.
+6. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation).
+7. **Восстановление пароля** — добавить reset password flow.
+8. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
+9. **Сохранить или временно обработать исходное фото** — persistence/storage загруженного файла на backend (фотосессии).
+10. **Подключить генерацию 3 результатов** — обработка фото и генерация трёх кадров в выбранном стиле.
+11. **Подключить оплату для платных фотосессий** — upload + обработка после оплаты.
+12. **Синхронизация баланса генераций** с аккаунтом после auth.
+13. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
+14. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
+15. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
 
 ---
 

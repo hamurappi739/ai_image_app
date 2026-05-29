@@ -7,7 +7,8 @@ User-uploaded photoshoot source photos are **not** intended for long-term storag
 unless a future product decision requires it.
 
 ``upload_generated_image_data_url`` decodes Gemini-style data URLs and uploads
-bytes to Storage. Not wired into ``/generate`` or ``/photoshoots/generate`` yet.
+bytes to Storage. Wired into ``POST /generate`` when the provider returns a
+data URL; ordinary URLs (mock placeholder) pass through unchanged.
 """
 
 from __future__ import annotations

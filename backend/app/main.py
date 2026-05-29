@@ -67,6 +67,24 @@ def _ensure_profile_for_user(user: CurrentUser) -> None:
         raise HTTPException(status_code=500, detail="Failed to ensure user profile")
 
 
+def _store_generated_image_if_needed(user_id: str, image_url: str) -> str:
+    """Upload Gemini-style data URLs to Storage; pass through ordinary URLs."""
+    if not image_url.startswith("data:image/"):
+        return image_url
+    return storage_service.upload_generated_image_data_url(
+        user_id, image_url, folder="generations"
+    )
+
+
+def _resolve_user_for_image_storage(
+    user: CurrentUser | None,
+    authorization: str | None,
+) -> CurrentUser:
+    if user is not None:
+        return user
+    return get_current_user(authorization=authorization)
+
+
 @app.get("/generations", response_model=GenerationsListResponse)
 def list_generations(
     limit: int = Query(default=20, ge=1, le=100, description="Max items to return"),
@@ -317,9 +335,14 @@ def generate(
     if authorization is not None or settings.enable_credit_consumption:
         user = get_current_user(authorization=authorization)
 
+    image_url = generate_image(prompt)
+    if image_url.startswith("data:image/"):
+        storage_user = _resolve_user_for_image_storage(user, authorization)
+        image_url = _store_generated_image_if_needed(storage_user.id, image_url)
+
     if not settings.enable_credit_consumption:
         return GenerateResponse(
-            image_url=generate_image(prompt),
+            image_url=image_url,
             prompt=prompt,
         )
 
@@ -334,7 +357,6 @@ def generate(
     if not decision["allowed"]:
         raise HTTPException(status_code=402, detail=decision["reason"])
 
-    image_url = generate_image(prompt)
     try:
         result = consume_generation(
             profile, decision["payment_type"], prompt, image_url

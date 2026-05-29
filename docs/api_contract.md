@@ -49,6 +49,17 @@
 |------|-----|----------|
 | `prompt` | string | Текст запроса (обязательно, не пустой после trim) |
 
+### Поле `image_url` в ответе
+
+| Режим | `image_url` в response |
+|-------|------------------------|
+| **`IMAGE_PROVIDER=mock`** (по умолчанию) | Обычный mock URL (`placehold.co`); **Storage не используется** |
+| **`IMAGE_PROVIDER=gemini`** | Provider может вернуть `data:image/...;base64,...`; backend **автоматически загружает** изображение в Supabase Storage (bucket `generated-images`) и возвращает **`public_url`** |
+
+- Если provider вернул **обычную ссылку** (не data URL) — backend возвращает её **без изменений**.
+- Если provider вернул **data URL** — в response и в `generations.image_url` (при включённом credit consumption) сохраняется **Storage `public_url`**, не base64.
+- Ошибки Storage upload: **`400`** (некорректный data URL / формат / размер), **`503`** (`Supabase Storage is temporarily unavailable`), **`500`** (конфигурация / upload failed) — без секретов и stack trace в ответе.
+
 ### Response `200` — credit consumption **disabled**
 
 `ENABLE_CREDIT_CONSUMPTION=false` на backend (режим по умолчанию для простой разработки UI).
@@ -160,7 +171,7 @@
 
 | Поле | Тип | Значения | Описание |
 |------|-----|----------|----------|
-| `image_url` | string | URL | Ссылка на сгенерированное изображение (сейчас mock placeholder) |
+| `image_url` | string | URL | Ссылка на результат: mock URL (`placehold.co`) или Supabase Storage **`public_url`** после Gemini data URL upload |
 | `prompt` | string | — | Очищенный prompt, отправленный на генерацию |
 | `payment_type` | string \| null | `null`, `"free"`, `"paid"` | Как оплачена генерация; `null` если списание отключено |
 | `credit_consumed` | boolean | — | `true` если кредит списан в Supabase |
@@ -265,7 +276,7 @@
 - **Не хранить** `SUPABASE_SERVICE_ROLE_KEY` во Flutter.
 - При **`HTTP 402`** — сообщение про окончание генераций и экран **Пакеты** (позже RuStore).
 - Поля ответа `credit_consumed`, `remaining_paid_credits` — **технические**; в UI: «генерации обновлены», «бесплатных / купленных осталось» (см. [dev_notes.md](dev_notes.md)).
-- **`image_url`** — пока mock (`placehold.co`).
+- **`image_url`** — mock (`placehold.co`) по умолчанию; при Gemini data URL — Supabase Storage **`public_url`**.
 - Base URL: Web `127.0.0.1:8000`, Android emulator `10.0.2.2:8000` (`ApiService` + `kIsWeb`).
 - Опционально: `GET /health` для проверки связи с backend.
 

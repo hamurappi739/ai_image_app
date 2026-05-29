@@ -96,10 +96,12 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
   - декодирует base64, собирает storage path через `build_storage_path`, загружает bytes в bucket **`generated-images`**;
   - возвращает **`public_url`**.
 - Ошибки валидации helper: **`400`** — `Invalid image data`, `Unsupported image format`, `Image is too large`.
-- **Helper пока не подключён** к **`/generate`** и **`/photoshoots/generate`** — существующие endpoint flows не менялись.
+- **`POST /generate`** подключён к helper: если provider вернул **`data:image/...`**, backend загружает в Storage и возвращает **`public_url`** (в response и в **`generations.image_url`** при `ENABLE_CREDIT_CONSUMPTION=true`). **Mock mode** (`placehold.co`) — **без изменений**, Storage не вызывается.
+- **С реальным Gemini не тестировалось** — ручной API-тест отложен из-за баланса/доступа; логика проверена через **`POST /debug/storage-image-test`**.
+- **`POST /photoshoots/generate`** Storage **не использует**.
 - **`POST /debug/storage-test`** (development only) — **успешно проверен**: backend загружает маленький in-memory тестовый файл в Storage и возвращает **`public_url`**; **`public_url` проверен вручную** в браузере.
 - **`POST /debug/storage-image-test`** (development only) — **успешно проверен**: вызывает **`upload_generated_image_data_url`** с тестовым **1×1 PNG** data URL; **`public_url` открыт вручную** в браузере.
-- **Следующий этап:** подключить результат **Gemini provider** (data URL) к Storage через helper, сохранять **`public_url`** в **`generations.image_url`** (Галерея).
+- **Следующий этап:** ручной тест **Gemini + Storage `public_url`** и проверка URL в **Галерее** (`GET /generations`).
 - Исходные пользовательские фото для фотосессий **не планируется** хранить долго без необходимости.
 
 ### Supabase REST — ошибки и таймауты
@@ -120,8 +122,8 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 ### `POST /generate`
 
-- **`IMAGE_PROVIDER=mock`** (по умолчанию) → `MockImageProvider`: placeholder `image_url`.
-- **`IMAGE_PROVIDER=gemini`** + `GEMINI_API_KEY` → `GeminiImageProvider`: Gemini API, `image_url` как `data:image/...;base64,...`.
+- **`IMAGE_PROVIDER=mock`** (по умолчанию) → `MockImageProvider`: placeholder `image_url` (`placehold.co`); Storage **не используется**.
+- **`IMAGE_PROVIDER=gemini`** + `GEMINI_API_KEY` → `GeminiImageProvider`: Gemini API → data URL; **`POST /generate`** загружает data URL в Storage и возвращает **`public_url`** (с реальным Gemini **ещё не тестировалось**).
 - Ручной тест с `IMAGE_PROVIDER=gemini` был **остановлен/отложен** из-за отсутствия баланса/доступа к платным запросам.
 - Приложение возвращено в **`IMAGE_PROVIDER=mock`**.
 - Для следующего Gemini-теста заранее проверить баланс, квоты и доступ к модели.
@@ -255,7 +257,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Проверить **RLS** policies в Supabase.
 - **Не коммитить** `.env` и service role key.
 - Включить **реальную генерацию** (Gemini).
-- **Подключить Gemini result к Storage** и сохранять **`public_url`** в **`generations`** (helper готов, bucket проверен).
+- **Подключить Gemini result к Storage** — код в **`/generate`** готов; нужен **ручной Gemini API-тест** и проверка **`public_url`** в Галерее.
 
 ---
 
@@ -264,7 +266,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **UI-MVP** проверен вручную (Flutter web).
 - Backend **`/generate`** и **`/generations`** работают при настроенном `.env`.
 - **Авторизация:** вход через Профиль + Bearer token → **Создать** / **Галерея** проверены после входа.
-- **Supabase Storage:** bucket `generated-images` создан; **`POST /debug/storage-test`** и **`POST /debug/storage-image-test`** — upload и **`public_url`** проверены вручную; helper **`upload_generated_image_data_url`** готов, к **`/generate`** не подключён.
+- **Supabase Storage:** bucket `generated-images` создан; **`/generate`** загружает data URL в Storage; helper проверен через **`POST /debug/storage-image-test`**; с реальным Gemini **ещё не тестировалось**.
 - **Flutter web** + backend на `127.0.0.1:8000`.
 - Перед новым крупным шагом: **`git status`** чистый или осознанный коммит.
 

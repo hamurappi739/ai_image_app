@@ -104,13 +104,14 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 | `get_public_url(path)` | URL вида `/storage/v1/object/public/{bucket}/{path}` (для private bucket позже — signed URL) |
 | `upload_generated_image_data_url(user_id, data_url, folder="generations")` | Декодирует data URL (`image/png`, `image/jpeg`, `image/webp`, до 10 MB), загружает в Storage, возвращает **public URL** |
 
-- **`upload_generated_image_data_url`** подготовлен для сценария Gemini → data URL → Storage → `public_url`. **Пока не вызывается** из `/generate` или `/photoshoots/generate`.
+- **`upload_generated_image_data_url`** — сценарий Gemini → data URL → Storage → `public_url`. Вызывается из **`POST /generate`**, когда provider вернул data URL (`data:image/...`).
+- **`POST /generate`**: если `image_url` от provider начинается с **`data:image/`**, backend автоматически загружает изображение в Storage и подменяет **`image_url`** на **`public_url`** (в response и в `generations` при credit consumption). **Mock mode** (`placehold.co`) Storage **не использует**.
 - Ошибки валидации data URL: **`400`** — `Invalid image data`, `Unsupported image format`, `Image is too large` (максимум **10 MB**).
 
 - **`SUPABASE_STORAGE_BUCKET`** — имя bucket для сгенерированных изображений (по умолчанию `generated-images`; см. таблицу env выше и `.env.example`).
 - Требует **`SUPABASE_URL`**, **`SUPABASE_SERVICE_ROLE_KEY`**, **`SUPABASE_STORAGE_BUCKET`** (шаблон в `.env.example`).
 - Service role key **не** логируется и **не** возвращается клиенту.
-- **`storage_service.py` подготовлен**, но **пока не используется** в production endpoint flows (`POST /generate`, `POST /photoshoots/generate`, …) — следующий этап: сохранение generated images и запись URL в `generations`.
+- **`storage_service.py`** подключён к **`POST /generate`** для data URL; **`POST /photoshoots/generate`** Storage пока не использует.
 
 ### Bucket (MVP)
 
@@ -352,7 +353,9 @@ curl -s http://127.0.0.1:8000/debug/config
 
 #### a) Credit consumption disabled (`ENABLE_CREDIT_CONSUMPTION=false`, по умолчанию)
 
-- Проверка prompt → mock `image_url`
+- Проверка prompt → `image_url` от provider (mock или Gemini)
+- Если provider вернул **data URL** — upload в Storage, в ответе **`public_url`**
+- **Mock mode** — обычный `placehold.co`, Storage **не вызывается**
 - **Без** чтения профиля, **без** списания, **без** записи в Supabase
 - Ответ: `image_url`, `prompt` (остальные поля ответа — значения по умолчанию)
 
@@ -371,7 +374,7 @@ TEST_USER_ID=<uuid из profiles>
 - Без заголовка в development: используется fallback `TEST_USER_ID`.
 - Без заголовка вне development: `401` (`Authorization required`).
 
-Поток: prompt → **`ensure_profile_exists`** → `determine_generation_payment` → при отказе `402` → mock image → `consume_generation` (Supabase) → расширенный ответ:
+Поток: prompt → генерация → **data URL → Storage `public_url` при необходимости** → **`ensure_profile_exists`** → `determine_generation_payment` → при отказе `402` → `consume_generation` (Supabase, с Storage URL в `generations.image_url`) → расширенный ответ:
 
 - `image_url`, `prompt`
 - `payment_type` (`free` / `paid`)
