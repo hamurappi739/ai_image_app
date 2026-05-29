@@ -89,8 +89,11 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **`SUPABASE_STORAGE_BUCKET`** добавлен в **`app/config.py`** и **`backend/.env.example`** (по умолчанию `generated-images`).
 - **Bucket `generated-images` создан** в Supabase Storage и предназначен для **будущего хранения generated images** (результаты текстовой генерации и фотосессий).
 - Для MVP bucket настроен как **public** — `get_public_url` / `upload_bytes` возвращают рабочий URL без signed URLs.
-- Методы: `build_storage_path`, `upload_bytes`, `get_public_url` (public URL; для private bucket позже — signed URL).
-- **`POST /debug/storage-test`** (development only) — **успешно проверен**: backend загружает маленький in-memory тестовый файл в Storage и возвращает **`public_url`**; **`public_url` проверен вручную** в браузере (файл открывается и отображается).
+- Методы: `build_storage_path`, `upload_bytes`, `get_public_url`, **`upload_generated_image_data_url`** (public URL; для private bucket позже — signed URL).
+- **`upload_generated_image_data_url(user_id, data_url)`** — декодирует data URL (`image/png`, `image/jpeg`, `image/webp`, до 10 MB), загружает bytes в Storage, возвращает **`public_url`**. Подготовлен для сценария Gemini → data URL → Storage.
+- **Helper пока не подключён** к `/generate` — следующий этап: подключить к результату Gemini provider и сохранять `public_url` в `generations`.
+- **`POST /debug/storage-test`** (development only) — **успешно проверен**: backend загружает маленький in-memory тестовый файл в Storage и возвращает **`public_url`**; **`public_url` проверен вручную** в браузере.
+- **`POST /debug/storage-image-test`** (development only) — проверка **`upload_generated_image_data_url`** с tiny PNG data URL.
 - **Storage пока не подключён** к `/generate` и `/photoshoots/generate` — существующие endpoint flows не менялись.
 - **Следующий сценарий:** generated images сохраняются в Supabase Storage, а **URL** записывается в **`generations.image_url`** (Галерея).
 - Исходные пользовательские фото для фотосессий **не планируется** хранить долго без необходимости.
@@ -142,7 +145,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 **`/debug/*`** — только для разработки. **`GET /debug/config`** — безопасный helper: флаги конфигурации без секретов (доступен только при `ENVIRONMENT=development`, иначе 404). **Не вызывать** из production Flutter. Перед релизом — **удалить или защитить все** `/debug/*` routes.
 
-Примеры: `/debug/config`, `/debug/supabase`, `/debug/storage-test`, `/debug/profile`, `/debug/history`, `/debug/consume-generation`, `/debug/add-credits`.
+Примеры: `/debug/config`, `/debug/supabase`, `/debug/storage-test`, `/debug/storage-image-test`, `/debug/profile`, `/debug/history`, `/debug/consume-generation`, `/debug/add-credits`.
 
 Подробнее: [api_contract.md](api_contract.md), [dev_notes.md](dev_notes.md).
 

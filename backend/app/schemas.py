@@ -47,6 +47,14 @@ class DebugStorageTestResponse(BaseModel):
     public_url: str
 
 
+class DebugStorageImageTestResponse(BaseModel):
+    """Safe response for POST /debug/storage-image-test (development only)."""
+
+    status: str
+    public_url: str
+    path_or_note: str
+
+
 class DebugStorageImagePersistResponse(BaseModel):
     """Safe response for POST /debug/storage-image-persist (development only)."""
 

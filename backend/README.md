@@ -102,6 +102,10 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 | `build_storage_path(user_id, filename, folder="generations")` | Ключ объекта: `{folder}/{user_id}/{filename}` |
 | `upload_bytes(path, content, content_type)` | `PUT` в Storage API; возвращает public URL |
 | `get_public_url(path)` | URL вида `/storage/v1/object/public/{bucket}/{path}` (для private bucket позже — signed URL) |
+| `upload_generated_image_data_url(user_id, data_url, folder="generations")` | Декодирует data URL (`image/png`, `image/jpeg`, `image/webp`, до 10 MB), загружает в Storage, возвращает **public URL** |
+
+- **`upload_generated_image_data_url`** подготовлен для сценария Gemini → data URL → Storage → `public_url`. **Пока не вызывается** из `/generate` или `/photoshoots/generate`.
+- Ошибки валидации data URL: **`400`** — `Invalid image data`, `Unsupported image format`, `Image is too large` (максимум **10 MB**).
 
 - **`SUPABASE_STORAGE_BUCKET`** — имя bucket для сгенерированных изображений (по умолчанию `generated-images`; см. таблицу env выше и `.env.example`).
 - Требует **`SUPABASE_URL`**, **`SUPABASE_SERVICE_ROLE_KEY`**, **`SUPABASE_STORAGE_BUCKET`** (шаблон в `.env.example`).
@@ -140,6 +144,30 @@ curl -s -X POST http://127.0.0.1:8000/debug/storage-test
 ```
 
 **Перед production** удалить или защитить вместе с остальными `/debug/*` routes. Не вызывать из Flutter release.
+
+### POST /debug/storage-image-test (development only)
+
+Проверяет **`upload_generated_image_data_url`**: загружает маленькую **1×1 PNG data URL** (задана в коде) в Supabase Storage.
+
+- Только при **`ENVIRONMENT=development`** (иначе **`404`**).
+- Использует `TEST_USER_ID` из `.env` и folder `debug`.
+- Успех: `{"status":"ok","public_url":"...","path_or_note":"..."}` — без ключей и секретов.
+- Некорректный data URL / неподдерживаемый формат / размер > 10 MB → **`400`** (см. helper выше).
+- Timeout / connection error → **`503`** `Supabase is temporarily unavailable`
+
+**PowerShell:**
+
+```powershell
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/debug/storage-image-test" -Method Post
+```
+
+**curl:**
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/debug/storage-image-test
+```
+
+**Перед production** удалить или защитить вместе с остальными `/debug/*` routes.
 
 ## Gemini image generation
 
@@ -202,6 +230,7 @@ app/
 | POST | `/debug/consume-generation` | Тестовое списание в Supabase (**только разработка**) |
 | POST | `/debug/add-credits` | Ручное начисление paid credits (**только разработка**) |
 | POST | `/debug/storage-test` | Тест upload в Supabase Storage (**только `ENVIRONMENT=development`**) |
+| POST | `/debug/storage-image-test` | Тест upload PNG data URL через `upload_generated_image_data_url` (**только development**) |
 | POST | `/generate` | Mock-генерация изображения по prompt |
 | POST | `/photoshoots/generate` | Multipart валидация фото для фотосессии (сейчас `501` после проверки) |
 

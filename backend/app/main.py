@@ -9,6 +9,7 @@ from app.schemas import (
     AddCreditsRequest,
     DebugConfigResponse,
     DebugStorageImagePersistResponse,
+    DebugStorageImageTestResponse,
     DebugStorageTestResponse,
     GenerateRequest,
     GenerateResponse,
@@ -135,6 +136,34 @@ def debug_storage_test():
         bucket=storage_service.bucket,
         path=path,
         public_url=public_url,
+    )
+
+
+@app.post("/debug/storage-image-test", response_model=DebugStorageImageTestResponse)
+def debug_storage_image_test():
+    """Upload a tiny PNG data URL via ``upload_generated_image_data_url`` (development only)."""
+    _require_development_for_debug()
+
+    if not settings.test_user_id:
+        raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
+
+    public_url = storage_service.upload_generated_image_data_url(
+        settings.test_user_id,
+        _DEBUG_TINY_PNG_DATA_URL,
+        folder="debug",
+    )
+    bucket = storage_service.bucket
+    path_prefix = f"/object/public/{bucket}/"
+    path_or_note = (
+        public_url.split(path_prefix, 1)[1]
+        if path_prefix in public_url
+        else "Uploaded; see public_url"
+    )
+
+    return DebugStorageImageTestResponse(
+        status="ok",
+        public_url=public_url,
+        path_or_note=path_or_note,
     )
 
 
@@ -306,7 +335,6 @@ def generate(
         raise HTTPException(status_code=402, detail=decision["reason"])
 
     image_url = generate_image(prompt)
-    image_url, _ = storage_service.persist_generated_image(user.id, image_url)
     try:
         result = consume_generation(
             profile, decision["payment_type"], prompt, image_url

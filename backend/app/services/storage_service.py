@@ -6,9 +6,8 @@ After upload, URLs should be stored in `generations.image_url`.
 User-uploaded photoshoot source photos are **not** intended for long-term storage
 unless a future product decision requires it.
 
-`persist_generated_image` is used on the credit-consumption path in `/generate`
-when the provider returns a `data:image/...;base64,...` URL (e.g. Gemini).
-External URLs (mock placeholder) pass through unchanged.
+``upload_generated_image_data_url`` decodes Gemini-style data URLs and uploads
+bytes to Storage. Not wired into ``/generate`` or ``/photoshoots/generate`` yet.
 """
 
 from __future__ import annotations
@@ -38,6 +37,8 @@ _MIME_TO_EXTENSION = {
     "image/jpeg": "jpg",
     "image/webp": "webp",
 }
+_ALLOWED_IMAGE_CONTENT_TYPES = frozenset(_MIME_TO_EXTENSION)
+_MAX_GENERATED_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
 
 
 def _require_storage_config() -> str:
@@ -172,36 +173,67 @@ class SupabaseStorageService:
             f"{quote(bucket, safe='')}/{object_path}"
         )
 
+    def _parse_generated_image_data_url(self, data_url: str) -> tuple[str, bytes]:
+        match = _DATA_URL_PATTERN.match(data_url.strip())
+        if not match:
+            raise HTTPException(status_code=400, detail="Invalid image data")
+
+        content_type = match.group(1)
+        if content_type not in _ALLOWED_IMAGE_CONTENT_TYPES:
+            raise HTTPException(status_code=400, detail="Unsupported image format")
+
+        try:
+            content = base64.b64decode(match.group("payload"), validate=True)
+        except (ValueError, binascii.Error) as exc:
+            raise HTTPException(status_code=400, detail="Invalid image data") from exc
+
+        if not content:
+            raise HTTPException(status_code=400, detail="Invalid image data")
+
+        if len(content) > _MAX_GENERATED_IMAGE_SIZE_BYTES:
+            raise HTTPException(status_code=400, detail="Image is too large")
+
+        return content_type, content
+
+    def _upload_decoded_image(
+        self,
+        user_id: str,
+        content: bytes,
+        content_type: str,
+        folder: str = "generations",
+    ) -> tuple[str, str]:
+        extension = _MIME_TO_EXTENSION[content_type]
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        filename = f"generated-{timestamp}.{extension}"
+        path = self.build_storage_path(
+            user_id=user_id, filename=filename, folder=folder
+        )
+        public_url = self.upload_bytes(path, content, content_type)
+        return path, public_url
+
+    def upload_generated_image_data_url(
+        self, user_id: str, data_url: str, folder: str = "generations"
+    ) -> str:
+        """Decode a generated image data URL, upload to Storage, return public URL."""
+        content_type, content = self._parse_generated_image_data_url(data_url)
+        _, public_url = self._upload_decoded_image(
+            user_id, content, content_type, folder=folder
+        )
+        return public_url
+
     def persist_generated_image(self, user_id: str, image_url: str) -> tuple[str, str | None]:
         """Upload a generated image when ``image_url`` is a base64 data URL.
 
         Returns ``(final_url, storage_path)``. External URLs pass through with
         ``storage_path=None``.
         """
-        match = _DATA_URL_PATTERN.match(image_url.strip())
-        if not match:
+        if not _DATA_URL_PATTERN.match(image_url.strip()):
             return image_url, None
 
-        content_type = match.group(1)
-        try:
-            content = base64.b64decode(match.group("payload"), validate=True)
-        except (ValueError, binascii.Error) as exc:
-            raise HTTPException(
-                status_code=500,
-                detail="Generated image data URL is invalid",
-            ) from exc
-
-        if not content:
-            raise HTTPException(
-                status_code=500,
-                detail="Generated image data URL is empty",
-            )
-
-        extension = _MIME_TO_EXTENSION.get(content_type, "png")
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        filename = f"generated-{timestamp}.{extension}"
-        path = self.build_storage_path(user_id=user_id, filename=filename)
-        public_url = self.upload_bytes(path, content, content_type)
+        content_type, content = self._parse_generated_image_data_url(image_url)
+        path, public_url = self._upload_decoded_image(
+            user_id, content, content_type
+        )
         return public_url, path
 
 
