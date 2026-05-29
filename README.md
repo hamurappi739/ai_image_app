@@ -2,13 +2,13 @@
 
 **Flutter + FastAPI** приложение для AI-генерации изображений.
 
-Сейчас проект в **MVP / demo-mode**: пользовательский flow уже работает. **Реальная генерация** (Gemini), **загрузка фото** и **платежи** — следующие этапы.
+Сейчас проект в **MVP / demo-mode** для ежедневной разработки: по умолчанию **`IMAGE_PROVIDER=mock`**. **Реальная Gemini-генерация была успешно проверена вручную** — результат сохраняется в **Supabase Storage** и отображается в **Галерее**. **Загрузка фото** (фотосессии) и **платежи** — следующие этапы.
 
 **Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход) с loading states для auth-действий. Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. Backend автоматически создаёт профиль пользователя при первом **`/generate`** или **`/generations`** (profile auto-sync). **Без** Flutter Supabase config приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
 **Фотосессии (demo):** можно выбрать фото локально, увидеть preview и для **бесплатного** сценария отправить выбранное фото на backend через **`multipart/form-data`**. Backend пока только **валидирует** файл (JPEG/PNG/WebP, до 10 MB) и возвращает placeholder **`501`**; реальная обработка и сохранение результатов — следующий этап.
 
-**Backend / Supabase:** backend подготовлен к сохранению **generated image data URLs** в **Supabase Storage** — helper **`upload_generated_image_data_url`** (PNG/JPEG/WebP, до 10 MB) загружает в bucket **`generated-images`**; upload проверен через **`POST /debug/storage-image-test`** (`public_url` открывается в браузере). Helper **не подключён** к **`/generate`**. **Подключение к реальной Gemini-генерации** — следующий этап после успешного API-теста. Ошибки и **таймауты** Supabase REST: при недоступности БД — **`503`** вместо необработанного **`500`** traceback.
+**Backend / Supabase:** **реальная Gemini-генерация проверена вручную** — Gemini → data URL → Supabase Storage (`generated-images`) → **`public_url`** в response и **Галерея**. По умолчанию приложение работает в **`IMAGE_PROVIDER=mock`** для безопасной разработки без расхода API. Ошибки и **таймауты** Supabase REST: при недоступности БД — **`503`** вместо необработанного **`500`** traceback.
 
 ---
 
@@ -27,7 +27,7 @@
 - Вкладка **Пакеты** (без реальной оплаты)
 - Supabase: таблицы **`profiles`**, **`generations`**, **`credit_transactions`**
 - Backend: списание бесплатных / платных генераций **подготовлено** (`ENABLE_CREDIT_CONSUMPTION`)
-- Backend: **Supabase Storage** bucket `generated-images` создан; helper **`upload_generated_image_data_url`** готов; upload проверен (`/debug/storage-test`, `/debug/storage-image-test`)
+- Backend: **Gemini → Storage → Галерея** проверен вручную; по умолчанию **`IMAGE_PROVIDER=mock`**
 - Backend: безопасная обработка **Supabase timeouts** (`503`)
 
 ---
@@ -116,14 +116,14 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 
 ## Что пока demo-mode
 
-- Реальная **Gemini**-генерация
+- **Постоянная** Gemini-генерация в dev (по умолчанию **mock**; Gemini — только контролируемые ручные тесты)
 - **Загрузка** пользовательского фото (фотосессии)
 - **RuStore Billing**
 - Подтверждение email, восстановление пароля, production без `TEST_USER_ID`
 - **Production security** (debug routes, CORS, RLS)
 
-Gemini provider уже реализован в backend, но по умолчанию используется **`IMAGE_PROVIDER=mock`**.  
-Реальный ручной тест Gemini выполняйте только по [docs/gemini_test_checklist.md](docs/gemini_test_checklist.md).
+Gemini provider реализован и **успешно проверен вручную**; по умолчанию используется **`IMAGE_PROVIDER=mock`**.  
+Повторный ручной тест Gemini — только по [docs/gemini_test_checklist.md](docs/gemini_test_checklist.md), **без лишних повторов**.
 
 ---
 
@@ -136,4 +136,4 @@ Gemini provider уже реализован в backend, но по умолчан
 - Защитить **CORS**
 - Проверить **Supabase RLS**
 - **Не коммитить** `.env`
-- Подключить **Gemini result → Storage → `generations`** (helper готов; нужен успешный Gemini API-тест)
+- Включить **Gemini в production** — после проверки стоимости/лимитов и production cleanup

@@ -97,11 +97,11 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
   - возвращает **`public_url`**.
 - Ошибки валидации helper: **`400`** — `Invalid image data`, `Unsupported image format`, `Image is too large`.
 - **`POST /generate`** подключён к helper: если provider вернул **`data:image/...`**, backend загружает в Storage и возвращает **`public_url`** (в response и в **`generations.image_url`** при `ENABLE_CREDIT_CONSUMPTION=true`). **Mock mode** (`placehold.co`) — **без изменений**, Storage не вызывается.
-- **С реальным Gemini не тестировалось** — ручной API-тест отложен из-за баланса/доступа; логика проверена через **`POST /debug/storage-image-test`**.
+- **Ручной Gemini-тест успешно пройден:** временно `IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false` → Gemini вернул реальное изображение → backend загрузил в bucket **`generated-images`** → frontend получил **`public_url`** → **Галерея** показала реальную картинку. После теста **`IMAGE_PROVIDER` возвращён на `mock`**.
 - **`POST /photoshoots/generate`** Storage **не использует**.
 - **`POST /debug/storage-test`** (development only) — **успешно проверен**: backend загружает маленький in-memory тестовый файл в Storage и возвращает **`public_url`**; **`public_url` проверен вручную** в браузере.
 - **`POST /debug/storage-image-test`** (development only) — **успешно проверен**: вызывает **`upload_generated_image_data_url`** с тестовым **1×1 PNG** data URL; **`public_url` открыт вручную** в браузере.
-- **Следующий этап:** ручной тест **Gemini + Storage `public_url`** и проверка URL в **Галерее** (`GET /generations`).
+- **Следующий этап:** решить, когда включать **`IMAGE_PROVIDER=gemini`** для обычной разработки; проверить стоимость/лимиты; позже **`ENABLE_CREDIT_CONSUMPTION=true`**.
 - Исходные пользовательские фото для фотосессий **не планируется** хранить долго без необходимости.
 
 ### Supabase REST — ошибки и таймауты
@@ -117,16 +117,15 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | Метод | Путь | Назначение |
 |-------|------|------------|
 | GET | `/health` | Жив ли сервер |
-| POST | `/generate` | Генерация по тексту (сейчас mock URL) |
+| POST | `/generate` | Генерация по тексту (mock по умолчанию; Gemini + Storage проверен вручную) |
 | GET | `/generations` | История генераций (`?limit=1..100`, по умолчанию 20) |
 
 ### `POST /generate`
 
-- **`IMAGE_PROVIDER=mock`** (по умолчанию) → `MockImageProvider`: placeholder `image_url` (`placehold.co`); Storage **не используется**.
-- **`IMAGE_PROVIDER=gemini`** + `GEMINI_API_KEY` → `GeminiImageProvider`: Gemini API → data URL; **`POST /generate`** загружает data URL в Storage и возвращает **`public_url`** (с реальным Gemini **ещё не тестировалось**).
-- Ручной тест с `IMAGE_PROVIDER=gemini` был **остановлен/отложен** из-за отсутствия баланса/доступа к платным запросам.
-- Приложение возвращено в **`IMAGE_PROVIDER=mock`**.
-- Для следующего Gemini-теста заранее проверить баланс, квоты и доступ к модели.
+- **`IMAGE_PROVIDER=mock`** (по умолчанию, **текущий безопасный режим разработки**) → `MockImageProvider`: placeholder `image_url` (`placehold.co`); Storage **не используется**.
+- **`IMAGE_PROVIDER=gemini`** + `GEMINI_API_KEY` → `GeminiImageProvider`: Gemini API → data URL; **`POST /generate`** загружает data URL в Storage и возвращает **`public_url`**. **Ручной тест успешно пройден** (см. §11).
+- Для ручного Gemini-теста использовать **`ENABLE_CREDIT_CONSUMPTION=false`** — без списания генераций из Supabase.
+- После любого Gemini-теста **обязательно** вернуть **`IMAGE_PROVIDER=mock`** (см. [gemini_test_checklist.md](gemini_test_checklist.md)).
 - В backend auth helper `get_current_user()` поддерживает `Authorization: Bearer <token>` через Supabase Auth REST (`/auth/v1/user`).
 - Если заголовка нет в development — остаётся fallback на `TEST_USER_ID`; в non-development без токена — `401`.
 - **`ENABLE_CREDIT_CONSUMPTION=false`** (безопасный режим тестов): **не списывает** генерации из Supabase и не выполняет запись в `generations`.
@@ -256,8 +255,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Ограничить **CORS** доверенными origin.
 - Проверить **RLS** policies в Supabase.
 - **Не коммитить** `.env` и service role key.
-- Включить **реальную генерацию** (Gemini).
-- **Подключить Gemini result к Storage** — код в **`/generate`** готов; нужен **ручной Gemini API-тест** и проверка **`public_url`** в Галерее.
+- Включить **реальную генерацию** (Gemini) в production — после проверки стоимости/лимитов и production cleanup.
 
 ---
 
@@ -267,9 +265,21 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 ### Текущий безопасный режим
 
-- **`IMAGE_PROVIDER=mock`** — mock-генерация, Storage не вызывается для обычных запросов
+- **`IMAGE_PROVIDER=mock`** — mock-генерация по умолчанию; Storage не вызывается для обычных запросов
 - **`ENABLE_CREDIT_CONSUMPTION=false`** — без списания генераций и без записи в `generations` через `/generate`
-- **Gemini provider** реализован в backend (`GeminiImageProvider`), но **реальный API-тест отложен** до пополнения баланса / подтверждения доступа к квотам (см. [gemini_test_checklist.md](gemini_test_checklist.md))
+- **Gemini provider** реализован и **успешно проверен вручную** (Gemini → Storage → `public_url` → Галерея); для ежедневной разработки остаётся **`mock`**
+
+### Ручной Gemini-тест (пройден)
+
+| Шаг | Результат |
+|-----|-----------|
+| Временно `IMAGE_PROVIDER=gemini` | ✅ |
+| `ENABLE_CREDIT_CONSUMPTION=false` (без списания) | ✅ |
+| Gemini вернул реальное изображение | ✅ |
+| Backend загрузил в bucket **`generated-images`** | ✅ |
+| Frontend получил **`image_url` как `public_url`** | ✅ |
+| **Галерея** показала реальную картинку | ✅ |
+| После теста **`IMAGE_PROVIDER=mock`** | ✅ |
 
 ### Проверено — Backend
 
@@ -282,7 +292,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | `POST /debug/storage-test` | ✅ работает |
 | `POST /debug/storage-image-test` | ✅ работает |
 
-Дополнительно: **`POST /generate`** и **`GET /generations`** работают при настроенном `.env`; **`/generate`** готов загружать data URL в Storage (проверено через debug endpoints; с реальным Gemini **ещё не тестировалось**).
+Дополнительно: **`POST /generate`** с **`IMAGE_PROVIDER=gemini`** — полный flow Gemini → Storage → **`public_url`** проверен вручную; **`GET /generations`** / **Галерея** отображают Storage URL.
 
 ### Проверено — Frontend (Flutter web)
 
@@ -304,14 +314,14 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 ### Инфраструктура
 
-- **Supabase Storage:** bucket `generated-images` создан; upload проверен через debug endpoints
+- **Supabase Storage:** bucket `generated-images`; Gemini → Storage → **`public_url`** проверен вручную
 - **Flutter web** + backend на `127.0.0.1:8000`
 
 ### Перед следующим большим этапом
 
 - **`git status`** должен быть **чистым** (или осознанный коммит текущего состояния)
 - **`backend/.env`** не коммитить
-- Следующий крупный шаг: **ручной Gemini API-тест** с проверкой Storage `public_url` и отображения в **Галерее**
+- Следующий крупный шаг: **стоимость/лимиты Gemini**, решение когда держать `gemini` в dev, затем **`ENABLE_CREDIT_CONSUMPTION=true`**
 
 ---
 

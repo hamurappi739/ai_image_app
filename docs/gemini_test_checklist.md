@@ -6,6 +6,16 @@
 - Проверить, что если Gemini возвращает **`data:image/...;base64,...`**, backend **загружает изображение в Supabase Storage** (bucket `generated-images`).
 - Проверить, что frontend получает **`image_url` как `public_url` из Storage**, а **не** огромный data URL в response.
 
+**Правило:** не делать **много повторных** Gemini-тестов без необходимости — каждый запрос может расходовать квоту/баланс.
+
+## Последний результат теста
+
+- **Gemini test passed** — реальное изображение получено через `IMAGE_PROVIDER=gemini`
+- **Storage `public_url` flow passed** — backend загрузил результат в bucket `generated-images`, frontend получил `public_url`
+- **Галерея** показала реальную картинку по Storage URL
+- Тест выполнен с **`ENABLE_CREDIT_CONSUMPTION=false`** (без списания генераций)
+- После теста **`IMAGE_PROVIDER` возвращён на `mock`** — это **обязательно** после каждого Gemini-теста
+
 ## Перед тестом
 
 Проверить:
