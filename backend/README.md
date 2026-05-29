@@ -119,7 +119,7 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 3. Для MVP bucket **public** (чтобы `get_public_url` / `upload_bytes` возвращали рабочий URL без signed URLs).
 4. Перезапустите backend с настроенными `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`.
 
-**Текущий статус:** bucket `generated-images` создан; upload через backend проверен (см. `POST /debug/storage-test` ниже).
+**Текущий статус:** bucket `generated-images` создан; upload через backend проверен (`POST /debug/storage-test`, `POST /debug/storage-image-test`).
 
 ### POST /debug/storage-test (development only)
 
@@ -147,9 +147,11 @@ curl -s -X POST http://127.0.0.1:8000/debug/storage-test
 
 ### POST /debug/storage-image-test (development only)
 
-Проверяет **`upload_generated_image_data_url`**: загружает маленькую **1×1 PNG data URL** (задана в коде) в Supabase Storage.
+Тестирует загрузку **generated image data URL** в Supabase Storage через **`upload_generated_image_data_url`**.
 
-- Только при **`ENVIRONMENT=development`** (иначе **`404`**).
+- Загружает маленькую **1×1 PNG data URL** (задана в коде endpoint) в bucket **`generated-images`**.
+- **Проверен:** backend успешно загружает PNG data URL и возвращает **`public_url`**; URL **открыт вручную** в браузере.
+- **Только development:** доступен при **`ENVIRONMENT=development`** (иначе **`404`**, как у `GET /debug/config`).
 - Использует `TEST_USER_ID` из `.env` и folder `debug`.
 - Успех: `{"status":"ok","public_url":"...","path_or_note":"..."}` — без ключей и секретов.
 - Некорректный data URL / неподдерживаемый формат / размер > 10 MB → **`400`** (см. helper выше).
@@ -167,7 +169,7 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/debug/storage-image-test" -Method 
 curl -s -X POST http://127.0.0.1:8000/debug/storage-image-test
 ```
 
-**Перед production** удалить или защитить вместе с остальными `/debug/*` routes.
+**Перед production** удалить или защитить вместе с остальными `/debug/*` routes. Не вызывать из Flutter release.
 
 ## Gemini image generation
 

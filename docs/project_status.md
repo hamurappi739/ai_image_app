@@ -89,13 +89,17 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **`SUPABASE_STORAGE_BUCKET`** добавлен в **`app/config.py`** и **`backend/.env.example`** (по умолчанию `generated-images`).
 - **Bucket `generated-images` создан** в Supabase Storage и предназначен для **будущего хранения generated images** (результаты текстовой генерации и фотосессий).
 - Для MVP bucket настроен как **public** — `get_public_url` / `upload_bytes` возвращают рабочий URL без signed URLs.
-- Методы: `build_storage_path`, `upload_bytes`, `get_public_url`, **`upload_generated_image_data_url`** (public URL; для private bucket позже — signed URL).
-- **`upload_generated_image_data_url(user_id, data_url)`** — декодирует data URL (`image/png`, `image/jpeg`, `image/webp`, до 10 MB), загружает bytes в Storage, возвращает **`public_url`**. Подготовлен для сценария Gemini → data URL → Storage.
-- **Helper пока не подключён** к `/generate` — следующий этап: подключить к результату Gemini provider и сохранять `public_url` в `generations`.
+- Базовые методы: `build_storage_path`, `upload_bytes`, `get_public_url`.
+- **Helper `upload_generated_image_data_url(user_id, data_url, folder="generations")`** — загрузка generated image data URL в Storage:
+  - принимает data URL вида `data:image/png;base64,...`, `data:image/jpeg;base64,...`, `data:image/webp;base64,...`;
+  - **валидирует** формат (PNG / JPEG / WebP) и **размер до 10 MB**;
+  - декодирует base64, собирает storage path через `build_storage_path`, загружает bytes в bucket **`generated-images`**;
+  - возвращает **`public_url`**.
+- Ошибки валидации helper: **`400`** — `Invalid image data`, `Unsupported image format`, `Image is too large`.
+- **Helper пока не подключён** к **`/generate`** и **`/photoshoots/generate`** — существующие endpoint flows не менялись.
 - **`POST /debug/storage-test`** (development only) — **успешно проверен**: backend загружает маленький in-memory тестовый файл в Storage и возвращает **`public_url`**; **`public_url` проверен вручную** в браузере.
-- **`POST /debug/storage-image-test`** (development only) — проверка **`upload_generated_image_data_url`** с tiny PNG data URL.
-- **Storage пока не подключён** к `/generate` и `/photoshoots/generate` — существующие endpoint flows не менялись.
-- **Следующий сценарий:** generated images сохраняются в Supabase Storage, а **URL** записывается в **`generations.image_url`** (Галерея).
+- **`POST /debug/storage-image-test`** (development only) — **успешно проверен**: вызывает **`upload_generated_image_data_url`** с тестовым **1×1 PNG** data URL; **`public_url` открыт вручную** в браузере.
+- **Следующий этап:** подключить результат **Gemini provider** (data URL) к Storage через helper, сохранять **`public_url`** в **`generations.image_url`** (Галерея).
 - Исходные пользовательские фото для фотосессий **не планируется** хранить долго без необходимости.
 
 ### Supabase REST — ошибки и таймауты
@@ -251,7 +255,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Проверить **RLS** policies в Supabase.
 - **Не коммитить** `.env` и service role key.
 - Включить **реальную генерацию** (Gemini).
-- **Подключить Storage** к `/generate` и фотосессиям (bucket создан, upload проверен; production flow — следующий этап).
+- **Подключить Gemini result к Storage** и сохранять **`public_url`** в **`generations`** (helper готов, bucket проверен).
 
 ---
 
@@ -260,7 +264,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **UI-MVP** проверен вручную (Flutter web).
 - Backend **`/generate`** и **`/generations`** работают при настроенном `.env`.
 - **Авторизация:** вход через Профиль + Bearer token → **Создать** / **Галерея** проверены после входа.
-- **Supabase Storage:** bucket `generated-images` создан; **`POST /debug/storage-test`** — upload и **`public_url`** проверены вручную.
+- **Supabase Storage:** bucket `generated-images` создан; **`POST /debug/storage-test`** и **`POST /debug/storage-image-test`** — upload и **`public_url`** проверены вручную; helper **`upload_generated_image_data_url`** готов, к **`/generate`** не подключён.
 - **Flutter web** + backend на `127.0.0.1:8000`.
 - Перед новым крупным шагом: **`git status`** чистый или осознанный коммит.
 

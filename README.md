@@ -8,7 +8,7 @@
 
 **Фотосессии (demo):** можно выбрать фото локально, увидеть preview и для **бесплатного** сценария отправить выбранное фото на backend через **`multipart/form-data`**. Backend пока только **валидирует** файл (JPEG/PNG/WebP, до 10 MB) и возвращает placeholder **`501`**; реальная обработка и сохранение результатов — следующий этап.
 
-**Backend / Supabase:** **Supabase Storage** bucket `generated-images` подготовлен и **upload проверен** (`POST /debug/storage-test` → `public_url` открывается в браузере). **Хранение реальных generated images** в Storage и запись URL в `generations` — **следующий этап**; в `/generate` и `/photoshoots/generate` пока не подключено. Ошибки и **таймауты** Supabase REST обрабатываются безопаснее: при недоступности БД — **`503`** вместо необработанного **`500`** traceback.
+**Backend / Supabase:** backend подготовлен к сохранению **generated image data URLs** в **Supabase Storage** — helper **`upload_generated_image_data_url`** (PNG/JPEG/WebP, до 10 MB) загружает в bucket **`generated-images`**; upload проверен через **`POST /debug/storage-image-test`** (`public_url` открывается в браузере). Helper **не подключён** к **`/generate`**. **Подключение к реальной Gemini-генерации** — следующий этап после успешного API-теста. Ошибки и **таймауты** Supabase REST: при недоступности БД — **`503`** вместо необработанного **`500`** traceback.
 
 ---
 
@@ -27,7 +27,7 @@
 - Вкладка **Пакеты** (без реальной оплаты)
 - Supabase: таблицы **`profiles`**, **`generations`**, **`credit_transactions`**
 - Backend: списание бесплатных / платных генераций **подготовлено** (`ENABLE_CREDIT_CONSUMPTION`)
-- Backend: **Supabase Storage** bucket `generated-images` создан, upload проверен (`/debug/storage-test`)
+- Backend: **Supabase Storage** bucket `generated-images` создан; helper **`upload_generated_image_data_url`** готов; upload проверен (`/debug/storage-test`, `/debug/storage-image-test`)
 - Backend: безопасная обработка **Supabase timeouts** (`503`)
 
 ---
@@ -136,4 +136,4 @@ Gemini provider уже реализован в backend, но по умолчан
 - Защитить **CORS**
 - Проверить **Supabase RLS**
 - **Не коммитить** `.env`
-- Подключить **Storage к `/generate` и фотосессиям** (bucket готов, upload проверен)
+- Подключить **Gemini result → Storage → `generations`** (helper готов; нужен успешный Gemini API-тест)
