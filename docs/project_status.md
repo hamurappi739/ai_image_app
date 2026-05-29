@@ -34,7 +34,7 @@
 
 | Папка | Назначение |
 |-------|------------|
-| `backend/` | FastAPI, Supabase REST (httpx), `ImageService` + providers |
+| `backend/` | FastAPI, Supabase REST (httpx), `ImageService` + providers, `SupabaseStorageService` (placeholder) |
 | `frontend/` | Flutter app (`lib/main.dart`, `lib/services/api_service.dart`) |
 | `docs/` | Контракт API, дизайн, roadmap, demo script |
 
@@ -82,6 +82,15 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 ---
 
 ## 5. Backend endpoints
+
+### Supabase Storage (service placeholder)
+
+- **`app/services/storage_service.py`** — `SupabaseStorageService` (REST через **httpx**, без Python SDK `supabase`).
+- Env: **`SUPABASE_STORAGE_BUCKET`** (по умолчанию `generated-images`).
+- Методы: `build_storage_path`, `upload_bytes`, `get_public_url` (public URL; для private bucket позже — signed URL).
+- **Пока не подключён** к `/generate` и `/photoshoots/generate` — существующие endpoint flows не менялись.
+- **Будущий сценарий:** сохранить сгенерированное изображение в Supabase Storage → записать URL в `generations.image_url` для Галереи.
+- Исходные пользовательские фото для фотосессий **не планируется** хранить долго без необходимости.
 
 ### Публичные (MVP)
 

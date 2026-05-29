@@ -34,6 +34,7 @@
 | **Flutter multipart upload for photoshoots** | ✅ | Бесплатный сценарий отправляет выбранное фото через `multipart/form-data` |
 | **Backend validation of uploaded photos** | ✅ | JPEG/PNG/WebP, max 10 MB; файл не сохраняется на сервере |
 | **Graceful placeholder handling** | ✅ | `501` → «Обработка фото будет добавлена позже», без технических деталей в UI |
+| **Backend storage service placeholder** | ✅ | `SupabaseStorageService` (httpx REST); bucket env; не вызывается из текущих endpoints |
 
 ### Flutter UI MVP (детали)
 
@@ -62,18 +63,22 @@
 
 1. **Ручной тест Gemini (контролируемый)** — заранее пополнить баланс или подтвердить доступ к Gemini API/квотам, выполнить один тестовый `POST /generate` с коротким prompt.
 2. **После успешного Gemini-теста** — принять решение по хранению результата (`generated image URL/data`) для production-потока.
-3. **Безопасные интеграционные тесты backend** — использовать `ENABLE_CREDIT_CONSUMPTION=false`, чтобы не списывать генерации из Supabase.
-4. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation).
-5. **Восстановление пароля** — добавить reset password flow.
-6. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
-7. **Сохранить или временно обработать исходное фото** — persistence/storage загруженного файла на backend.
-8. **Подключить генерацию 3 результатов** — обработка фото и генерация трёх кадров в выбранном стиле.
-9. **Сохранить результаты в Галерее** — запись результатов фотосессии в историю и показ в UI.
-10. **Подключить оплату для платных фотосессий** — upload + обработка после оплаты.
-11. **Синхронизация баланса генераций** с аккаунтом после auth.
-12. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
-13. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
-14. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
+3. **Create/configure Supabase Storage bucket** — bucket `SUPABASE_STORAGE_BUCKET`, политики public/private.
+4. **Upload generated images** — вызов `SupabaseStorageService.upload_bytes` после реальной генерации.
+5. **Use public/signed URLs** — public bucket или signed URL для приватного bucket.
+6. **Connect storage URLs to Gallery** — `image_url` в `generations` из Storage, отображение в Галерее.
+7. **Безопасные интеграционные тесты backend** — использовать `ENABLE_CREDIT_CONSUMPTION=false`, чтобы не списывать генерации из Supabase.
+8. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation).
+9. **Восстановление пароля** — добавить reset password flow.
+10. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
+11. **Сохранить или временно обработать исходное фото** — persistence/storage загруженного файла на backend (фотосессии).
+12. **Подключить генерацию 3 результатов** — обработка фото и генерация трёх кадров в выбранном стиле.
+13. **Сохранить результаты в Галерее** — запись результатов фотосессии в историю и показ в UI.
+14. **Подключить оплату для платных фотосессий** — upload + обработка после оплаты.
+15. **Синхронизация баланса генераций** с аккаунтом после auth.
+16. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
+17. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
+18. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
 
 ---
 

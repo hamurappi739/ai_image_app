@@ -24,6 +24,7 @@ copy .env.example .env
 | `SUPABASE_URL` | URL проекта Supabase |
 | `SUPABASE_ANON_KEY` | Публичный anon key (используется backend для валидации Bearer token через Supabase Auth REST) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key — **только на сервере** |
+| `SUPABASE_STORAGE_BUCKET` | Имя bucket в Supabase Storage для сгенерированных изображений (по умолчанию `generated-images`) |
 | `TEST_USER_ID` | UUID тестового пользователя (только development) |
 | `ENABLE_CREDIT_CONSUMPTION` | Включить проверку и списание кредитов в `POST /generate` (по умолчанию `false`) |
 
@@ -91,6 +92,20 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 
 Проверка в разработке: `GET /debug/supabase`, `GET /debug/config` (удалить или защитить перед production).
 
+## Supabase Storage (service placeholder)
+
+`app/services/storage_service.py` — **`SupabaseStorageService`** (REST через **httpx**, без Python SDK `supabase`):
+
+| Метод | Назначение |
+|-------|------------|
+| `build_storage_path(user_id, filename, folder="generations")` | Ключ объекта: `{folder}/{user_id}/{filename}` |
+| `upload_bytes(path, content, content_type)` | `PUT` в Storage API; возвращает public URL |
+| `get_public_url(path)` | URL вида `/storage/v1/object/public/{bucket}/{path}` (для private bucket позже — signed URL) |
+
+- Требует **`SUPABASE_URL`**, **`SUPABASE_SERVICE_ROLE_KEY`**, **`SUPABASE_STORAGE_BUCKET`** (шаблон в `.env.example`).
+- Service role key **не** логируется и **не** возвращается клиенту.
+- **Пока не используется** в `POST /generate`, `POST /photoshoots/generate` и других текущих routes — подготовка под будущее сохранение generated images и запись URL в `generations`.
+
 ## Gemini image generation
 
 Реализовано в **`GeminiImageProvider`** (`google-genai`). По умолчанию **`IMAGE_PROVIDER=mock`** — внешний API не вызывается.
@@ -133,6 +148,7 @@ app/
 └── services/
     ├── image_service.py    # ImageService, MockImageProvider, GeminiImageProvider
     ├── supabase_service.py # Supabase REST (httpx + service role)
+    ├── storage_service.py  # Supabase Storage REST placeholder (not wired to routes yet)
     └── credits_service.py  # Проверка free/paid (без списания)
 .env.example             # Шаблон переменных окружения
 ```

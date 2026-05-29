@@ -1,10 +1,26 @@
+import logging
+from collections.abc import Callable
 from urllib.parse import quote
 
 import httpx
+from fastapi import HTTPException
 
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
 _SUCCESS_STATUSES = (200, 201, 204, 206)
+_DEFAULT_TIMEOUT = 10.0
+_SUPABASE_UNAVAILABLE_DETAIL = "Supabase is temporarily unavailable"
+
+# Transport-layer failures (timeout, connection, TLS handshake, etc.).
+_HTTPX_TRANSPORT_ERRORS = (
+    httpx.ConnectTimeout,
+    httpx.ReadTimeout,
+    httpx.TimeoutException,
+    httpx.ConnectError,
+    httpx.HTTPError,
+)
 
 
 def _require_supabase_config() -> str:
@@ -31,6 +47,44 @@ def _supabase_write_headers() -> dict[str, str]:
     }
 
 
+def _raise_supabase_unavailable(exc: httpx.HTTPError) -> None:
+    # Log only exception type — never headers, tokens, or keys.
+    logger.warning("Supabase request failed: %s", exc.__class__.__name__)
+    raise HTTPException(
+        status_code=503,
+        detail=_SUPABASE_UNAVAILABLE_DETAIL,
+    ) from exc
+
+
+def _execute_supabase_request(request: Callable[[], httpx.Response]) -> httpx.Response:
+    try:
+        return request()
+    except _HTTPX_TRANSPORT_ERRORS as exc:
+        _raise_supabase_unavailable(exc)
+
+
+def _supabase_get(url: str) -> httpx.Response:
+    return _execute_supabase_request(
+        lambda: httpx.get(url, headers=_supabase_headers(), timeout=_DEFAULT_TIMEOUT)
+    )
+
+
+def _supabase_post(url: str, *, json: dict) -> httpx.Response:
+    return _execute_supabase_request(
+        lambda: httpx.post(
+            url, headers=_supabase_write_headers(), json=json, timeout=_DEFAULT_TIMEOUT
+        )
+    )
+
+
+def _supabase_patch(url: str, *, json: dict) -> httpx.Response:
+    return _execute_supabase_request(
+        lambda: httpx.patch(
+            url, headers=_supabase_write_headers(), json=json, timeout=_DEFAULT_TIMEOUT
+        )
+    )
+
+
 def _parse_supabase_response(response: httpx.Response, error_message: str) -> dict:
     if response.status_code not in _SUCCESS_STATUSES:
         raise RuntimeError(error_message)
@@ -48,14 +102,14 @@ def check_supabase_connection() -> bool:
     base_url = _require_supabase_config()
     url = f"{base_url}/rest/v1/profiles?select=id&limit=1"
 
-    response = httpx.get(url, headers=_supabase_headers(), timeout=10.0)
+    response = _supabase_get(url)
     if response.status_code in (200, 206):
         return True
     raise RuntimeError("Supabase connection failed")
 
 
 def _fetch_supabase_list(url: str, error_message: str) -> list[dict]:
-    response = httpx.get(url, headers=_supabase_headers(), timeout=10.0)
+    response = _supabase_get(url)
     if response.status_code not in (200, 206):
         raise RuntimeError(error_message)
     data = response.json()
@@ -71,7 +125,7 @@ def get_profile_by_id(user_id: str) -> dict | None:
         "&limit=1"
     )
 
-    response = httpx.get(url, headers=_supabase_headers(), timeout=10.0)
+    response = _supabase_get(url)
     if response.status_code not in (200, 206):
         raise RuntimeError("Failed to fetch profile")
 
@@ -108,9 +162,7 @@ def get_credit_transactions_by_user_id(user_id: str, limit: int = 10) -> list[di
 def insert_profile(data: dict) -> dict:
     base_url = _require_supabase_config()
     url = f"{base_url}/rest/v1/profiles"
-    response = httpx.post(
-        url, headers=_supabase_write_headers(), json=data, timeout=10.0
-    )
+    response = _supabase_post(url, json=data)
     return _parse_supabase_response(response, "Failed to create profile")
 
 
@@ -150,25 +202,19 @@ def ensure_profile_exists(user_id: str, email: str | None = None) -> dict:
 def update_profile(user_id: str, data: dict) -> dict:
     base_url = _require_supabase_config()
     url = f"{base_url}/rest/v1/profiles?id=eq.{quote(user_id, safe='')}"
-    response = httpx.patch(
-        url, headers=_supabase_write_headers(), json=data, timeout=10.0
-    )
+    response = _supabase_patch(url, json=data)
     return _parse_supabase_response(response, "Failed to update profile")
 
 
 def insert_generation(data: dict) -> dict:
     base_url = _require_supabase_config()
     url = f"{base_url}/rest/v1/generations"
-    response = httpx.post(
-        url, headers=_supabase_write_headers(), json=data, timeout=10.0
-    )
+    response = _supabase_post(url, json=data)
     return _parse_supabase_response(response, "Failed to insert generation")
 
 
 def insert_credit_transaction(data: dict) -> dict:
     base_url = _require_supabase_config()
     url = f"{base_url}/rest/v1/credit_transactions"
-    response = httpx.post(
-        url, headers=_supabase_write_headers(), json=data, timeout=10.0
-    )
+    response = _supabase_post(url, json=data)
     return _parse_supabase_response(response, "Failed to insert credit transaction")
