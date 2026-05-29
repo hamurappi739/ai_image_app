@@ -17,6 +17,13 @@ class PhotoshootGenerateRequest(BaseModel):
     style_title: str | None = None
 
 
+class PhotoshootGenerateResponse(BaseModel):
+    style_id: str
+    style_title: str
+    image_urls: list[str]
+    output_count: int
+
+
 class GenerateResponse(BaseModel):
     image_url: str
     prompt: str

@@ -15,6 +15,7 @@ from app.schemas import (
     GenerateResponse,
     GenerationItem,
     GenerationsListResponse,
+    PhotoshootGenerateResponse,
 )
 from app.services.image_service import generate_image
 from app.services.credits_service import (
@@ -382,7 +383,7 @@ def generate(
     )
 
 
-@app.post("/photoshoots/generate")
+@app.post("/photoshoots/generate", response_model=PhotoshootGenerateResponse)
 def generate_photoshoot(
     style_id: str = Form(...),
     style_title: str | None = Form(default=None),
@@ -404,9 +405,15 @@ def generate_photoshoot(
     if len(file_bytes) > _MAX_PHOTOSHOOT_FILE_SIZE_BYTES:
         raise HTTPException(status_code=400, detail="Photo is too large")
 
-    photoshoot_service.generate_photoshoot(
+    image_urls = photoshoot_service.generate_photoshoot(
         user_id=user.id,
         style=style,
         photo_bytes=file_bytes,
         photo_content_type=photo.content_type,
+    )
+    return PhotoshootGenerateResponse(
+        style_id=style.id,
+        style_title=style.title,
+        image_urls=image_urls,
+        output_count=len(image_urls),
     )

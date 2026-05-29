@@ -102,6 +102,25 @@ flutter run -d chrome
 - в ответе **не должно быть** `GEMINI_API_KEY`, Bearer token, Authorization headers или stack trace
 - если видите только `ClientError` без `status` / `message` — перезапустите backend после обновления и повторите **один** контролируемый запрос
 
+### Photoshoot test (`POST /photoshoots/generate`)
+
+При ошибке **«Gemini did not return a photoshoot image»** смотрите **safe summary** в `detail` — backend добавляет диагностику без секретов и без base64, например:
+
+`Gemini did not return a photoshoot image: candidates=1; parts=1; part_types=text; text_preview="I cannot generate..."`
+
+или
+
+`Gemini returned inline data but not an image`
+
+Что означает safe summary:
+
+- `candidates` — число `response.candidates`
+- `parts` — число найденных parts (`response.parts`, `candidate.content.parts`)
+- `part_types` — какие типы parts были: `text`, `inline_data`, `function_call`, `unknown`
+- `text_preview` — первые **200** символов текста (если модель вернула отказ или пояснение вместо картинки)
+
+**Не повторять** запросы много раз вслепую — сначала прочитать `text_preview` и `part_types`, исправить prompt/модель/фото, затем **один** контролируемый повтор.
+
 Возможные причины:
 
 - Gemini **не вернул изображение** (только текст / пустой ответ)

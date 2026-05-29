@@ -226,24 +226,44 @@
 - Слишком большой файл → `400` `Photo is too large`
 - Неизвестный `style_id` → `400` `Unknown photoshoot style`
 
-**Текущее поведение (после валидации):** validate file and return **`501 Not Implemented`**.
+**Текущее поведение (после валидации):** Gemini-генерация фотосессии → загрузка результатов в Supabase Storage → **`200 OK`** с `image_urls`.
 
-### Response `501`
+Runtime limit количества результатов: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, диапазон **1–3**). Сейчас рекомендуется **`PHOTOSHOOT_OUTPUT_COUNT=1`** для контролируемого ручного теста.
+
+Результаты **пока не пишутся** в таблицу `generations` / Галерею. Списания генераций и оплата **не выполняются**.
+
+### Response `200`
 
 ```json
 {
-  "detail": "Photoshoot image processing is not implemented yet"
+  "style_id": "studio_portrait",
+  "style_title": "Студийный портрет",
+  "image_urls": ["https://..."],
+  "output_count": 1
 }
 ```
 
-Сейчас endpoint валидирует multipart-поля и файл, но **не** сохраняет фото, **не** вызывает генерацию, **не** списывает генерации, **не** пишет в `generations`.
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `style_id` | string | Идентификатор стиля из catalog |
+| `style_title` | string | Название стиля из catalog |
+| `image_urls` | string[] | Public URL результатов в Supabase Storage (`photoshoots/…`) |
+| `output_count` | int | Фактическое число сгенерированных изображений (≤ `PHOTOSHOOT_OUTPUT_COUNT`) |
 
-**Будущее поведение:** генерация **3 изображений** фотосессии в выбранном стиле и сохранение результатов в Галерею.
+### Ошибки генерации
+
+| HTTP | Условие |
+|------|---------|
+| **500** | `GEMINI_API_KEY is not configured` |
+| **502** | `Gemini did not return a photoshoot image` |
+| **502** | `Gemini photoshoot generation failed: status=…, message=…` (без секретов; message ≤ 300 символов) |
+
+**Будущее поведение:** запись результатов в `generations` / Галерею; product target — **3 изображения** на фотосессию (`PHOTOSHOOT_OUTPUT_COUNT=3` после проверки стоимости).
 
 ### Flutter (вкладка «Фотосессии»)
 
 - Бесплатный сценарий: `ApiService.generatePhotoshoot(...)` отправляет `multipart/form-data` с полями `style_id`, `style_title`, `photo`.
-- При **`501`**: мягкое сообщение **«Обработка фото будет добавлена позже»** (ожидаемая заглушка).
+- При **`200`**: backend возвращает `image_urls` (Flutter пока не отображает их — отдельный шаг).
 - При **`400`** (тип/размер): понятное сообщение про JPEG/PNG/WebP до 10 МБ.
 - Платные сценарии пока не отправляют multipart на backend.
 
@@ -273,13 +293,13 @@
 | Вкладка (RU) | Backend сейчас | Статус |
 |--------------|----------------|--------|
 | **Создать** | `POST /generate` через `ApiService.generateImage()` | **Работает** |
-| **Фотосессии** | `POST /photoshoots/generate` (multipart) | Бесплатный сценарий отправляет фото; backend валидирует и возвращает `501` placeholder |
+| **Фотосессии** | `POST /photoshoots/generate` (multipart) | Gemini → Storage → `image_urls`; Flutter пока не показывает результаты |
 | **Галерея** | `GET /generations` при старте + локально новые сверху | **Работает** (dev: `TEST_USER_ID`; фильтр debug в UI) |
 | **Пакеты** | — | UI-заглушка под будущую оплату (RuStore) |
 | **Профиль** | — | Placeholder |
 
 - **Production / release** Flutter **не должен** вызывать `/debug/*` (только ручная отладка backend).
-- **Фотосессии:** бесплатный сценарий — multipart upload + мягкое сообщение при `501`; платные — «Оплата будет добавлена позже». **Пакеты:** SnackBar «будет добавлено позже», без записи в БД.
+- **Фотосессии:** бесплатный сценарий — multipart upload → Gemini → `image_urls` (без записи в `generations`); платные — «Оплата будет добавлена позже». **Пакеты:** SnackBar «будет добавлено позже», без записи в БД.
 - **Создать:** при `402` в UI — переход к идее покупки **пакета генераций** (не слово «кредиты»).
 
 ---
@@ -287,7 +307,7 @@
 ## 9. Flutter notes
 
 - **Основной рабочий endpoint:** `POST /generate` (вкладка **Создать**).
-- **Фотосессии:** `POST /photoshoots/generate` — `multipart/form-data` (`style_id`, `style_title`, `photo`); сейчас валидация + `501` placeholder.
+- **Фотосессии:** `POST /photoshoots/generate` — `multipart/form-data` (`style_id`, `style_title`, `photo`); Gemini-генерация + Storage; `PHOTOSHOOT_OUTPUT_COUNT` (default **1**); без записи в `generations` и без списаний.
 - **`GET /generations`** — галерея при старте; после auth — тот же endpoint с user id авторизованного пользователя.
 - **Не вызывать** `/debug/*` из release-сборки.
 - **Не хранить** `SUPABASE_SERVICE_ROLE_KEY` во Flutter.

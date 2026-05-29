@@ -98,7 +98,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Ошибки валидации helper: **`400`** — `Invalid image data`, `Unsupported image format`, `Image is too large`.
 - **`POST /generate`** подключён к helper: если provider вернул **`data:image/...`**, backend загружает в Storage и возвращает **`public_url`** (в response и в **`generations.image_url`** при `ENABLE_CREDIT_CONSUMPTION=true`). **Mock mode** (`placehold.co`) — **без изменений**, Storage не вызывается.
 - **Ручной Gemini-тест успешно пройден:** временно `IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false` → Gemini вернул реальное изображение → backend загрузил в bucket **`generated-images`** → frontend получил **`public_url`** → **Галерея** показала реальную картинку. После теста **`IMAGE_PROVIDER` возвращён на `mock`**.
-- **`POST /photoshoots/generate`** Storage **не использует**.
+- **`POST /photoshoots/generate`** загружает результаты Gemini в Storage (`folder="photoshoots"`) и возвращает **`public_url`** в `image_urls` (без записи в `generations`).
 - **`POST /debug/storage-test`** (development only) — **успешно проверен**: backend загружает маленький in-memory тестовый файл в Storage и возвращает **`public_url`**; **`public_url` проверен вручную** в браузере.
 - **`POST /debug/storage-image-test`** (development only) — **успешно проверен**: вызывает **`upload_generated_image_data_url`** с тестовым **1×1 PNG** data URL; **`public_url` открыт вручную** в браузере.
 - **Следующий этап:** решить, когда включать **`IMAGE_PROVIDER=gemini`** для обычной разработки; проверить стоимость/лимиты; позже **`ENABLE_CREDIT_CONSUMPTION=true`**.
@@ -134,15 +134,18 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 ### `POST /photoshoots/generate`
 
 - Backend принимает `multipart/form-data`: `style_id`, `style_title`, `photo`.
-- **Catalog стилей** (`app/services/photoshoot_styles.py`): backend валидирует `style_id`, хранит `title`, `price_rub`, `is_free`, `output_count=3`, `instruction` для будущей Gemini-генерации.
-- **`PhotoshootService`** + **`GeminiPhotoshootProvider`** (`app/services/photoshoot_service.py`) — placeholder: photo + `style.instruction` → data URLs; runtime limit **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, max **3**); product target в catalog — **3** изображения.
+- **Catalog стилей** (`app/services/photoshoot_styles.py`): backend валидирует `style_id`, хранит `title`, `price_rub`, `is_free`, `output_count=3`, `instruction` для Gemini-генерации.
+- **`PhotoshootService`** + **`GeminiPhotoshootProvider`** (`app/services/photoshoot_service.py`): uploaded photo + `style.instruction` → Gemini → data URLs → Supabase Storage (`photoshoots/…`) → **`public_url`** в ответе.
+- Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, max **3**); product target в catalog — **3** изображения.
 - Использует ту же auth-логику: Bearer token или development fallback `TEST_USER_ID`; перед обработкой — profile auto-sync.
 - Валидирует формат файла: **JPEG / PNG / WebP**, максимум **10 MB**.
 - Неизвестный `style_id` → **`400`** `Unknown photoshoot style`.
-- **Реальная Gemini-генерация фотосессий не подключена** — `GeminiPhotoshootProvider` выбрасывает **`501`**.
-- **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, диапазон **1–3**) — runtime limit для будущей генерации; **product target** в catalog — **3** изображения на фотосессию.
-- Backend **не сохраняет** загруженное фото, **не вызывает** Gemini, **не списывает** генерации, **не пишет** в `generations`.
-- После успешной валидации возвращает **`501 Not Implemented`** (`Photoshoot Gemini generation is not implemented yet`).
+- При успехе возвращает **`200`** с `style_id`, `style_title`, `image_urls`, `output_count`.
+- Требует **`GEMINI_API_KEY`**; без ключа → **`500`** `GEMINI_API_KEY is not configured`.
+- Backend **не сохраняет** загруженное исходное фото, **не пишет** результаты в `generations`, **не списывает** генерации/оплату.
+- **Backend photoshoot Gemini generation реализован** для контролируемого `output_count` (`PHOTOSHOOT_OUTPUT_COUNT`, default **1**).
+- Ожидается ручной тест с **`PHOTOSHOOT_OUTPUT_COUNT=1`**: результаты загружаются в Supabase Storage и возвращаются как **`public_url`** в `image_urls`.
+- **Пока не подключено** к Галерее / persistence в `generations` (отдельный этап).
 
 ### `GET /generations`
 
@@ -180,8 +183,8 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Карточки → **bottom sheet** с локальным выбором фото через Flutter (`image_picker`).
 - В modal после выбора показывается preview и статус **«Фото выбрано»** (preview только в UI, до закрытия окна).
 - **Flutter** (бесплатный сценарий) отправляет выбранное фото на backend через **`multipart/form-data`** (`style_id`, `style_title`, `photo`).
-- **Backend** валидирует **JPEG / PNG / WebP** и размер до **10 MB**; файл на сервере пока не сохраняется.
-- После валидации backend возвращает **`501`**; Flutter обрабатывает это мягко: **«Обработка фото будет добавлена позже»** (без показа HTTP/501 пользователю).
+- **Backend** валидирует **JPEG / PNG / WebP** и размер до **10 MB**; исходное фото на сервере не сохраняется.
+- После валидации backend вызывает **Gemini** и возвращает **`200`** с `image_urls` (Flutter пока показывает заглушку «Обработка фото будет добавлена позже»).
 - Платные фотосессии пока **не отправляют** фото на backend → **«Оплата будет добавлена позже»**.
 - Реальная обработка, сохранение результатов и оплата — следующие этапы.
 
