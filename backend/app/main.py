@@ -8,6 +8,7 @@ from app.config import settings
 from app.schemas import (
     AddCreditsRequest,
     DebugConfigResponse,
+    DebugStorageImagePersistResponse,
     DebugStorageTestResponse,
     GenerateRequest,
     GenerateResponse,
@@ -137,6 +138,30 @@ def debug_storage_test():
     )
 
 
+@app.post("/debug/storage-image-persist", response_model=DebugStorageImagePersistResponse)
+def debug_storage_image_persist():
+    """Persist a tiny PNG data URL via ``persist_generated_image`` (development only)."""
+    _require_development_for_debug()
+
+    if not settings.test_user_id:
+        raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
+
+    public_url, path = storage_service.persist_generated_image(
+        settings.test_user_id,
+        _DEBUG_TINY_PNG_DATA_URL,
+    )
+    if path is None:
+        raise HTTPException(status_code=500, detail="Image was not persisted")
+
+    return DebugStorageImagePersistResponse(
+        status="ok",
+        bucket=storage_service.bucket,
+        path=path,
+        public_url=public_url,
+        persisted=True,
+    )
+
+
 @app.get("/debug/profile")
 def debug_profile():
     if not settings.test_user_id:
@@ -191,6 +216,10 @@ def debug_history():
 
 _DEBUG_MOCK_PROMPT = "debug test prompt"
 _DEBUG_MOCK_IMAGE_URL = "https://placehold.co/1024x1024?text=Generated+Image"
+_DEBUG_TINY_PNG_DATA_URL = (
+    "data:image/png;base64,"
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+)
 _ALLOWED_PHOTOSHOOT_CONTENT_TYPES = {
     "image/jpeg",
     "image/png",
@@ -277,6 +306,7 @@ def generate(
         raise HTTPException(status_code=402, detail=decision["reason"])
 
     image_url = generate_image(prompt)
+    image_url, _ = storage_service.persist_generated_image(user.id, image_url)
     try:
         result = consume_generation(
             profile, decision["payment_type"], prompt, image_url

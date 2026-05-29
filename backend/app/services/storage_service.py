@@ -6,12 +6,18 @@ After upload, URLs should be stored in `generations.image_url`.
 User-uploaded photoshoot source photos are **not** intended for long-term storage
 unless a future product decision requires it.
 
-Not wired into `/generate` or `/photoshoots/generate` yet.
+`persist_generated_image` is used on the credit-consumption path in `/generate`
+when the provider returns a `data:image/...;base64,...` URL (e.g. Gemini).
+External URLs (mock placeholder) pass through unchanged.
 """
 
 from __future__ import annotations
 
+import base64
+import binascii
 import logging
+import re
+from datetime import datetime, timezone
 from urllib.parse import quote
 
 import httpx
@@ -24,6 +30,14 @@ logger = logging.getLogger(__name__)
 _UPLOAD_SUCCESS_STATUSES = (200, 201)
 _MAX_ERROR_MESSAGE_LEN = 300
 _STORAGE_UNAVAILABLE_DETAIL = "Supabase Storage is temporarily unavailable"
+_DATA_URL_PATTERN = re.compile(
+    r"^data:(image/[a-zA-Z0-9.+-]+);base64,(?P<payload>[A-Za-z0-9+/=\s]+)$"
+)
+_MIME_TO_EXTENSION = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+}
 
 
 def _require_storage_config() -> str:
@@ -157,6 +171,38 @@ class SupabaseStorageService:
             f"{base_url}/storage/v1/object/public/"
             f"{quote(bucket, safe='')}/{object_path}"
         )
+
+    def persist_generated_image(self, user_id: str, image_url: str) -> tuple[str, str | None]:
+        """Upload a generated image when ``image_url`` is a base64 data URL.
+
+        Returns ``(final_url, storage_path)``. External URLs pass through with
+        ``storage_path=None``.
+        """
+        match = _DATA_URL_PATTERN.match(image_url.strip())
+        if not match:
+            return image_url, None
+
+        content_type = match.group(1)
+        try:
+            content = base64.b64decode(match.group("payload"), validate=True)
+        except (ValueError, binascii.Error) as exc:
+            raise HTTPException(
+                status_code=500,
+                detail="Generated image data URL is invalid",
+            ) from exc
+
+        if not content:
+            raise HTTPException(
+                status_code=500,
+                detail="Generated image data URL is empty",
+            )
+
+        extension = _MIME_TO_EXTENSION.get(content_type, "png")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        filename = f"generated-{timestamp}.{extension}"
+        path = self.build_storage_path(user_id=user_id, filename=filename)
+        public_url = self.upload_bytes(path, content, content_type)
+        return public_url, path
 
 
 storage_service = SupabaseStorageService()

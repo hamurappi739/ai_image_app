@@ -47,6 +47,16 @@ class DebugStorageTestResponse(BaseModel):
     public_url: str
 
 
+class DebugStorageImagePersistResponse(BaseModel):
+    """Safe response for POST /debug/storage-image-persist (development only)."""
+
+    status: str
+    bucket: str
+    path: str
+    public_url: str
+    persisted: bool
+
+
 class DebugConfigResponse(BaseModel):
     """Safe subset of settings for GET /debug/config (development only)."""
 
