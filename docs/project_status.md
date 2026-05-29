@@ -263,12 +263,55 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 ## 11. Последняя стабильная точка
 
-- **UI-MVP** проверен вручную (Flutter web).
-- Backend **`/generate`** и **`/generations`** работают при настроенном `.env`.
-- **Авторизация:** вход через Профиль + Bearer token → **Создать** / **Галерея** проверены после входа.
-- **Supabase Storage:** bucket `generated-images` создан; **`/generate`** загружает data URL в Storage; helper проверен через **`POST /debug/storage-image-test`**; с реальным Gemini **ещё не тестировалось**.
-- **Flutter web** + backend на `127.0.0.1:8000`.
-- Перед новым крупным шагом: **`git status`** чистый или осознанный коммит.
+После подключения **storage helper** к **`POST /generate`** (data URL → Supabase Storage → `public_url`) выполнен **полный контрольный прогон** проекта.
+
+### Текущий безопасный режим
+
+- **`IMAGE_PROVIDER=mock`** — mock-генерация, Storage не вызывается для обычных запросов
+- **`ENABLE_CREDIT_CONSUMPTION=false`** — без списания генераций и без записи в `generations` через `/generate`
+- **Gemini provider** реализован в backend (`GeminiImageProvider`), но **реальный API-тест отложен** до пополнения баланса / подтверждения доступа к квотам (см. [gemini_test_checklist.md](gemini_test_checklist.md))
+
+### Проверено — Backend
+
+| Проверка | Результат |
+|----------|-----------|
+| `python -m compileall app` | ✅ проходит |
+| `GET /health` | ✅ работает |
+| `GET /debug/config` | ✅ работает |
+| `GET /generations` | ✅ работает |
+| `POST /debug/storage-test` | ✅ работает |
+| `POST /debug/storage-image-test` | ✅ работает |
+
+Дополнительно: **`POST /generate`** и **`GET /generations`** работают при настроенном `.env`; **`/generate`** готов загружать data URL в Storage (проверено через debug endpoints; с реальным Gemini **ещё не тестировалось**).
+
+### Проверено — Frontend (Flutter web)
+
+| Проверка | Результат |
+|----------|-----------|
+| `flutter analyze` | ✅ проходит |
+| Flutter web запуск (`flutter run -d chrome`) | ✅ запускается |
+| Mock generation (вкладка **Создать**) | ✅ работает |
+| Fallback-preview при ошибке загрузки картинки | ✅ отображается |
+| Кнопка **«Открыть в Галерее»** | ✅ работает |
+| **Галерея** — загрузка истории | ✅ грузится |
+| **Фотосессии** — выбор фото и upload на backend | ✅ работают |
+| Бесплатная фотосессия → «Обработка фото будет добавлена позже» | ✅ |
+| Платная фотосессия → «Оплата будет добавлена позже» | ✅ |
+| **Профиль** без `--dart-define` (fallback / demo mode) | ✅ работает |
+| **Профиль** с `--dart-define` (Supabase Auth mode) | ✅ работает |
+
+**Авторизация:** вход через Профиль + Bearer token → **Создать** / **Галерея** проверены в обоих режимах (с Supabase config и через development fallback `TEST_USER_ID`).
+
+### Инфраструктура
+
+- **Supabase Storage:** bucket `generated-images` создан; upload проверен через debug endpoints
+- **Flutter web** + backend на `127.0.0.1:8000`
+
+### Перед следующим большим этапом
+
+- **`git status`** должен быть **чистым** (или осознанный коммит текущего состояния)
+- **`backend/.env`** не коммитить
+- Следующий крупный шаг: **ручной Gemini API-тест** с проверкой Storage `public_url` и отображения в **Галерее**
 
 ---
 
