@@ -135,13 +135,13 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 - Backend принимает `multipart/form-data`: `style_id`, `style_title`, `photo`.
 - **Catalog стилей** (`app/services/photoshoot_styles.py`): backend валидирует `style_id`, хранит `title`, `price_rub`, `is_free`, `output_count=3`, `instruction` для будущей Gemini-генерации.
-- **`PhotoshootService`** (`app/services/photoshoot_service.py`) — placeholder для будущей логики фотосессии; endpoint делегирует генерацию сервису после валидации.
+- **`PhotoshootService`** + **`GeminiPhotoshootProvider`** (`app/services/photoshoot_service.py`) — placeholder: photo + `style.instruction` → data URLs; endpoint делегирует генерацию сервису после валидации.
 - Использует ту же auth-логику: Bearer token или development fallback `TEST_USER_ID`; перед обработкой — profile auto-sync.
 - Валидирует формат файла: **JPEG / PNG / WebP**, максимум **10 MB**.
 - Неизвестный `style_id` → **`400`** `Unknown photoshoot style`.
-- **Реальная обработка изображений не реализована** — сервис пока выбрасывает **`501`**.
+- **Реальная Gemini-генерация фотосессий не подключена** — `GeminiPhotoshootProvider` выбрасывает **`501`**.
 - Backend **не сохраняет** загруженное фото, **не вызывает** Gemini, **не списывает** генерации, **не пишет** в `generations`.
-- После успешной валидации возвращает **`501 Not Implemented`** (`Photoshoot image processing is not implemented yet`).
+- После успешной валидации возвращает **`501 Not Implemented`** (`Photoshoot Gemini generation is not implemented yet`).
 
 ### `GET /generations`
 

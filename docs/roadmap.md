@@ -47,6 +47,7 @@
 | **Generated image public_url displayed in Gallery** | ✅ | Галерея показала реальную картинку по Storage URL |
 | **Backend photoshoot style catalog** | ✅ | `photoshoot_styles.py`: 8 стилей, `instruction`, `get_photoshoot_style`; `/photoshoots/generate` валидирует `style_id` |
 | **PhotoshootService placeholder** | ✅ | `photoshoot_service.py`: `generate_photoshoot(...)` → **501**; Gemini/Storage/generations пока не реализованы |
+| **GeminiPhotoshootProvider placeholder** | ✅ | `GeminiPhotoshootProvider.generate(...)` → **501**; без реальных Gemini API calls |
 
 ### Flutter UI MVP (детали)
 
@@ -73,7 +74,7 @@
 
 ## Следующие крупные этапы
 
-1. **Implement Gemini-based photoshoot generation** — в `PhotoshootService`: photo + `style.instruction` → 3 images → Storage → `generations`.
+1. **Implement real Gemini photoshoot generation with uploaded photo and style instruction** — в `GeminiPhotoshootProvider`: photo + `style.instruction` → 3 data URLs → Storage → `generations`.
 2. **Решить, когда включать `IMAGE_PROVIDER=gemini` для обычной разработки** — сейчас по умолчанию `mock` для безопасности и экономии квот.
 3. **Проверить стоимость / лимиты Gemini** — перед регулярным использованием и production.
 4. **Позже включить `ENABLE_CREDIT_CONSUMPTION=true`** — после полной проверки списаний free/paid и записи в `generations`.
