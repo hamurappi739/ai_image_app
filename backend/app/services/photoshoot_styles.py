@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from fastapi import HTTPException
 
-PHOTOSHOOT_OUTPUT_COUNT = 3
+PHOTOSHOOT_PRODUCT_OUTPUT_COUNT = 3
 
 # Flutter currently sends ``urban_portrait`` for the city portrait style.
 _STYLE_ID_ALIASES: dict[str, str] = {
@@ -30,7 +30,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         title="Студийный портрет",
         price_rub=0,
         is_free=True,
-        output_count=PHOTOSHOOT_OUTPUT_COUNT,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Create 3 professional studio portrait photos based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
@@ -44,7 +44,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         title="Деловой портрет",
         price_rub=0,
         is_free=True,
-        output_count=PHOTOSHOOT_OUTPUT_COUNT,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Create 3 business portrait photos based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
@@ -58,7 +58,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         title="Домашний портрет",
         price_rub=0,
         is_free=True,
-        output_count=PHOTOSHOOT_OUTPUT_COUNT,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Create 3 warm home portrait photos based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
@@ -72,7 +72,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         title="Премиум-портрет",
         price_rub=100,
         is_free=False,
-        output_count=PHOTOSHOOT_OUTPUT_COUNT,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Create 3 premium cinematic portrait photos based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
@@ -86,7 +86,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         title="Зимняя фотосессия",
         price_rub=100,
         is_free=False,
-        output_count=PHOTOSHOOT_OUTPUT_COUNT,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Create 3 winter-themed portrait photos based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
@@ -100,7 +100,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         title="Городской портрет",
         price_rub=100,
         is_free=False,
-        output_count=PHOTOSHOOT_OUTPUT_COUNT,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Create 3 modern city portrait photos based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
@@ -114,7 +114,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         title="Вечерний образ",
         price_rub=100,
         is_free=False,
-        output_count=PHOTOSHOOT_OUTPUT_COUNT,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Create 3 elegant evening portrait photos based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
@@ -128,7 +128,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         title="Портрет в путешествии",
         price_rub=100,
         is_free=False,
-        output_count=PHOTOSHOOT_OUTPUT_COUNT,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Create 3 travel portrait photos based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "

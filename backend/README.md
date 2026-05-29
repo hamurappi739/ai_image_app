@@ -27,6 +27,7 @@ copy .env.example .env
 | `SUPABASE_STORAGE_BUCKET` | Имя bucket в Supabase Storage для сгенерированных изображений (по умолчанию `generated-images`) |
 | `TEST_USER_ID` | UUID тестового пользователя (только development) |
 | `ENABLE_CREDIT_CONSUMPTION` | Включить проверку и списание кредитов в `POST /generate` (по умолчанию `false`) |
+| `PHOTOSHOOT_OUTPUT_COUNT` | Сколько изображений генерировать за одну фотосессию (**1–3**, по умолчанию **1** для безопасных dev-тестов; product target — **3**) |
 
 ### IMAGE_PROVIDER
 
@@ -64,6 +65,14 @@ GEMINI_MODEL=gemini-2.5-flash-image
 - `ENABLE_CREDIT_CONSUMPTION=false` — `POST /generate` работает **без** проверки и списания кредитов (текущее поведение для разработки).
 - `ENABLE_CREDIT_CONSUMPTION=true` — позже будет включать проверку баланса и `consume_generation()` в `/generate` (ещё не подключено).
 - По умолчанию для разработки оставляйте **`false`**.
+
+### PHOTOSHOOT_OUTPUT_COUNT
+
+- **`PHOTOSHOOT_OUTPUT_COUNT=1`** (по умолчанию) — безопасный режим для controlled dev-тестов фотосессии (меньше Gemini-запросов).
+- **`PHOTOSHOOT_OUTPUT_COUNT=3`** — product target: три результата на фотосессию (как в UI и catalog `output_count`).
+- Значение **ограничено 1–3**; меньше 1 → **1**, больше 3 → **3**.
+- Используется **`GeminiPhotoshootProvider`** при реальной генерации (пока placeholder **501**).
+- Проверка: `GET /debug/config` → `"photoshoot_output_count": 1`
 
 ### TEST_USER_ID (development only)
 
@@ -271,7 +280,7 @@ curl -s "http://127.0.0.1:8000/generations?limit=5"
 
 Только при **`ENVIRONMENT=development`**. Иначе **`404`** (endpoint не «светится» как рабочий в production).
 
-Возвращает **только безопасные** поля: окружение, `IMAGE_PROVIDER`, флаг списания кредитов, модель Gemini, **флаги** «ключ/URL настроены» без значений. **Не** возвращает: `GEMINI_API_KEY`, `SUPABASE_*` ключи, `TEST_USER_ID`, полный `SUPABASE_URL` (только `supabase_url_configured`).
+Возвращает **только безопасные** поля: окружение, `IMAGE_PROVIDER`, флаг списания кредитов, модель Gemini, **`photoshoot_output_count`**, **флаги** «ключ/URL настроены» без значений. **Не** возвращает: `GEMINI_API_KEY`, `SUPABASE_*` ключи, `TEST_USER_ID`, полный `SUPABASE_URL` (только `supabase_url_configured`).
 
 Пример:
 

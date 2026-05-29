@@ -1,8 +1,12 @@
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
+
+_PHOTOSHOOT_OUTPUT_COUNT_MIN = 1
+_PHOTOSHOOT_OUTPUT_COUNT_MAX = 3
 
 
 class Settings(BaseSettings):
@@ -24,6 +28,19 @@ class Settings(BaseSettings):
     supabase_storage_bucket: str = "generated-images"
     test_user_id: str | None = None
     enable_credit_consumption: bool = False
+    photoshoot_output_count: int = 1
+
+    @field_validator("photoshoot_output_count", mode="before")
+    @classmethod
+    def clamp_photoshoot_output_count(cls, value: object) -> int:
+        try:
+            parsed = int(value)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return _PHOTOSHOOT_OUTPUT_COUNT_MIN
+        return max(
+            _PHOTOSHOOT_OUTPUT_COUNT_MIN,
+            min(_PHOTOSHOOT_OUTPUT_COUNT_MAX, parsed),
+        )
 
 
 settings = Settings()
