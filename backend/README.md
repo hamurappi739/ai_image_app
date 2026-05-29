@@ -89,6 +89,7 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 - Заголовки: `apikey` и `Authorization: Bearer` с **`SUPABASE_SERVICE_ROLE_KEY`**
 - Service role key — полный доступ к БД, обходит RLS; **никогда** не отдавать во Flutter
 - **`SUPABASE_ANON_KEY`** — для клиента; backend пока не использует
+- **Таймауты и сбои соединения** (`ConnectTimeout`, `ReadTimeout`, `ConnectError`, …): централизованная обработка в `supabase_service.py` → **`503`** `Supabase is temporarily unavailable` (без traceback и без секретов в логах). **`GET /health`** Supabase не вызывает.
 
 Проверка в разработке: `GET /debug/supabase`, `GET /debug/config` (удалить или защитить перед production).
 
@@ -102,9 +103,10 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 | `upload_bytes(path, content, content_type)` | `PUT` в Storage API; возвращает public URL |
 | `get_public_url(path)` | URL вида `/storage/v1/object/public/{bucket}/{path}` (для private bucket позже — signed URL) |
 
+- **`SUPABASE_STORAGE_BUCKET`** — имя bucket для сгенерированных изображений (по умолчанию `generated-images`; см. таблицу env выше и `.env.example`).
 - Требует **`SUPABASE_URL`**, **`SUPABASE_SERVICE_ROLE_KEY`**, **`SUPABASE_STORAGE_BUCKET`** (шаблон в `.env.example`).
 - Service role key **не** логируется и **не** возвращается клиенту.
-- **Пока не используется** в `POST /generate`, `POST /photoshoots/generate` и других текущих routes — подготовка под будущее сохранение generated images и запись URL в `generations`.
+- **`storage_service.py` подготовлен**, но **пока не используется** в текущих endpoint flows (`POST /generate`, `POST /photoshoots/generate`, …) — будущее сохранение generated images и запись URL в `generations`.
 
 ## Gemini image generation
 
@@ -186,7 +188,8 @@ Query: `limit` (по умолчанию **20**, минимум **1**, макси
 
 - Невалидный/просроченный Bearer token → `401` — `"Invalid or expired authorization token"`
 - Нет токена в development и не задан `TEST_USER_ID` → `500` — `"TEST_USER_ID is not configured for development mode"`
-- Ошибка Supabase → `500` — `"Failed to fetch generations"`
+- Supabase timeout / connection error → `503` — `"Supabase is temporarily unavailable"`
+- Ошибка Supabase (неуспешный ответ БД) → `500` — `"Failed to fetch generations"`
 - Нет записей → `200` — `{"generations": []}`
 
 Проверка:

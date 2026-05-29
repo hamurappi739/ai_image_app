@@ -85,12 +85,20 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 ### Supabase Storage (service placeholder)
 
-- **`app/services/storage_service.py`** — `SupabaseStorageService` (REST через **httpx**, без Python SDK `supabase`).
-- Env: **`SUPABASE_STORAGE_BUCKET`** (по умолчанию `generated-images`).
+- Backend **Supabase Storage service placeholder** подготовлен: **`app/services/storage_service.py`** — `SupabaseStorageService` (REST через **httpx**, без Python SDK `supabase`).
+- **`SUPABASE_STORAGE_BUCKET`** добавлен в **`app/config.py`** и **`backend/.env.example`** (по умолчанию `generated-images`).
 - Методы: `build_storage_path`, `upload_bytes`, `get_public_url` (public URL; для private bucket позже — signed URL).
-- **Пока не подключён** к `/generate` и `/photoshoots/generate` — существующие endpoint flows не менялись.
-- **Будущий сценарий:** сохранить сгенерированное изображение в Supabase Storage → записать URL в `generations.image_url` для Галереи.
+- **Storage пока не подключён** к `/generate` и `/photoshoots/generate` — существующие endpoint flows не менялись.
+- **Будущий сценарий:** generated images сохраняются в Supabase Storage, а **URL** записывается в **`generations.image_url`** (Галерея).
 - Исходные пользовательские фото для фотосессий **не планируется** хранить долго без необходимости.
+
+### Supabase REST — ошибки и таймауты
+
+- Все Supabase REST-запросы в **`supabase_service.py`** идут через централизованную обёртку **httpx**.
+- **ConnectTimeout**, **ReadTimeout**, **ConnectError** и другие transport-ошибки обрабатываются **безопасно** (без секретов в логах и ответах).
+- При недоступности Supabase или timeout backend возвращает **`503`** с `detail`: **`Supabase is temporarily unavailable`** — не необработанный **`500`** с traceback.
+- **`GET /health`** не зависит от Supabase и отвечает всегда.
+- При нормальной работе Supabase **`GET /generations`** и остальные flows ведут себя как раньше; бизнес-ошибки (например, неуспешный HTTP-ответ БД) по-прежнему **`500`** с понятным `detail`.
 
 ### Публичные (MVP)
 

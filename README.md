@@ -8,6 +8,8 @@
 
 **Фотосессии (demo):** можно выбрать фото локально, увидеть preview и для **бесплатного** сценария отправить выбранное фото на backend через **`multipart/form-data`**. Backend пока только **валидирует** файл (JPEG/PNG/WebP, до 10 MB) и возвращает placeholder **`501`**; реальная обработка и сохранение результатов — следующий этап.
 
+**Backend / Supabase:** подготовлен placeholder **Supabase Storage** (`storage_service.py`, `SUPABASE_STORAGE_BUCKET`) для будущего сохранения generated images; в текущих endpoint flows пока не подключён. Ошибки и **таймауты** Supabase REST обрабатываются безопаснее: при недоступности БД — **`503`** вместо необработанного **`500`** traceback.
+
 ---
 
 ## Что уже готово
@@ -25,6 +27,7 @@
 - Вкладка **Пакеты** (без реальной оплаты)
 - Supabase: таблицы **`profiles`**, **`generations`**, **`credit_transactions`**
 - Backend: списание бесплатных / платных генераций **подготовлено** (`ENABLE_CREDIT_CONSUMPTION`)
+- Backend: placeholder **Supabase Storage** + безопасная обработка **Supabase timeouts** (`503`)
 
 ---
 
