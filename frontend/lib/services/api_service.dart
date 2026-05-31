@@ -42,6 +42,7 @@ class GenerationHistoryItem {
     required this.imageUrl,
     required this.paymentType,
     required this.createdAt,
+    this.photoshootId,
   });
 
   final String id;
@@ -49,14 +50,17 @@ class GenerationHistoryItem {
   final String imageUrl;
   final String paymentType;
   final DateTime createdAt;
+  final String? photoshootId;
 
   factory GenerationHistoryItem.fromJson(Map<String, dynamic> json) {
+    final rawPhotoshootId = json['photoshoot_id'];
     return GenerationHistoryItem(
       id: json['id'] as String,
       prompt: json['prompt'] as String,
       imageUrl: json['image_url'] as String,
       paymentType: json['payment_type'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      photoshootId: rawPhotoshootId is String ? rawPhotoshootId : null,
     );
   }
 
@@ -66,6 +70,7 @@ class GenerationHistoryItem {
       description: prompt,
       imageUrl: imageUrl,
       createdAt: createdAt,
+      photoshootId: photoshootId,
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'models/gallery_display_item.dart';
 import 'models/generated_image_item.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
@@ -1510,7 +1511,9 @@ class GalleryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (images.isEmpty) {
+    final displayItems = groupGalleryItems(images);
+
+    if (displayItems.isEmpty) {
       return _GalleryEmptyState(
         onCreateFirst: onCreateFirst,
         backendHistoryUnavailable: backendHistoryUnavailable,
@@ -1584,9 +1587,9 @@ class GalleryScreen extends StatelessWidget {
                           mainAxisSpacing: 16,
                           childAspectRatio: _aspectRatio(columns),
                         ),
-                        itemCount: images.length,
+                        itemCount: displayItems.length,
                         itemBuilder: (context, index) {
-                          return _GalleryImageCard(item: images[index]);
+                          return _GalleryImageCard(item: displayItems[index]);
                         },
                       ),
                     ],
@@ -1775,11 +1778,12 @@ class _GalleryEmptyState extends StatelessWidget {
 class _GalleryImageCard extends StatelessWidget {
   const _GalleryImageCard({required this.item});
 
-  final GeneratedImageItem item;
+  final GalleryDisplayItem item;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final imageCountLabel = galleryImageCountLabel(item.imageUrls.length);
 
     return Container(
       decoration: BoxDecoration(
@@ -1798,24 +1802,7 @@ class _GalleryImageCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: Image.network(
-              item.imageUrl,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) return child;
-                return Container(
-                  color: const Color(0xFFF0F2F8),
-                  alignment: Alignment.center,
-                  child: const SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) =>
-                  const _GenerationResultPreviewFallback(compact: true),
-            ),
+            child: _GalleryImagePreview(imageUrls: item.imageUrls),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -1840,6 +1827,17 @@ class _GalleryImageCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (imageCountLabel.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    imageCountLabel,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 12,
+                      color: AiImageGeneratorApp.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 6),
                 Text(
                   _formatGalleryTimestamp(item.createdAt),
@@ -1850,6 +1848,82 @@ class _GalleryImageCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _GalleryImagePreview extends StatelessWidget {
+  const _GalleryImagePreview({required this.imageUrls});
+
+  final List<String> imageUrls;
+
+  @override
+  Widget build(BuildContext context) {
+    if (imageUrls.length == 1) {
+      return _GalleryNetworkImage(url: imageUrls.first);
+    }
+    if (imageUrls.length == 2) {
+      return Row(
+        children: [
+          Expanded(child: _GalleryNetworkImage(url: imageUrls[0])),
+          const SizedBox(width: 2),
+          Expanded(child: _GalleryNetworkImage(url: imageUrls[1])),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          flex: 3,
+          child: _GalleryNetworkImage(url: imageUrls.first),
+        ),
+        const SizedBox(height: 2),
+        Expanded(
+          flex: 2,
+          child: Row(
+            children: [
+              Expanded(child: _GalleryNetworkImage(url: imageUrls[1])),
+              const SizedBox(width: 2),
+              Expanded(
+                child: imageUrls.length >= 3
+                    ? _GalleryNetworkImage(url: imageUrls[2])
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GalleryNetworkImage extends StatelessWidget {
+  const _GalleryNetworkImage({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return Container(
+          color: const Color(0xFFF0F2F8),
+          alignment: Alignment.center,
+          child: const SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) =>
+          const _GenerationResultPreviewFallback(compact: true),
     );
   }
 }
