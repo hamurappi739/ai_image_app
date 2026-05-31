@@ -40,10 +40,10 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
       icon: Icons.edit_outlined,
     ),
     _HelpBlock(
-      title: 'Фото из галереи',
+      title: 'Фото для образа',
       body:
-          'Позже здесь можно будет добавить своё фото '
-          'и создать одиночный образ на его основе.',
+          'Здесь можно выбрать фото для будущего одиночного образа. '
+          'Сейчас создание по фото будет добавлено позже.',
       icon: Icons.add_photo_alternate_outlined,
     ),
     _HelpBlock(

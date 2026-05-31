@@ -3127,11 +3127,14 @@ class _CreateScreenState extends State<CreateScreen> {
   ];
 
   final _descriptionController = TextEditingController();
+  final _imagePicker = ImagePicker();
 
   bool _isLoading = false;
   bool _showNoGenerationsWarning = false;
   bool _showGenerationErrorState = false;
   bool _isHelpDialogVisible = false;
+  bool _isPickingPhoto = false;
+  Uint8List? _selectedPhotoBytes;
   GenerateImageResponse? _lastResponse;
 
   @override
@@ -3193,11 +3196,39 @@ class _CreateScreenState extends State<CreateScreen> {
     super.dispose();
   }
 
+  Future<void> _pickReferencePhoto() async {
+    if (_isPickingPhoto || _isLoading) return;
+    setState(() => _isPickingPhoto = true);
+    try {
+      final file = await _imagePicker.pickImage(source: ImageSource.gallery);
+      if (file == null || !mounted) return;
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      setState(() => _selectedPhotoBytes = bytes);
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar('Не удалось выбрать фото. Попробуйте ещё раз.');
+    } finally {
+      if (mounted) setState(() => _isPickingPhoto = false);
+    }
+  }
+
+  void _clearReferencePhoto() {
+    setState(() => _selectedPhotoBytes = null);
+  }
+
   Future<void> _onGenerate() async {
     final text = _descriptionController.text.trim();
     if (text.isEmpty) {
       _showSnackBar('Сначала опишите изображение');
       return;
+    }
+
+    if (_selectedPhotoBytes != null) {
+      _showSnackBar(
+        'Создание по фото будет добавлено позже. '
+        'Сейчас изображение создаётся по описанию.',
+      );
     }
 
     setState(() {
@@ -3308,6 +3339,14 @@ class _CreateScreenState extends State<CreateScreen> {
               _StatusCard(response: _lastResponse),
               const SizedBox(height: 20),
               _InputCard(controller: _descriptionController),
+              const SizedBox(height: 20),
+              _CreateReferencePhotoCard(
+                photoBytes: _selectedPhotoBytes,
+                isPickingPhoto: _isPickingPhoto,
+                isBusy: _isLoading,
+                onPickPhoto: _pickReferencePhoto,
+                onClearPhoto: _clearReferencePhoto,
+              ),
               const SizedBox(height: 24),
               Text('Попробуйте идею', style: theme.textTheme.titleMedium),
               const SizedBox(height: 12),
@@ -3353,6 +3392,113 @@ class _CreateScreenState extends State<CreateScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CreateReferencePhotoCard extends StatelessWidget {
+  const _CreateReferencePhotoCard({
+    required this.photoBytes,
+    required this.isPickingPhoto,
+    required this.isBusy,
+    required this.onPickPhoto,
+    required this.onClearPhoto,
+  });
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  final Uint8List? photoBytes;
+  final bool isPickingPhoto;
+  final bool isBusy;
+  final VoidCallback onPickPhoto;
+  final VoidCallback onClearPhoto;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasPhoto = photoBytes != null;
+
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Фото для образа',
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Позже здесь можно будет создать одно изображение '
+            'на основе вашего фото и описания.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 13,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (!hasPhoto)
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: isPickingPhoto || isBusy ? null : onPickPhoto,
+                icon: isPickingPhoto
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2.2),
+                      )
+                    : const Icon(Icons.add_photo_alternate_outlined, size: 20),
+                label: Text(isPickingPhoto ? 'Подождите...' : 'Добавить фото'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _accentColor,
+                  side: BorderSide(color: _accentColor.withValues(alpha: 0.45)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            )
+          else ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 220),
+                child: AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: Image.memory(
+                    photoBytes!,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: isBusy ? null : onClearPhoto,
+                icon: const Icon(Icons.close, size: 18),
+                label: const Text('Убрать фото'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AiImageGeneratorApp.textSecondary,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 4),
+          Text(
+            'Сейчас создание работает по описанию. '
+            'Генерация по фото будет добавлена позже.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 12,
+              color: AiImageGeneratorApp.textSecondary,
+              height: 1.35,
+            ),
+          ),
+        ],
       ),
     );
   }
