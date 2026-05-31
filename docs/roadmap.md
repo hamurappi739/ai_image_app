@@ -61,12 +61,14 @@
 | **Storage upload for 3 photoshoot results** | ✅ | 3 файла в bucket `generated-images` (`photoshoots/…`) |
 | **History save for 3 photoshoot results** | ✅ | 3 записи в `generations`; `GET /generations` возвращает все три |
 | **Backend photoshoot grouping id (`photoshoot_id`)** | ✅ | Nullable column + index; все результаты одной фотосессии — один `photoshoot_id`; обычные генерации — `null` |
+| **Flutter Gallery photoshoot grouping by `photoshoot_id`** | ✅ | Записи с одинаковым non-null `photoshoot_id` → одна карточка; `null` — отдельные карточки |
+| **Grouped photoshoot card UI** | ✅ | Мини-сетка 1/2/3 изображения; «Создано по описанию», «N изображений», дата |
 
 ### Flutter UI MVP (детали)
 
 - **Создать:** описание, подсказки, быстрые идеи, `POST /generate`, результат + «Открыть в Галерее»
 - **Фотосессии:** 8 preview-карточек → bottom sheet: выбор фото, preview, multipart upload (бесплатно); при успехе — результат в **Галерею**; при **501** — placeholder-сообщение
-- **Галерея:** `GET /generations` + локальные новые; **Очистить** (только на устройстве); empty state; без падения при недоступном backend
+- **Галерея:** `GET /generations` + локальные новые; **группировка фотосессий** по `photoshoot_id`; **Очистить** (только на устройстве); empty state; без падения при недоступном backend
 - **Пакеты:** 199 / 499 / 1199 ₽ (UI без реальной оплаты)
 - **Профиль:** вход / регистрация / выход (при Supabase dart-define)
 
@@ -87,9 +89,9 @@
 
 ## Следующие крупные этапы
 
-1. **Flutter Gallery: group records with same `photoshoot_id` into one photoshoot card** — 1 фотосессия = 1 карточка/группа, внутри 3 изображения (например «Фотосессия: Студийный портрет», «3 изображения»).
-2. **Show 3 results inside one photoshoot detail screen/card** — экран/карточка деталей фотосессии в Галерее.
-3. **Add payment before paid photoshoot generation** — оплата перед обработкой платных стилей (100 ₽).
+1. **Photoshoot detail view in Gallery** (опционально) — полноэкранный просмотр всех изображений одной фотосессии, если понадобится.
+2. **Add payment before paid photoshoot generation** — оплата перед обработкой платных стилей (100 ₽).
+3. **Product mode: `PHOTOSHOOT_OUTPUT_COUNT=3` by default** — после решения стоимости и лимитов Gemini (сейчас default **1**, generation disabled).
 4. **Maybe add separate photoshoot history type later** — отдельный тип/метка в истории (опционально).
 5. **Решить, когда включать `IMAGE_PROVIDER=gemini` для обычной разработки** — сейчас по умолчанию `mock` для безопасности и экономии квот.
 6. **Проверить стоимость / лимиты Gemini** — перед регулярным использованием и production.
