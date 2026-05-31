@@ -18,6 +18,7 @@ from app.services.image_service import (
 )
 from app.services.photoshoot_styles import PhotoshootStyle
 from app.services.storage_service import storage_service
+from app.services.supabase_service import create_generation_record
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,37 @@ def _extract_photoshoot_image_data_url(response) -> str:
     )
 
 
+def _photoshoot_history_prompt(style: PhotoshootStyle) -> str:
+    return f"Фотосессия: {style.title}"
+
+
+def _photoshoot_payment_type(style: PhotoshootStyle) -> str:
+    return "free" if style.is_free else "paid"
+
+
+def _save_photoshoot_results_to_history(
+    user_id: str,
+    style: PhotoshootStyle,
+    image_urls: list[str],
+) -> None:
+    prompt = _photoshoot_history_prompt(style)
+    payment_type = _photoshoot_payment_type(style)
+    for image_url in image_urls:
+        try:
+            create_generation_record(
+                user_id=user_id,
+                prompt=prompt,
+                image_url=image_url,
+                payment_type=payment_type,
+            )
+        except RuntimeError:
+            logger.warning("Failed to save photoshoot result to generations history")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to save photoshoot result",
+            ) from None
+
+
 class GeminiPhotoshootProvider:
     """Uploaded photo + style instruction → Gemini image data URLs."""
 
@@ -211,7 +243,7 @@ class PhotoshootService:
             photo_bytes=photo_bytes,
             photo_content_type=photo_content_type,
         )
-        return [
+        image_urls = [
             storage_service.upload_generated_image_data_url(
                 user_id=user_id,
                 data_url=data_url,
@@ -219,6 +251,12 @@ class PhotoshootService:
             )
             for data_url in data_urls
         ]
+        _save_photoshoot_results_to_history(
+            user_id=user_id,
+            style=style,
+            image_urls=image_urls,
+        )
+        return image_urls
 
 
 photoshoot_service = PhotoshootService()

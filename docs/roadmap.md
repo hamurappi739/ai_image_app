@@ -46,7 +46,8 @@
 | **Gemini result stored in Supabase Storage** | ✅ | Generated image загружен в bucket `generated-images`, response содержит `public_url` |
 | **Generated image public_url displayed in Gallery** | ✅ | Галерея показала реальную картинку по Storage URL |
 | **Backend photoshoot style catalog** | ✅ | `photoshoot_styles.py`: 8 стилей, `instruction`, `get_photoshoot_style`; `/photoshoots/generate` валидирует `style_id` |
-| **PhotoshootService** | ✅ | `photoshoot_service.py`: Gemini → Storage → `image_urls`; без записи в `generations` |
+| **PhotoshootService** | ✅ | `photoshoot_service.py`: Gemini → Storage → `image_urls` + **`generations`** history |
+| **Save photoshoot results to generation history** | ✅ | `create_generation_record`; `prompt`: `Фотосессия: …`; без списаний |
 | **GeminiPhotoshootProvider** | ✅ | Реальный вызов `google-genai`: photo + `style.instruction` → data URLs |
 | **Photoshoot output count runtime limit** | ✅ | `PHOTOSHOOT_OUTPUT_COUNT` env (1–3, default **1**); catalog product target — **3** |
 | **Photoshoot generation safety switch** | ✅ | `ENABLE_PHOTOSHOOT_GENERATION` (default **false**); без флага — **501**, Gemini не вызывается |
@@ -82,9 +83,9 @@
 
 ## Следующие крупные этапы
 
-1. **Save photoshoot results in backend history** — запись в `generations` + синхронизация с Галереей после перезапуска.
-2. **Expand `output_count` to 3 after cost check** — `PHOTOSHOOT_OUTPUT_COUNT=3` после оценки стоимости Gemini (product target).
-3. **Add payment before paid photoshoot generation** — оплата перед обработкой платных стилей (100 ₽).
+1. **Expand `output_count` to 3 after cost check** — `PHOTOSHOOT_OUTPUT_COUNT=3` после оценки стоимости Gemini (product target).
+2. **Add payment before paid photoshoot generation** — оплата перед обработкой платных стилей (100 ₽).
+3. **Maybe add separate photoshoot history type later** — отдельный тип/метка в истории (опционально).
 4. **Решить, когда включать `IMAGE_PROVIDER=gemini` для обычной разработки** — сейчас по умолчанию `mock` для безопасности и экономии квот.
 5. **Проверить стоимость / лимиты Gemini** — перед регулярным использованием и production.
 6. **Позже включить `ENABLE_CREDIT_CONSUMPTION=true`** — после полной проверки списаний free/paid и записи в `generations`.

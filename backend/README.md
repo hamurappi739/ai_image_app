@@ -466,7 +466,9 @@ Auth-логика сохраняется: Bearer user или development fallbac
 
 При **`ENABLE_PHOTOSHOOT_GENERATION=true`** + **`GEMINI_API_KEY`**: Gemini → Storage → **`200`** с `image_urls`. Для ручного теста также **`PHOTOSHOOT_OUTPUT_COUNT=1`**. **После теста вернуть `false`.**
 
-Пока не делается: запись результатов в `generations`, списание генераций, оплата.
+Пока не делается: списание генераций, оплата.
+
+При успехе (**`ENABLE_PHOTOSHOOT_GENERATION=true`**) каждый результат записывается в **`generations`** (`prompt`: `Фотосессия: <style.title>`, `payment_type`: `free` / `paid`). Ошибка записи → **`500`** `Failed to save photoshoot result`.
 
 Пример `curl` (без секретов):
 

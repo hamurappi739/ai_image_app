@@ -1,6 +1,6 @@
 from app.services.supabase_service import (
+    create_generation_record,
     insert_credit_transaction,
-    insert_generation,
     update_profile,
 )
 
@@ -38,13 +38,11 @@ def consume_generation(
         updated_profile = update_profile(
             user_id, {"free_generations_used": new_free_generations_used}
         )
-        generation = insert_generation(
-            {
-                "user_id": user_id,
-                "prompt": prompt,
-                "image_url": image_url,
-                "payment_type": "free",
-            }
+        generation = create_generation_record(
+            user_id=user_id,
+            prompt=prompt,
+            image_url=image_url,
+            payment_type="free",
         )
         transaction = insert_credit_transaction(
             {
@@ -60,13 +58,11 @@ def consume_generation(
             raise RuntimeError("No paid credits available")
         new_paid_credits = profile["paid_credits"] - 1
         updated_profile = update_profile(user_id, {"paid_credits": new_paid_credits})
-        generation = insert_generation(
-            {
-                "user_id": user_id,
-                "prompt": prompt,
-                "image_url": image_url,
-                "payment_type": "paid",
-            }
+        generation = create_generation_record(
+            user_id=user_id,
+            prompt=prompt,
+            image_url=image_url,
+            payment_type="paid",
         )
         transaction = insert_credit_transaction(
             {

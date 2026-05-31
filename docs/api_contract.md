@@ -127,7 +127,8 @@
 - Поле `prompt` в JSON отображается в UI как **описание** (не слово «промпт»).
 - Служебные dev-записи с текстом вроде `debug test prompt` **фильтруются на клиенте** (не показываются пользователю).
 - Ошибки загрузки (backend выключен, 500) **не** показываются техническим SnackBar; галерея остаётся usable (empty state или только локально добавленные кадры).
-- Новые результаты после **`POST /generate`** добавляются в список **сразу сверху**, без повторного `GET`.
+- Новые результаты после **`POST /generate`** или успешной **`POST /photoshoots/generate`** добавляются в список **сразу сверху**, без повторного `GET`.
+- Записи фотосессий из **`GET /generations`** имеют `prompt`: **`Фотосессия: <style.title>`** (например `Фотосессия: Студийный портрет`).
 
 **Response `200`:**
 
@@ -148,7 +149,7 @@
 | Поле (элемент) | Тип | Описание |
 |----------------|-----|----------|
 | `id` | string (uuid) | ID записи в `generations` |
-| `prompt` | string | Текст запроса при генерации |
+| `prompt` | string | Текст запроса при генерации или описание фотосессии (`Фотосессия: …`) |
 | `image_url` | string | URL результата |
 | `payment_type` | string | `"free"` или `"paid"` |
 | `created_at` | string (ISO 8601) | Время создания |
@@ -231,11 +232,16 @@
 | `ENABLE_PHOTOSHOOT_GENERATION` | Поведение |
 |--------------------------------|-----------|
 | **`false`** (по умолчанию) | **`501`** `Photoshoot generation is disabled in development mode` — Gemini **не вызывается** (защита от случайных кликов) |
-| **`true`** | Gemini → Supabase Storage → **`200 OK`** с `image_urls` |
+| **`true`** | Gemini → Supabase Storage → запись в **`generations`** → **`200 OK`** с `image_urls` |
 
 Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, диапазон **1–3**). Для controlled test рекомендуется **`PHOTOSHOOT_OUTPUT_COUNT=1`**. **Product target:** **3 изображения** на фотосессию (catalog `output_count=3`; включить после проверки стоимости).
 
-Результаты **пока не пишутся** в таблицу `generations` / Галерею. Списания генераций и оплата **не выполняются**.
+При успехе (**`ENABLE_PHOTOSHOOT_GENERATION=true`**) для каждого `image_url` создаётся запись в **`generations`**:
+- `prompt`: **`Фотосессия: <style.title>`** (из catalog)
+- `image_url`: Storage **`public_url`**
+- `payment_type`: **`free`** для бесплатных стилей, **`paid`** для платных (платные сейчас не вызываются из Flutter без оплаты)
+
+**`GET /generations`** возвращает записи фотосессий вместе с обычными генерациями. Списания генераций и оплата **не выполняются**.
 
 ### Response `501` (generation disabled)
 
@@ -270,11 +276,12 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 | HTTP | Условие |
 |------|---------|
 | **500** | `GEMINI_API_KEY is not configured` |
+| **500** | `Failed to save photoshoot result` |
 | **502** | `Gemini did not return a photoshoot image` |
 | **502** | `Gemini photoshoot generation failed: status=…, message=…` (без секретов; message ≤ 300 символов) |
 | **501** | `Photoshoot generation is disabled in development mode` (`ENABLE_PHOTOSHOOT_GENERATION=false`) |
 
-**Будущее поведение:** запись результатов в `generations` / Галерею; product target — **3 изображения** на фотосессию.
+**Будущее поведение:** product target — **3 изображения** на фотосессию; отдельный тип истории фотосессий (опционально).
 
 ### Flutter (вкладка «Фотосессии»)
 
@@ -324,7 +331,7 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 ## 9. Flutter notes
 
 - **Основной рабочий endpoint:** `POST /generate` (вкладка **Создать**).
-- **Фотосессии:** `POST /photoshoots/generate` — `multipart/form-data`; **`ENABLE_PHOTOSHOOT_GENERATION=false`** по умолчанию → **501**; при **`true`** → Gemini + Storage; test `output_count=1`, product target **3**; без записи в `generations`.
+- **Фотосессии:** `POST /photoshoots/generate` — `multipart/form-data`; **`ENABLE_PHOTOSHOOT_GENERATION=false`** по умолчанию → **501**; при **`true`** → Gemini + Storage + **`generations`**; test `output_count=1`, product target **3**; без списаний.
 - **`GET /generations`** — галерея при старте; после auth — тот же endpoint с user id авторизованного пользователя.
 - **Не вызывать** `/debug/*` из release-сборки.
 - **Не хранить** `SUPABASE_SERVICE_ROLE_KEY` во Flutter.

@@ -213,6 +213,23 @@ def insert_generation(data: dict) -> dict:
     return _parse_supabase_response(response, "Failed to insert generation")
 
 
+def create_generation_record(
+    user_id: str,
+    prompt: str,
+    image_url: str,
+    payment_type: str,
+) -> dict:
+    """Insert a row into ``generations`` without consuming credits."""
+    return insert_generation(
+        {
+            "user_id": user_id,
+            "prompt": prompt,
+            "image_url": image_url,
+            "payment_type": payment_type,
+        }
+    )
+
+
 def insert_credit_transaction(data: dict) -> dict:
     base_url = _require_supabase_config()
     url = f"{base_url}/rest/v1/credit_transactions"

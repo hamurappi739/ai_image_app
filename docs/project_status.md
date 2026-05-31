@@ -99,7 +99,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **`POST /generate`** подключён к helper: если provider вернул **`data:image/...`**, backend загружает в Storage и возвращает **`public_url`** (в response и в **`generations.image_url`** при `ENABLE_CREDIT_CONSUMPTION=true`). **Mock mode** (`placehold.co`) — **без изменений**, Storage не вызывается.
 - **Ручной Gemini-тест успешно пройден:** временно `IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false` → Gemini вернул реальное изображение → backend загрузил в bucket **`generated-images`** → frontend получил **`public_url`** → **Галерея** показала реальную картинку. После теста **`IMAGE_PROVIDER` возвращён на `mock`**.
 - **Ручной Gemini photoshoot test успешно пройден:** `ENABLE_PHOTOSHOOT_GENERATION=true`, `PHOTOSHOOT_OUTPUT_COUNT=1` → **`POST /photoshoots/generate`** принял uploaded photo → Gemini вернул photoshoot image → backend загрузил результат в bucket **`generated-images`** (`photoshoots/…`) → response содержит **`image_urls`** с **`public_url`**. После теста **`ENABLE_PHOTOSHOOT_GENERATION=false`**.
-- **`POST /photoshoots/generate`** при **`ENABLE_PHOTOSHOOT_GENERATION=true`**: загружает результаты Gemini в Storage и возвращает **`public_url`** в `image_urls` (без записи в `generations`).
+- **`POST /photoshoots/generate`** при **`ENABLE_PHOTOSHOOT_GENERATION=true`**: Gemini → Storage → **`image_urls`** + запись каждого результата в **`generations`** (`prompt`: `Фотосессия: …`).
 - **`POST /debug/storage-test`** (development only) — **успешно проверен**: backend загружает маленький in-memory тестовый файл в Storage и возвращает **`public_url`**; **`public_url` проверен вручную** в браузере.
 - **`POST /debug/storage-image-test`** (development only) — **успешно проверен**: вызывает **`upload_generated_image_data_url`** с тестовым **1×1 PNG** data URL; **`public_url` открыт вручную** в браузере.
 - **Следующий этап:** решить, когда включать **`IMAGE_PROVIDER=gemini`** для обычной разработки; проверить стоимость/лимиты; позже **`ENABLE_CREDIT_CONSUMPTION=true`**.
@@ -146,9 +146,10 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **Controlled test:** временно **`ENABLE_PHOTOSHOOT_GENERATION=true`** + **`PHOTOSHOOT_OUTPUT_COUNT=1`** + **`GEMINI_API_KEY`**; **после теста вернуть `false`**.
 - **Product target (позже):** **3 изображения** на фотосессию (`PHOTOSHOOT_OUTPUT_COUNT=3` после проверки стоимости; catalog `output_count=3`).
 - Требует **`GEMINI_API_KEY`** (при включённой генерации); без ключа → **`500`** `GEMINI_API_KEY is not configured`.
-- Backend **не сохраняет** загруженное исходное фото, **не пишет** результаты в `generations`, **не списывает** генерации/оплату.
-- **Ручной Gemini photoshoot test пройден:** uploaded photo → Gemini image → Storage → **`image_urls`** с **`public_url`** (см. §11).
-- **Пока не подключено** к backend history / persistence в `generations` (локальная Галерея Flutter — работает).
+- Backend **не сохраняет** загруженное исходное фото, **не списывает** генерации/оплату.
+- При успешной фотосессии (**`ENABLE_PHOTOSHOOT_GENERATION=true`**) каждый **`image_url`** записывается в **`generations`** (`prompt`: **`Фотосессия: <style.title>`**, `payment_type`: **`free`** / **`paid`**).
+- **`GET /generations`** возвращает записи фотосессий; **Галерея** подтягивает их после перезапуска приложения.
+- **Ручной Gemini photoshoot test пройден:** uploaded photo → Gemini image → Storage → **`image_urls`** (см. §11).
 
 ### `GET /generations`
 
@@ -192,7 +193,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - При **`ENABLE_PHOTOSHOOT_GENERATION=true`**: Gemini → **`200`** с `image_urls` → modal закрывается → карточки **«Фотосессия: …»** добавляются в **Галерею** сверху → SnackBar **«Фотосессия готова»** → переход на вкладку **Галерея**.
 - **Ручной Flutter photoshoot-to-gallery test пройден** (см. §11); после теста **`ENABLE_PHOTOSHOOT_GENERATION=false`**.
 - Платные фотосессии пока **не отправляют** фото на backend → **«Оплата будет добавлена позже»**.
-- Запись результатов в backend **`generations`** и оплата — следующие этапы.
+- Запись в backend **`generations`** выполняется; оплата — следующий этап.
 
 ### Галерея
 
@@ -251,8 +252,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 ## 9. Что сейчас demo / заглушка
 
 - **Gemini** в production-потоке (по умолчанию mock / placehold.co; ручной тест с ключом — отдельно).
-- **Photoshoot backend history** — результаты фотосессий пока только в локальной Галерее Flutter, не в `generations`.
-- **RuStore Billing** и оплата фотосессий 100 ₽.
+- **Оплата** платных фотосессий и RuStore Billing.
 - **Подтверждение email**, восстановление пароля (см. roadmap).
 - Убрать **development `TEST_USER_ID` fallback** перед production.
 - **Удаление** изображений из backend.
@@ -331,7 +331,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | `POST /debug/storage-test` | ✅ работает |
 | `POST /debug/storage-image-test` | ✅ работает |
 
-Дополнительно: **`POST /generate`** с **`IMAGE_PROVIDER=gemini`** — полный flow Gemini → Storage → **`public_url`** проверен вручную; **`GET /generations`** / **Галерея** отображают Storage URL. **`POST /photoshoots/generate`** + Flutter — photoshoot flow Gemini → Storage → **`image_urls`** → **локальная Галерея** проверен вручную (backend **`generations`** пока не используется).
+Дополнительно: **`POST /generate`** с **`IMAGE_PROVIDER=gemini`** — полный flow Gemini → Storage → **`public_url`** проверен вручную; **`GET /generations`** / **Галерея** отображают Storage URL. **`POST /photoshoots/generate`** + Flutter — photoshoot flow Gemini → Storage → **`generations`** → **Галерея** (в т.ч. после перезапуска через **`GET /generations`**).
 
 ### Проверено — Frontend (Flutter web)
 
@@ -361,7 +361,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 - **`git status`** должен быть **чистым** (или осознанный коммит текущего состояния)
 - **`backend/.env`** не коммитить
-- Следующий крупный шаг: **сохранять результаты фотосессий в backend history** (`generations`), затем **3 результата** и **оплата** платных фотосессий
+- Следующий крупный шаг: **расширить `output_count` до 3**, затем **оплата** платных фотосессий
 
 ---
 
