@@ -85,3 +85,4 @@ class DebugConfigResponse(BaseModel):
     supabase_service_role_key_configured: bool
     test_user_id_configured: bool
     photoshoot_output_count: int
+    photoshoot_generation_enabled: bool

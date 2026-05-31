@@ -118,6 +118,7 @@ def debug_config():
         ),
         test_user_id_configured=_env_value_configured(settings.test_user_id),
         photoshoot_output_count=settings.photoshoot_output_count,
+        photoshoot_generation_enabled=settings.enable_photoshoot_generation,
     )
 
 
@@ -404,6 +405,12 @@ def generate_photoshoot(
     file_bytes = photo.file.read(_MAX_PHOTOSHOOT_FILE_SIZE_BYTES + 1)
     if len(file_bytes) > _MAX_PHOTOSHOOT_FILE_SIZE_BYTES:
         raise HTTPException(status_code=400, detail="Photo is too large")
+
+    if not settings.enable_photoshoot_generation:
+        raise HTTPException(
+            status_code=501,
+            detail="Photoshoot generation is disabled in development mode",
+        )
 
     image_urls = photoshoot_service.generate_photoshoot(
         user_id=user.id,

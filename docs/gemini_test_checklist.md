@@ -104,6 +104,15 @@ flutter run -d chrome
 
 ### Photoshoot test (`POST /photoshoots/generate`)
 
+**Safety switch:** по умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`** — случайные клики во Flutter **не вызывают Gemini**. Для ручного теста **временно** поставить в `backend/.env`:
+
+```env
+ENABLE_PHOTOSHOOT_GENERATION=true
+PHOTOSHOOT_OUTPUT_COUNT=1
+```
+
+Проверить `GET /debug/config` → `photoshoot_generation_enabled: true`. **После теста обязательно вернуть `ENABLE_PHOTOSHOOT_GENERATION=false`** и перезапустить backend.
+
 При ошибке **«Gemini did not return a photoshoot image»** смотрите **safe summary** в `detail` — backend добавляет диагностику без секретов и без base64, например:
 
 `Gemini did not return a photoshoot image: candidates=1; parts=1; part_types=text; text_preview="I cannot generate..."`
@@ -148,7 +157,8 @@ flutter run -d chrome
 Вернуть в `backend/.env`:
 
 `IMAGE_PROVIDER=mock`  
-`ENABLE_CREDIT_CONSUMPTION=false`
+`ENABLE_CREDIT_CONSUMPTION=false`  
+`ENABLE_PHOTOSHOOT_GENERATION=false`
 
 Перезапустить backend.
 
@@ -159,6 +169,7 @@ flutter run -d chrome
 Ожидаемо:
 - `image_provider: mock`
 - `credit_consumption_enabled: false`
+- `photoshoot_generation_enabled: false`
 
 Проверить Flutter:
 - вкладка **Создать** работает в demo-mode (mock fallback)

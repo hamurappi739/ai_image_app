@@ -141,10 +141,12 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Валидирует формат файла: **JPEG / PNG / WebP**, максимум **10 MB**.
 - Неизвестный `style_id` → **`400`** `Unknown photoshoot style`.
 - При успехе возвращает **`200`** с `style_id`, `style_title`, `image_urls`, `output_count`.
-- Требует **`GEMINI_API_KEY`**; без ключа → **`500`** `GEMINI_API_KEY is not configured`.
+- **Safety switch:** по умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`** — после валидации **`501`** `Photoshoot generation is disabled in development mode` (Gemini не вызывается).
+- Для controlled test: **`ENABLE_PHOTOSHOOT_GENERATION=true`** + **`PHOTOSHOOT_OUTPUT_COUNT=1`** + **`GEMINI_API_KEY`**; **после теста вернуть `false`**.
+- Требует **`GEMINI_API_KEY`** (при включённой генерации); без ключа → **`500`** `GEMINI_API_KEY is not configured`.
 - Backend **не сохраняет** загруженное исходное фото, **не пишет** результаты в `generations`, **не списывает** генерации/оплату.
-- **Backend photoshoot Gemini generation реализован** для контролируемого `output_count` (`PHOTOSHOOT_OUTPUT_COUNT`, default **1**).
-- Ожидается ручной тест с **`PHOTOSHOOT_OUTPUT_COUNT=1`**: результаты загружаются в Supabase Storage и возвращаются как **`public_url`** в `image_urls`.
+- **Backend photoshoot Gemini generation реализован** и **успешно проверен вручную** для контролируемого `output_count` (`PHOTOSHOOT_OUTPUT_COUNT`, default **1**).
+- Результаты загружаются в Supabase Storage и возвращаются как **`public_url`** в `image_urls`.
 - **Пока не подключено** к Галерее / persistence в `generations` (отдельный этап).
 
 ### `GET /generations`
@@ -184,7 +186,8 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - В modal после выбора показывается preview и статус **«Фото выбрано»** (preview только в UI, до закрытия окна).
 - **Flutter** (бесплатный сценарий) отправляет выбранное фото на backend через **`multipart/form-data`** (`style_id`, `style_title`, `photo`).
 - **Backend** валидирует **JPEG / PNG / WebP** и размер до **10 MB**; исходное фото на сервере не сохраняется.
-- После валидации backend вызывает **Gemini** и возвращает **`200`** с `image_urls` (Flutter пока показывает заглушку «Обработка фото будет добавлена позже»).
+- По умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**: после валидации backend возвращает **`501`**; Flutter показывает «Обработка фото будет добавлена позже» (Gemini не вызывается).
+- При **`ENABLE_PHOTOSHOOT_GENERATION=true`**: Gemini → **`200`** с `image_urls` (Flutter пока не отображает результаты).
 - Платные фотосессии пока **не отправляют** фото на backend → **«Оплата будет добавлена позже»**.
 - Реальная обработка, сохранение результатов и оплата — следующие этапы.
 

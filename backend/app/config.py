@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     supabase_storage_bucket: str = "generated-images"
     test_user_id: str | None = None
     enable_credit_consumption: bool = False
+    enable_photoshoot_generation: bool = False
     photoshoot_output_count: int = 1
 
     @field_validator("photoshoot_output_count", mode="before")
