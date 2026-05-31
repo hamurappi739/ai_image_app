@@ -652,6 +652,7 @@ class _PhotoshootStyle {
     required this.icon,
     required this.gradientColors,
     required this.isFree,
+    this.previewVariant = 0,
   });
 
   final String id;
@@ -661,6 +662,9 @@ class _PhotoshootStyle {
   final IconData icon;
   final List<Color> gradientColors;
   final bool isFree;
+  final int previewVariant;
+
+  String get priceLabel => isFree ? 'Бесплатно' : '100 ₽';
 }
 
 class PhotoshootsScreen extends StatefulWidget {
@@ -690,74 +694,82 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     _PhotoshootStyle(
       id: 'studio_portrait',
       title: 'Студийный портрет',
-      description: 'Чистый студийный свет и мягкий фон',
+      description: 'Чистый студийный свет, мягкий нейтральный фон',
       initials: 'СП',
       icon: Icons.portrait_outlined,
       gradientColors: [Color(0xFFD8D4E8), Color(0xFFB8B0D4)],
       isFree: true,
+      previewVariant: 0,
     ),
     _PhotoshootStyle(
       id: 'business_portrait',
       title: 'Деловой портрет',
-      description: 'Профессиональный портрет для работы и соцсетей',
+      description: 'Строгий деловой образ для работы и соцсетей',
       initials: 'ДП',
       icon: Icons.business_center_outlined,
       gradientColors: [Color(0xFFB8C8DC), Color(0xFF8EA4BE)],
       isFree: true,
+      previewVariant: 1,
     ),
     _PhotoshootStyle(
       id: 'home_portrait',
       title: 'Домашний портрет',
-      description: 'Тёплая домашняя атмосфера с естественным светом',
+      description: 'Уютная домашняя атмосфера с тёплым светом',
       initials: 'ДМ',
       icon: Icons.home_outlined,
       gradientColors: [Color(0xFFF0E2D0), Color(0xFFD4B896)],
       isFree: true,
+      previewVariant: 2,
     ),
     _PhotoshootStyle(
       id: 'premium_portrait',
       title: 'Премиум-портрет',
-      description: 'Элегантный образ с кинематографичным светом',
+      description: 'Кинематографичный свет и изысканный фон',
       initials: 'ПР',
       icon: Icons.diamond_outlined,
       gradientColors: [Color(0xFFC8B0F0), Color(0xFF9070D8)],
       isFree: false,
+      previewVariant: 3,
     ),
     _PhotoshootStyle(
       id: 'winter_photoshoot',
       title: 'Зимняя фотосессия',
-      description: 'Снежная атмосфера с мягкими зимними оттенками',
+      description: 'Снежная атмосфера и мягкие зимние оттенки',
       initials: 'ЗМ',
       icon: Icons.ac_unit,
       gradientColors: [Color(0xFFB8E4F8), Color(0xFF6CB8E8)],
       isFree: false,
+      previewVariant: 1,
     ),
     _PhotoshootStyle(
       id: 'urban_portrait',
       title: 'Городской портрет',
-      description: 'Современный городской фон и стильный свет',
+      description: 'Городской фон, современный стиль и уличный свет',
       initials: 'ГР',
       icon: Icons.location_city_outlined,
       gradientColors: [Color(0xFFA8B8F0), Color(0xFF6878D0)],
       isFree: false,
+      previewVariant: 0,
     ),
     _PhotoshootStyle(
       id: 'evening_look',
       title: 'Вечерний образ',
-      description: 'Элегантный вечерний образ с премиальным фоном',
+      description: 'Элегантный вечерний образ с мягким светом',
       initials: 'ВЧ',
       icon: Icons.nightlife_outlined,
       gradientColors: [Color(0xFF6A5098), Color(0xFF3A2868)],
       isFree: false,
+      previewVariant: 2,
     ),
     _PhotoshootStyle(
       id: 'travel_portrait',
       title: 'Портрет в путешествии',
-      description: 'Портреты в красивых локациях в стиле отпуска',
+      description: 'Красивые локации и атмосфера отдыха',
       initials: 'ПТ',
       icon: Icons.flight_outlined,
       gradientColors: [Color(0xFFB0E8D8), Color(0xFF58B8A8)],
       isFree: false,
+      previewVariant: 3,
     ),
   ];
 
@@ -872,7 +884,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Выберите готовый стиль. Позже вы сможете загрузить фото и получить 3 изображения в одной теме.',
+                                  'Готовые фотосессии — выберите стиль, загрузите фото и получите 3 изображения.',
                                   style: theme.textTheme.bodyMedium,
                                 ),
                               ],
@@ -901,7 +913,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                           crossAxisCount: columns,
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
-                          childAspectRatio: columns == 2 ? 0.62 : 0.78,
+                          childAspectRatio: columns == 2 ? 0.58 : 0.72,
                         ),
                         itemCount: _photoshoots.length,
                         itemBuilder: (context, index) {
@@ -939,7 +951,6 @@ class _PhotoshootCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final badgeLabel = style.isFree ? 'Бесплатно' : '100 ₽';
     final badgeColor =
         style.isFree ? const Color(0xFFE8F5E9) : const Color(0xFFEDE9FF);
     final badgeTextColor =
@@ -950,9 +961,17 @@ class _PhotoshootCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: style.isFree
+            ? null
+            : Border.all(
+                color: _accentColor.withValues(alpha: 0.22),
+                width: 1.2,
+              ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: style.isFree
+                ? Colors.black.withValues(alpha: 0.06)
+                : _accentColor.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -962,64 +981,65 @@ class _PhotoshootCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (!style.isFree)
+            Container(
+              height: 3,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _accentColor.withValues(alpha: 0.55),
+                    const Color(0xFF7C5CFF).withValues(alpha: 0.35),
+                  ],
+                ),
+              ),
+            ),
           _PhotoshootPreview(
             initials: style.initials,
             icon: style.icon,
             gradientColors: style.gradientColors,
             onDark: onDarkPreview,
+            isFree: style.isFree,
+            previewVariant: style.previewVariant,
+            showCatalogBadges: true,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Text(
+                  style.title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
-                    Expanded(
-                      child: Text(
-                        style.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontSize: 15,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    _PhotoshootMetaChip(
+                      label: '3 фото',
+                      backgroundColor: const Color(0xFFF0F2FF),
+                      textColor: _accentColor,
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: badgeColor,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        badgeLabel,
-                        style: TextStyle(
-                          color: badgeTextColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                    _PhotoshootMetaChip(
+                      label: style.priceLabel,
+                      backgroundColor: badgeColor,
+                      textColor: badgeTextColor,
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '3 фото в одном стиле',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AiImageGeneratorApp.textPrimary,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Text(
                   style.description,
-                  style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 13,
+                    height: 1.35,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1057,7 +1077,9 @@ class _PhotoshootCard extends StatelessWidget {
                           onPressed: onAction,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: _accentColor,
-                            side: const BorderSide(color: _accentColor),
+                            side: BorderSide(
+                              color: _accentColor.withValues(alpha: 0.45),
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -1076,6 +1098,37 @@ class _PhotoshootCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PhotoshootMetaChip extends StatelessWidget {
+  const _PhotoshootMetaChip({
+    required this.label,
+    required this.backgroundColor,
+    required this.textColor,
+  });
+
+  final String label;
+  final Color backgroundColor;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -1112,6 +1165,15 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
     '3 изображения в одном стиле',
     'Мягкая обработка лица и света',
     'Результат появится в Галерее',
+  ];
+
+  static const _photoUploadTips = [
+    'Лицо хорошо видно',
+    'Фото не размытое',
+    'Хорошее освещение',
+    'Без сильной тени на лице',
+    'Для некоторых образов лучше фото по пояс или в полный рост',
+    'Чем лучше исходное фото, тем лучше результат',
   ];
 
   Future<void> _pickPhoto() async {
@@ -1199,12 +1261,12 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final style = widget.style;
-    final badgeLabel = style.isFree ? 'Бесплатно' : '100 ₽';
     final badgeColor =
         style.isFree ? const Color(0xFFE8F5E9) : const Color(0xFFEDE9FF);
     final badgeTextColor =
         style.isFree ? const Color(0xFF2E7D32) : _accentColor;
     final laterLabel = style.isFree ? 'Подготовить позже' : 'Оплата позже';
+    final onDarkPreview = style.gradientColors.first.computeLuminance() < 0.45;
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -1244,36 +1306,73 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                           style.title,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontSize: 20,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: badgeColor,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          badgeLabel,
-                          style: TextStyle(
-                            color: badgeTextColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: badgeColor,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              style.priceLabel,
+                              style: TextStyle(
+                                color: badgeTextColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 6),
+                          _PhotoshootMetaChip(
+                            label: '3 фото',
+                            backgroundColor: const Color(0xFFF0F2FF),
+                            textColor: _accentColor,
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   Text(
-                    'Загрузите своё фото, и приложение подготовит 3 изображения в выбранном стиле.',
-                    style: theme.textTheme.bodyMedium,
+                    style.description,
+                    style: theme.textTheme.bodyMedium?.copyWith(height: 1.35),
+                  ),
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: _PhotoshootPreview(
+                      initials: style.initials,
+                      icon: style.icon,
+                      gradientColors: style.gradientColors,
+                      onDark: onDarkPreview,
+                      isFree: style.isFree,
+                      previewVariant: style.previewVariant,
+                      aspectRatio: 2.2,
+                      showCatalogBadges: true,
+                    ),
                   ),
                   const SizedBox(height: 20),
+                  _PhotoshootResultExamplesSection(style: style),
+                  const SizedBox(height: 16),
+                  _PhotoshootPhotoTipsSection(tips: _photoUploadTips),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Загрузите своё фото, и приложение подготовит 3 изображения в выбранном стиле.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   InkWell(
                     onTap: _isPickingPhoto ? null : _pickPhoto,
                     borderRadius: BorderRadius.circular(16),
@@ -1528,18 +1627,221 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
   }
 }
 
+class _PhotoshootResultExamplesSection extends StatelessWidget {
+  const _PhotoshootResultExamplesSection({required this.style});
+
+  final _PhotoshootStyle style;
+
+  static const _labels = ['Фото 1', 'Фото 2', 'Фото 3'];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Пример результата',
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Здесь позже появятся настоящие примеры. Сейчас — заглушки.',
+            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: List.generate(3, (index) {
+              final colorA = style.gradientColors.first;
+              final colorB = style.gradientColors.length > 1
+                  ? style.gradientColors[1]
+                  : style.gradientColors.first;
+              final blend = index == 0
+                  ? [colorA, colorB]
+                  : index == 1
+                      ? [Color.lerp(colorA, colorB, 0.35)!, colorB]
+                      : [colorA, Color.lerp(colorA, colorB, 0.65)!];
+
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(left: index == 0 ? 0 : 6),
+                  child: _PhotoshootResultPlaceholder(
+                    label: _labels[index],
+                    gradientColors: blend,
+                    icon: style.icon,
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PhotoshootResultPlaceholder extends StatelessWidget {
+  const _PhotoshootResultPlaceholder({
+    required this.label,
+    required this.gradientColors,
+    required this.icon,
+  });
+
+  final String label;
+  final List<Color> gradientColors;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final onDark = gradientColors.first.computeLuminance() < 0.45;
+    final iconColor = onDark
+        ? Colors.white.withValues(alpha: 0.55)
+        : Colors.black.withValues(alpha: 0.18);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AspectRatio(
+          aspectRatio: 0.78,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: gradientColors,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  right: 4,
+                  bottom: 2,
+                  child: Icon(icon, size: 28, color: iconColor),
+                ),
+                Center(
+                  child: Icon(
+                    Icons.image_outlined,
+                    size: 22,
+                    color: iconColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PhotoshootPhotoTipsSection extends StatelessWidget {
+  const _PhotoshootPhotoTipsSection({required this.tips});
+
+  final List<String> tips;
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return _SoftCard(
+      backgroundColor: const Color(0xFFF3F6FF),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDE9FF),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.tips_and_updates_outlined,
+                  color: _accentColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Какое фото лучше загрузить',
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...tips.map(
+            (tip) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.check_circle_outline,
+                      size: 17,
+                      color: _accentColor,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      tip,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 14,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PhotoshootPreview extends StatelessWidget {
   const _PhotoshootPreview({
     required this.initials,
     required this.icon,
     required this.gradientColors,
     required this.onDark,
+    required this.isFree,
+    this.previewVariant = 0,
+    this.showCatalogBadges = false,
+    this.aspectRatio = 16 / 9,
   });
 
   final String initials;
   final IconData icon;
   final List<Color> gradientColors;
   final bool onDark;
+  final bool isFree;
+  final int previewVariant;
+  final bool showCatalogBadges;
+  final double aspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -1548,9 +1850,12 @@ class _PhotoshootPreview extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.2)
         : Colors.white.withValues(alpha: 0.35);
     final initialsText = onDark ? Colors.white : AiImageGeneratorApp.textPrimary;
+    final watermarkColor = onDark
+        ? Colors.white.withValues(alpha: 0.75)
+        : Colors.black.withValues(alpha: 0.45);
 
     return AspectRatio(
-      aspectRatio: 16 / 9,
+      aspectRatio: aspectRatio,
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -1560,7 +1865,9 @@ class _PhotoshootPreview extends StatelessWidget {
           ),
         ),
         child: Stack(
+          fit: StackFit.expand,
           children: [
+            ..._buildVariantDecorations(onDark),
             Positioned(
               right: -12,
               bottom: -16,
@@ -1599,10 +1906,165 @@ class _PhotoshootPreview extends StatelessWidget {
                 ],
               ),
             ),
+            if (showCatalogBadges)
+              Positioned(
+                left: 10,
+                bottom: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: onDark ? 0.28 : 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Пример',
+                    style: TextStyle(
+                      color: watermarkColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            if (showCatalogBadges)
+              Positioned(
+                right: 10,
+                top: 10,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!isFree)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: Icon(
+                          Icons.star_rounded,
+                          size: 16,
+                          color: onDark
+                              ? Colors.white.withValues(alpha: 0.85)
+                              : const Color(0xFF5B6CFF),
+                        ),
+                      ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.88),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '3 фото',
+                        style: TextStyle(
+                          color: AiImageGeneratorApp.textPrimary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  List<Widget> _buildVariantDecorations(bool onDark) {
+    final accent = onDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.white.withValues(alpha: 0.28);
+
+    switch (previewVariant % 4) {
+      case 1:
+        return [
+          Positioned(
+            left: -24,
+            top: -24,
+            child: Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: accent,
+              ),
+            ),
+          ),
+          Positioned(
+            right: 24,
+            bottom: 18,
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: accent, width: 2),
+              ),
+            ),
+          ),
+        ];
+      case 2:
+        return [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _DiagonalStripePainter(
+                color: accent.withValues(alpha: 0.65),
+              ),
+            ),
+          ),
+        ];
+      case 3:
+        return [
+          Positioned(
+            left: 12,
+            top: 12,
+            right: 12,
+            bottom: 12,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: accent, width: 1.5),
+              ),
+            ),
+          ),
+        ];
+      default:
+        return [];
+    }
+  }
+}
+
+class _DiagonalStripePainter extends CustomPainter {
+  _DiagonalStripePainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    const stripeWidth = 18.0;
+    const gap = 28.0;
+    var x = -size.height;
+
+    while (x < size.width + size.height) {
+      final path = Path()
+        ..moveTo(x, size.height)
+        ..lineTo(x + stripeWidth, size.height)
+        ..lineTo(x + stripeWidth + size.height, 0)
+        ..lineTo(x + size.height, 0)
+        ..close();
+      canvas.drawPath(path, paint);
+      x += stripeWidth + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DiagonalStripePainter oldDelegate) {
+    return oldDelegate.color != color;
   }
 }
 
@@ -2993,10 +3455,15 @@ class _CreateTipsCard extends StatelessWidget {
 }
 
 class _SoftCard extends StatelessWidget {
-  const _SoftCard({required this.child, this.borderColor});
+  const _SoftCard({
+    required this.child,
+    this.borderColor,
+    this.backgroundColor,
+  });
 
   final Widget child;
   final Color? borderColor;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -3004,7 +3471,7 @@ class _SoftCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: backgroundColor ?? Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: borderColor != null ? Border.all(color: borderColor!) : null,
         boxShadow: [
