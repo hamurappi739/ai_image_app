@@ -143,8 +143,8 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Неизвестный `style_id` → **`400`** `Unknown photoshoot style`.
 - При успехе возвращает **`200`** с `style_id`, `style_title`, `image_urls`, `output_count`.
 - **Safety switch (по умолчанию):** **`ENABLE_PHOTOSHOOT_GENERATION=false`** — Gemini **не вызывается**; после валидации **`501`** `Photoshoot generation is disabled in development mode`.
-- **Controlled test:** временно **`ENABLE_PHOTOSHOOT_GENERATION=true`** + **`PHOTOSHOOT_OUTPUT_COUNT=1`** + **`GEMINI_API_KEY`**; **после теста вернуть `false`**.
-- **Product target (позже):** **3 изображения** на фотосессию (`PHOTOSHOOT_OUTPUT_COUNT=3` после проверки стоимости; catalog `output_count=3`).
+- **Controlled test:** временно **`ENABLE_PHOTOSHOOT_GENERATION=true`** + **`PHOTOSHOOT_OUTPUT_COUNT=1`** (или **3** для product test) + **`GEMINI_API_KEY`**; **после теста вернуть `ENABLE_PHOTOSHOOT_GENERATION=false`** и **`PHOTOSHOOT_OUTPUT_COUNT=1`**.
+- **Product target:** **3 изображения** на фотосессию — **проверен вручную** (`PHOTOSHOOT_OUTPUT_COUNT=3`, см. §11); catalog `output_count=3`.
 - Требует **`GEMINI_API_KEY`** (при включённой генерации); без ключа → **`500`** `GEMINI_API_KEY is not configured`.
 - Backend **не сохраняет** загруженное исходное фото, **не списывает** генерации/оплату.
 - При успешной фотосессии (**`ENABLE_PHOTOSHOOT_GENERATION=true`**) каждый **`image_url`** записывается в **`generations`** (`prompt`: **`Фотосессия: <style.title>`**, `payment_type`: **`free`** / **`paid`**).
@@ -190,8 +190,8 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **Backend** валидирует **JPEG / PNG / WebP** и размер до **10 MB**; исходное фото на сервере не сохраняется.
 - **Flutter Photoshoots** принимает успешный backend response с **`image_urls`** (`PhotoshootGenerateResponse`).
 - По умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**: после валидации backend возвращает **`501`**; Flutter показывает «Обработка фото будет добавлена позже» (Gemini не вызывается) — **safe mode проверен**.
-- При **`ENABLE_PHOTOSHOOT_GENERATION=true`**: Gemini → **`200`** с `image_urls` → modal закрывается → карточки **«Фотосессия: …»** добавляются в **Галерею** сверху → SnackBar **«Фотосессия готова»** → переход на вкладку **Галерея**.
-- **Ручной Flutter photoshoot-to-gallery test пройден** (см. §11); после теста **`ENABLE_PHOTOSHOOT_GENERATION=false`**.
+- При **`ENABLE_PHOTOSHOOT_GENERATION=true`**: Gemini → **`200`** с `image_urls` (1–3) → modal закрывается → карточки **«Фотосессия: …»** добавляются в **Галерею** сверху (сейчас **по одной карточке на каждое изображение**) → SnackBar **«Фотосессия готова»** → переход на вкладку **Галерея**.
+- **Controlled 3-output test пройден** через Flutter UI (см. §11); после теста **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`PHOTOSHOOT_OUTPUT_COUNT=1`**.
 - Платные фотосессии пока **не отправляют** фото на backend → **«Оплата будет добавлена позже»**.
 - Запись в backend **`generations`** выполняется; оплата — следующий этап.
 
@@ -320,6 +320,19 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | После теста **`ENABLE_PHOTOSHOOT_GENERATION=false`** (safe mode) | ✅ |
 | При **`false`**: placeholder «Обработка фото будет добавлена позже» | ✅ |
 
+### Controlled 3-output photoshoot test (пройден)
+
+| Шаг | Результат |
+|-----|-----------|
+| `ENABLE_PHOTOSHOOT_GENERATION=true`, **`PHOTOSHOOT_OUTPUT_COUNT=3`** | ✅ |
+| Flutter UI: один uploaded photo → **3 generated photos** | ✅ |
+| Backend сохранил **3 файла** в Supabase Storage (`photoshoots/…`) | ✅ |
+| Backend записал **3 записи** в **`generations`** | ✅ |
+| **`GET /generations`** вернул **3 свежие** photoshoot-записи | ✅ |
+| Галерея показала **3 отдельные карточки** (grouping — будущий UX) | ✅ |
+| После теста **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`PHOTOSHOOT_OUTPUT_COUNT=1`** | ✅ |
+| **`git status`** чистый после теста | ✅ |
+
 ### Проверено — Backend
 
 | Проверка | Результат |
@@ -344,7 +357,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | Кнопка **«Открыть в Галерее»** | ✅ работает |
 | **Галерея** — загрузка истории | ✅ грузится |
 | **Фотосессии** — выбор фото и upload на backend | ✅ работают |
-| **Фотосессии** — успешный результат в **Галерее** (`ENABLE_PHOTOSHOOT_GENERATION=true`) | ✅ проверено |
+| **Фотосессии** — 3-output test (`PHOTOSHOOT_OUTPUT_COUNT=3`) | ✅ проверено |
 | Бесплатная фотосессия (safe mode) → «Обработка фото будет добавлена позже» | ✅ |
 | Платная фотосессия → «Оплата будет добавлена позже» | ✅ |
 | **Профиль** без `--dart-define` (fallback / demo mode) | ✅ работает |
@@ -359,9 +372,9 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 ### Перед следующим большим этапом
 
-- **`git status`** должен быть **чистым** (или осознанный коммит текущего состояния)
-- **`backend/.env`** не коммитить
-- Следующий крупный шаг: **расширить `output_count` до 3**, затем **оплата** платных фотосессий
+- **`git status`** должен быть **чистым** (после controlled test — проверено)
+- **`backend/.env`** не коммитить; после test: **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`PHOTOSHOOT_OUTPUT_COUNT=1`**
+- Следующий крупный шаг: **группировка 3 результатов в одну карточку Галереи** (`photoshoot_id`), затем **оплата** платных фотосессий
 
 ---
 
