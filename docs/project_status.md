@@ -137,6 +137,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Backend принимает `multipart/form-data`: `style_id`, `style_title`, `photo`.
 - **Catalog стилей** (`app/services/photoshoot_styles.py`): backend валидирует `style_id`, хранит `title`, `price_rub`, `is_free`, `output_count=3`, `instruction` для Gemini-генерации.
 - **`PhotoshootService`** + **`GeminiPhotoshootProvider`** (`app/services/photoshoot_service.py`): uploaded photo + `style.instruction` → Gemini → data URLs → Supabase Storage (`photoshoots/…`) → **`public_url`** в ответе.
+- **Известная проблема (Gemini):** иногда возвращал **коллаж/сетку** из нескольких кадров в одном изображении. **Backend prompt обновлён:** каждый вызов Gemini просит **ровно одну standalone photo** (без collage/grid/contact sheet); стили catalog больше не содержат «Create 3 photos» в одном instruction.
 - Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, max **3**); product target в catalog — **3** изображения.
 - Использует ту же auth-логику: Bearer token или development fallback `TEST_USER_ID`; перед обработкой — profile auto-sync.
 - Валидирует формат файла: **JPEG / PNG / WebP**, максимум **10 MB**.
@@ -147,15 +148,15 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **Product target:** **3 изображения** на фотосессию — **проверен вручную** (`PHOTOSHOOT_OUTPUT_COUNT=3`, см. §11); catalog `output_count=3`.
 - Требует **`GEMINI_API_KEY`** (при включённой генерации); без ключа → **`500`** `GEMINI_API_KEY is not configured`.
 - Backend **не сохраняет** загруженное исходное фото, **не списывает** генерации/оплату.
-- При успешной фотосессии (**`ENABLE_PHOTOSHOOT_GENERATION=true`**) каждый **`image_url`** записывается в **`generations`** (`prompt`: **`Фотосессия: <style.title>`**, `payment_type`: **`free`** / **`paid`**).
-- **`GET /generations`** возвращает записи фотосессий; **Галерея** подтягивает их после перезапуска приложения.
+- При успешной фотосессии (**`ENABLE_PHOTOSHOOT_GENERATION=true`**) каждый **`image_url`** записывается в **`generations`** (`prompt`: **`Фотосессия: <style.title>`**, `payment_type`: **`free`** / **`paid`**, общий **`photoshoot_id`** на все результаты одной сессии).
+- **`GET /generations`** возвращает **`photoshoot_id`** (если есть); **Галерея** подтягивает записи после перезапуска приложения. **Flutter UI пока показывает каждый результат отдельной карточкой** — grouping по `photoshoot_id` на следующем frontend-этапе.
 - **Ручной Gemini photoshoot test пройден:** uploaded photo → Gemini image → Storage → **`image_urls`** (см. §11).
 
 ### `GET /generations`
 
 - С Bearer token: `CurrentUser` из Supabase Auth REST; перед выборкой — **`ensure_profile_exists`**.
 - Без токена в development: **`TEST_USER_ID`** + auto-create профиля при необходимости.
-- Ответ: список из таблицы **`generations`** (новые сверху).
+- Ответ: список из таблицы **`generations`** (новые сверху); каждая запись может содержать **`photoshoot_id`** (`null` для обычных генераций и legacy rows).
 - В non-development без токена: `401` (`Authorization required`).
 
 ### Development only
@@ -374,7 +375,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 - **`git status`** должен быть **чистым** (после controlled test — проверено)
 - **`backend/.env`** не коммитить; после test: **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`PHOTOSHOOT_OUTPUT_COUNT=1`**
-- Следующий крупный шаг: **группировка 3 результатов в одну карточку Галереи** (`photoshoot_id`), затем **оплата** платных фотосессий
+- Backend **`photoshoot_id`** готов (migration `002_add_photoshoot_id_to_generations.sql`); следующий шаг: **Flutter Gallery groups records with same `photoshoot_id` into one card**, затем **оплата** платных фотосессий
 
 ---
 

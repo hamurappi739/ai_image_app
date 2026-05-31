@@ -32,7 +32,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
-            "Create 3 professional studio portrait photos based on the uploaded person. "
+            "Create one standalone professional studio portrait photo based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
             "Use clean studio lighting, a soft neutral background, and balanced composition. "
             "Improve light, color, and overall polish while keeping the person recognizable. "
@@ -46,7 +46,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
-            "Create 3 business portrait photos based on the uploaded person. "
+            "Create one standalone business portrait photo based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
             "Use a professional office or neutral business background, confident posture, "
             "and polished corporate lighting. Improve clarity, color, and composition. "
@@ -60,7 +60,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
-            "Create 3 warm home portrait photos based on the uploaded person. "
+            "Create one standalone warm home portrait photo based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
             "Use cozy indoor atmosphere, natural window light, and a relaxed home setting. "
             "Improve warmth, soft lighting, background, and composition. "
@@ -74,7 +74,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         is_free=False,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
-            "Create 3 premium cinematic portrait photos based on the uploaded person. "
+            "Create one standalone premium cinematic portrait photo based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
             "Use elegant cinematic lighting, rich tones, and a refined premium background. "
             "Improve depth, color grading, and composition while keeping the person recognizable. "
@@ -88,7 +88,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         is_free=False,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
-            "Create 3 winter-themed portrait photos based on the uploaded person. "
+            "Create one standalone winter-themed portrait photo based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
             "Use snowy or winter atmosphere, soft cold light, and seasonal winter styling. "
             "Improve atmosphere, background, color, and composition. "
@@ -102,7 +102,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         is_free=False,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
-            "Create 3 modern city portrait photos based on the uploaded person. "
+            "Create one standalone modern city portrait photo based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
             "Use an urban city background, stylish street lighting, and contemporary composition. "
             "Improve light, background depth, color, and overall polish. "
@@ -116,7 +116,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         is_free=False,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
-            "Create 3 elegant evening portrait photos based on the uploaded person. "
+            "Create one standalone elegant evening portrait photo based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
             "Use evening styling, premium low-light ambiance, and a sophisticated background. "
             "Improve mood lighting, color, and composition. "
@@ -130,7 +130,7 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         is_free=False,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
-            "Create 3 travel portrait photos based on the uploaded person. "
+            "Create one standalone travel portrait photo based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
             "Use beautiful vacation locations, natural travel lighting, and scenic backgrounds. "
             "Improve atmosphere, color, background, and composition. "

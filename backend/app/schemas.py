@@ -38,6 +38,7 @@ class GenerationItem(BaseModel):
     prompt: str
     image_url: str
     payment_type: str
+    photoshoot_id: str | None = None
     created_at: datetime
 
 

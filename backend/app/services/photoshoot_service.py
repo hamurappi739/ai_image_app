@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+from uuid import uuid4
 
 from fastapi import HTTPException
 from google import genai
@@ -24,14 +25,38 @@ logger = logging.getLogger(__name__)
 
 _MAX_PHOTOSHOOT_DIAGNOSTIC_TEXT_LEN = 200
 
+_STANDALONE_PHOTO_RULES = (
+    "Generate exactly ONE standalone final photo. "
+    "The output must contain only one scene and one final image. "
+    "Do not create a collage, contact sheet, storyboard, grid, split-screen, "
+    "before/after comparison, or multiple panels. "
+    "Do not place multiple versions of the person in the same image. "
+    "Do not show multiple photos inside one image. "
+    "Return a single realistic portrait/photo only."
+)
 
-def _build_photoshoot_instruction(style: PhotoshootStyle) -> str:
+
+def _build_photoshoot_instruction(
+    style: PhotoshootStyle,
+    *,
+    variation_index: int = 1,
+    variation_total: int = 1,
+) -> str:
+    variation_note = ""
+    if variation_total > 1:
+        variation_note = (
+            f"\nThis is variation {variation_index} of {variation_total} separate generation calls. "
+            "Generate only this one standalone photo; other variations are produced in separate calls. "
+            "Do not combine multiple variations into one image."
+        )
     return (
         f"{style.instruction}\n\n"
         "Use the uploaded user photo as identity/reference. "
         "Preserve the person's identity, face structure, age, and key facial features. "
+        "Apply the selected style to a single realistic portrait/photo. "
         "Improve lighting, background, color, and composition. "
-        "Create a polished portrait in the selected photoshoot style. "
+        f"{_STANDALONE_PHOTO_RULES}"
+        f"{variation_note}\n\n"
         "Do not create NSFW content. Return an image only."
     )
 
@@ -143,6 +168,7 @@ def _save_photoshoot_results_to_history(
 ) -> None:
     prompt = _photoshoot_history_prompt(style)
     payment_type = _photoshoot_payment_type(style)
+    photoshoot_id = str(uuid4())
     for image_url in image_urls:
         try:
             create_generation_record(
@@ -150,6 +176,7 @@ def _save_photoshoot_results_to_history(
                 prompt=prompt,
                 image_url=image_url,
                 payment_type=payment_type,
+                photoshoot_id=photoshoot_id,
             )
         except RuntimeError:
             logger.warning("Failed to save photoshoot result to generations history")
@@ -182,11 +209,15 @@ class GeminiPhotoshootProvider:
                 detail="GEMINI_API_KEY is not configured",
             )
 
-        instruction = _build_photoshoot_instruction(style)
-        client = genai.Client(api_key=api_key.strip())
         data_urls: list[str] = []
+        client = genai.Client(api_key=api_key.strip())
 
-        for _ in range(self._output_count):
+        for index in range(self._output_count):
+            instruction = _build_photoshoot_instruction(
+                style,
+                variation_index=index + 1,
+                variation_total=self._output_count,
+            )
             try:
                 response = client.models.generate_content(
                     model=settings.gemini_model,

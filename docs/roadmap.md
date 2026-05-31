@@ -60,6 +60,7 @@
 | **Controlled 3-output photoshoot test** | ✅ | `PHOTOSHOOT_OUTPUT_COUNT=3` через Flutter UI; 1 photo → 3 images |
 | **Storage upload for 3 photoshoot results** | ✅ | 3 файла в bucket `generated-images` (`photoshoots/…`) |
 | **History save for 3 photoshoot results** | ✅ | 3 записи в `generations`; `GET /generations` возвращает все три |
+| **Backend photoshoot grouping id (`photoshoot_id`)** | ✅ | Nullable column + index; все результаты одной фотосессии — один `photoshoot_id`; обычные генерации — `null` |
 
 ### Flutter UI MVP (детали)
 
@@ -86,23 +87,22 @@
 
 ## Следующие крупные этапы
 
-1. **Group one photoshoot into one Gallery card** — 1 фотосессия = 1 карточка/группа, внутри 3 изображения (например «Фотосессия: Студийный портрет», «3 изображения»).
-2. **Add `photoshoot_id` or another grouping mechanism** — связать 3 записи `generations` / 3 Storage URLs одной сессией.
-3. **Show 3 results inside one photoshoot detail screen/card** — экран/карточка деталей фотосессии в Галерее.
-4. **Add payment before paid photoshoot generation** — оплата перед обработкой платных стилей (100 ₽).
-5. **Maybe add separate photoshoot history type later** — отдельный тип/метка в истории (опционально).
-6. **Решить, когда включать `IMAGE_PROVIDER=gemini` для обычной разработки** — сейчас по умолчанию `mock` для безопасности и экономии квот.
-7. **Проверить стоимость / лимиты Gemini** — перед регулярным использованием и production.
-8. **Позже включить `ENABLE_CREDIT_CONSUMPTION=true`** — после полной проверки списаний free/paid и записи в `generations`.
-9. **Безопасные интеграционные тесты backend** — использовать `ENABLE_CREDIT_CONSUMPTION=false`, чтобы не списывать генерации из Supabase.
-10. **Use public/signed URLs** — сейчас bucket public; для private bucket позже — signed URL.
-11. **Auth: улучшения UX** — подтверждение email (если Supabase требует email confirmation).
-12. **Восстановление пароля** — добавить reset password flow.
-13. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
-14. **Синхронизация баланса генераций** с аккаунтом после auth.
-15. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
-16. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
-17. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
+1. **Flutter Gallery: group records with same `photoshoot_id` into one photoshoot card** — 1 фотосессия = 1 карточка/группа, внутри 3 изображения (например «Фотосессия: Студийный портрет», «3 изображения»).
+2. **Show 3 results inside one photoshoot detail screen/card** — экран/карточка деталей фотосессии в Галерее.
+3. **Add payment before paid photoshoot generation** — оплата перед обработкой платных стилей (100 ₽).
+4. **Maybe add separate photoshoot history type later** — отдельный тип/метка в истории (опционально).
+5. **Решить, когда включать `IMAGE_PROVIDER=gemini` для обычной разработки** — сейчас по умолчанию `mock` для безопасности и экономии квот.
+6. **Проверить стоимость / лимиты Gemini** — перед регулярным использованием и production.
+7. **Позже включить `ENABLE_CREDIT_CONSUMPTION=true`** — после полной проверки списаний free/paid и записи в `generations`.
+8. **Безопасные интеграционные тесты backend** — использовать `ENABLE_CREDIT_CONSUMPTION=false`, чтобы не списывать генерации из Supabase.
+9. **Use public/signed URLs** — сейчас bucket public; для private bucket позже — signed URL.
+10. **Auth: улучшения UX** — подтверждение email (если Supabase tребует email confirmation).
+11. **Восстановление пароля** — добавить reset password flow.
+12. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
+13. **Синхронизация баланса генераций** с аккаунтом после auth.
+14. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
+15. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
+16. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
 
 ---
 

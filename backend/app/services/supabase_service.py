@@ -140,7 +140,7 @@ def get_generations_by_user_id(user_id: str, limit: int = 10) -> list[dict]:
     url = (
         f"{base_url}/rest/v1/generations"
         f"?user_id=eq.{quote(user_id, safe='')}"
-        "&select=id,prompt,image_url,payment_type,created_at"
+        "&select=id,prompt,image_url,payment_type,photoshoot_id,created_at"
         "&order=created_at.desc"
         f"&limit={limit}"
     )
@@ -218,16 +218,18 @@ def create_generation_record(
     prompt: str,
     image_url: str,
     payment_type: str,
+    photoshoot_id: str | None = None,
 ) -> dict:
     """Insert a row into ``generations`` without consuming credits."""
-    return insert_generation(
-        {
-            "user_id": user_id,
-            "prompt": prompt,
-            "image_url": image_url,
-            "payment_type": payment_type,
-        }
-    )
+    payload: dict = {
+        "user_id": user_id,
+        "prompt": prompt,
+        "image_url": image_url,
+        "payment_type": payment_type,
+    }
+    if photoshoot_id is not None:
+        payload["photoshoot_id"] = photoshoot_id
+    return insert_generation(payload)
 
 
 def insert_credit_transaction(data: dict) -> dict:

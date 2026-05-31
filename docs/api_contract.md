@@ -129,6 +129,7 @@
 - Ошибки загрузки (backend выключен, 500) **не** показываются техническим SnackBar; галерея остаётся usable (empty state или только локально добавленные кадры).
 - Новые результаты после **`POST /generate`** или успешной **`POST /photoshoots/generate`** добавляются в список **сразу сверху**, без повторного `GET`.
 - Записи фотосессий из **`GET /generations`** имеют `prompt`: **`Фотосессия: <style.title>`** (например `Фотосессия: Студийный портрет`).
+- Записи одной фотосессии из нескольких изображений имеют **одинаковый** `photoshoot_id`; обычные генерации — **`photoshoot_id: null`** (поле можно игнорировать в текущем Flutter).
 
 **Response `200`:**
 
@@ -140,7 +141,16 @@
       "prompt": "cat in cyberpunk city",
       "image_url": "https://placehold.co/1024x1024?text=Generated+Image",
       "payment_type": "free",
+      "photoshoot_id": null,
       "created_at": "2026-05-21T12:34:56.789012+00:00"
+    },
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "prompt": "Фотосессия: Студийный портрет",
+      "image_url": "https://example.supabase.co/storage/v1/object/public/generated-images/photoshoots/…",
+      "payment_type": "free",
+      "photoshoot_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "created_at": "2026-05-29T10:00:00.000000+00:00"
     }
   ]
 }
@@ -152,6 +162,7 @@
 | `prompt` | string | Текст запроса при генерации или описание фотосессии (`Фотосессия: …`) |
 | `image_url` | string | URL результата |
 | `payment_type` | string | `"free"` или `"paid"` |
+| `photoshoot_id` | string (uuid) \| null | Общий id фотосессии для группировки нескольких результатов; **`null`** для обычных генераций и старых записей |
 | `created_at` | string (ISO 8601) | Время создания |
 
 Пустая история: `{"generations": []}` — это **нормальный** ответ, не ошибка.
@@ -240,6 +251,7 @@ Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, диапазо
 - `prompt`: **`Фотосессия: <style.title>`** (из catalog)
 - `image_url`: Storage **`public_url`**
 - `payment_type`: **`free`** для бесплатных стилей, **`paid`** для платных (платные сейчас не вызываются из Flutter без оплаты)
+- `photoshoot_id`: **один общий uuid** на всю фотосессию (все результаты одного запроса делят одно значение)
 
 **`GET /generations`** возвращает записи фотосессий вместе с обычными генерациями. Списания генераций и оплата **не выполняются**.
 
