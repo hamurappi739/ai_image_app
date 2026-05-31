@@ -2,7 +2,7 @@
 
 **Flutter + FastAPI** приложение для AI-генерации изображений.
 
-Сейчас проект в **MVP / demo-mode** для ежедневной разработки: по умолчанию **`IMAGE_PROVIDER=mock`**. **Галерея группирует результаты фотосессий по `photoshoot_id`** — одна фотосессия = одна карточка с несколькими изображениями; обычные генерации остаются отдельными карточками. **Production-safe default:** реальная генерация фотосессий **выключена** (`ENABLE_PHOTOSHOOT_GENERATION=false`, `PHOTOSHOOT_OUTPUT_COUNT=1`).
+Сейчас проект в **MVP / demo-mode**: **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**. **Галерея** группирует фотосессии по **`photoshoot_id`**. **Ближайший UX** (см. [roadmap.md](docs/roadmap.md)): onboarding, улучшенные карточки фотосессий, фото+описание на «Создать», «Своя фотосессия», оплата.
 
 **Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход) с loading states для auth-действий. Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. Backend автоматически создаёт профиль пользователя при первом **`/generate`** или **`/generations`** (profile auto-sync). **Без** Flutter Supabase config приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
@@ -109,15 +109,20 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 
 ## UX правила
 
-**В пользовательском UI не использовать:** промпт, кредиты, токены.
+**Аудитория:** обычные пользователи, в том числе **40–60+** — простой интерфейс, **крупные** понятные действия.
+
+**В пользовательском UI не использовать:** prompt, промпт, кредиты, токены, credits, tokens.
 
 **Использовать:** описание, идея, изображение, генерации, пакеты генераций, фотосессии.
+
+**Ближайший UX (план):** first-run onboarding (5 экранов) → карточки фотосессий + советы по фото → «Создать»: фото + описание → «Своя фотосессия» → оплата. Подробнее: [docs/app_design_strategy.md](docs/app_design_strategy.md), [docs/roadmap.md](docs/roadmap.md).
 
 ---
 
 ## Что пока demo-mode
 
 - **Постоянная** Gemini-генерация в dev (по умолчанию **mock**; Gemini — только контролируемые ручные тесты)
+- **First-run onboarding**, **богаче карточки фотосессий**, **фото+описание на «Создать»**, **«Своя фотосессия»**
 - **Product photoshoot mode** — постоянный **`PHOTOSHOOT_OUTPUT_COUNT=3`** после решения стоимости/лимитов Gemini
 - **RuStore Billing** и оплата фотосессий
 - Подтверждение email, восстановление пароля, production без `TEST_USER_ID`
