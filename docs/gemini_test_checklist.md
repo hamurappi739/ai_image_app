@@ -10,11 +10,22 @@
 
 ## Последний результат теста
 
+### Text generation (`POST /generate`)
+
 - **Gemini test passed** — реальное изображение получено через `IMAGE_PROVIDER=gemini`
 - **Storage `public_url` flow passed** — backend загрузил результат в bucket `generated-images`, frontend получил `public_url`
 - **Галерея** показала реальную картинку по Storage URL
 - Тест выполнен с **`ENABLE_CREDIT_CONSUMPTION=false`** (без списания генераций)
 - После теста **`IMAGE_PROVIDER` возвращён на `mock`** — это **обязательно** после каждого Gemini-теста
+
+### Photoshoot (`POST /photoshoots/generate`)
+
+- **Photoshoot test passed** — uploaded photo + style → Gemini → Storage → **`image_urls`** с **`public_url`**
+- Тест выполнен с **`ENABLE_PHOTOSHOOT_GENERATION=true`**, **`PHOTOSHOOT_OUTPUT_COUNT=1`**
+- **`public_url`** из `image_urls` открывается в браузере
+- После теста **`ENABLE_PHOTOSHOOT_GENERATION=false`** — **обязательно**
+
+**Правило:** **не держать** `ENABLE_PHOTOSHOOT_GENERATION=true` во время обычного Flutter-тестирования — случайные клики во вкладке «Фотосессии» могут вызвать платный Gemini-запрос.
 
 ## Перед тестом
 
@@ -130,6 +141,17 @@ PHOTOSHOOT_OUTPUT_COUNT=1
 
 **Не повторять** запросы много раз вслепую — сначала прочитать `text_preview` и `part_types`, исправить prompt/модель/фото, затем **один** контролируемый повтор.
 
+#### Что считать успехом (photoshoot)
+
+- backend **не падает**
+- **`POST /photoshoots/generate`** принял uploaded photo (multipart)
+- Gemini **вернул photoshoot image**
+- backend **загрузил результат в Supabase Storage** (bucket `generated-images`, path `photoshoots/…`)
+- response содержит **`image_urls`** с **`public_url`** (не data URL)
+- **`public_url` открывается в браузере**
+- в backend **нет утечки ключей** в логах и ответах
+- после теста **`ENABLE_PHOTOSHOOT_GENERATION=false`**
+
 Возможные причины:
 
 - Gemini **не вернул изображение** (только текст / пустой ответ)
@@ -144,7 +166,8 @@ PHOTOSHOOT_OUTPUT_COUNT=1
 
 Что делать:
 
-- **сразу** вернуть `IMAGE_PROVIDER=mock` после неудачного теста (не оставлять `gemini` включённым)
+- **сразу** вернуть `ENABLE_PHOTOSHOOT_GENERATION=false` после photoshoot-теста (или неудачи)
+- **сразу** вернуть `IMAGE_PROVIDER=mock` после text-generation теста (не оставлять `gemini` включённым)
 - не продолжать повторные платные попытки вслепую
 - проверить `POST /debug/storage-test` и `POST /debug/storage-image-test` — Storage должен работать отдельно от Gemini
 - вернуть `IMAGE_PROVIDER=mock`

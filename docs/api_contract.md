@@ -226,13 +226,28 @@
 - Слишком большой файл → `400` `Photo is too large`
 - Неизвестный `style_id` → `400` `Unknown photoshoot style`
 
-**Текущее поведение (после валидации):** Gemini-генерация фотосессии → загрузка результатов в Supabase Storage → **`200 OK`** с `image_urls`.
+**Текущее поведение (после валидации style/photo):**
 
-Runtime limit количества результатов: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, диапазон **1–3**). Сейчас рекомендуется **`PHOTOSHOOT_OUTPUT_COUNT=1`** для контролируемого ручного теста.
+| `ENABLE_PHOTOSHOOT_GENERATION` | Поведение |
+|--------------------------------|-----------|
+| **`false`** (по умолчанию) | **`501`** `Photoshoot generation is disabled in development mode` — Gemini **не вызывается** (защита от случайных кликов) |
+| **`true`** | Gemini → Supabase Storage → **`200 OK`** с `image_urls` |
+
+Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, диапазон **1–3**). Для controlled test рекомендуется **`PHOTOSHOOT_OUTPUT_COUNT=1`**. **Product target:** **3 изображения** на фотосессию (catalog `output_count=3`; включить после проверки стоимости).
 
 Результаты **пока не пишутся** в таблицу `generations` / Галерею. Списания генераций и оплата **не выполняются**.
 
-### Response `200`
+### Response `501` (generation disabled)
+
+```json
+{
+  "detail": "Photoshoot generation is disabled in development mode"
+}
+```
+
+Flutter обрабатывает **`501`** мягко: «Обработка фото будет добавлена позже».
+
+### Response `200` (generation enabled)
 
 ```json
 {
@@ -257,13 +272,15 @@ Runtime limit количества результатов: **`PHOTOSHOOT_OUTPUT_
 | **500** | `GEMINI_API_KEY is not configured` |
 | **502** | `Gemini did not return a photoshoot image` |
 | **502** | `Gemini photoshoot generation failed: status=…, message=…` (без секретов; message ≤ 300 символов) |
+| **501** | `Photoshoot generation is disabled in development mode` (`ENABLE_PHOTOSHOOT_GENERATION=false`) |
 
-**Будущее поведение:** запись результатов в `generations` / Галерею; product target — **3 изображения** на фотосессию (`PHOTOSHOOT_OUTPUT_COUNT=3` после проверки стоимости).
+**Будущее поведение:** запись результатов в `generations` / Галерею; product target — **3 изображения** на фотосессию.
 
 ### Flutter (вкладка «Фотосессии»)
 
 - Бесплатный сценарий: `ApiService.generatePhotoshoot(...)` отправляет `multipart/form-data` с полями `style_id`, `style_title`, `photo`.
-- При **`200`**: backend возвращает `image_urls` (Flutter пока не отображает их — отдельный шаг).
+- При **`501`** (по умолчанию `ENABLE_PHOTOSHOOT_GENERATION=false`): мягкое сообщение «Обработка фото будет добавлена позже».
+- При **`200`** (`ENABLE_PHOTOSHOOT_GENERATION=true`): backend возвращает `image_urls` (Flutter пока не отображает — отдельный шаг).
 - При **`400`** (тип/размер): понятное сообщение про JPEG/PNG/WebP до 10 МБ.
 - Платные сценарии пока не отправляют multipart на backend.
 
@@ -293,13 +310,13 @@ Runtime limit количества результатов: **`PHOTOSHOOT_OUTPUT_
 | Вкладка (RU) | Backend сейчас | Статус |
 |--------------|----------------|--------|
 | **Создать** | `POST /generate` через `ApiService.generateImage()` | **Работает** |
-| **Фотосессии** | `POST /photoshoots/generate` (multipart) | Gemini → Storage → `image_urls`; Flutter пока не показывает результаты |
+| **Фотосессии** | `POST /photoshoots/generate` (multipart) | По умолчанию **501** (safety switch); при `ENABLE_PHOTOSHOOT_GENERATION=true` → `image_urls` |
 | **Галерея** | `GET /generations` при старте + локально новые сверху | **Работает** (dev: `TEST_USER_ID`; фильтр debug в UI) |
 | **Пакеты** | — | UI-заглушка под будущую оплату (RuStore) |
 | **Профиль** | — | Placeholder |
 
 - **Production / release** Flutter **не должен** вызывать `/debug/*` (только ручная отладка backend).
-- **Фотосессии:** бесплатный сценарий — multipart upload → Gemini → `image_urls` (без записи в `generations`); платные — «Оплата будет добавлена позже». **Пакеты:** SnackBar «будет добавлено позже», без записи в БД.
+- **Фотосессии:** бесплатный сценарий — multipart upload; по умолчанию **501** (`ENABLE_PHOTOSHOOT_GENERATION=false`); при включённой генерации → `image_urls` (Flutter пока не показывает); платные — «Оплата будет добавлена позже». **Пакеты:** SnackBar «будет добавлено позже», без записи в БД.
 - **Создать:** при `402` в UI — переход к идее покупки **пакета генераций** (не слово «кредиты»).
 
 ---
@@ -307,7 +324,7 @@ Runtime limit количества результатов: **`PHOTOSHOOT_OUTPUT_
 ## 9. Flutter notes
 
 - **Основной рабочий endpoint:** `POST /generate` (вкладка **Создать**).
-- **Фотосессии:** `POST /photoshoots/generate` — `multipart/form-data` (`style_id`, `style_title`, `photo`); Gemini-генерация + Storage; `PHOTOSHOOT_OUTPUT_COUNT` (default **1**); без записи в `generations` и без списаний.
+- **Фотосессии:** `POST /photoshoots/generate` — `multipart/form-data`; **`ENABLE_PHOTOSHOOT_GENERATION=false`** по умолчанию → **501**; при **`true`** → Gemini + Storage; test `output_count=1`, product target **3**; без записи в `generations`.
 - **`GET /generations`** — галерея при старте; после auth — тот же endpoint с user id авторизованного пользователя.
 - **Не вызывать** `/debug/*` из release-сборки.
 - **Не хранить** `SUPABASE_SERVICE_ROLE_KEY` во Flutter.

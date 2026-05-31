@@ -2,13 +2,13 @@
 
 **Flutter + FastAPI** приложение для AI-генерации изображений.
 
-Сейчас проект в **MVP / demo-mode** для ежедневной разработки: по умолчанию **`IMAGE_PROVIDER=mock`**. **Реальная Gemini-генерация была успешно проверена вручную** — результат сохраняется в **Supabase Storage** и отображается в **Галерее**. **Загрузка фото** (фотосессии) и **платежи** — следующие этапы.
+Сейчас проект в **MVP / demo-mode** для ежедневной разработки: по умолчанию **`IMAGE_PROVIDER=mock`**. **Реальная Gemini-генерация была успешно проверена вручную** — результат сохраняется в **Supabase Storage** и отображается в **Галерее**. **Реальная Gemini-фотосессия также проверена вручную** (uploaded photo → Gemini → Storage → `image_urls`), но **по умолчанию выключена** через **`ENABLE_PHOTOSHOOT_GENERATION=false`** для защиты от случайных платных запросов. **Следующий этап:** подключить photoshoot results к **Gallery/history**.
 
 **Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход) с loading states для auth-действий. Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. Backend автоматически создаёт профиль пользователя при первом **`/generate`** или **`/generations`** (profile auto-sync). **Без** Flutter Supabase config приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
-**Фотосессии (demo):** можно выбрать фото локально, увидеть preview и для **бесплатного** сценария отправить выбранное фото на backend через **`multipart/form-data`**. Backend пока только **валидирует** файл (JPEG/PNG/WebP, до 10 MB) и возвращает placeholder **`501`**; реальная обработка и сохранение результатов — следующий этап.
+**Фотосессии:** можно выбрать фото локально и для **бесплатного** сценария отправить на backend через **`multipart/form-data`**. Backend **валидирует** файл (JPEG/PNG/WebP, до 10 MB). По умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`** → **`501`** (Gemini не вызывается). **Реальная Gemini-фотосессия проверена вручную** при `ENABLE_PHOTOSHOOT_GENERATION=true`; результаты пока **не отображаются** во Flutter Gallery.
 
-**Backend / Supabase:** **реальная Gemini-генерация проверена вручную** — Gemini → data URL → Supabase Storage (`generated-images`) → **`public_url`** в response и **Галерея**. По умолчанию приложение работает в **`IMAGE_PROVIDER=mock`** для безопасной разработки без расхода API. Ошибки и **таймауты** Supabase REST: при недоступности БД — **`503`** вместо необработанного **`500`** traceback.
+**Backend / Supabase:** **реальная Gemini-генерация проверена вручную** — Gemini → data URL → Supabase Storage (`generated-images`) → **`public_url`** в response и **Галерея**. **Gemini photoshoot** (uploaded photo + style) также **проверен вручную** → Storage → `image_urls`; по умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**. Приложение работает в **`IMAGE_PROVIDER=mock`** для безопасной разработки без расхода API.
 
 ---
 
@@ -28,6 +28,7 @@
 - Supabase: таблицы **`profiles`**, **`generations`**, **`credit_transactions`**
 - Backend: списание бесплатных / платных генераций **подготовлено** (`ENABLE_CREDIT_CONSUMPTION`)
 - Backend: **Gemini → Storage → Галерея** проверен вручную; по умолчанию **`IMAGE_PROVIDER=mock`**
+- Backend: **Gemini photoshoot** проверен вручную; по умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**
 - Backend: безопасная обработка **Supabase timeouts** (`503`)
 
 ---
@@ -117,12 +118,12 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 ## Что пока demo-mode
 
 - **Постоянная** Gemini-генерация в dev (по умолчанию **mock**; Gemini — только контролируемые ручные тесты)
-- **Загрузка** пользовательского фото (фотосессии)
-- **RuStore Billing**
+- **Photoshoot results in Flutter Gallery/history** — backend возвращает `image_urls`, Flutter пока не показывает
+- **RuStore Billing** и оплата фотосессий
 - Подтверждение email, восстановление пароля, production без `TEST_USER_ID`
 - **Production security** (debug routes, CORS, RLS)
 
-Gemini provider реализован и **успешно проверен вручную**; по умолчанию используется **`IMAGE_PROVIDER=mock`**.  
+Gemini provider и **Gemini photoshoot** реализованы и **успешно проверены вручную**; по умолчанию **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**.  
 Повторный ручной тест Gemini — только по [docs/gemini_test_checklist.md](docs/gemini_test_checklist.md), **без лишних повторов**.
 
 ---

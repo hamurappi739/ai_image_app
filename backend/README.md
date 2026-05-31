@@ -71,9 +71,29 @@ GEMINI_MODEL=gemini-2.5-flash-image
 
 - **`ENABLE_PHOTOSHOOT_GENERATION=false`** (по умолчанию) — `POST /photoshoots/generate` валидирует multipart, но **не вызывает Gemini**; возвращает **`501`** `Photoshoot generation is disabled in development mode`. Защита от случайных кликов во Flutter.
 - **`ENABLE_PHOTOSHOOT_GENERATION=true`** — реальная Gemini-фотосессия (photo + style → Gemini → Storage → `image_urls`). **Только на время ручного теста.**
-- Для controlled test также задайте **`PHOTOSHOOT_OUTPUT_COUNT=1`** и **`GEMINI_API_KEY`**.
 - **После теста обязательно вернуть `false`** и перезапустить backend.
 - Проверка: `GET /debug/config` → `"photoshoot_generation_enabled": false`
+
+#### Manual photoshoot test flow
+
+1. В `backend/.env` (не коммитить) **временно**:
+   ```env
+   ENABLE_PHOTOSHOOT_GENERATION=true
+   PHOTOSHOOT_OUTPUT_COUNT=1
+   GEMINI_API_KEY=your_key_here
+   ```
+2. Перезапустить backend; проверить `GET /debug/config` → `photoshoot_generation_enabled: true`, `photoshoot_output_count: 1`.
+3. Отправить **`POST /photoshoots/generate`** (multipart: `style_id`, `photo`) — curl или Flutter.
+4. Успех: **`200`** с `image_urls` (Storage `public_url` в bucket `generated-images`, path `photoshoots/…`).
+5. **После теста вернуть:**
+   ```env
+   ENABLE_PHOTOSHOOT_GENERATION=false
+   ```
+   Перезапустить backend; проверить `photoshoot_generation_enabled: false`.
+
+**Не держать** `ENABLE_PHOTOSHOOT_GENERATION=true` во время обычного Flutter-тестирования — случайные клики могут вызвать платный Gemini-запрос.
+
+См. также [docs/gemini_test_checklist.md](../docs/gemini_test_checklist.md).
 
 ### PHOTOSHOOT_OUTPUT_COUNT
 
