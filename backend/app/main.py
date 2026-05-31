@@ -396,6 +396,12 @@ def generate_photoshoot(
     style = get_photoshoot_style(style_id)
     _ = style_title  # client hint; backend title from catalog is source of truth
 
+    if not style.is_free:
+        raise HTTPException(
+            status_code=402,
+            detail="Payment is required for this photoshoot style",
+        )
+
     if photo is None:
         raise HTTPException(status_code=400, detail="Photo is required")
 

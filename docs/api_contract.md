@@ -228,9 +228,19 @@
 | `travel_portrait` | Портрет в путешествии | нет (100 ₽) |
 
 - Неизвестный `style_id` → **`400`** `Unknown photoshoot style`
+- Платный стиль (`is_free=false`) без подтверждённой оплаты → **`402`** `Payment is required for this photoshoot style` — **до** валидации фото и **без** вызова Gemini / Storage / `generations`
 - Alias: Flutter может отправлять `urban_portrait` — backend принимает как `city_portrait`
 
-**Валидация файла:**
+**Порядок проверок:**
+
+1. Auth + profile auto-sync
+2. `style_id` → catalog (**`400`** если неизвестен)
+3. Платный стиль → **`402`** (без чтения/обработки фото, если возможно)
+4. Валидация `photo` (формат, размер)
+5. **`ENABLE_PHOTOSHOOT_GENERATION=false`** → **`501`** (только для **бесплатных** стилей, прошедших шаги 1–4)
+6. **`ENABLE_PHOTOSHOOT_GENERATION=true`** → Gemini → Storage → **`generations`** → **`200`**
+
+**Валидация файла** (только после шага 3 для бесплатных стилей):
 
 - Допустимые форматы (`content_type`): `image/jpeg`, `image/png`, `image/webp`
 - Максимальный размер: **10 MB**
@@ -238,7 +248,7 @@
 - Слишком большой файл → `400` `Photo is too large`
 - Неизвестный `style_id` → `400` `Unknown photoshoot style`
 
-**Текущее поведение (после валидации style/photo):**
+**Текущее поведение (бесплатные стили, после валидации photo):**
 
 | `ENABLE_PHOTOSHOOT_GENERATION` | Поведение |
 |--------------------------------|-----------|
@@ -250,7 +260,7 @@ Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, диапазо
 При успехе (**`ENABLE_PHOTOSHOOT_GENERATION=true`**) для каждого `image_url` создаётся запись в **`generations`**:
 - `prompt`: **`Фотосессия: <style.title>`** (из catalog)
 - `image_url`: Storage **`public_url`**
-- `payment_type`: **`free`** для бесплатных стилей, **`paid`** для платных (платные сейчас не вызываются из Flutter без оплаты)
+- `payment_type`: **`free`** для бесплатных стилей (платные стили сейчас отклоняются **`402`** до генерации)
 - `photoshoot_id`: **один общий uuid** на всю фотосессию (все результаты одного запроса делят одно значение)
 
 **`GET /generations`** возвращает записи фотосессий вместе с обычными генерациями. Списания генераций и оплата **не выполняются**.
@@ -264,6 +274,16 @@ Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, диапазо
 ```
 
 Flutter обрабатывает **`501`** мягко: «Обработка фото будет добавлена позже».
+
+### Response `402` (paid style, payment not verified)
+
+```json
+{
+  "detail": "Payment is required for this photoshoot style"
+}
+```
+
+Возвращается для платных стилей catalog (`is_free=false`) **без** подтверждённой оплаты. Gemini, Storage и запись в **`generations`** **не выполняются**.
 
 ### Response `200` (generation enabled)
 
@@ -287,6 +307,8 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 
 | HTTP | Условие |
 |------|---------|
+| **400** | `Unknown photoshoot style` |
+| **402** | `Payment is required for this photoshoot style` (платный стиль без верификации оплаты) |
 | **500** | `GEMINI_API_KEY is not configured` |
 | **500** | `Failed to save photoshoot result` |
 | **502** | `Gemini did not return a photoshoot image` |
@@ -301,7 +323,7 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 - При **`501`** (по умолчанию `ENABLE_PHOTOSHOOT_GENERATION=false`): мягкое сообщение «Обработка фото будет добавлена позже».
 - При **`200`** (`ENABLE_PHOTOSHOOT_GENERATION=true`): backend возвращает `image_urls` (Flutter пока не отображает — отдельный шаг).
 - При **`400`** (тип/размер): понятное сообщение про JPEG/PNG/WebP до 10 МБ.
-- Платные сценарии пока не отправляют multipart на backend.
+- Платные стили: Flutter пока не отправляет multipart; backend дополнительно возвращает **`402`**, если запрос всё же придёт без оплаты.
 
 ---
 
@@ -329,13 +351,13 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 | Вкладка (RU) | Backend сейчас | Статус |
 |--------------|----------------|--------|
 | **Создать** | `POST /generate` через `ApiService.generateImage()` | **Работает** |
-| **Фотосессии** | `POST /photoshoots/generate` (multipart) | По умолчанию **501** (safety switch); при `ENABLE_PHOTOSHOOT_GENERATION=true` → `image_urls` |
+| **Фотосессии** | `POST /photoshoots/generate` (multipart) | Бесплатные: по умолчанию **501**; при `ENABLE_PHOTOSHOOT_GENERATION=true` → `image_urls`. Платные без оплаты → **402** |
 | **Галерея** | `GET /generations` при старте + локально новые сверху | **Работает** (dev: `TEST_USER_ID`; фильтр debug в UI) |
 | **Пакеты** | — | UI-заглушка под будущую оплату (RuStore) |
 | **Профиль** | — | Placeholder |
 
 - **Production / release** Flutter **не должен** вызывать `/debug/*` (только ручная отладка backend).
-- **Фотосессии:** бесплатный сценарий — multipart upload; по умолчанию **501** (`ENABLE_PHOTOSHOOT_GENERATION=false`); при включённой генерации → `image_urls` (Flutter пока не показывает); платные — «Оплата будет добавлена позже». **Пакеты:** SnackBar «будет добавлено позже», без записи в БД.
+- **Фотосессии:** бесплатный сценарий — multipart upload; по умолчанию **501**; при включённой генерации → `image_urls`; платные без оплаты → **402** (backend protection). **Пакеты:** SnackBar «будет добавлено позже», без записи в БД.
 - **Создать:** при `402` в UI — переход к идее покупки **пакета генераций** (не слово «кредиты»).
 
 ---

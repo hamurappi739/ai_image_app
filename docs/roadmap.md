@@ -67,6 +67,7 @@
 | **Onboarding mentions contextual help** | ✅ | На экране «Галерея»: кнопка помощи в правом верхнем углу раздела |
 | **Create tab contextual help** | ✅ | Иконка **?**; автопоказ при первом открытии; `create_help_seen` |
 | **Photoshoots tab contextual help** | ✅ | Иконка **?**; автопоказ при первом открытии; `photoshoots_help_seen` |
+| **Backend paid photoshoot protection** | ✅ | Платные стили → **`402`** до Gemini/Storage/`generations`; бесплатные — как раньше |
 
 ### Flutter UI MVP (детали)
 
@@ -100,7 +101,7 @@
 2. **Image + description flow on Create tab** — фото + описание/идея → **одно** изображение (не фотосессия).
 3. **Custom photoshoot flow** — **«Своя фотосессия»**: фото + текст; помощник «место, одежда, настроение, стиль, фон».
 4. **Packs tab contextual help** — помощь/объяснение для **«Пакетов»** после проработки цен и оплаты.
-5. **Paid photoshoot protection / payments** — оплата перед платными стилями (100 ₽); RuStore для пакетов.
+5. **RuStore payment flow and backend payment verification** — оплата платных фотосессий (100 ₽) и пакетов генераций.
 
 ### Далее (после UX-блока)
 

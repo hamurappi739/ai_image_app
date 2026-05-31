@@ -142,6 +142,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Использует ту же auth-логику: Bearer token или development fallback `TEST_USER_ID`; перед обработкой — profile auto-sync.
 - Валидирует формат файла: **JPEG / PNG / WebP**, максимум **10 MB**.
 - Неизвестный `style_id` → **`400`** `Unknown photoshoot style`.
+- **Платные стили** (`is_free=false`) → **`402`** `Payment is required for this photoshoot style` — **до** чтения фото; Gemini, Storage и **`generations`** **не вызываются** (backend protection; верификация оплаты — позже).
 - При успехе возвращает **`200`** с `style_id`, `style_title`, `image_urls`, `output_count`.
 - **Safety switch (по умолчанию):** **`ENABLE_PHOTOSHOOT_GENERATION=false`** — Gemini **не вызывается**; после валидации **`501`** `Photoshoot generation is disabled in development mode`.
 - **Controlled test:** временно **`ENABLE_PHOTOSHOOT_GENERATION=true`** + **`PHOTOSHOOT_OUTPUT_COUNT=1`** (или **3** для product test) + **`GEMINI_API_KEY`**; **после теста вернуть `ENABLE_PHOTOSHOOT_GENERATION=false`** и **`PHOTOSHOOT_OUTPUT_COUNT=1`**.
@@ -217,7 +218,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - По умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**: после валидации backend возвращает **`501`**; Flutter показывает «Обработка фото будет добавлена позже» (Gemini не вызывается) — **safe mode проверен**.
 - При **`ENABLE_PHOTOSHOOT_GENERATION=true`**: Gemini → **`200`** с `image_urls` (1–3) → modal закрывается → результаты в **Галерею** → SnackBar **«Фотосессия готова»** → переход на вкладку **Галерея**. После перезагрузки истории с backend записи с общим **`photoshoot_id`** отображаются **одной карточкой-группой**.
 - **Controlled 3-output test пройден** через Flutter UI (см. §11); после теста **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`PHOTOSHOOT_OUTPUT_COUNT=1`** (safe mode возвращён).
-- Платные фотосессии пока **не отправляют** фото на backend → **«Оплата будет добавлена позже»**.
+- Платные фотосессии: Flutter пока **не отправляет** фото на backend → **«Оплата будет добавлена позже»**; backend **дополнительно защищён** — платный `style_id` → **`402`** без Gemini/Storage/`generations`, даже при `ENABLE_PHOTOSHOOT_GENERATION=true`.
 - Запись в backend **`generations`** выполняется; **оплата** и **«Своя фотосессия»** — следующие этапы (см. roadmap).
 - **План UI:** разнообразнее карточки стилей, рекомендации по исходному фото, примеры результата в bottom sheet.
 
@@ -240,7 +241,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | 2 | **«Создать»:** фото + **описание** → **одно** изображение | план |
 | 3 | **«Своя фотосессия»** — фото + свои пожелания + текст-помощник | план |
 | 4 | **Помощь для «Пакетов»** — после проработки цен и оплаты | план |
-| 5 | **Оплата** платных фотосессий | план |
+| 5 | **Оплата** платных фотосессий (RuStore + backend payment verification) | план |
 
 **Аудитория:** обычные пользователи **40–60+**; простой UI, крупные действия; в UI **не** prompt / tokens / credits.
 
