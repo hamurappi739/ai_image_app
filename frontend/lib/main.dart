@@ -10,7 +10,9 @@ import 'models/generated_image_item.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
+import 'services/create_help_service.dart';
 import 'services/onboarding_service.dart';
+import 'widgets/create_help_dialog.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
@@ -159,6 +161,7 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final screens = <Widget>[
       CreateScreen(
+        isActive: _selectedIndex == 0,
         apiService: _apiService,
         onImageGenerated: _onImageGenerated,
         onOpenGallery: _goToGalleryTab,
@@ -2544,11 +2547,13 @@ class _ProfileListRow extends StatelessWidget {
 class CreateScreen extends StatefulWidget {
   const CreateScreen({
     super.key,
+    required this.isActive,
     required this.apiService,
     required this.onImageGenerated,
     required this.onOpenGallery,
   });
 
+  final bool isActive;
   final ApiService apiService;
   final ValueChanged<GeneratedImageItem> onImageGenerated;
   final VoidCallback onOpenGallery;
@@ -2571,7 +2576,61 @@ class _CreateScreenState extends State<CreateScreen> {
   bool _isLoading = false;
   bool _showNoGenerationsWarning = false;
   bool _showGenerationErrorState = false;
+  bool _isHelpDialogVisible = false;
   GenerateImageResponse? _lastResponse;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleFirstVisitHelp();
+  }
+
+  @override
+  void didUpdateWidget(CreateScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _scheduleFirstVisitHelp();
+    }
+  }
+
+  void _scheduleFirstVisitHelp() {
+    if (!widget.isActive) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeShowFirstVisitHelp();
+    });
+  }
+
+  Future<void> _maybeShowFirstVisitHelp() async {
+    if (!mounted || !widget.isActive || _isHelpDialogVisible) return;
+    final seen = await CreateHelpService.isSeen();
+    if (!mounted || !widget.isActive || seen) return;
+    await _showHelp();
+  }
+
+  Future<void> _showHelp() async {
+    if (!mounted || _isHelpDialogVisible) return;
+    _isHelpDialogVisible = true;
+    var dismissed = false;
+
+    Future<void> markSeenOnDismiss() async {
+      if (dismissed) return;
+      dismissed = true;
+      await CreateHelpService.setSeen();
+    }
+
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (dialogContext) => CreateHelpDialog(
+          onDismissed: markSeenOnDismiss,
+        ),
+      );
+      await markSeenOnDismiss();
+    } finally {
+      _isHelpDialogVisible = false;
+    }
+  }
 
   @override
   void dispose() {
@@ -2657,11 +2716,38 @@ class _CreateScreenState extends State<CreateScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('AI Фотогенератор', style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 6),
-              Text(
-                'Создавайте изображения по вашему описанию',
-                style: theme.textTheme.bodyMedium,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'AI Фотогенератор',
+                          style: theme.textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Создавайте изображения по вашему описанию',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _isHelpDialogVisible ? null : _showHelp,
+                    tooltip: 'Помощь',
+                    icon: const Icon(Icons.help_outline),
+                    color: AiImageGeneratorApp.textSecondary,
+                    iconSize: 26,
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
               _StatusCard(response: _lastResponse),
