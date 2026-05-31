@@ -7,8 +7,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/gallery_display_item.dart';
 import 'models/generated_image_item.dart';
+import 'screens/onboarding_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
+import 'services/onboarding_service.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
@@ -69,13 +71,15 @@ class AiImageGeneratorApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const MainShell(),
+      home: const AppEntry(),
     );
   }
 }
 
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  const MainShell({super.key, this.onResetOnboarding});
+
+  final VoidCallback? onResetOnboarding;
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -175,6 +179,7 @@ class _MainShellState extends State<MainShell> {
         authService: _authService,
         apiService: _apiService,
         onAuthChanged: _onProfileAuthChanged,
+        onResetOnboarding: widget.onResetOnboarding,
       ),
     ];
 
@@ -214,6 +219,65 @@ class _MainShellState extends State<MainShell> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class AppEntry extends StatefulWidget {
+  const AppEntry({super.key});
+
+  @override
+  State<AppEntry> createState() => _AppEntryState();
+}
+
+class _AppEntryState extends State<AppEntry> {
+  bool? _onboardingCompleted;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOnboardingState();
+  }
+
+  Future<void> _loadOnboardingState() async {
+    final completed = await OnboardingService.isCompleted();
+    if (!mounted) return;
+    setState(() => _onboardingCompleted = completed);
+  }
+
+  Future<void> _completeOnboarding() async {
+    await OnboardingService.setCompleted(completed: true);
+    if (!mounted) return;
+    setState(() => _onboardingCompleted = true);
+  }
+
+  Future<void> _resetOnboardingForDebug() async {
+    await OnboardingService.reset();
+    if (!mounted) return;
+    setState(() => _onboardingCompleted = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_onboardingCompleted == null) {
+      return const Scaffold(
+        backgroundColor: AiImageGeneratorApp.scaffoldBackground,
+        body: Center(
+          child: SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          ),
+        ),
+      );
+    }
+
+    if (!_onboardingCompleted!) {
+      return OnboardingScreen(onComplete: _completeOnboarding);
+    }
+
+    return MainShell(
+      onResetOnboarding: kDebugMode ? _resetOnboardingForDebug : null,
     );
   }
 }
@@ -1934,11 +1998,13 @@ class ProfileScreen extends StatefulWidget {
     required this.authService,
     required this.apiService,
     required this.onAuthChanged,
+    this.onResetOnboarding,
   });
 
   final AuthService authService;
   final ApiService apiService;
   final VoidCallback onAuthChanged;
+  final VoidCallback? onResetOnboarding;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -2401,6 +2467,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: const Text(
                           'Политика конфиденциальности',
                           style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (kDebugMode && widget.onResetOnboarding != null) ...[
+                    const SizedBox(height: 16),
+                    Center(
+                      child: TextButton(
+                        onPressed: widget.onResetOnboarding,
+                        child: const Text(
+                          'Показать обучалку снова',
+                          style: TextStyle(fontSize: 13),
                         ),
                       ),
                     ),
