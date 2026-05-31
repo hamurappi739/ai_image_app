@@ -78,6 +78,30 @@ class PhotoshootInvalidPhotoException implements Exception {
   const PhotoshootInvalidPhotoException();
 }
 
+class PhotoshootGenerateResponse {
+  const PhotoshootGenerateResponse({
+    required this.styleId,
+    required this.styleTitle,
+    required this.imageUrls,
+    required this.outputCount,
+  });
+
+  final String styleId;
+  final String styleTitle;
+  final List<String> imageUrls;
+  final int outputCount;
+
+  factory PhotoshootGenerateResponse.fromJson(Map<String, dynamic> json) {
+    final rawUrls = json['image_urls'] as List<dynamic>? ?? [];
+    return PhotoshootGenerateResponse(
+      styleId: json['style_id'] as String,
+      styleTitle: json['style_title'] as String,
+      imageUrls: rawUrls.map((url) => url as String).toList(),
+      outputCount: json['output_count'] as int? ?? rawUrls.length,
+    );
+  }
+}
+
 const _hiddenDevDescriptionPatterns = [
   'debug test prompt',
   'debug',
@@ -201,7 +225,7 @@ class ApiService {
     return path.substring(idx + 1);
   }
 
-  Future<void> generatePhotoshoot({
+  Future<PhotoshootGenerateResponse> generatePhotoshoot({
     required String styleId,
     required String styleTitle,
     required XFile photoFile,
@@ -234,7 +258,8 @@ class ApiService {
       throw const PhotoshootInvalidPhotoException();
     }
     if (response.statusCode == 200) {
-      return;
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return PhotoshootGenerateResponse.fromJson(json);
     }
     throw Exception('Failed to prepare photoshoot');
   }

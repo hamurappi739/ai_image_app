@@ -140,6 +140,12 @@ class _MainShellState extends State<MainShell> {
     });
   }
 
+  void _onPhotoshootGenerated(List<GeneratedImageItem> items) {
+    setState(() {
+      _generatedImages.insertAll(0, items);
+    });
+  }
+
   void _clearGallery() {
     setState(() => _generatedImages.clear());
   }
@@ -152,7 +158,11 @@ class _MainShellState extends State<MainShell> {
         onImageGenerated: _onImageGenerated,
         onOpenGallery: _goToGalleryTab,
       ),
-      PhotoshootsScreen(apiService: _apiService),
+      PhotoshootsScreen(
+        apiService: _apiService,
+        onPhotoshootGenerated: _onPhotoshootGenerated,
+        onOpenGallery: _goToGalleryTab,
+      ),
       GalleryScreen(
         images: _generatedImages,
         onCreateFirst: _goToCreateTab,
@@ -586,9 +596,13 @@ class PhotoshootsScreen extends StatelessWidget {
   const PhotoshootsScreen({
     super.key,
     required this.apiService,
+    required this.onPhotoshootGenerated,
+    required this.onOpenGallery,
   });
 
   final ApiService apiService;
+  final void Function(List<GeneratedImageItem> items) onPhotoshootGenerated;
+  final VoidCallback onOpenGallery;
 
   static const _gridBreakpoint = 560.0;
 
@@ -686,6 +700,8 @@ class PhotoshootsScreen extends StatelessWidget {
         style: style,
         apiService: apiService,
         onShowMessage: (message) => _showSnackBar(context, message),
+        onPhotoshootGenerated: onPhotoshootGenerated,
+        onOpenGallery: onOpenGallery,
       ),
     );
   }
@@ -909,11 +925,15 @@ class _PhotoshootDetailSheet extends StatefulWidget {
     required this.style,
     required this.apiService,
     required this.onShowMessage,
+    required this.onPhotoshootGenerated,
+    required this.onOpenGallery,
   });
 
   final _PhotoshootStyle style;
   final ApiService apiService;
   final void Function(String message) onShowMessage;
+  final void Function(List<GeneratedImageItem> items) onPhotoshootGenerated;
+  final VoidCallback onOpenGallery;
 
   @override
   State<_PhotoshootDetailSheet> createState() => _PhotoshootDetailSheetState();
@@ -973,13 +993,33 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
     }
     setState(() => _isPreparingPhotoshoot = true);
     try {
-      await widget.apiService.generatePhotoshoot(
+      final result = await widget.apiService.generatePhotoshoot(
         styleId: widget.style.id,
         styleTitle: widget.style.title,
         photoFile: selectedPhotoFile,
       );
       if (!mounted) return;
-      widget.onShowMessage('Обработка фото будет добавлена позже');
+      if (result.imageUrls.isEmpty) {
+        widget.onShowMessage(
+          'Не удалось подготовить фотосессию. Попробуйте позже.',
+        );
+        return;
+      }
+      final description = 'Фотосессия: ${result.styleTitle}';
+      final createdAt = DateTime.now();
+      final galleryItems = result.imageUrls
+          .map(
+            (url) => GeneratedImageItem(
+              description: description,
+              imageUrl: url,
+              createdAt: createdAt,
+            ),
+          )
+          .toList();
+      Navigator.of(context).pop();
+      widget.onPhotoshootGenerated(galleryItems);
+      widget.onShowMessage('Фотосессия готова');
+      widget.onOpenGallery();
     } on PhotoshootPlaceholderException {
       if (!mounted) return;
       widget.onShowMessage('Обработка фото будет добавлена позже');
@@ -1251,13 +1291,27 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                                       borderRadius: BorderRadius.circular(14),
                                       child: Center(
                                         child: _isPreparingPhotoshoot
-                                            ? const SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2.3,
-                                                  color: Colors.white,
-                                                ),
+                                            ? const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  SizedBox(
+                                                    width: 18,
+                                                    height: 18,
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2.3,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                  SizedBox(width: 10),
+                                                  Text(
+                                                    'Подождите...',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                ],
                                               )
                                             : Text(
                                                 laterLabel,
@@ -1284,7 +1338,15 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                 ),
-                                child: Text(
+                                child: _isPreparingPhotoshoot
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.3,
+                                        ),
+                                      )
+                                    : Text(
                                   laterLabel,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
