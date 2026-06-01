@@ -2,7 +2,7 @@
 
 **Flutter + FastAPI** приложение для AI-генерации изображений.
 
-Сейчас проект в **MVP / demo-mode**: **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**. **Галерея** группирует фотосессии по **`photoshoot_id`**. **Onboarding** и **контекстная помощь** реализованы. **Карточки фотосессий** — catalog-style UI с **«3 фото»**, рекомендациями по upload и placeholder-примерами. **Ближайший UX** (см. [roadmap.md](docs/roadmap.md)): реальные примеры, фото+описание на «Создать», «Своя фотосессия», помощь для «Пакетов», RuStore.
+Сейчас проект в **MVP / demo-mode**: **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**. **Onboarding**, **контекстная помощь** и **каталог фотосессий** реализованы. **«Создать»** — UI picker/preview для будущей генерации **фото + описание → одно изображение** (backend позже). **Ближайший UX** (см. [roadmap.md](docs/roadmap.md)): curated-примеры, backend для Create photo flow, «Своя фотосессия», RuStore.
 
 **Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход) с loading states для auth-действий. Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. Backend автоматически создаёт профиль пользователя при первом **`/generate`** или **`/generations`** (profile auto-sync). **Без** Flutter Supabase config приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
@@ -17,7 +17,8 @@
 - Flutter **web** UI на **русском** языке
 - **First-run onboarding** (5 экранов) + **контекстная помощь** на **«Создать»** и **«Фотосессии»** (автопоказ + кнопка **?**)
 - **Фотосессии — catalog-style cards:** richer UI, **«3 фото»** labels, upload recommendations, placeholder result examples (real curated images later)
-- Вкладка **Создать**
+- **Create tab — photo picker/preview UI** for future **photo + description → single image** (backend connection planned later)
+- Вкладка **Создать** — описание, `POST /generate`, **UI-каркас фото** (picker, preview, убрать; фото не на backend)
 - Генерация через backend **`POST /generate`** (demo-mode)
 - Результат на экране + **fallback-preview** при ошибке загрузки картинки
 - Кнопка **«Открыть в Галерее»**
@@ -117,14 +118,14 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 
 **Использовать:** описание, идея, изображение, генерации, пакеты генераций, фотосессии.
 
-**Ближайший UX (план):** реальные curated-примеры на карточках → «Создать»: фото + описание → «Своя фотосессия» → помощь для «Пакетов» → RuStore. Подробнее: [docs/app_design_strategy.md](docs/app_design_strategy.md), [docs/roadmap.md](docs/roadmap.md).
+**Ближайший UX (план):** curated-примеры → **backend для фото+описание на «Создать»** → «Своя фотосессия» → помощь для «Пакетов» → RuStore. Подробнее: [docs/app_design_strategy.md](docs/app_design_strategy.md), [docs/roadmap.md](docs/roadmap.md).
 
 ---
 
 ## Что пока demo-mode
 
 - **Постоянная** Gemini-генерация в dev (по умолчанию **mock**; Gemini — только контролируемые ручные тесты)
-- **Реальные curated-примеры** на карточках фотосессий (вместо placeholders), **фото+описание на «Создать»**, **«Своя фотосессия»**, **помощь для «Пакетов»**
+- **Backend для фото+описание на «Создать»** (UI-каркас готов), **«Своя фотосессия»**, **реальные curated-примеры**, **помощь для «Пакетов»**
 - **Product photoshoot mode** — постоянный **`PHOTOSHOOT_OUTPUT_COUNT=3`** после решения стоимости/лимитов Gemini
 - **RuStore Billing** и оплата фотосессий
 - Подтверждение email, восстановление пароля, production без `TEST_USER_ID`

@@ -72,17 +72,21 @@
 | **“3 фото” label on photoshoot cards** | ✅ | Чип **«3 фото»** на карточке и в bottom sheet |
 | **Upload photo recommendations in photoshoot dialog** | ✅ | Блок **«Какое фото лучше загрузить»** в bottom sheet |
 | **Placeholder result examples** | ✅ | **«Пример результата»** — 3 мини-заглушки «Фото 1–3» (не реальные assets) |
+| **Create tab photo picker UI** | ✅ | Блок **«Фото для образа»**, **«Добавить фото»** (`image_picker`); фото не уходит на backend |
+| **Create tab selected photo preview** | ✅ | Preview выбранного фото на вкладке **«Создать»** |
+| **Create tab remove selected photo** | ✅ | Кнопка **«Убрать фото»** |
+| **Updated Create contextual help for photo input** | ✅ | Шаг **«Фото для образа»** в `CreateHelpDialog` |
 
 ### Flutter UI MVP (детали)
 
 - **Onboarding:** 5 экранов при первом запуске; после «Начать» / «Пропустить» — основное приложение
-- **Создать:** описание, подсказки, быстрые идеи, **контекстная помощь**, `POST /generate`, результат + «Открыть в Галерее»
+- **Создать:** описание, подсказки, быстрые идеи, **UI-каркас фото** (picker/preview/убрать), **контекстная помощь**, `POST /generate` по описанию, результат + «Открыть в Галерее»
 - **Фотосессии:** **каталог карточек** (placeholder preview, «3 фото», цена), **рекомендации по фото** и **примеры-заглушки** в sheet; bottom sheet: выбор фото, preview, multipart upload (бесплатно); при успехе — результат в **Галерею**; при **501** — placeholder-сообщение
 - **Галерея:** `GET /generations` + локальные новые; **группировка фотосессий** по `photoshoot_id`; **Очистить** (только на устройстве); empty state; без падения при недоступном backend
 - **Пакеты:** 199 / 499 / 1199 ₽ (UI без реальной оплаты)
 - **Профиль:** вход / регистрация / выход (при Supabase dart-define)
 
-**UX (следующие задачи):** см. [app_design_strategy.md](app_design_strategy.md) — **реальные curated-примеры**, **art direction**, **фото+описание на «Создать»**, **«Своя фотосессия»**, **помощь для «Пакетов»**, **RuStore / оплата**.
+**UX (следующие задачи):** см. [app_design_strategy.md](app_design_strategy.md) — **реальные curated-примеры**, **backend фото+описание на «Создать»**, **«Своя фотосессия»**, **art direction**, **помощь для «Пакетов»**, **RuStore / оплата**.
 
 ---
 
@@ -103,10 +107,12 @@
 
 1. **Replace placeholders with real curated example images** — на карточках каталога и в блоке «Пример результата» вместо gradient-заглушек.
 2. **Improve visual branding and final art direction** — единый визуальный язык каталога фотосессий.
-3. **Image + description flow on Create tab** — фото + описание/идея → **одно** изображение (не фотосессия).
-4. **Custom photoshoot flow** — **«Своя фотосессия»**: фото + текст; помощник «место, одежда, настроение, стиль, фон».
-5. **Packs tab contextual help** — помощь/объяснение для **«Пакетов»** после проработки цен и оплаты.
-6. **RuStore payments** — RuStore payment flow и backend payment verification для платных фотосессий (100 ₽) и пакетов генераций.
+3. **Backend endpoint for photo + description single-image generation** — новый или расширенный API (не ломая текущий `POST /generate` по тексту).
+4. **Connect Create photo input to backend** — отправка выбранного фото + описания с вкладки **«Создать»**.
+5. **Save photo-based generation results to Gallery/history** — один результат в **Галерею** / `generations`.
+6. **Custom photoshoot flow** — **«Своя фотосессия»**: фото + текст; помощник «место, одежда, настроение, стиль, фон».
+7. **Packs tab contextual help** — помощь/объяснение для **«Пакетов»** после проработки цен и оплаты.
+8. **RuStore payments** — RuStore payment flow и backend payment verification для платных фотосессий (100 ₽) и пакетов генераций.
 
 ### Далее (после UX-блока)
 
