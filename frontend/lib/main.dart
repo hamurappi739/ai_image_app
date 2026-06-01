@@ -14,6 +14,7 @@ import 'services/create_help_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/photoshoots_help_service.dart';
 import 'widgets/create_help_dialog.dart';
+import 'widgets/packs_help_dialog.dart';
 import 'widgets/photoshoots_help_dialog.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
@@ -288,53 +289,129 @@ class _AppEntryState extends State<AppEntry> {
   }
 }
 
-class _GenerationPack {
-  const _GenerationPack({
-    required this.title,
-    required this.price,
+class _PackOffering {
+  const _PackOffering({
+    required this.priceRub,
     required this.imageCount,
-    required this.description,
-    this.badge,
+    required this.subtitle,
+    this.photoshootCount = 0,
     this.featured = false,
   });
 
-  final String title;
-  final String price;
+  final int priceRub;
   final int imageCount;
-  final String description;
-  final String? badge;
+  final int photoshootCount;
+  final String subtitle;
   final bool featured;
+
+  String get priceLabel => '$priceRub ₽';
 }
 
-class PacksScreen extends StatelessWidget {
+enum _PackCatalogMode { withPhotoshoots, imagesOnly }
+
+String _packPhotoshootLabel(int count) {
+  final mod10 = count % 10;
+  final mod100 = count % 100;
+  if (mod100 >= 11 && mod100 <= 14) return 'фотосессий';
+  if (mod10 == 1) return 'фотосессия';
+  if (mod10 >= 2 && mod10 <= 4) return 'фотосессии';
+  return 'фотосессий';
+}
+
+String _packImageLabel(int count) {
+  final mod10 = count % 10;
+  final mod100 = count % 100;
+  if (mod100 >= 11 && mod100 <= 14) return 'изображений';
+  if (mod10 == 1) return 'изображение';
+  if (mod10 >= 2 && mod10 <= 4) return 'изображения';
+  return 'изображений';
+}
+
+class PacksScreen extends StatefulWidget {
   const PacksScreen({super.key});
 
+  @override
+  State<PacksScreen> createState() => _PacksScreenState();
+}
+
+class _PacksScreenState extends State<PacksScreen> {
   static const _breakpointMedium = 560.0;
   static const _breakpointWide = 900.0;
 
-  static const _packages = <_GenerationPack>[
-    _GenerationPack(
-      title: 'Стартовый',
-      price: '199 ₽',
-      imageCount: 25,
-      description: 'Для первых идей и быстрых проб',
+  static const _imageUnitRub = 10;
+  static const _photoshootUnitRub = 100;
+  static const _customAmountMin = 200;
+  static const _customAmountMax = 100000;
+
+  static const _mixedPackages = <_PackOffering>[
+    _PackOffering(
+      priceRub: 199,
+      photoshootCount: 1,
+      imageCount: 9,
+      subtitle: 'Хорошо для первого знакомства',
     ),
-    _GenerationPack(
-      title: 'Авторский',
-      price: '499 ₽',
-      imageCount: 100,
-      description: 'Оптимальный выбор для регулярного создания',
-      badge: 'Популярный',
+    _PackOffering(
+      priceRub: 499,
+      photoshootCount: 3,
+      imageCount: 19,
+      subtitle: 'Для нескольких образов',
       featured: true,
     ),
-    _GenerationPack(
-      title: 'Профи',
-      price: '1199 ₽',
-      imageCount: 250,
-      description: 'Максимум изображений по лучшей цене',
-      badge: 'Выгодно',
+    _PackOffering(
+      priceRub: 999,
+      photoshootCount: 8,
+      imageCount: 19,
+      subtitle: 'Больше фотосессий',
     ),
   ];
+
+  static const _imagesOnlyPackages = <_PackOffering>[
+    _PackOffering(
+      priceRub: 199,
+      imageCount: 19,
+      subtitle: 'Для небольших идей',
+    ),
+    _PackOffering(
+      priceRub: 499,
+      imageCount: 49,
+      subtitle: 'Для частого создания',
+      featured: true,
+    ),
+    _PackOffering(
+      priceRub: 999,
+      imageCount: 99,
+      subtitle: 'Лучше всего по цене',
+    ),
+  ];
+
+  _PackCatalogMode _catalogMode = _PackCatalogMode.withPhotoshoots;
+  int _customAmount = 1000;
+  int _customPhotoshootCount = 8;
+  late final TextEditingController _customAmountController;
+
+  @override
+  void initState() {
+    super.initState();
+    _customAmountController = TextEditingController(text: '$_customAmount');
+  }
+
+  @override
+  void dispose() {
+    _customAmountController.dispose();
+    super.dispose();
+  }
+
+  List<_PackOffering> get _activePackages => _catalogMode == _PackCatalogMode.withPhotoshoots
+      ? _mixedPackages
+      : _imagesOnlyPackages;
+
+  int get _maxCustomPhotoshoots => _customAmount ~/ _photoshootUnitRub;
+
+  int get _customImageCount {
+    final remainder = _customAmount - (_customPhotoshootCount * _photoshootUnitRub);
+    if (remainder <= 0) return 0;
+    return remainder ~/ _imageUnitRub;
+  }
 
   static int _columnCount(double width) {
     if (width >= _breakpointWide) return 3;
@@ -342,18 +419,28 @@ class PacksScreen extends StatelessWidget {
     return 1;
   }
 
-  static double _aspectRatio(int columns) {
+  static double _aspectRatio(int columns, bool hasPhotoshoots) {
+    if (hasPhotoshoots) {
+      switch (columns) {
+        case 3:
+          return 0.52;
+        case 2:
+          return 0.58;
+        default:
+          return 0.72;
+      }
+    }
     switch (columns) {
       case 3:
-        return 0.58;
+        return 0.55;
       case 2:
-        return 0.68;
+        return 0.62;
       default:
-        return 0.82;
+        return 0.78;
     }
   }
 
-  void _showPaymentsLaterSnackBar(BuildContext context) {
+  void _showPaymentsLaterSnackBar() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Оплата будет добавлена позже'),
@@ -363,9 +450,48 @@ class PacksScreen extends StatelessWidget {
     );
   }
 
+  void _showHelp() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => const PacksHelpDialog(),
+    );
+  }
+
+  void _onCustomAmountChanged(String value) {
+    final trimmed = value.replaceAll(RegExp(r'\s'), '');
+    if (trimmed.isEmpty) return;
+    final parsed = int.tryParse(trimmed);
+    if (parsed == null) return;
+    final clamped = parsed.clamp(_customAmountMin, _customAmountMax);
+    setState(() {
+      _customAmount = clamped;
+      if (_customPhotoshootCount > _maxCustomPhotoshoots) {
+        _customPhotoshootCount = _maxCustomPhotoshoots;
+      }
+    });
+    final text = '$clamped';
+    if (_customAmountController.text != text) {
+      _customAmountController.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+  }
+
+  void _setCustomPhotoshootCount(int count) {
+    setState(() {
+      _customPhotoshootCount = count.clamp(0, _maxCustomPhotoshoots);
+    });
+  }
+
+  void _adjustCustomPhotoshoots(int delta) {
+    _setCustomPhotoshootCount(_customPhotoshootCount + delta);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final showPhotoshoots = _catalogMode == _PackCatalogMode.withPhotoshoots;
 
     return Scaffold(
       backgroundColor: AiImageGeneratorApp.scaffoldBackground,
@@ -382,59 +508,103 @@ class PacksScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Пакеты генераций',
-                        style: theme.textTheme.headlineSmall,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Пакеты',
+                                  style: theme.textTheme.headlineSmall,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Пополните баланс изображений и фотосессий',
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _showHelp,
+                            tooltip: 'Помощь',
+                            icon: const Icon(Icons.help_outline),
+                            color: AiImageGeneratorApp.textSecondary,
+                            iconSize: 26,
+                            padding: const EdgeInsets.all(4),
+                            constraints: const BoxConstraints(
+                              minWidth: 44,
+                              minHeight: 44,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Покупайте пакеты, когда нужно больше изображений',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       _SoftCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEDE9FF),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(
-                                    Icons.auto_awesome_outlined,
-                                    color: Color(0xFF5B6CFF),
-                                    size: 22,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Всё просто',
-                                  style: theme.textTheme.titleMedium,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
                             Text(
-                              '1 генерация = 1 изображение. Выберите пакет и создавайте изображения, когда захотите.',
-                              style: theme.textTheme.bodyMedium,
+                              'Как это работает',
+                              style: theme.textTheme.titleMedium,
                             ),
                             const SizedBox(height: 10),
+                            Text(
+                              'Изображения используются в разделе «Создать». '
+                              'Фотосессия создаёт несколько готовых фото в выбранном стиле.',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
                             Text(
                               'Оплата будет подключена позже.',
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 fontSize: 13,
                                 fontStyle: FontStyle.italic,
+                                color: AiImageGeneratorApp.textSecondary,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Тип пакета',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      SegmentedButton<_PackCatalogMode>(
+                        segments: const [
+                          ButtonSegment(
+                            value: _PackCatalogMode.withPhotoshoots,
+                            label: Text('С фотосессиями'),
+                          ),
+                          ButtonSegment(
+                            value: _PackCatalogMode.imagesOnly,
+                            label: Text('Только изображения'),
+                          ),
+                        ],
+                        selected: {_catalogMode},
+                        onSelectionChanged: (selection) {
+                          setState(
+                            () => _catalogMode = selection.first,
+                          );
+                        },
+                        style: ButtonStyle(
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        showPhotoshoots
+                            ? 'Готовые пакеты с фотосессиями'
+                            : 'Готовые пакеты — только изображения',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 14),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -442,17 +612,48 @@ class PacksScreen extends StatelessWidget {
                           crossAxisCount: columns,
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
-                          childAspectRatio: _aspectRatio(columns),
+                          childAspectRatio:
+                              _aspectRatio(columns, showPhotoshoots),
                         ),
-                        itemCount: _packages.length,
+                        itemCount: _activePackages.length,
                         itemBuilder: (context, index) {
-                          final pack = _packages[index];
-                          return _GenerationPackCard(
-                            pack: pack,
-                            onComingSoon: () =>
-                                _showPaymentsLaterSnackBar(context),
+                          return _PackOfferingCard(
+                            offering: _activePackages[index],
+                            showPhotoshoots: showPhotoshoots,
+                            onPaymentSoon: _showPaymentsLaterSnackBar,
                           );
                         },
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Своя сумма',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Рассчитайте, сколько фотосессий и изображений получите '
+                        'на выбранную сумму. Оплата пока недоступна.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _CustomAmountSection(
+                        amountController: _customAmountController,
+                        amount: _customAmount,
+                        photoshootCount: _customPhotoshootCount,
+                        maxPhotoshoots: _maxCustomPhotoshoots,
+                        imageCount: _customImageCount,
+                        onAmountChanged: _onCustomAmountChanged,
+                        onPhotoshootCountChanged: _setCustomPhotoshootCount,
+                        onPhotoshootsDecrease: _customPhotoshootCount > 0
+                            ? () => _adjustCustomPhotoshoots(-1)
+                            : null,
+                        onPhotoshootsIncrease: _customPhotoshootCount <
+                                _maxCustomPhotoshoots
+                            ? () => _adjustCustomPhotoshoots(1)
+                            : null,
+                        onPaymentSoon: _showPaymentsLaterSnackBar,
                       ),
                     ],
                   ),
@@ -466,20 +667,20 @@ class PacksScreen extends StatelessWidget {
   }
 }
 
-class _GenerationPackCard extends StatelessWidget {
-  const _GenerationPackCard({
-    required this.pack,
-    required this.onComingSoon,
+class _PackOfferingCard extends StatelessWidget {
+  const _PackOfferingCard({
+    required this.offering,
+    required this.showPhotoshoots,
+    required this.onPaymentSoon,
   });
 
-  final _GenerationPack pack;
-  final VoidCallback onComingSoon;
+  final _PackOffering offering;
+  final bool showPhotoshoots;
+  final VoidCallback onPaymentSoon;
 
   static const _accentColor = Color(0xFF5B6CFF);
   static const _featuredGradient = LinearGradient(
     colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
   );
 
   @override
@@ -490,17 +691,14 @@ class _GenerationPackCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: pack.featured
-            ? Border.all(
-                width: 2,
-                color: const Color(0xFF6B5CFF),
-              )
+        border: offering.featured
+            ? Border.all(color: const Color(0xFF6B5CFF), width: 2)
             : null,
         boxShadow: [
           BoxShadow(
-            color: (pack.featured ? _accentColor : Colors.black)
-                .withValues(alpha: pack.featured ? 0.12 : 0.05),
-            blurRadius: pack.featured ? 28 : 20,
+            color: (offering.featured ? _accentColor : Colors.black)
+                .withValues(alpha: offering.featured ? 0.12 : 0.05),
+            blurRadius: offering.featured ? 28 : 20,
             offset: const Offset(0, 8),
           ),
         ],
@@ -509,28 +707,18 @@ class _GenerationPackCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (pack.featured)
+          if (offering.featured)
             Container(
-              height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              height: 40,
+              alignment: Alignment.center,
               decoration: const BoxDecoration(gradient: _featuredGradient),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.star_rounded,
-                    size: 18,
-                    color: Colors.white.withValues(alpha: 0.95),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    pack.badge ?? 'Популярный',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+              child: const Text(
+                'Популярный',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
               ),
             ),
           Expanded(
@@ -539,101 +727,279 @@ class _GenerationPackCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          pack.title,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontSize: 17,
-                          ),
-                        ),
-                      ),
-                      if (pack.badge != null && !pack.featured)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE8F5E9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            pack.badge!,
-                            style: const TextStyle(
-                              color: Color(0xFF2E7D32),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                    ],
+                  Text(
+                    offering.priceLabel,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: _accentColor,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  if (showPhotoshoots && offering.photoshootCount > 0) ...[
+                    _PackStatChip(
+                      label:
+                          '${offering.photoshootCount} ${_packPhotoshootLabel(offering.photoshootCount)}',
+                      backgroundColor: const Color(0xFFEDE9FF),
+                      textColor: _accentColor,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  _PackStatChip(
+                    label:
+                        '${offering.imageCount} ${_packImageLabel(offering.imageCount)}',
+                    backgroundColor: const Color(0xFFF0F2FF),
+                    textColor: AiImageGeneratorApp.textPrimary,
                   ),
                   const Spacer(),
                   Text(
-                    '${pack.imageCount}',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w800,
-                      color: AiImageGeneratorApp.textPrimary,
-                      height: 1,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'изображений',
+                    offering.subtitle,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AiImageGeneratorApp.textPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                      fontSize: 13,
+                      height: 1.3,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    pack.price,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: _accentColor,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    pack.description,
-                    style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     height: 42,
-                    child: OutlinedButton(
-                      onPressed: onComingSoon,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: pack.featured
-                            ? _accentColor
-                            : AiImageGeneratorApp.textSecondary,
-                        side: BorderSide(
-                          color: pack.featured
-                              ? _accentColor.withValues(alpha: 0.5)
-                              : Colors.grey.shade300,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Скоро',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
+                    child: offering.featured
+                        ? DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: _featuredGradient,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: onPaymentSoon,
+                                borderRadius: BorderRadius.circular(12),
+                                child: const Center(
+                                  child: Text(
+                                    'Оплата скоро',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        : OutlinedButton(
+                            onPressed: onPaymentSoon,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: _accentColor,
+                              side: BorderSide(
+                                color: _accentColor.withValues(alpha: 0.45),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Оплата скоро',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
                   ),
                 ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+}
+
+class _PackStatChip extends StatelessWidget {
+  const _PackStatChip({
+    required this.label,
+    required this.backgroundColor,
+    required this.textColor,
+  });
+
+  final String label;
+  final Color backgroundColor;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _CustomAmountSection extends StatelessWidget {
+  const _CustomAmountSection({
+    required this.amountController,
+    required this.amount,
+    required this.photoshootCount,
+    required this.maxPhotoshoots,
+    required this.imageCount,
+    required this.onAmountChanged,
+    required this.onPhotoshootCountChanged,
+    required this.onPhotoshootsDecrease,
+    required this.onPhotoshootsIncrease,
+    required this.onPaymentSoon,
+  });
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  final TextEditingController amountController;
+  final int amount;
+  final int photoshootCount;
+  final int maxPhotoshoots;
+  final int imageCount;
+  final ValueChanged<String> onAmountChanged;
+  final ValueChanged<int> onPhotoshootCountChanged;
+  final VoidCallback? onPhotoshootsDecrease;
+  final VoidCallback? onPhotoshootsIncrease;
+  final VoidCallback onPaymentSoon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: amountController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: 'Сумма пополнения, ₽',
+              hintText: 'От 200 до 100 000',
+              filled: true,
+              fillColor: const Color(0xFFF7F8FC),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _accentColor, width: 1.5),
+              ),
+            ),
+            onChanged: onAmountChanged,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Сколько фотосессий включить',
+            style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '1 фотосессия = 100 ₽ · остаток суммы идёт на изображения по 10 ₽',
+            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              IconButton.filledTonal(
+                onPressed: onPhotoshootsDecrease,
+                icon: const Icon(Icons.remove),
+              ),
+              Expanded(
+                child: Text(
+                  '$photoshootCount',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              IconButton.filledTonal(
+                onPressed: onPhotoshootsIncrease,
+                icon: const Icon(Icons.add),
+              ),
+            ],
+          ),
+          if (maxPhotoshoots > 0)
+            Slider(
+              value: photoshootCount.toDouble(),
+              min: 0,
+              max: maxPhotoshoots.toDouble(),
+              divisions: maxPhotoshoots,
+              label: '$photoshootCount',
+              onChanged: (value) =>
+                  onPhotoshootCountChanged(value.round()),
+            ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F6FF),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'За $amount ₽ вы получите:',
+                  style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+                ),
+                const SizedBox(height: 10),
+                if (photoshootCount > 0)
+                  Text(
+                    '$photoshootCount ${_packPhotoshootLabel(photoshootCount)}',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                if (imageCount > 0)
+                  Text(
+                    '$imageCount ${_packImageLabel(imageCount)}',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                if (photoshootCount == 0 && imageCount == 0)
+                  Text(
+                    'Увеличьте сумму или уменьшите число фотосессий',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AiImageGeneratorApp.textSecondary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              onPressed: onPaymentSoon,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _accentColor,
+                side: const BorderSide(color: _accentColor),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text(
+                'Оплата скоро',
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ),
