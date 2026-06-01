@@ -53,6 +53,13 @@ class _PhotoshootsHelpDialogState extends State<PhotoshootsHelpDialog> {
       body: 'Готовая фотосессия появится в Галерее одной карточкой.',
       icon: Icons.photo_library_outlined,
     ),
+    _HelpBlock(
+      title: 'Своя фотосессия',
+      body:
+          'Позже здесь появится своя фотосессия: можно будет загрузить фото '
+          'и описать желаемый образ своими словами.',
+      icon: Icons.auto_awesome_outlined,
+    ),
   ];
 
   final _pageController = PageController();

@@ -836,6 +836,15 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     );
   }
 
+  void _openCustomPhotoshootDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => _CustomPhotoshootDialog(
+        onShowMessage: (message) => _showSnackBar(context, message),
+      ),
+    );
+  }
+
   void _openPhotoshootSheet(BuildContext context, _PhotoshootStyle style) {
     showModalBottomSheet<void>(
       context: context,
@@ -915,9 +924,15 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                           mainAxisSpacing: 16,
                           childAspectRatio: columns == 2 ? 0.58 : 0.72,
                         ),
-                        itemCount: _photoshoots.length,
+                        itemCount: _photoshoots.length + 1,
                         itemBuilder: (context, index) {
-                          final style = _photoshoots[index];
+                          if (index == 0) {
+                            return _CustomPhotoshootCatalogCard(
+                              onAction: () =>
+                                  _openCustomPhotoshootDialog(context),
+                            );
+                          }
+                          final style = _photoshoots[index - 1];
                           return _PhotoshootCard(
                             style: style,
                             onAction: () =>
@@ -930,6 +945,479 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                 );
               },
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CustomPhotoshootCatalogCard extends StatelessWidget {
+  const _CustomPhotoshootCatalogCard({required this.onAction});
+
+  final VoidCallback onAction;
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFBFF),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _accentColor.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: _accentColor.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFFEEF1FF),
+                    _accentColor.withValues(alpha: 0.18),
+                  ],
+                ),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: -8,
+                    bottom: -12,
+                    child: Icon(
+                      Icons.auto_awesome_outlined,
+                      size: 72,
+                      color: _accentColor.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  Center(
+                    child: Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.edit_note_outlined,
+                        size: 28,
+                        color: _accentColor,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 10,
+                    bottom: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Свой образ',
+                        style: TextStyle(
+                          color: AiImageGeneratorApp.textPrimary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Своя фотосессия',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: const [
+                    _PhotoshootMetaChip(
+                      label: '3 фото',
+                      backgroundColor: Color(0xFFF0F2FF),
+                      textColor: _accentColor,
+                    ),
+                    _PhotoshootMetaChip(
+                      label: 'Скоро',
+                      backgroundColor: Color(0xFFFFF3E0),
+                      textColor: Color(0xFFE65100),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Опишите образ своими словами',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 13,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 40,
+                  child: OutlinedButton(
+                    onPressed: onAction,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _accentColor,
+                      side: BorderSide(
+                        color: _accentColor.withValues(alpha: 0.5),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Открыть',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CustomPhotoshootDialog extends StatefulWidget {
+  const _CustomPhotoshootDialog({required this.onShowMessage});
+
+  final void Function(String message) onShowMessage;
+
+  @override
+  State<_CustomPhotoshootDialog> createState() => _CustomPhotoshootDialogState();
+}
+
+class _CustomPhotoshootDialogState extends State<_CustomPhotoshootDialog> {
+  static const _accentColor = Color(0xFF5B6CFF);
+  final _imagePicker = ImagePicker();
+  final _wishesController = TextEditingController();
+
+  Uint8List? _selectedPhotoBytes;
+  bool _isPickingPhoto = false;
+
+  static const _descriptionTips = [
+    'Где проходит съёмка: офис, улица, студия, природа',
+    'Какой образ: деловой, спокойный, праздничный, уверенный',
+    'Какая одежда: костюм, платье, casual',
+    'Какой фон и настроение',
+    'Чем понятнее описание, тем лучше результат',
+  ];
+
+  @override
+  void dispose() {
+    _wishesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickPhoto() async {
+    if (_isPickingPhoto) return;
+    setState(() => _isPickingPhoto = true);
+    try {
+      final file = await _imagePicker.pickImage(source: ImageSource.gallery);
+      if (file == null || !mounted) return;
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      setState(() => _selectedPhotoBytes = bytes);
+    } catch (_) {
+      if (!mounted) return;
+      widget.onShowMessage('Не удалось выбрать фото. Попробуйте ещё раз.');
+    } finally {
+      if (mounted) setState(() => _isPickingPhoto = false);
+    }
+  }
+
+  void _clearPhoto() {
+    setState(() => _selectedPhotoBytes = null);
+  }
+
+  void _onCreateLater() {
+    widget.onShowMessage('Своя фотосессия будет добавлена позже');
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasPhoto = _selectedPhotoBytes != null;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 520,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Своя фотосессия',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, size: 22),
+                    tooltip: 'Закрыть',
+                    color: AiImageGeneratorApp.textSecondary,
+                  ),
+                ],
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Загрузите фото и опишите, какой образ хотите получить.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (!hasPhoto)
+                        SizedBox(
+                          width: double.infinity,
+                          height: 44,
+                          child: OutlinedButton.icon(
+                            onPressed: _isPickingPhoto ? null : _pickPhoto,
+                            icon: _isPickingPhoto
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.add_photo_alternate_outlined,
+                                    size: 20,
+                                  ),
+                            label: Text(
+                              _isPickingPhoto ? 'Подождите...' : 'Добавить фото',
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: _accentColor,
+                              side: BorderSide(
+                                color: _accentColor.withValues(alpha: 0.45),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        )
+                      else ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 200),
+                            child: AspectRatio(
+                              aspectRatio: 4 / 3,
+                              child: Image.memory(
+                                _selectedPhotoBytes!,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: _clearPhoto,
+                            icon: const Icon(Icons.close, size: 18),
+                            label: const Text('Убрать фото'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AiImageGeneratorApp.textSecondary,
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _wishesController,
+                        maxLines: 4,
+                        minLines: 3,
+                        decoration: InputDecoration(
+                          labelText: 'Ваши пожелания',
+                          hintText:
+                              'Например: деловая фотосессия в светлом офисе, '
+                              'уверенный образ, спокойный фон',
+                          alignLabelWithHint: true,
+                          filled: true,
+                          fillColor: const Color(0xFFF7F8FC),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(
+                              color: _accentColor,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _SoftCard(
+                        backgroundColor: const Color(0xFFF3F6FF),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Как описать лучше',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ..._descriptionTips.map(
+                              (tip) => Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 2),
+                                      child: Icon(
+                                        Icons.check_circle_outline,
+                                        size: 17,
+                                        color: _accentColor,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        tip,
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                          fontSize: 14,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AiImageGeneratorApp.textSecondary,
+                        side: BorderSide(color: Colors.grey.shade300),
+                        minimumSize: const Size(0, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Закрыть',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _onCreateLater,
+                            borderRadius: BorderRadius.circular(14),
+                            child: const Center(
+                              child: Text(
+                                'Создать позже',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
