@@ -453,18 +453,59 @@ class _PacksScreenState extends State<PacksScreen> {
     return 1;
   }
 
-  /// Высота ячейки сетки: достаточно для бейджа «Популярный» и двух строк подписи.
-  static const double _packCardHeight = 226;
+  _PackCardLayout _packCardLayout(BuildContext context, int columns) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final scaleBump = textScale > 1.0 ? (textScale - 1) * 20 : 0.0;
+
+    return switch (columns) {
+      1 => _PackCardLayout(
+          rowHeight: 272 + scaleBump,
+          priceFontSize: 30,
+          badgeFontSize: 14,
+          statRowHeight: 30,
+          subtitleFontSize: 14,
+          buttonHeight: 42,
+          buttonFontSize: 14,
+          featuredBannerHeight: 30,
+          featuredBannerFontSize: 13,
+          contentPadding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+        ),
+      2 => _PackCardLayout(
+          rowHeight: 238 + scaleBump,
+          priceFontSize: 28,
+          badgeFontSize: 13,
+          statRowHeight: 28,
+          subtitleFontSize: 13,
+          buttonHeight: 38,
+          buttonFontSize: 13,
+          featuredBannerHeight: 28,
+          featuredBannerFontSize: 12,
+          contentPadding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        ),
+      _ => _PackCardLayout(
+          rowHeight: 226 + scaleBump,
+          priceFontSize: 26,
+          badgeFontSize: 12,
+          statRowHeight: 26,
+          subtitleFontSize: 12,
+          buttonHeight: 36,
+          buttonFontSize: 13,
+          featuredBannerHeight: 28,
+          featuredBannerFontSize: 12,
+          contentPadding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        ),
+    };
+  }
 
   Widget _buildPackCardsGrid({
+    required BuildContext context,
     required int columns,
-    required double maxWidth,
     required bool showPhotoshoots,
     required VoidCallback onPaymentSoon,
   }) {
     const spacing = 16.0;
     final packages = _activePackages;
-    final cellWidth = (maxWidth - spacing * (columns - 1)) / columns;
+    final layout = _packCardLayout(context, columns);
 
     return GridView.builder(
       shrinkWrap: true,
@@ -473,13 +514,14 @@ class _PacksScreenState extends State<PacksScreen> {
         crossAxisCount: columns,
         crossAxisSpacing: spacing,
         mainAxisSpacing: spacing,
-        childAspectRatio: cellWidth / _packCardHeight,
+        mainAxisExtent: layout.rowHeight,
       ),
       itemCount: packages.length,
       itemBuilder: (context, index) {
         return Align(
           alignment: Alignment.topCenter,
           child: _PackOfferingCard(
+            layout: layout,
             offering: packages[index],
             showPhotoshoots: showPhotoshoots,
             onPaymentSoon: onPaymentSoon,
@@ -654,8 +696,8 @@ class _PacksScreenState extends State<PacksScreen> {
                       ),
                       const SizedBox(height: 14),
                       _buildPackCardsGrid(
+                        context: context,
                         columns: columns,
-                        maxWidth: constraints.maxWidth,
                         showPhotoshoots: showPhotoshoots,
                         onPaymentSoon: _showPaymentsLaterSnackBar,
                       ),
@@ -707,13 +749,41 @@ class _PacksScreenState extends State<PacksScreen> {
   }
 }
 
+class _PackCardLayout {
+  const _PackCardLayout({
+    required this.rowHeight,
+    required this.priceFontSize,
+    required this.badgeFontSize,
+    required this.statRowHeight,
+    required this.subtitleFontSize,
+    required this.buttonHeight,
+    required this.buttonFontSize,
+    required this.featuredBannerHeight,
+    required this.featuredBannerFontSize,
+    required this.contentPadding,
+  });
+
+  final double rowHeight;
+  final double priceFontSize;
+  final double badgeFontSize;
+  final double statRowHeight;
+  final double subtitleFontSize;
+  final double buttonHeight;
+  final double buttonFontSize;
+  final double featuredBannerHeight;
+  final double featuredBannerFontSize;
+  final EdgeInsets contentPadding;
+}
+
 class _PackOfferingCard extends StatelessWidget {
   const _PackOfferingCard({
+    required this.layout,
     required this.offering,
     required this.showPhotoshoots,
     required this.onPaymentSoon,
   });
 
+  final _PackCardLayout layout;
   final _PackOffering offering;
   final bool showPhotoshoots;
   final VoidCallback onPaymentSoon;
@@ -722,8 +792,6 @@ class _PackOfferingCard extends StatelessWidget {
   static const _featuredGradient = LinearGradient(
     colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
   );
-
-  static const _statRowHeight = 26.0;
 
   @override
   Widget build(BuildContext context) {
@@ -754,20 +822,20 @@ class _PackOfferingCard extends StatelessWidget {
         children: [
           if (offering.featured)
             Container(
-              height: 28,
+              height: layout.featuredBannerHeight,
               alignment: Alignment.center,
               decoration: const BoxDecoration(gradient: _featuredGradient),
-              child: const Text(
+              child: Text(
                 'Популярный',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
-                  fontSize: 12,
+                  fontSize: layout.featuredBannerFontSize,
                 ),
               ),
             ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            padding: layout.contentPadding,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -775,7 +843,7 @@ class _PackOfferingCard extends StatelessWidget {
                 Text(
                   offering.priceLabel,
                   style: theme.textTheme.headlineSmall?.copyWith(
-                    fontSize: 26,
+                    fontSize: layout.priceFontSize,
                     fontWeight: FontWeight.w800,
                     color: _accentColor,
                     height: 1,
@@ -783,31 +851,33 @@ class _PackOfferingCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
-                  height: _statRowHeight,
+                  height: layout.statRowHeight,
                   child: hasPhotoshootLine
                       ? _PackStatRow(
                           label:
                               '${offering.photoshootCount} ${_packPhotoshootLabel(offering.photoshootCount)}',
                           backgroundColor: const Color(0xFFEDE9FF),
                           textColor: _accentColor,
+                          fontSize: layout.badgeFontSize,
                         )
                       : const SizedBox.shrink(),
                 ),
                 const SizedBox(height: 4),
                 SizedBox(
-                  height: _statRowHeight,
+                  height: layout.statRowHeight,
                   child: _PackStatRow(
                     label:
                         '${offering.imageCount} ${_packImageLabel(offering.imageCount)}',
                     backgroundColor: const Color(0xFFF0F2FF),
                     textColor: AiImageGeneratorApp.textPrimary,
+                    fontSize: layout.badgeFontSize,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   offering.subtitle,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: 12,
+                    fontSize: layout.subtitleFontSize,
                     height: 1.25,
                     color: AiImageGeneratorApp.textSecondary,
                   ),
@@ -817,6 +887,8 @@ class _PackOfferingCard extends StatelessWidget {
                 const SizedBox(height: 10),
                 _PackPaymentButton(
                   featured: offering.featured,
+                  height: layout.buttonHeight,
+                  fontSize: layout.buttonFontSize,
                   onPressed: onPaymentSoon,
                 ),
               ],
@@ -831,10 +903,14 @@ class _PackOfferingCard extends StatelessWidget {
 class _PackPaymentButton extends StatelessWidget {
   const _PackPaymentButton({
     required this.featured,
+    required this.height,
+    required this.fontSize,
     required this.onPressed,
   });
 
   final bool featured;
+  final double height;
+  final double fontSize;
   final VoidCallback onPressed;
 
   static const _accentColor = Color(0xFF5B6CFF);
@@ -847,7 +923,7 @@ class _PackPaymentButton extends StatelessWidget {
     if (featured) {
       return SizedBox(
         width: double.infinity,
-        height: 36,
+        height: height,
         child: DecoratedBox(
           decoration: BoxDecoration(
             gradient: _featuredGradient,
@@ -858,13 +934,13 @@ class _PackPaymentButton extends StatelessWidget {
             child: InkWell(
               onTap: onPressed,
               borderRadius: BorderRadius.circular(10),
-              child: const Center(
+              child: Center(
                 child: Text(
                   'Оплата скоро',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
-                    fontSize: 13,
+                    fontSize: fontSize,
                   ),
                 ),
               ),
@@ -876,7 +952,7 @@ class _PackPaymentButton extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      height: 36,
+      height: height,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
@@ -892,11 +968,11 @@ class _PackPaymentButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
           ),
         ),
-        child: const Text(
+        child: Text(
           'Оплата скоро',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            fontSize: 13,
+            fontSize: fontSize,
           ),
         ),
       ),
@@ -909,18 +985,20 @@ class _PackStatRow extends StatelessWidget {
     required this.label,
     required this.backgroundColor,
     required this.textColor,
+    required this.fontSize,
   });
 
   final String label;
   final Color backgroundColor;
   final Color textColor;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(8),
@@ -929,7 +1007,7 @@ class _PackStatRow extends StatelessWidget {
           label,
           style: TextStyle(
             color: textColor,
-            fontSize: 12,
+            fontSize: fontSize,
             fontWeight: FontWeight.w600,
             height: 1.2,
           ),
