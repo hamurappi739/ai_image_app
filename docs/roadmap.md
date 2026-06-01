@@ -87,10 +87,29 @@
 - **Создать:** описание, подсказки, быстрые идеи, **UI-каркас фото** (picker/preview/убрать), **контекстная помощь**, `POST /generate` по описанию, результат + «Открыть в Галерее»
 - **Фотосессии:** **каталог** (8 стилей + **«Своя фотосессия»** UI-каркас), рекомендации и примеры-заглушки в sheet; готовые стили: bottom sheet → multipart upload (бесплатно); **«Своя фотосессия»** — только dialog, SnackBar «будет добавлена позже»
 - **Галерея:** `GET /generations` + локальные новые; **группировка фотосессий** по `photoshoot_id`; **Очистить** (только на устройстве); empty state; без падения при недоступном backend
-- **Пакеты:** 199 / 499 / 1199 ₽ (UI без реальной оплаты)
+- **Пакеты:** **legacy** UI 199 / 499 / 1199 ₽ (только изображения); **новая экономика** (смешанные пакеты 199/499/999 ₽) — в документации, **UI не обновлён**
 - **Профиль:** вход / регистрация / выход (при Supabase dart-define)
 
-**UX (следующие задачи):** см. [app_design_strategy.md](app_design_strategy.md) — **реальные curated-примеры**, **backend фото+описание на «Создать»**, **backend «Своей фотосессии»**, **art direction**, **помощь для «Пакетов»**, **RuStore / оплата**.
+**UX (следующие задачи):** см. [app_design_strategy.md](app_design_strategy.md) — **пакеты (смешанная экономика)**, curated-примеры, backend **«Создать»** / **«Своя фотосессия»**, RuStore.
+
+---
+
+## Монетизация и пакеты (новая экономика)
+
+**Модель:** обычное изображение ≈ **10 ₽**, фотосессия ≈ **100 ₽** (3 изображения). Пакеты включают **и** фотосессии, **и** обычные изображения. Подробнее: [app_design_strategy.md](app_design_strategy.md) §8, [project_status.md](project_status.md).
+
+### Ближайшие задачи (монетизация)
+
+| # | Задача | Статус |
+|---|--------|--------|
+| 1 | **Обновить Flutter вкладку «Пакеты»** — смешанные пакеты (199/499/999 ₽), переключатель **«С фотосессиями»** / **«Только изображения»**, понятные подписи | план |
+| 2 | **UI «Своя сумма»** — ввод 200–100 000 ₽, выбор числа фотосессий, расчёт остатка в изображения | план |
+| 3 | **Backend balance model** — баланс **изображений** + **фотосессий** (не только `paid_credits` как одно число) | план |
+| 4 | **RuStore payment verification** — подтверждение оплаты, webhook / idempotency | план |
+| 5 | **Списание после оплаты** — списание **изображений** при `POST /generate`, **фотосессий** при платной фотосессии; начисление из пакета после успешной покупки | план |
+| 6 | **Packs tab contextual help** — объяснение смешанных пакетов для аудитории 40–60+ | план |
+
+**Оплата и RuStore пока не подключены.**
 
 ---
 
@@ -100,14 +119,14 @@
 |------|--------|------------|
 | **Gemini provider implementation** | ✅ | Код провайдера готов: `GeminiImageProvider` + `google-genai`; `mock` остаётся режимом по умолчанию |
 | **Gemini manual API test** | ✅ | Ручной тест пройден: Gemini → Storage → `public_url` → Галерея; после теста `IMAGE_PROVIDER=mock` |
-| **Supabase credits** | 🔶 | Backend: profiles, generations, `ENABLE_CREDIT_CONSUMPTION`; Flutter **без** Supabase SDK |
+| **Supabase credits** | 🔶 | Backend: profiles, generations, `ENABLE_CREDIT_CONSUMPTION`; Flutter **без** Supabase SDK; целевая модель — **изображения + фотосессии** |
 | **История в галерее** | 🔶 | С Bearer token — история по auth user; без входа — dev fallback |
 
 ---
 
 ## Следующие крупные этапы
 
-### Ближайший UX (порядок от product owner)
+### Ближайший UX (генерация и каталог)
 
 1. **Replace placeholders with real curated example images** — на карточках каталога и в блоке «Пример результата» вместо gradient-заглушек.
 2. **Improve visual branding and final art direction** — единый визуальный язык каталога фотосессий.
@@ -118,8 +137,6 @@
 7. **Connect custom photoshoot to Gemini** — генерация набора изображений по пользовательскому описанию.
 8. **Payment logic for custom photoshoot if needed** — монетизация (если потребуется).
 9. **Save custom photoshoot results to Gallery/history** — результаты в **Галерею** / `generations` с **`photoshoot_id`**.
-10. **Packs tab contextual help** — помощь/объяснение для **«Пакетов»** после проработки цен и оплаты.
-11. **RuStore payments** — RuStore payment flow и backend payment verification для платных фотосессий (100 ₽) и пакетов генераций.
 
 ### Далее (после UX-блока)
 
@@ -136,7 +153,7 @@
 16. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
 17. **Синхронизация баланса генераций** с аккаунтом после auth.
 18. **Удаление изображений из аккаунта/backend** — после авторизации (не только локальная «Очистить»).
-19. **RuStore Billing** — пакеты генераций на вкладке «Пакеты».
+19. **RuStore Billing** — см. раздел **«Монетизация и пакеты»** выше (после обновления UI пакетов и balance model).
 20. **Production cleanup** — удалить или защитить `/debug/*` endpoints; CORS, секреты, RLS.
 
 ---

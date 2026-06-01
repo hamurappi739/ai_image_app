@@ -2,7 +2,7 @@
 
 **Flutter + FastAPI** приложение для AI-генерации изображений.
 
-Сейчас проект в **MVP / demo-mode**: **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**. **Onboarding**, **контекстная помощь**, **каталог фотосессий** и **UI «Своей фотосессии»** реализованы. **«Создать»** — UI picker/preview для **фото + описание → одно изображение** (backend позже). **Ближайший UX** (см. [roadmap.md](docs/roadmap.md)): curated-примеры, backend Create/custom photoshoot, RuStore.
+Сейчас проект в **MVP / demo-mode**: **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**. **Экономика пакетов перерабатывается:** смешанные пакеты (**изображения** + **фотосессии**), оплата **ещё не подключена**. Onboarding, каталог фотосессий, UI «Создать» / «Своя фотосессия» — как в [project_status.md](docs/project_status.md). **Ближайшее:** обновление вкладки **«Пакеты»** (см. [roadmap.md](docs/roadmap.md)).
 
 **Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход) с loading states для auth-действий. Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. Backend автоматически создаёт профиль пользователя при первом **`/generate`** или **`/generations`** (profile auto-sync). **Без** Flutter Supabase config приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
@@ -27,7 +27,7 @@
 - Локальная кнопка **«Очистить»** (без удаления данных в Supabase)
 - Вкладка **Фотосессии** — **каталог** (8 стилей + **«Своя фотосессия»** UI), рекомендации в sheet, multipart upload для готовых стилей → **Галерея**
 - Вкладка **Профиль** — вход / регистрация через Supabase Auth (при dart-define)
-- Вкладка **Пакеты** (без реальной оплаты)
+- Вкладка **Пакеты** — **legacy** UI (только «изображения»); **новая экономика** (смешанные пакеты) — в docs, **оплата не реализована**
 - Supabase: таблицы **`profiles`**, **`generations`**, **`credit_transactions`**
 - Backend: списание бесплатных / платных генераций **подготовлено** (`ENABLE_CREDIT_CONSUMPTION`)
 - Backend: **Gemini → Storage → Галерея** проверен вручную; по умолчанию **`IMAGE_PROVIDER=mock`**
@@ -116,18 +116,17 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 
 **В пользовательском UI не использовать:** prompt, промпт, кредиты, токены, credits, tokens.
 
-**Использовать:** описание, идея, изображение, генерации, пакеты генераций, фотосессии.
+**Использовать:** описание, идея, **изображение** / **изображений**, **фотосессия** / **фотосессии**, **пакеты**; баланс: *«осталось: N изображений и M фотосессий»* (не «кредиты»).
 
-**Ближайший UX (план):** curated-примеры → **backend для «Создать» и «Своей фотосессии»** → помощь для «Пакетов» → RuStore. Подробнее: [docs/app_design_strategy.md](docs/app_design_strategy.md), [docs/roadmap.md](docs/roadmap.md).
+**Ближайший UX (план):** **вкладка «Пакеты»** (смешанная экономика) → backend **«Создать»** / **«Своя фотосессия»** → RuStore. Подробнее: [docs/app_design_strategy.md](docs/app_design_strategy.md) §8, [docs/roadmap.md](docs/roadmap.md).
 
 ---
 
 ## Что пока demo-mode
 
 - **Постоянная** Gemini-генерация в dev (по умолчанию **mock**; Gemini — только контролируемые ручные тесты)
-- **Backend для фото+описание на «Создать»** и **«Своей фотосессии»** (UI-каркасы готовы), **реальные curated-примеры**, **помощь для «Пакетов»**
-- **Product photoshoot mode** — постоянный **`PHOTOSHOOT_OUTPUT_COUNT=3`** после решения стоимости/лимитов Gemini
-- **RuStore Billing** и оплата фотосессий
+- **Экономика пакетов** — redesign (изображения + фотосессии в одном пакете); Flutter **«Пакеты»** ещё **legacy**; **RuStore / оплата не реализованы**
+- **Backend** для фото+описание на **«Создать»** и **«Своей фотосессии»** (UI-каркасы готовы), **реальные curated-примеры**
 - Подтверждение email, восстановление пароля, production без `TEST_USER_ID`
 - **Production security** (debug routes, CORS, RLS)
 
