@@ -16,6 +16,7 @@ import 'services/photoshoots_help_service.dart';
 import 'widgets/create_help_dialog.dart';
 import 'widgets/packs_help_dialog.dart';
 import 'widgets/photoshoots_help_dialog.dart';
+import 'widgets/section_help_button.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
@@ -385,14 +386,13 @@ class _PacksScreenState extends State<PacksScreen> {
   ];
 
   _PackCatalogMode _catalogMode = _PackCatalogMode.withPhotoshoots;
-  int _customAmount = 1000;
   int _customPhotoshootCount = 8;
   late final TextEditingController _customAmountController;
 
   @override
   void initState() {
     super.initState();
-    _customAmountController = TextEditingController(text: '$_customAmount');
+    _customAmountController = TextEditingController(text: '1000');
   }
 
   @override
@@ -405,10 +405,44 @@ class _PacksScreenState extends State<PacksScreen> {
       ? _mixedPackages
       : _imagesOnlyPackages;
 
-  int get _maxCustomPhotoshoots => _customAmount ~/ _photoshootUnitRub;
+  int? _parseCustomAmount(String text) {
+    final trimmed = text.replaceAll(RegExp(r'\s'), '');
+    if (trimmed.isEmpty) return null;
+    return int.tryParse(trimmed);
+  }
+
+  String? _customAmountErrorFor(String text) {
+    final trimmed = text.replaceAll(RegExp(r'\s'), '');
+    if (trimmed.isEmpty) {
+      return 'Минимальная сумма пополнения — 200 ₽';
+    }
+    final parsed = int.tryParse(trimmed);
+    if (parsed == null || parsed < _customAmountMin) {
+      return 'Минимальная сумма пополнения — 200 ₽';
+    }
+    if (parsed > _customAmountMax) {
+      return 'Максимальная сумма пополнения — 100 000 ₽';
+    }
+    return null;
+  }
+
+  int? get _validCustomAmount {
+    final parsed = _parseCustomAmount(_customAmountController.text);
+    if (parsed == null) return null;
+    if (parsed < _customAmountMin || parsed > _customAmountMax) return null;
+    return parsed;
+  }
+
+  bool get _isCustomAmountValid => _validCustomAmount != null;
+
+  int get _maxCustomPhotoshoots =>
+      (_validCustomAmount ?? 0) ~/ _photoshootUnitRub;
 
   int get _customImageCount {
-    final remainder = _customAmount - (_customPhotoshootCount * _photoshootUnitRub);
+    final amount = _validCustomAmount;
+    if (amount == null) return 0;
+    final remainder =
+        amount - (_customPhotoshootCount * _photoshootUnitRub);
     if (remainder <= 0) return 0;
     return remainder ~/ _imageUnitRub;
   }
@@ -419,25 +453,40 @@ class _PacksScreenState extends State<PacksScreen> {
     return 1;
   }
 
-  static double _aspectRatio(int columns, bool hasPhotoshoots) {
-    if (hasPhotoshoots) {
-      switch (columns) {
-        case 3:
-          return 0.52;
-        case 2:
-          return 0.58;
-        default:
-          return 0.72;
-      }
-    }
-    switch (columns) {
-      case 3:
-        return 0.55;
-      case 2:
-        return 0.62;
-      default:
-        return 0.78;
-    }
+  /// Высота ячейки сетки: достаточно для бейджа «Популярный» и двух строк подписи.
+  static const double _packCardHeight = 226;
+
+  Widget _buildPackCardsGrid({
+    required int columns,
+    required double maxWidth,
+    required bool showPhotoshoots,
+    required VoidCallback onPaymentSoon,
+  }) {
+    const spacing = 16.0;
+    final packages = _activePackages;
+    final cellWidth = (maxWidth - spacing * (columns - 1)) / columns;
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        crossAxisSpacing: spacing,
+        mainAxisSpacing: spacing,
+        childAspectRatio: cellWidth / _packCardHeight,
+      ),
+      itemCount: packages.length,
+      itemBuilder: (context, index) {
+        return Align(
+          alignment: Alignment.topCenter,
+          child: _PackOfferingCard(
+            offering: packages[index],
+            showPhotoshoots: showPhotoshoots,
+            onPaymentSoon: onPaymentSoon,
+          ),
+        );
+      },
+    );
   }
 
   void _showPaymentsLaterSnackBar() {
@@ -458,27 +507,37 @@ class _PacksScreenState extends State<PacksScreen> {
   }
 
   void _onCustomAmountChanged(String value) {
-    final trimmed = value.replaceAll(RegExp(r'\s'), '');
-    if (trimmed.isEmpty) return;
-    final parsed = int.tryParse(trimmed);
-    if (parsed == null) return;
-    final clamped = parsed.clamp(_customAmountMin, _customAmountMax);
     setState(() {
-      _customAmount = clamped;
-      if (_customPhotoshootCount > _maxCustomPhotoshoots) {
-        _customPhotoshootCount = _maxCustomPhotoshoots;
+      final valid = _parseCustomAmount(value);
+      if (valid != null &&
+          valid >= _customAmountMin &&
+          valid <= _customAmountMax) {
+        final maxSessions = valid ~/ _photoshootUnitRub;
+        if (_customPhotoshootCount > maxSessions) {
+          _customPhotoshootCount = maxSessions;
+        }
       }
     });
-    final text = '$clamped';
-    if (_customAmountController.text != text) {
-      _customAmountController.value = TextEditingValue(
-        text: text,
-        selection: TextSelection.collapsed(offset: text.length),
+  }
+
+  void _onCustomPaymentPressed() {
+    if (!_isCustomAmountValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Введите сумму от 200 ₽'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
+      return;
     }
+    _showPaymentsLaterSnackBar();
   }
 
   void _setCustomPhotoshootCount(int count) {
+    if (!_isCustomAmountValid) return;
     setState(() {
       _customPhotoshootCount = count.clamp(0, _maxCustomPhotoshoots);
     });
@@ -527,18 +586,7 @@ class _PacksScreenState extends State<PacksScreen> {
                               ],
                             ),
                           ),
-                          IconButton(
-                            onPressed: _showHelp,
-                            tooltip: 'Помощь',
-                            icon: const Icon(Icons.help_outline),
-                            color: AiImageGeneratorApp.textSecondary,
-                            iconSize: 26,
-                            padding: const EdgeInsets.all(4),
-                            constraints: const BoxConstraints(
-                              minWidth: 44,
-                              minHeight: 44,
-                            ),
-                          ),
+                          SectionHelpButton(onPressed: _showHelp),
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -605,24 +653,11 @@ class _PacksScreenState extends State<PacksScreen> {
                         style: theme.textTheme.titleMedium,
                       ),
                       const SizedBox(height: 14),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: columns,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio:
-                              _aspectRatio(columns, showPhotoshoots),
-                        ),
-                        itemCount: _activePackages.length,
-                        itemBuilder: (context, index) {
-                          return _PackOfferingCard(
-                            offering: _activePackages[index],
-                            showPhotoshoots: showPhotoshoots,
-                            onPaymentSoon: _showPaymentsLaterSnackBar,
-                          );
-                        },
+                      _buildPackCardsGrid(
+                        columns: columns,
+                        maxWidth: constraints.maxWidth,
+                        showPhotoshoots: showPhotoshoots,
+                        onPaymentSoon: _showPaymentsLaterSnackBar,
                       ),
                       const SizedBox(height: 32),
                       Text(
@@ -640,20 +675,25 @@ class _PacksScreenState extends State<PacksScreen> {
                       const SizedBox(height: 16),
                       _CustomAmountSection(
                         amountController: _customAmountController,
-                        amount: _customAmount,
+                        amountError: _customAmountErrorFor(
+                          _customAmountController.text,
+                        ),
+                        isAmountValid: _isCustomAmountValid,
+                        validAmount: _validCustomAmount,
                         photoshootCount: _customPhotoshootCount,
                         maxPhotoshoots: _maxCustomPhotoshoots,
                         imageCount: _customImageCount,
                         onAmountChanged: _onCustomAmountChanged,
                         onPhotoshootCountChanged: _setCustomPhotoshootCount,
-                        onPhotoshootsDecrease: _customPhotoshootCount > 0
+                        onPhotoshootsDecrease: _isCustomAmountValid &&
+                                _customPhotoshootCount > 0
                             ? () => _adjustCustomPhotoshoots(-1)
                             : null,
-                        onPhotoshootsIncrease: _customPhotoshootCount <
-                                _maxCustomPhotoshoots
+                        onPhotoshootsIncrease: _isCustomAmountValid &&
+                                _customPhotoshootCount < _maxCustomPhotoshoots
                             ? () => _adjustCustomPhotoshoots(1)
                             : null,
-                        onPaymentSoon: _showPaymentsLaterSnackBar,
+                        onPaymentPressed: _onCustomPaymentPressed,
                       ),
                     ],
                   ),
@@ -683,33 +723,38 @@ class _PackOfferingCard extends StatelessWidget {
     colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
   );
 
+  static const _statRowHeight = 26.0;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasPhotoshootLine =
+        showPhotoshoots && offering.photoshootCount > 0;
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: offering.featured
             ? Border.all(color: const Color(0xFF6B5CFF), width: 2)
             : null,
         boxShadow: [
           BoxShadow(
             color: (offering.featured ? _accentColor : Colors.black)
-                .withValues(alpha: offering.featured ? 0.12 : 0.05),
-            blurRadius: offering.featured ? 28 : 20,
-            offset: const Offset(0, 8),
+                .withValues(alpha: offering.featured ? 0.1 : 0.05),
+            blurRadius: offering.featured ? 16 : 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
           if (offering.featured)
             Container(
-              height: 40,
+              height: 28,
               alignment: Alignment.center,
               decoration: const BoxDecoration(gradient: _featuredGradient),
               child: const Text(
@@ -717,108 +762,150 @@ class _PackOfferingCard extends StatelessWidget {
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
-                  fontSize: 13,
+                  fontSize: 12,
                 ),
               ),
             ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    offering.priceLabel,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      color: _accentColor,
-                      height: 1,
-                    ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  offering.priceLabel,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: _accentColor,
+                    height: 1,
                   ),
-                  const SizedBox(height: 14),
-                  if (showPhotoshoots && offering.photoshootCount > 0) ...[
-                    _PackStatChip(
-                      label:
-                          '${offering.photoshootCount} ${_packPhotoshootLabel(offering.photoshootCount)}',
-                      backgroundColor: const Color(0xFFEDE9FF),
-                      textColor: _accentColor,
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  _PackStatChip(
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: _statRowHeight,
+                  child: hasPhotoshootLine
+                      ? _PackStatRow(
+                          label:
+                              '${offering.photoshootCount} ${_packPhotoshootLabel(offering.photoshootCount)}',
+                          backgroundColor: const Color(0xFFEDE9FF),
+                          textColor: _accentColor,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                const SizedBox(height: 4),
+                SizedBox(
+                  height: _statRowHeight,
+                  child: _PackStatRow(
                     label:
                         '${offering.imageCount} ${_packImageLabel(offering.imageCount)}',
                     backgroundColor: const Color(0xFFF0F2FF),
                     textColor: AiImageGeneratorApp.textPrimary,
                   ),
-                  const Spacer(),
-                  Text(
-                    offering.subtitle,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontSize: 13,
-                      height: 1.3,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  offering.subtitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 12,
+                    height: 1.25,
+                    color: AiImageGeneratorApp.textSecondary,
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 42,
-                    child: offering.featured
-                        ? DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: _featuredGradient,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: onPaymentSoon,
-                                borderRadius: BorderRadius.circular(12),
-                                child: const Center(
-                                  child: Text(
-                                    'Оплата скоро',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          )
-                        : OutlinedButton(
-                            onPressed: onPaymentSoon,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: _accentColor,
-                              side: BorderSide(
-                                color: _accentColor.withValues(alpha: 0.45),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'Оплата скоро',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                  ),
-                ],
-              ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 10),
+                _PackPaymentButton(
+                  featured: offering.featured,
+                  onPressed: onPaymentSoon,
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
-
 }
 
-class _PackStatChip extends StatelessWidget {
-  const _PackStatChip({
+class _PackPaymentButton extends StatelessWidget {
+  const _PackPaymentButton({
+    required this.featured,
+    required this.onPressed,
+  });
+
+  final bool featured;
+  final VoidCallback onPressed;
+
+  static const _accentColor = Color(0xFF5B6CFF);
+  static const _featuredGradient = LinearGradient(
+    colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    if (featured) {
+      return SizedBox(
+        width: double.infinity,
+        height: 36,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: _featuredGradient,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onPressed,
+              borderRadius: BorderRadius.circular(10),
+              child: const Center(
+                child: Text(
+                  'Оплата скоро',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      height: 36,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _accentColor,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+          side: BorderSide(
+            color: _accentColor.withValues(alpha: 0.45),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        child: const Text(
+          'Оплата скоро',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PackStatRow extends StatelessWidget {
+  const _PackStatRow({
     required this.label,
     required this.backgroundColor,
     required this.textColor,
@@ -830,19 +917,22 @@ class _PackStatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            height: 1.2,
+          ),
         ),
       ),
     );
@@ -852,7 +942,9 @@ class _PackStatChip extends StatelessWidget {
 class _CustomAmountSection extends StatelessWidget {
   const _CustomAmountSection({
     required this.amountController,
-    required this.amount,
+    required this.amountError,
+    required this.isAmountValid,
+    required this.validAmount,
     required this.photoshootCount,
     required this.maxPhotoshoots,
     required this.imageCount,
@@ -860,13 +952,15 @@ class _CustomAmountSection extends StatelessWidget {
     required this.onPhotoshootCountChanged,
     required this.onPhotoshootsDecrease,
     required this.onPhotoshootsIncrease,
-    required this.onPaymentSoon,
+    required this.onPaymentPressed,
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
 
   final TextEditingController amountController;
-  final int amount;
+  final String? amountError;
+  final bool isAmountValid;
+  final int? validAmount;
   final int photoshootCount;
   final int maxPhotoshoots;
   final int imageCount;
@@ -874,7 +968,7 @@ class _CustomAmountSection extends StatelessWidget {
   final ValueChanged<int> onPhotoshootCountChanged;
   final VoidCallback? onPhotoshootsDecrease;
   final VoidCallback? onPhotoshootsIncrease;
-  final VoidCallback onPaymentSoon;
+  final VoidCallback onPaymentPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -890,14 +984,39 @@ class _CustomAmountSection extends StatelessWidget {
             decoration: InputDecoration(
               labelText: 'Сумма пополнения, ₽',
               hintText: 'От 200 до 100 000',
+              errorText: amountError,
               filled: true,
               fillColor: const Color(0xFFF7F8FC),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: amountError != null
+                      ? theme.colorScheme.error
+                      : Colors.grey.shade300,
+                ),
+              ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: _accentColor, width: 1.5),
+                borderSide: BorderSide(
+                  color: amountError != null
+                      ? theme.colorScheme.error
+                      : _accentColor,
+                  width: 1.5,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: theme.colorScheme.error),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.error,
+                  width: 1.5,
+                ),
               ),
             ),
             onChanged: onAmountChanged,
@@ -905,7 +1024,12 @@ class _CustomAmountSection extends StatelessWidget {
           const SizedBox(height: 20),
           Text(
             'Сколько фотосессий включить',
-            style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontSize: 15,
+              color: isAmountValid
+                  ? null
+                  : AiImageGeneratorApp.textSecondary,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -934,7 +1058,7 @@ class _CustomAmountSection extends StatelessWidget {
               ),
             ],
           ),
-          if (maxPhotoshoots > 0)
+          if (isAmountValid && maxPhotoshoots > 0)
             Slider(
               value: photoshootCount.toDouble(),
               min: 0,
@@ -945,54 +1069,60 @@ class _CustomAmountSection extends StatelessWidget {
                   onPhotoshootCountChanged(value.round()),
             ),
           const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3F6FF),
-              borderRadius: BorderRadius.circular(14),
+          if (isAmountValid && validAmount != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F6FF),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'За $validAmount ₽ вы получите:',
+                    style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+                  ),
+                  const SizedBox(height: 10),
+                  if (photoshootCount > 0)
+                    Text(
+                      '$photoshootCount ${_packPhotoshootLabel(photoshootCount)}',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  if (imageCount > 0)
+                    Text(
+                      '$imageCount ${_packImageLabel(imageCount)}',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  if (photoshootCount == 0 && imageCount == 0)
+                    Text(
+                      'Увеличьте сумму или уменьшите число фотосессий',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AiImageGeneratorApp.textSecondary,
+                      ),
+                    ),
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'За $amount ₽ вы получите:',
-                  style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
-                ),
-                const SizedBox(height: 10),
-                if (photoshootCount > 0)
-                  Text(
-                    '$photoshootCount ${_packPhotoshootLabel(photoshootCount)}',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                if (imageCount > 0)
-                  Text(
-                    '$imageCount ${_packImageLabel(imageCount)}',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                if (photoshootCount == 0 && imageCount == 0)
-                  Text(
-                    'Увеличьте сумму или уменьшите число фотосессий',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AiImageGeneratorApp.textSecondary,
-                    ),
-                  ),
-              ],
-            ),
-          ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             height: 48,
             child: OutlinedButton(
-              onPressed: onPaymentSoon,
+              onPressed: onPaymentPressed,
               style: OutlinedButton.styleFrom(
-                foregroundColor: _accentColor,
-                side: const BorderSide(color: _accentColor),
+                foregroundColor:
+                    isAmountValid ? _accentColor : AiImageGeneratorApp.textSecondary,
+                side: BorderSide(
+                  color: isAmountValid
+                      ? _accentColor
+                      : Colors.grey.shade300,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -1265,18 +1395,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                               ],
                             ),
                           ),
-                          IconButton(
-                            onPressed:
-                                _isHelpDialogVisible ? null : _showHelp,
-                            tooltip: 'Помощь',
-                            icon: const Icon(Icons.help_outline),
-                            color: AiImageGeneratorApp.textSecondary,
-                            iconSize: 26,
-                            padding: const EdgeInsets.all(4),
-                            constraints: const BoxConstraints(
-                              minWidth: 44,
-                              minHeight: 44,
-                            ),
+                          SectionHelpButton(
+                            onPressed: _showHelp,
+                            enabled: !_isHelpDialogVisible,
                           ),
                         ],
                       ),
@@ -4175,17 +4296,9 @@ class _CreateScreenState extends State<CreateScreen> {
                       ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: _isHelpDialogVisible ? null : _showHelp,
-                    tooltip: 'Помощь',
-                    icon: const Icon(Icons.help_outline),
-                    color: AiImageGeneratorApp.textSecondary,
-                    iconSize: 26,
-                    padding: const EdgeInsets.all(4),
-                    constraints: const BoxConstraints(
-                      minWidth: 44,
-                      minHeight: 44,
-                    ),
+                  SectionHelpButton(
+                    onPressed: _showHelp,
+                    enabled: !_isHelpDialogVisible,
                   ),
                 ],
               ),
