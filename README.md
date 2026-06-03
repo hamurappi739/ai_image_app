@@ -2,7 +2,9 @@
 
 **Flutter + FastAPI** приложение для AI-генерации изображений.
 
-Сейчас проект в **MVP / demo-mode**: **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**. Вкладка **«Пакеты»** поддерживает **смешанную экономику** (изображения + фотосессии), режим **«Только изображения»**, калькулятор **«Своя сумма»** и адаптивный layout (web + Android); **оплата и баланс пользователя — ещё не подключены**. Onboarding, каталог фотосессий, UI «Создать» / «Своя фотосессия» — как в [project_status.md](docs/project_status.md). **Ближайшее:** отображение баланса *«осталось: N изображений и M фотосессий»* (см. [roadmap.md](docs/roadmap.md)).
+Сейчас проект в **MVP / demo-mode**: **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**. Вкладка **«Пакеты»** — mixed package UI, **«Своя сумма»** (сейчас min **200 ₽**; **план: 10 ₽**), layout web + Android; **оплата не подключена**. Onboarding, каталог фотосессий, UI «Создать» / «Своя фотосессия» — [project_status.md](docs/project_status.md).
+
+**Ближайшее (руководство):** balance display and **3 free generations** messaging → estimated generation time in UI → improved **Create** tab (categorized ideas, richer quality tips) → backend **generation quality** prompts → balance model + RuStore ([roadmap.md](docs/roadmap.md)).
 
 **Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход) с loading states для auth-действий. Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. Backend автоматически создаёт профиль пользователя при первом **`/generate`** или **`/generations`** (profile auto-sync). **Без** Flutter Supabase config приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
@@ -118,14 +120,14 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 
 **Использовать:** описание, идея, **изображение** / **изображений**, **фотосессия** / **фотосессии**, **пакеты**; баланс: *«осталось: N изображений и M фотосессий»* (не «кредиты»).
 
-**Ближайший UX (план):** **баланс пользователя** (*«осталось: N изображений и M фотосессий»* в **Профиль** и кратко в **Пакеты**) → backend **«Создать»** / **«Своя фотосессия»** → RuStore. Подробнее: [docs/app_design_strategy.md](docs/app_design_strategy.md) §8, [docs/roadmap.md](docs/roadmap.md).
+**Ближайший UX (план):** package min top-up **10 ₽** → **3 free generations** + balance in **Profile** / **Packs** → **~20–60 s** generation time hint → **Create** ideas by category + expanded «Как получить хороший результат» → backend prompts for **face/quality** → balance API + RuStore. [app_design_strategy.md](docs/app_design_strategy.md), [roadmap.md](docs/roadmap.md).
 
 ---
 
 ## Что пока demo-mode
 
 - **Постоянная** Gemini-генерация в dev (по умолчанию **mock**; Gemini — только контролируемые ручные тесты)
-- **Packages tab** — mixed economy UI готов; **user balance display** и **RuStore / оплата** — следующий этап
+- **Packages tab** — mixed UI готов; **min top-up 10 ₽**, **balance + free generation messaging**, **Create** improvements, **generation quality** prompts — в плане; **RuStore** — после balance model
 - **Backend** для фото+описание на **«Создать»** и **«Своей фотосессии»** (UI-каркасы готовы), **реальные curated-примеры**
 - Подтверждение email, восстановление пароля, production без `TEST_USER_ID`
 - **Production security** (debug routes, CORS, RLS)
