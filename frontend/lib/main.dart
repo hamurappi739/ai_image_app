@@ -4187,14 +4187,35 @@ class CreateScreen extends StatefulWidget {
   State<CreateScreen> createState() => _CreateScreenState();
 }
 
-class _CreateScreenState extends State<CreateScreen> {
-  static const _quickIdeas = [
+/// Категории готовых идей для вкладки «Создать» (расширение chips — позже).
+class _CreateQuickIdeasCatalog {
+  _CreateQuickIdeasCatalog._();
+
+  static const withoutPhoto = [
     'Киберпанк-кот',
     'Уютный дом',
     'Премиум-реклама',
     'Аниме-портрет',
     'Город будущего',
   ];
+
+  // ignore: unused_field
+  static const withPhotoPerson = <String>[
+    // Позже: 5–10 идей для сценария «фото + человек».
+  ];
+
+  // ignore: unused_field
+  static const withPhotoObject = <String>[
+    // Позже: 5–10 идей для сценария «фото + предмет/объект».
+  ];
+
+  /// Сейчас в «Попробуйте идею» — только идеи без фото.
+  static const displayed = withoutPhoto;
+}
+
+enum _CreateTipsMode { withoutPhoto, withPhoto }
+
+class _CreateScreenState extends State<CreateScreen> {
 
   final _descriptionController = TextEditingController();
   final _imagePicker = ImagePicker();
@@ -4423,7 +4444,7 @@ class _CreateScreenState extends State<CreateScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _quickIdeas
+                children: _CreateQuickIdeasCatalog.displayed
                     .map(
                       (idea) => ActionChip(
                         label: Text(idea),
@@ -4641,20 +4662,70 @@ class _CreateReferencePhotoCard extends StatelessWidget {
   }
 }
 
-class _CreateTipsCard extends StatelessWidget {
+class _CreateTipsCard extends StatefulWidget {
   const _CreateTipsCard();
 
+  @override
+  State<_CreateTipsCard> createState() => _CreateTipsCardState();
+}
+
+class _CreateTipsCardState extends State<_CreateTipsCard> {
   static const _accentColor = Color(0xFF5B6CFF);
 
-  static const _tips = [
-    'Опишите человека, предмет или сцену',
-    'Добавьте стиль: реализм, кино, портрет, реклама',
-    'Укажите настроение: уютно, премиально, ярко, спокойно',
+  static const _generalTips = [
+    'Укажите главный объект.',
+    'Добавьте место.',
+    'Опишите стиль.',
+    'Добавьте настроение.',
+    'Не пишите слишком много противоречивых деталей.',
   ];
+
+  static const _withoutPhotoIntro =
+      'Опишите, что хотите увидеть: объект, место, стиль и настроение.';
+
+  static const _withoutPhotoExamples = [
+    'Уютный домик в зимнем лесу, вечер, тёплый свет из окон',
+    'Современный город ночью, неоновые вывески, кинематографичный стиль',
+  ];
+
+  static const _withoutPhotoNote =
+      'Этот режим подходит, когда вы хотите создать новое изображение с нуля.';
+
+  static const _withPhotoIntro =
+      'Если добавите фото, опишите, что нужно изменить или какой образ создать.';
+
+  static const _withPhotoPersonExamples = [
+    'Сделай деловой портрет в светлой студии, аккуратный костюм, мягкий свет',
+    'Создай аватар для соцсетей, светлый фон, естественная улыбка',
+    'Сделай зимний портрет на улице, тёплая одежда, красивый снег',
+    'Добавь образ для резюме: спокойный фон, уверенный вид, реализм',
+  ];
+
+  static const _withPhotoObjectExamples = [
+    'Сделай рекламное фото товара на светлом фоне, мягкий свет',
+    'Поставь предмет на деревянный стол, уютная атмосфера, реализм',
+    'Улучши фото комнаты: больше света, аккуратный интерьер, чистый фон',
+    'Сделай красивую карточку товара для магазина, минимализм',
+  ];
+
+  static const _withPhotoNote =
+      'Чем лучше видно объект на фото, тем лучше получится результат.';
+
+  _CreateTipsMode _mode = _CreateTipsMode.withoutPhoto;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tipStyle = theme.textTheme.bodyMedium?.copyWith(
+      fontSize: 13,
+      height: 1.4,
+      color: AiImageGeneratorApp.textPrimary,
+    );
+    final bodySecondary = theme.textTheme.bodyMedium?.copyWith(
+      fontSize: 13,
+      height: 1.45,
+      color: AiImageGeneratorApp.textSecondary,
+    );
 
     return _SoftCard(
       child: Column(
@@ -4685,49 +4756,231 @@ class _CreateTipsCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          ..._tips.map(
-            (tip) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 2),
-                    child: Icon(
-                      Icons.check_circle_outline,
-                      size: 18,
-                      color: _accentColor,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      tip,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AiImageGeneratorApp.textPrimary,
-                      ),
-                    ),
-                  ),
-                ],
+          const SizedBox(height: 14),
+          SegmentedButton<_CreateTipsMode>(
+            segments: const [
+              ButtonSegment(
+                value: _CreateTipsMode.withoutPhoto,
+                label: Text('Без фото'),
+              ),
+              ButtonSegment(
+                value: _CreateTipsMode.withPhoto,
+                label: Text('С фото'),
+              ),
+            ],
+            selected: {_mode},
+            onSelectionChanged: (selection) {
+              setState(() => _mode = selection.first);
+            },
+            style: ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              textStyle: WidgetStatePropertyAll(
+                theme.textTheme.labelLarge?.copyWith(fontSize: 13),
               ),
             ),
           ),
-          const SizedBox(height: 6),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF7F8FC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE8EAEF)),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _generalTips
+                .map(
+                  (tip) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F8FC),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE8EAEF)),
+                    ),
+                    child: Text(tip, style: tipStyle),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 14),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _mode == _CreateTipsMode.withoutPhoto
+                ? _WithoutPhotoTipsContent(
+                    key: const ValueKey('tips_without_photo'),
+                    intro: _withoutPhotoIntro,
+                    examples: _withoutPhotoExamples,
+                    note: _withoutPhotoNote,
+                    bodySecondary: bodySecondary,
+                    theme: theme,
+                  )
+                : _WithPhotoTipsContent(
+                    key: const ValueKey('tips_with_photo'),
+                    intro: _withPhotoIntro,
+                    personExamples: _withPhotoPersonExamples,
+                    objectExamples: _withPhotoObjectExamples,
+                    note: _withPhotoNote,
+                    bodySecondary: bodySecondary,
+                    theme: theme,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WithoutPhotoTipsContent extends StatelessWidget {
+  const _WithoutPhotoTipsContent({
+    super.key,
+    required this.intro,
+    required this.examples,
+    required this.note,
+    required this.bodySecondary,
+    required this.theme,
+  });
+
+  final String intro;
+  final List<String> examples;
+  final String note;
+  final TextStyle? bodySecondary;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(intro, style: bodySecondary),
+        const SizedBox(height: 12),
+        Text(
+          'Примеры',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...examples.map((e) => _CreateTipsExampleLine(text: e)),
+        const SizedBox(height: 10),
+        Text(
+          note,
+          style: bodySecondary?.copyWith(
+            fontStyle: FontStyle.italic,
+            color: AiImageGeneratorApp.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WithPhotoTipsContent extends StatelessWidget {
+  const _WithPhotoTipsContent({
+    super.key,
+    required this.intro,
+    required this.personExamples,
+    required this.objectExamples,
+    required this.note,
+    required this.bodySecondary,
+    required this.theme,
+  });
+
+  final String intro;
+  final List<String> personExamples;
+  final List<String> objectExamples;
+  final String note;
+  final TextStyle? bodySecondary;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(intro, style: bodySecondary),
+        const SizedBox(height: 12),
+        _CreateTipsExampleGroup(
+          title: 'Если на фото человек',
+          examples: personExamples,
+          theme: theme,
+        ),
+        const SizedBox(height: 12),
+        _CreateTipsExampleGroup(
+          title: 'Если на фото предмет или другое',
+          examples: objectExamples,
+          theme: theme,
+        ),
+        const SizedBox(height: 10),
+        Text(note, style: bodySecondary),
+      ],
+    );
+  }
+}
+
+class _CreateTipsExampleGroup extends StatelessWidget {
+  const _CreateTipsExampleGroup({
+    required this.title,
+    required this.examples,
+    required this.theme,
+  });
+
+  final String title;
+  final List<String> examples;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F8FC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8EAEF)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
             ),
+          ),
+          const SizedBox(height: 8),
+          ...examples.map((e) => _CreateTipsExampleLine(text: e)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CreateTipsExampleLine extends StatelessWidget {
+  const _CreateTipsExampleLine({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '• ',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontSize: 13,
+              height: 1.45,
+              color: AiImageGeneratorApp.textSecondary,
+            ),
+          ),
+          Expanded(
             child: Text(
-              'Например: Женский деловой портрет в светлой студии, реализм, мягкий свет',
-              style: theme.textTheme.bodyMedium?.copyWith(
+              text,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontSize: 13,
-                color: AiImageGeneratorApp.textSecondary,
                 height: 1.45,
+                color: AiImageGeneratorApp.textPrimary,
               ),
             ),
           ),
