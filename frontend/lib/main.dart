@@ -341,7 +341,7 @@ class _PacksScreenState extends State<PacksScreen> {
 
   static const _imageUnitRub = 10;
   static const _photoshootUnitRub = 100;
-  static const _customAmountMin = 200;
+  static const _customAmountMin = 10;
   static const _customAmountMax = 100000;
 
   static const _mixedPackages = <_PackOffering>[
@@ -414,11 +414,11 @@ class _PacksScreenState extends State<PacksScreen> {
   String? _customAmountErrorFor(String text) {
     final trimmed = text.replaceAll(RegExp(r'\s'), '');
     if (trimmed.isEmpty) {
-      return 'Минимальная сумма пополнения — 200 ₽';
+      return 'Минимальная сумма пополнения — 10 ₽';
     }
     final parsed = int.tryParse(trimmed);
     if (parsed == null || parsed < _customAmountMin) {
-      return 'Минимальная сумма пополнения — 200 ₽';
+      return 'Минимальная сумма пополнения — 10 ₽';
     }
     if (parsed > _customAmountMax) {
       return 'Максимальная сумма пополнения — 100 000 ₽';
@@ -566,7 +566,7 @@ class _PacksScreenState extends State<PacksScreen> {
     if (!_isCustomAmountValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Введите сумму от 200 ₽'),
+          content: const Text('Введите сумму от 10 ₽'),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -1061,7 +1061,7 @@ class _CustomAmountSection extends StatelessWidget {
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: 'Сумма пополнения, ₽',
-              hintText: 'От 200 до 100 000',
+              hintText: 'От 10 до 100 000',
               errorText: amountError,
               filled: true,
               fillColor: const Color(0xFFF7F8FC),
