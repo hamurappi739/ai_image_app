@@ -14,6 +14,7 @@ import 'services/create_help_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/photoshoots_help_service.dart';
 import 'widgets/create_help_dialog.dart';
+import 'widgets/generation_progress_dialog.dart';
 import 'widgets/packs_help_dialog.dart';
 import 'widgets/photoshoots_help_dialog.dart';
 import 'widgets/section_help_button.dart';
@@ -1929,6 +1930,16 @@ class _CustomPhotoshootDialogState extends State<_CustomPhotoshootDialog> {
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
+              Text(
+                'Когда функция будет подключена, создание может занять до минуты.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: 13,
+                  height: 1.35,
+                  color: AiImageGeneratorApp.textSecondary,
+                ),
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -2269,10 +2280,16 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
     }
     setState(() => _isPreparingPhotoshoot = true);
     try {
-      final result = await widget.apiService.generatePhotoshoot(
-        styleId: widget.style.id,
-        styleTitle: widget.style.title,
-        photoFile: selectedPhotoFile,
+      final result = await GenerationProgressDialog.run<PhotoshootGenerateResponse>(
+        context: context,
+        title: 'Готовим фотосессию',
+        subtitle: 'Фотосессия может занять до двух минут.',
+        totalSeconds: 120,
+        task: () => widget.apiService.generatePhotoshoot(
+          styleId: widget.style.id,
+          styleTitle: widget.style.title,
+          photoFile: selectedPhotoFile,
+        ),
       );
       if (!mounted) return;
       if (result.imageUrls.isEmpty) {
@@ -2561,11 +2578,25 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  Text(
+                    _isPreparingPhotoshoot
+                        ? 'Готовим фотосессию. Обычно это занимает 20–60 секунд.'
+                        : 'Фотосессия может занять до минуты.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 13,
+                      height: 1.35,
+                      color: AiImageGeneratorApp.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: _isPreparingPhotoshoot
+                              ? null
+                              : () => Navigator.of(context).pop(),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AiImageGeneratorApp.textSecondary,
                             side: BorderSide(color: Colors.grey.shade300),
@@ -2604,27 +2635,13 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                                       borderRadius: BorderRadius.circular(14),
                                       child: Center(
                                         child: _isPreparingPhotoshoot
-                                            ? const Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  SizedBox(
-                                                    width: 18,
-                                                    height: 18,
-                                                    child: CircularProgressIndicator(
-                                                      strokeWidth: 2.3,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                  SizedBox(width: 10),
-                                                  Text(
-                                                    'Подождите...',
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight: FontWeight.w600,
-                                                      fontSize: 14,
-                                                    ),
-                                                  ),
-                                                ],
+                                            ? const SizedBox(
+                                                width: 22,
+                                                height: 22,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2.3,
+                                                  color: Colors.white,
+                                                ),
                                               )
                                             : Text(
                                                 laterLabel,
@@ -4292,7 +4309,13 @@ class _CreateScreenState extends State<CreateScreen> {
     });
 
     try {
-      final response = await widget.apiService.generateImage(text);
+      final response = await GenerationProgressDialog.run<GenerateImageResponse>(
+        context: context,
+        title: 'Создаём изображение',
+        subtitle: 'Обычно это занимает до минуты.',
+        totalSeconds: 60,
+        task: () => widget.apiService.generateImage(text),
+      );
       if (!mounted) return;
       widget.onImageGenerated(
         GeneratedImageItem(
@@ -4911,51 +4934,68 @@ class _GenerateButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: onPressed == null ? null : _gradient,
-          color: onPressed == null ? Colors.grey.shade300 : null,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: onPressed == null
-              ? null
-              : [
-                  BoxShadow(
-                    color: const Color(0xFF5B6CFF).withValues(alpha: 0.35),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(16),
-            child: Center(
-              child: isLoading
-                  ? const SizedBox(
-                      width: 26,
-                      height: 26,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: onPressed == null ? null : _gradient,
+              color: onPressed == null ? Colors.grey.shade300 : null,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: onPressed == null
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: const Color(0xFF5B6CFF).withValues(alpha: 0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
                       ),
-                    )
-                  : const Text(
-                      'Создать изображение',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onPressed,
+                borderRadius: BorderRadius.circular(16),
+                child: Center(
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 26,
+                          height: 26,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Создать изображение',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
             ),
           ),
         ),
-      ),
+        const SizedBox(height: 10),
+        Text(
+          isLoading
+              ? 'Создаём изображение. Обычно это занимает до минуты.'
+              : 'Обычно создание занимает 20–60 секунд.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 13,
+            height: 1.35,
+            color: AiImageGeneratorApp.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 }

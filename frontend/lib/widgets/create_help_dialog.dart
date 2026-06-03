@@ -55,7 +55,9 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
     ),
     _HelpBlock(
       title: 'Где результат',
-      body: 'После создания изображение появится в Галерее.',
+      body:
+          'После создания изображение появится в Галерее. '
+          'Создание может занять до минуты — это нормально.',
       icon: Icons.photo_library_outlined,
     ),
   ];

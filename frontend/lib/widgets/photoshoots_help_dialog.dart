@@ -45,7 +45,7 @@ class _PhotoshootsHelpDialogState extends State<PhotoshootsHelpDialog> {
       title: 'Что получится',
       body:
           'Фотосессия создаёт несколько готовых изображений '
-          'в выбранном стиле.',
+          'в выбранном стиле. Фотосессия может занять 20–60 секунд.',
       icon: Icons.collections_outlined,
     ),
     _HelpBlock(
