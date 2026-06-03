@@ -36,7 +36,10 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
     ),
     _HelpBlock(
       title: 'Готовые идеи',
-      body: 'Нажмите на готовую идею, чтобы быстро заполнить описание.',
+      body:
+          'Идеи разделены по категориям: «Без фото» и «С фото» '
+          '(для будущего режима с фото). Нажмите идею — '
+          'описание заполнится автоматически.',
       icon: Icons.lightbulb_outline,
     ),
     _HelpBlock(

@@ -4187,33 +4187,246 @@ class CreateScreen extends StatefulWidget {
   State<CreateScreen> createState() => _CreateScreenState();
 }
 
-/// Категории готовых идей для вкладки «Создать» (расширение chips — позже).
+class _CreateIdeaCategory {
+  const _CreateIdeaCategory({
+    required this.title,
+    required this.ideas,
+  });
+
+  final String title;
+  final List<String> ideas;
+}
+
+/// Готовые идеи для вкладки «Создать» по режимам и категориям.
 class _CreateQuickIdeasCatalog {
   _CreateQuickIdeasCatalog._();
 
-  static const withoutPhoto = [
-    'Киберпанк-кот',
-    'Уютный дом',
-    'Премиум-реклама',
-    'Аниме-портрет',
-    'Город будущего',
+  static const withoutPhotoCategories = [
+    _CreateIdeaCategory(
+      title: 'Природа',
+      ideas: [
+        'Уютный домик в зимнем лесу, вечер, тёплый свет из окон',
+        'Горное озеро на рассвете, туман, реализм',
+        'Цветочное поле летом, мягкий солнечный свет',
+      ],
+    ),
+    _CreateIdeaCategory(
+      title: 'Город',
+      ideas: [
+        'Современный город ночью, неоновые вывески, кинематографичный стиль',
+        'Уютная улица старого города после дождя',
+        'Панорама большого города на закате',
+      ],
+    ),
+    _CreateIdeaCategory(
+      title: 'Дом и интерьер',
+      ideas: [
+        'Светлая гостиная в современном стиле, уютный свет',
+        'Кухня мечты, светлые тона, аккуратный интерьер',
+        'Спальня в спокойных цветах, мягкое освещение',
+      ],
+    ),
+    _CreateIdeaCategory(
+      title: 'Праздник',
+      ideas: [
+        'Праздничная открытка с цветами, нежные цвета, красивый свет',
+        'Новогодняя открытка, ёлка, тёплые огни, уют',
+        'День рождения, воздушные шары, радостная атмосфера',
+      ],
+    ),
+    _CreateIdeaCategory(
+      title: 'Реклама и товар',
+      ideas: [
+        'Рекламное фото чашки кофе на деревянном столе, мягкий утренний свет',
+        'Карточка товара на светлом фоне, минимализм',
+        'Красивая упаковка косметики, студийный свет',
+      ],
+    ),
+    _CreateIdeaCategory(
+      title: 'Соцсети и аватар',
+      ideas: [
+        'Аватар для соцсетей, аккуратный портрет, светлый фон',
+        'Яркая обложка для поста, современный стиль',
+        'Минималистичная картинка для профиля, мягкие цвета',
+      ],
+    ),
   ];
 
-  // ignore: unused_field
-  static const withPhotoPerson = <String>[
-    // Позже: 5–10 идей для сценария «фото + человек».
+  static const withPhotoCategories = [
+    _CreateIdeaCategory(
+      title: 'Если на фото человек',
+      ideas: [
+        'Сделай деловой портрет в светлой студии, аккуратный костюм, мягкий свет',
+        'Создай аватар для соцсетей, светлый фон, естественная улыбка',
+        'Сделай зимний портрет на улице, тёплая одежда, красивый снег',
+        'Добавь образ для резюме: спокойный фон, уверенный вид, реализм',
+        'Сделай красивый портрет в городской прогулке, мягкий вечерний свет',
+      ],
+    ),
+    _CreateIdeaCategory(
+      title: 'Если на фото предмет или другое',
+      ideas: [
+        'Сделай рекламное фото товара на светлом фоне, мягкий свет',
+        'Поставь предмет на деревянный стол, уютная атмосфера, реализм',
+        'Улучши фото комнаты: больше света, аккуратный интерьер, чистый фон',
+        'Сделай красивую карточку товара для магазина, минимализм',
+        'Добавь праздничный фон вокруг предмета, красивый свет',
+      ],
+    ),
   ];
-
-  // ignore: unused_field
-  static const withPhotoObject = <String>[
-    // Позже: 5–10 идей для сценария «фото + предмет/объект».
-  ];
-
-  /// Сейчас в «Попробуйте идею» — только идеи без фото.
-  static const displayed = withoutPhoto;
 }
 
 enum _CreateTipsMode { withoutPhoto, withPhoto }
+
+class _CreateQuickIdeasPanel extends StatefulWidget {
+  const _CreateQuickIdeasPanel({
+    required this.isBusy,
+    required this.onIdeaSelected,
+  });
+
+  final bool isBusy;
+  final ValueChanged<String> onIdeaSelected;
+
+  @override
+  State<_CreateQuickIdeasPanel> createState() => _CreateQuickIdeasPanelState();
+}
+
+class _CreateQuickIdeasPanelState extends State<_CreateQuickIdeasPanel> {
+  _CreateTipsMode _mode = _CreateTipsMode.withoutPhoto;
+
+  List<_CreateIdeaCategory> get _categories =>
+      _mode == _CreateTipsMode.withoutPhoto
+          ? _CreateQuickIdeasCatalog.withoutPhotoCategories
+          : _CreateQuickIdeasCatalog.withPhotoCategories;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Попробуйте идею', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 6),
+        Text(
+          'Выберите режим и категорию — текст подставится в описание',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 13,
+            color: AiImageGeneratorApp.textSecondary,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SegmentedButton<_CreateTipsMode>(
+          segments: const [
+            ButtonSegment(
+              value: _CreateTipsMode.withoutPhoto,
+              label: Text('Без фото'),
+            ),
+            ButtonSegment(
+              value: _CreateTipsMode.withPhoto,
+              label: Text('С фото'),
+            ),
+          ],
+          selected: {_mode},
+          onSelectionChanged: (selection) {
+            setState(() => _mode = selection.first);
+          },
+          style: ButtonStyle(
+            visualDensity: VisualDensity.compact,
+            textStyle: WidgetStatePropertyAll(
+              theme.textTheme.labelLarge?.copyWith(fontSize: 13),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _SoftCard(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: Column(
+              key: ValueKey(_mode),
+              children: [
+                for (var i = 0; i < _categories.length; i++)
+                  _CreateIdeaCategoryTile(
+                    category: _categories[i],
+                    initiallyExpanded: i == 0,
+                    isBusy: widget.isBusy,
+                    onIdeaSelected: widget.onIdeaSelected,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CreateIdeaCategoryTile extends StatelessWidget {
+  const _CreateIdeaCategoryTile({
+    required this.category,
+    required this.initiallyExpanded,
+    required this.isBusy,
+    required this.onIdeaSelected,
+  });
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  final _CreateIdeaCategory category;
+  final bool initiallyExpanded;
+  final bool isBusy;
+  final ValueChanged<String> onIdeaSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Theme(
+      data: theme.copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: initiallyExpanded,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+        childrenPadding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+        title: Text(
+          category.title,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+        iconColor: _accentColor,
+        collapsedIconColor: AiImageGeneratorApp.textSecondary,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: category.ideas
+                .map(
+                  (idea) => ActionChip(
+                    label: Text(
+                      idea,
+                      style: const TextStyle(fontSize: 12, height: 1.3),
+                    ),
+                    onPressed:
+                        isBusy ? null : () => onIdeaSelected(idea),
+                    backgroundColor: const Color(0xFFF7F8FC),
+                    side: const BorderSide(color: Color(0xFFE8EAEF)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _CreateScreenState extends State<CreateScreen> {
 
@@ -4439,24 +4652,9 @@ class _CreateScreenState extends State<CreateScreen> {
                 onClearPhoto: _clearReferencePhoto,
               ),
               const SizedBox(height: 24),
-              Text('Попробуйте идею', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _CreateQuickIdeasCatalog.displayed
-                    .map(
-                      (idea) => ActionChip(
-                        label: Text(idea),
-                        onPressed: _isLoading ? null : () => _applyQuickIdea(idea),
-                        backgroundColor: Colors.white,
-                        side: BorderSide(color: Colors.grey.shade200),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                    )
-                    .toList(),
+              _CreateQuickIdeasPanel(
+                isBusy: _isLoading,
+                onIdeaSelected: _applyQuickIdea,
               ),
               const SizedBox(height: 20),
               const _CreateTipsCard(),
