@@ -28,6 +28,13 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
   static const _accentColor = Color(0xFF5B6CFF);
   static const _blocks = [
     _HelpBlock(
+      title: 'Бесплатный старт',
+      body:
+          'На старте доступны 3 бесплатные генерации, '
+          'чтобы попробовать приложение.',
+      icon: Icons.auto_awesome_outlined,
+    ),
+    _HelpBlock(
       title: 'Готовые идеи',
       body: 'Нажмите на готовую идею, чтобы быстро заполнить описание.',
       icon: Icons.lightbulb_outline,

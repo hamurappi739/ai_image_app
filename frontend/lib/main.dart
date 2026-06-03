@@ -4380,6 +4380,8 @@ class _CreateScreenState extends State<CreateScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              const _FreeGenerationsInfoCard(),
               const SizedBox(height: 20),
               _StatusCard(response: _lastResponse),
               const SizedBox(height: 20),
@@ -4437,6 +4439,73 @@ class _CreateScreenState extends State<CreateScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FreeGenerationsInfoCard extends StatelessWidget {
+  const _FreeGenerationsInfoCard();
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F2FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _accentColor.withValues(alpha: 0.22),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEDE9FF),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.auto_awesome_outlined,
+              color: _accentColor,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Вам доступно 3 бесплатные генерации',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AiImageGeneratorApp.textPrimary,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Используйте их, чтобы попробовать создание изображений.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    height: 1.35,
+                    color: AiImageGeneratorApp.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
