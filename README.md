@@ -4,9 +4,11 @@
 
 Сейчас проект в **MVP / demo-mode**: **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**. Вкладка **«Пакеты»** — mixed package UI, **«Своя сумма»** (сейчас min **200 ₽**; **план: 10 ₽**), layout web + Android; **оплата не подключена**. Onboarding, каталог фотосессий, UI «Создать» / «Своя фотосессия» — [project_status.md](docs/project_status.md).
 
-**Generation UX:** flows on **«Создать»** and **«Фотосессии»** (when a real backend request runs) show a **blocking progress dialog with countdown** (~60 s / ~120 s), dimmed background, and *«Почти готово, ждём результат...»* if the request outlasts the timer.
+**Create tab:** free-generation notice, **categorized clickable ideas** (modes **«Без фото»** / **«С фото»**), mode-specific guidance in **«Как получить хороший результат»**, and a **generation countdown modal** (~60 s, dimmed background). Photo-based generation is **UI-only** until backend is connected.
 
-**Ближайшее (руководство):** balance display and **3 free generations** messaging → improved **Create** tab (categorized ideas, richer quality tips) → backend **generation quality** prompts → balance model + RuStore ([roadmap.md](docs/roadmap.md)).
+**Generation UX (Фотосессии):** blocking progress dialog (~120 s) when a real backend request runs; *«Почти готово, ждём результат...»* if the timer ends first.
+
+**Ближайшее (руководство):** backend balance + real free-tier accounting → **photo + description** on **«Создать»** → backend **generation quality** prompts → balance model + RuStore ([roadmap.md](docs/roadmap.md)).
 
 **Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход) с loading states для auth-действий. Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. Backend автоматически создаёт профиль пользователя при первом **`/generate`** или **`/generations`** (profile auto-sync). **Без** Flutter Supabase config приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
@@ -21,8 +23,7 @@
 - Flutter **web** UI на **русском** языке
 - **First-run onboarding** (5 экранов) + **контекстная помощь** на **«Создать»**, **«Фотосессии»**, **«Пакеты»** (кнопка **«Помощь»**; автопоказ на **Создать** / **Фотосессии**)
 - **Фотосессии — catalog-style cards** + **Custom photoshoot UI placeholder** (photo picker, пожелания, «Как описать лучше»; backend later)
-- **Create tab — photo picker/preview UI** for future **photo + description → single image** (backend connection planned later)
-- Вкладка **Создать** — описание, `POST /generate`, **blocking progress dialog** с обратным отсчётом (~60 с), **UI-каркас фото** (picker, preview, убрать; фото не на backend)
+- **Create tab** — free-generation notice; **categorized clickable ideas** (without-photo / with-photo modes); mode-specific **«Как получить хороший результат»**; **generation countdown modal** (~60 s); photo picker UI (backend later); `POST /generate` by description
 - Генерация через backend **`POST /generate`** (demo-mode)
 - Результат на экране + **fallback-preview** при ошибке загрузки картинки
 - Кнопка **«Открыть в Галерее»**
@@ -122,14 +123,14 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 
 **Использовать:** описание, идея, **изображение** / **изображений**, **фотосессия** / **фотосессии**, **пакеты**; баланс: *«осталось: N изображений и M фотосессий»* (не «кредиты»).
 
-**Ближайший UX (план):** package min top-up **10 ₽** → **3 free generations** + balance in **Profile** / **Packs** → **Create** ideas by category + expanded «Как получить хороший результат» → backend prompts for **face/quality** → balance API + RuStore. **Готово:** blocking **generation progress dialog** with countdown. [app_design_strategy.md](docs/app_design_strategy.md), [roadmap.md](docs/roadmap.md).
+**Ближайший UX (план):** package min top-up **10 ₽** → balance in **Profile** / **Packs** (backend) → **Create** photo + description API → backend prompts for **face/quality** → RuStore. **Готово на «Создать»:** free-gen notice, categorized ideas, mode-specific guidance, countdown modal. [app_design_strategy.md](docs/app_design_strategy.md), [roadmap.md](docs/roadmap.md).
 
 ---
 
 ## Что пока demo-mode
 
 - **Постоянная** Gemini-генерация в dev (по умолчанию **mock**; Gemini — только контролируемые ручные тесты)
-- **Packages tab** — mixed UI готов; **min top-up 10 ₽**, **balance + free generation messaging**, **Create** improvements, **generation quality** prompts — в плане; **RuStore** — после balance model (**generation progress dialog** — готов)
+- **Packages tab** — mixed UI готов; **min top-up 10 ₽**, **backend balance**, **Create** photo API, **generation quality** prompts — в плане; **RuStore** — после balance model (**Create tab UX** — готов)
 - **Backend** для фото+описание на **«Создать»** и **«Своей фотосессии»** (UI-каркасы готовы), **реальные curated-примеры**
 - Подтверждение email, восстановление пароля, production без `TEST_USER_ID`
 - **Production security** (debug routes, CORS, RLS)
