@@ -121,7 +121,8 @@ def get_profile_by_id(user_id: str) -> dict | None:
     url = (
         f"{base_url}/rest/v1/profiles"
         f"?id=eq.{quote(user_id, safe='')}"
-        "&select=id,email,free_generations_used,paid_credits"
+        "&select=id,email,free_generations_used,paid_credits,"
+        "paid_image_generations,paid_photoshoots"
         "&limit=1"
     )
 
@@ -184,6 +185,8 @@ def ensure_profile_exists(user_id: str, email: str | None = None) -> dict:
         "id": normalized_id,
         "free_generations_used": 0,
         "paid_credits": 0,
+        "paid_image_generations": 0,
+        "paid_photoshoots": 0,
     }
     if normalized_email:
         payload["email"] = normalized_email

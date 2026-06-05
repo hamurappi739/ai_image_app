@@ -6,7 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.auth import CurrentUser, get_current_user
 from app.config import settings
 from app.schemas import (
+    AddBalanceRequest,
     AddCreditsRequest,
+    BalanceResponse,
     DebugConfigResponse,
     DebugStorageImagePersistResponse,
     DebugStorageImageTestResponse,
@@ -17,6 +19,7 @@ from app.schemas import (
     GenerationsListResponse,
     PhotoshootGenerateResponse,
 )
+from app.services.balance_service import add_paid_balance, build_balance_response
 from app.services.image_service import generate_image
 from app.services.credits_service import (
     add_paid_credits,
@@ -86,6 +89,15 @@ def _resolve_user_for_image_storage(
     if user is not None:
         return user
     return get_current_user(authorization=authorization)
+
+
+@app.get("/balance", response_model=BalanceResponse)
+def get_balance(user: CurrentUser = Depends(get_current_user)):
+    try:
+        profile = ensure_profile_exists(user.id, user.email)
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail="Failed to ensure user profile")
+    return build_balance_response(profile, settings.free_generations_limit)
 
 
 @app.get("/generations", response_model=GenerationsListResponse)
@@ -306,6 +318,31 @@ def debug_consume_generation():
         raise HTTPException(status_code=500, detail=str(exc))
 
     return {"status": "ok", "decision": decision, "result": result}
+
+
+@app.post("/debug/add-balance", response_model=BalanceResponse)
+def debug_add_balance(
+    request: AddBalanceRequest,
+    user: CurrentUser = Depends(get_current_user),
+):
+    _require_development_for_debug()
+    if request.paid_image_generations < 0 or request.paid_photoshoots < 0:
+        raise HTTPException(status_code=400, detail="Values must not be negative")
+    try:
+        profile = ensure_profile_exists(user.id, user.email)
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail="Failed to ensure user profile")
+    try:
+        updated_profile = add_paid_balance(
+            profile,
+            request.paid_image_generations,
+            request.paid_photoshoots,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail="Failed to update balance")
+    return build_balance_response(updated_profile, settings.free_generations_limit)
 
 
 @app.post("/debug/add-credits")

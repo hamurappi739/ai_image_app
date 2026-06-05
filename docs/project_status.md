@@ -21,7 +21,7 @@
 - **Без dart-define:** авторизация в UI недоступна; приложение работает в **demo / development fallback** (`TEST_USER_ID` на backend).
 - **После входа:** access token из `AuthService` передаётся в **`ApiService.setAccessToken(...)`** → backend получает **`Authorization: Bearer`**.
 - **Backend:** `get_current_user()` валидирует Bearer через Supabase Auth REST (`/auth/v1/user`) → **`CurrentUser { id, email }`**.
-- **Profiles auto-create/sync:** backend автоматически вызывает **`ensure_profile_exists`** для пользователя на **`GET /generations`** и **`POST /generate`**; если профиля нет, создаёт строку в `profiles` (`free_generations_used=0`, `paid_credits=0`) и мягко синхронизирует `email` без перезаписи уже заполненного значения.
+- **Profiles auto-create/sync:** backend автоматически вызывает **`ensure_profile_exists`** для пользователя на **`GET /generations`**, **`GET /balance`** и **`POST /generate`**; если профиля нет, создаёт строку в `profiles` (`free_generations_used=0`, `paid_credits=0`, `paid_image_generations=0`, `paid_photoshoots=0`) и мягко синхронизирует `email` без перезаписи уже заполненного значения.
 - **Работает в двух режимах:** и для Bearer token пользователя, и для development fallback **`TEST_USER_ID`**.
 - **Проверено после auto-sync:**  
   1) запуск с Supabase Auth config + вход в аккаунт;  
@@ -120,6 +120,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | GET | `/health` | Жив ли сервер |
 | POST | `/generate` | Генерация по тексту (mock по умолчанию; Gemini + Storage проверен вручную) |
 | GET | `/generations` | История генераций (`?limit=1..100`, по умолчанию 20) |
+| GET | `/balance` | Баланс: free remaining + `paid_image_generations` + `paid_photoshoots` |
 
 ### `POST /generate`
 
@@ -164,7 +165,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 **`/debug/*`** — только для разработки. **`GET /debug/config`** — безопасный helper: флаги конфигурации без секретов (доступен только при `ENVIRONMENT=development`, иначе 404). **Не вызывать** из production Flutter. Перед релизом — **удалить или защитить все** `/debug/*` routes.
 
-Примеры: `/debug/config`, `/debug/supabase`, `/debug/storage-test`, `/debug/storage-image-test`, `/debug/profile`, `/debug/history`, `/debug/consume-generation`, `/debug/add-credits`.
+Примеры: `/debug/config`, `/debug/supabase`, `/debug/storage-test`, `/debug/storage-image-test`, `/debug/profile`, `/debug/history`, `/debug/consume-generation`, `/debug/add-credits`, `/debug/add-balance`.
 
 Подробнее: [api_contract.md](api_contract.md), [dev_notes.md](dev_notes.md).
 
@@ -242,6 +243,35 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 **Цель UX:** пользователь видит, что приложение **работает**, и не думает, что оно **зависло**.
 
+### Баланс пользователя (backend, реализовано)
+
+**Миграция:** `backend/db/migrations/003_add_profile_balance_fields.sql` — в `profiles`:
+
+- `paid_image_generations` (default 0) — платные **изображения**
+- `paid_photoshoots` (default 0) — платные **фотосессии**
+- `paid_credits` **сохранено** (legacy / текущий credit consumption path)
+
+**`GET /balance`** (Bearer или dev `TEST_USER_ID`):
+
+```json
+{
+  "free_generations_limit": 3,
+  "free_generations_used": 0,
+  "free_generations_remaining": 3,
+  "paid_image_generations": 0,
+  "paid_photoshoots": 0
+}
+```
+
+- `free_generations_remaining = max(FREE_GENERATIONS_LIMIT - free_generations_used, 0)`
+- **`ensure_profile_exists`** перед ответом; Supabase timeout → **`503`**
+- **Списание** `paid_image_generations` / `paid_photoshoots` в `/generate` и фотосессиях **пока не подключено** (отдельный этап)
+- При **`ENABLE_CREDIT_CONSUMPTION=false`** поведение `/generate` **без изменений**
+
+**Development:** **`POST /debug/add-balance`** (`ENVIRONMENT=development`) — JSON `{ paid_image_generations, paid_photoshoots }` добавляет к профилю; ответ как `GET /balance`.
+
+**Flutter:** отображение *«Осталось: … изображений и … фотосессий»* в **Профиль** / **Пакеты** — **следующий шаг** (frontend не менялся в этом этапе).
+
 ### Создать
 
 - **Уведомление о старте (реализовано):** карточка *«Вам доступно 3 бесплатные генерации»* + короткий поясняющий текст (статический UI; реальный учёт баланса на backend — позже).
@@ -312,9 +342,10 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | — | **Подсказки «Как получить хороший результат»** — режимы без/с фото, примеры | ✅ |
 | — | **Готовые идеи по категориям** — режимы без/с фото, клик → описание | ✅ |
 | — | **Модальное ожидание генерации** — обратный отсчёт, затемнённый фон (**Создать** 60 с, **Фотосессии** 120 с) | ✅ |
-| 7 | **Учёт баланса** на backend + «Осталось: N…» в Профиль / Пакеты | план |
+| — | **Backend balance model** — `paid_image_generations`, `paid_photoshoots`, `GET /balance` | ✅ |
+| 7 | **Flutter:** `GET /balance` в Профиль / Пакеты + правила списания | план |
 | 8 | **Backend prompts — качество лиц и изображений** | план |
-| 9 | **Оплата** — backend balance model + RuStore | план |
+| 9 | **Оплата** — RuStore + real paid flow | план |
 | — | **Экономика пакетов** (10 ₽ / изображение, 100 ₽ / фотосессия, смешанные пакеты) | ✅ UI |
 
 **Аудитория:** обычные пользователи **40–60+**; простой UI, крупные действия; в UI **не** prompt / tokens / credits (внутри backend допустимы `paid_credits` — пользователю не показывать).
@@ -375,7 +406,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 | Таблица | Назначение |
 |---------|------------|
-| `profiles` | Пользователь, `free_generations_used`, `paid_credits` |
+| `profiles` | Пользователь, `free_generations_used`, `paid_credits` (legacy), `paid_image_generations`, `paid_photoshoots` |
 | `generations` | История: prompt, `image_url`, `payment_type` |
 | `credit_transactions` | Аудит начислений/списаний |
 
@@ -530,7 +561,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 - **`git status`** должен быть **чистым** (после controlled test — проверено)
 - **`backend/.env`** не коммитить; после test: **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`PHOTOSHOOT_OUTPUT_COUNT=1`** (safe mode)
-- Следующие шаги (см. [roadmap.md](roadmap.md)): **мин. пополнение 10 ₽** → **учёт баланса на backend** + **Профиль/Пакеты** → **backend prompts (качество)** → **balance model + RuStore** → **фото + описание на «Создать»** → curated-примеры → **«Своя фотосессия»** backend
+- Следующие шаги (см. [roadmap.md](roadmap.md)): **Flutter `GET /balance`** + spending rules → **мин. пополнение 10 ₽** → **backend prompts (качество)** → **RuStore** → **фото + описание на «Создать»** → curated-примеры → **«Своя фотосессия»** backend
 
 ---
 

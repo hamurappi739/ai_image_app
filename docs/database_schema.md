@@ -12,7 +12,7 @@
 
 | Таблица | Назначение |
 |---------|------------|
-| `profiles` | Профиль пользователя и баланс (free used + paid credits) |
+| `profiles` | Профиль пользователя и баланс (free used + paid images + paid photoshoots; legacy `paid_credits`) |
 | `generations` | История генераций изображений |
 | `credit_transactions` | Аудит начислений и списаний кредитов |
 
@@ -20,7 +20,7 @@
 
 ## 1. `profiles`
 
-**Назначение:** один профиль на пользователя — учёт бесплатного лимита и платных кредитов.
+**Назначение:** один профиль на пользователя — учёт бесплатного лимита и платного баланса (**изображения** + **фотосессии**).
 
 ### Поля
 
@@ -28,8 +28,10 @@
 |------|-----|-------------|----------|
 | `id` | `uuid` | PRIMARY KEY | Идентификатор пользователя |
 | `email` | `text` | NULL | Email (опционально, из Auth) |
-| `free_generations_used` | `integer` | DEFAULT `0` | Сколько бесплатных генераций уже использовано |
-| `paid_credits` | `integer` | DEFAULT `0` | Остаток платных кредитов |
+| `free_generations_used` | `integer` | DEFAULT `0`, ≥ 0 | Сколько бесплатных генераций уже использовано |
+| `paid_credits` | `integer` | DEFAULT `0`, ≥ 0 | **Legacy / internal:** платные кредиты для текущего `ENABLE_CREDIT_CONSUMPTION` path; в UI не показывать как «кредиты» |
+| `paid_image_generations` | `integer` | DEFAULT `0`, ≥ 0 | Платный остаток **обычных изображений** (вкладка **Создать**) |
+| `paid_photoshoots` | `integer` | DEFAULT `0`, ≥ 0 | Платный остаток **фотосессий** |
 | `created_at` | `timestamptz` | DEFAULT `now()` | Создание записи |
 | `updated_at` | `timestamptz` | DEFAULT `now()` | Последнее обновление баланса |
 
@@ -37,9 +39,14 @@
 
 - **`id`** в будущем должен совпадать с **`auth.users.id`** (Supabase Auth): при регистрации создаётся строка в `profiles` с тем же UUID.
 - **`free_generations_used`** — счётчик использованных free-генераций; сравнивается с `FREE_GENERATIONS_LIMIT` на backend (3 для MVP).
-- **`paid_credits`** — баланс платных кредитов; **1 credit = 1 генерация**.
+- **`paid_image_generations`** / **`paid_photoshoots`** — целевая продуктовая модель для UI: *«осталось: N изображений и M фотосессий»* (см. `GET /balance`).
+- **`paid_credits`** — сохранено для обратной совместимости; списание через старый credits path; **не удалять** до миграции spending rules.
 
-### Пример SQL (черновик)
+### Миграция
+
+Поля `paid_image_generations` и `paid_photoshoots` добавлены в **`003_add_profile_balance_fields.sql`**.
+
+### Пример SQL (актуальный фрагмент)
 
 ```sql
 create table profiles (
@@ -47,6 +54,8 @@ create table profiles (
   email text,
   free_generations_used integer not null default 0,
   paid_credits integer not null default 0,
+  paid_image_generations integer not null default 0,
+  paid_photoshoots integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

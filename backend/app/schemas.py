@@ -8,6 +8,19 @@ class AddCreditsRequest(BaseModel):
     description: str | None = None
 
 
+class AddBalanceRequest(BaseModel):
+    paid_image_generations: int = 0
+    paid_photoshoots: int = 0
+
+
+class BalanceResponse(BaseModel):
+    free_generations_limit: int
+    free_generations_used: int
+    free_generations_remaining: int
+    paid_image_generations: int
+    paid_photoshoots: int
+
+
 class GenerateRequest(BaseModel):
     prompt: str
 

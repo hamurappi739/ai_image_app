@@ -95,6 +95,8 @@
 | **Create guidance for with-photo / without-photo** | ✅ | Блок **«Как получить хороший результат»**: переключатель без/с фото, примеры (человек / предмет), общие советы |
 | **Categorized Create ideas** | ✅ | **«Попробуйте идею»**: категории + `ExpansionTile`; режимы **«Без фото»** / **«С фото»** |
 | **Clickable Create ideas** | ✅ | Tap по идее → текст в поле описания; фото и генерация не меняются автоматически |
+| **Backend balance model** | ✅ | Migration `003_add_profile_balance_fields.sql`; `GET /balance`; `POST /debug/add-balance` (dev) |
+| **Profile balance fields** | ✅ | `paid_image_generations`, `paid_photoshoots` in `profiles`; `paid_credits` retained |
 
 ### Flutter UI MVP (детали)
 
@@ -105,7 +107,7 @@
 - **Пакеты:** смешанная экономика **199 / 499 / 999 ₽**, переключатель режимов, **«Своя сумма»**, валидация суммы, **«Помощь»**; **оплата и backend balance — не подключены**
 - **Профиль:** вход / регистрация / выход (при Supabase dart-define)
 
-**UX (следующие задачи):** **backend** для фото+описание на **«Создать»**, **balance model**, **prompts** (качество лиц), реальный учёт free/paid — см. [app_design_strategy.md](app_design_strategy.md) и § **«Ближайший порядок работ»** ниже.
+**UX (следующие задачи):** подключить Flutter **Профиль** / **Пакеты** к **`GET /balance`**, затем **spending rules**; **backend** фото+описание на **«Создать»**, **prompts** — см. [app_design_strategy.md](app_design_strategy.md) и § **«Ближайший порядок работ»** ниже.
 
 ---
 
@@ -132,8 +134,10 @@
 | 5 | **Backend endpoint: photo + description** (одно изображение) | план |
 | 6 | **Connect Create photo mode to backend** | план |
 | 7 | **Backend prompts — качество** (лица, без коллажа, one image) | план |
-| 8 | **Backend balance model** — free tier, списание, real paid balance | план |
-| 9 | **RuStore / real paid balance flow** — верификация, начисление после покупки | план |
+| 8 | **Backend balance model** — `GET /balance`, profile fields | ✅ |
+| 9 | **Flutter balance display** — `GET /balance` в Профиль / Пакеты | **следующий** |
+| 10 | **Spending rules** — списание `paid_image_generations` / `paid_photoshoots` | план |
+| 11 | **RuStore / real paid balance flow** — верификация, начисление после покупки | план |
 
 ### Баланс и правила генерации (детализация)
 
@@ -178,7 +182,7 @@
 |------|--------|------------|
 | **Gemini provider implementation** | ✅ | Код провайдера готов: `GeminiImageProvider` + `google-genai`; `mock` остаётся режимом по умолчанию |
 | **Gemini manual API test** | ✅ | Ручной тест пройден: Gemini → Storage → `public_url` → Галерея; после теста `IMAGE_PROVIDER=mock` |
-| **Supabase credits** | 🔶 | Backend: profiles, generations, `ENABLE_CREDIT_CONSUMPTION`; Flutter **без** Supabase SDK; целевая модель — **изображения + фотосессии** |
+| **Supabase credits / balance** | 🔶 | `GET /balance` + поля `paid_image_generations` / `paid_photoshoots`; legacy `paid_credits`; Flutter display и списание — позже |
 | **История в галерее** | 🔶 | С Bearer token — история по auth user; без входа — dev fallback |
 
 ---

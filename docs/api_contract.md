@@ -179,6 +179,50 @@
 
 ---
 
+## 4.1 GET /balance
+
+**Назначение:** текущий баланс пользователя для отображения во Flutter (**Профиль**, **Пакеты**, позже **Создать** / **Фотосессии**).
+
+**Auth:**
+
+- `Authorization: Bearer <access_token>` — пользователь из Supabase Auth REST;
+- без токена в `development` — fallback `TEST_USER_ID`;
+- без токена вне `development` — `401`.
+
+Перед ответом backend вызывает **`ensure_profile_exists`** (создаёт профиль при первом запросе).
+
+**Response `200`:**
+
+```json
+{
+  "free_generations_limit": 3,
+  "free_generations_used": 0,
+  "free_generations_remaining": 3,
+  "paid_image_generations": 0,
+  "paid_photoshoots": 0
+}
+```
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `free_generations_limit` | int | Лимит бесплатных генераций (`FREE_GENERATIONS_LIMIT`, по умолчанию **3**) |
+| `free_generations_used` | int | Сколько бесплатных уже использовано (`profiles.free_generations_used`) |
+| `free_generations_remaining` | int | `max(limit - used, 0)` |
+| `paid_image_generations` | int | Платный остаток **изображений** (вкладка **Создать**); в UI — «изображения», не «кредиты» |
+| `paid_photoshoots` | int | Платный остаток **фотосессий**; в UI — «фотосессии», не «кредиты» |
+
+**Списание:** `paid_image_generations` и `paid_photoshoots` **пока не уменьшаются** в `POST /generate` / фотосессиях — отдельный этап. Legacy-поле `paid_credits` остаётся для текущего credit path при `ENABLE_CREDIT_CONSUMPTION=true`.
+
+### Errors
+
+| HTTP | `detail` (пример) | Когда |
+|------|-------------------|--------|
+| `401` | `Authorization required` | Нет токена вне development |
+| `500` | `Failed to ensure user profile` | Ошибка Supabase при создании/чтении профиля |
+| `503` | `Supabase is temporarily unavailable` | Timeout / connect error Supabase REST |
+
+---
+
 ## 5. POST /generate — response fields
 
 | Поле | Тип | Значения | Описание |
@@ -337,8 +381,20 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 | GET | `/debug/profile` | Профиль по `TEST_USER_ID` |
 | GET | `/debug/credits` | Решение free/paid без списания |
 | POST | `/debug/consume-generation` | Тестовое списание в БД |
-| POST | `/debug/add-credits` | Ручное начисление paid credits |
+| POST | `/debug/add-credits` | Ручное начисление paid credits (legacy) |
+| POST | `/debug/add-balance` | Ручное начисление `paid_image_generations` / `paid_photoshoots` (только `ENVIRONMENT=development`) |
 | GET | `/debug/history` | История генераций и транзакций |
+
+**POST /debug/add-balance** — JSON body:
+
+```json
+{
+  "paid_image_generations": 10,
+  "paid_photoshoots": 2
+}
+```
+
+Значения **добавляются** к текущему профилю auth user / `TEST_USER_ID`; отрицательные значения → `400`. Ответ — тот же формат, что **`GET /balance`**. Вне `ENVIRONMENT=development` → `404`.
 
 См. [dev_notes.md](dev_notes.md).
 
@@ -354,7 +410,7 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 | **Фотосессии** | `POST /photoshoots/generate` (multipart) | Бесплатные: по умолчанию **501**; при `ENABLE_PHOTOSHOOT_GENERATION=true` → `image_urls`. Платные без оплаты → **402** |
 | **Галерея** | `GET /generations` при старте + локально новые сверху | **Работает** (dev: `TEST_USER_ID`; фильтр debug в UI) |
 | **Пакеты** | — | UI-заглушка под будущую оплату (RuStore) |
-| **Профиль** | — | Placeholder |
+| **Профиль** | `GET /balance` (готов на backend) | Endpoint есть; **Flutter пока не подключён** |
 
 - **Production / release** Flutter **не должен** вызывать `/debug/*` (только ручная отладка backend).
 - **Фотосессии:** бесплатный сценарий — multipart upload; по умолчанию **501**; при включённой генерации → `image_urls`; платные без оплаты → **402** (backend protection). **Пакеты:** SnackBar «будет добавлено позже», без записи в БД.
@@ -367,6 +423,7 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 - **Основной рабочий endpoint:** `POST /generate` (вкладка **Создать**).
 - **Фотосессии:** `POST /photoshoots/generate` — `multipart/form-data`; **`ENABLE_PHOTOSHOOT_GENERATION=false`** по умолчанию → **501**; при **`true`** → Gemini + Storage + **`generations`**; test `output_count=1`, product target **3**; без списаний.
 - **`GET /generations`** — галерея при старте; после auth — тот же endpoint с user id авторизованного пользователя.
+- **`GET /balance`** — остаток бесплатных генераций + платные **изображения** и **фотосессии** (UI без слов credits/tokens/prompt).
 - **Не вызывать** `/debug/*` из release-сборки.
 - **Не хранить** `SUPABASE_SERVICE_ROLE_KEY` во Flutter.
 - При **`HTTP 402`** — сообщение про окончание генераций и экран **Пакеты** (позже RuStore).
