@@ -206,11 +206,12 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | **Качество генераций** | Красивые, аккуратные результаты; без кривых лиц, искажений, лишних людей, коллажей | план (backend prompts) |
 | **Идеи на «Создать»** | Категории + режимы **«Без фото»** / **«С фото»**; кликабельные идеи → поле описания | ✅ UI |
 | **Время генерации / ожидание** | Блокирующее модальное окно с обратным отсчётом (**«Создать»** ~60 с, **«Фотосессии»** ~120 с), затемнённый фон | ✅ |
-| **Стартовый баланс** | Уведомление **«Вам доступно 3 бесплатные генерации»** на **«Создать»** (статический UI; учёт на backend — позже) | ✅ UI |
-| **Показ баланса** | *«Осталось: 3 бесплатные генерации»* → позже *«12 изображений и 2 фотосессии»*; **не** «кредиты» | план |
-| **Генерация при балансе** | Бесплатные — без оплаты; после исчерпания — платный баланс; платные фотосессии — только при оплате/балансе; backend + понятный UI | частично (402 на платных фотосессиях) |
+| **Стартовый баланс** | Динамический баннер на **«Создать»** (`_CreateBalanceInfoCard`) из `GET /balance` | ✅ |
+| **Показ баланса** | **Профиль** / **Пакеты** / **Создать** — бесплатные, изображения, фотосессии; **не** «кредиты» | ✅ |
+| **Генерация при балансе** | Free → paid images; фотосессии — `paid_photoshoots`; списание проверено вручную (см. § **Проверка списаний**) | ✅ |
 | **«Как получить хороший результат»** | Режимы **«Без фото»** / **«С фото»**; примеры (человек / предмет); общие советы; примеры **не** кликабельны | ✅ |
-| **Мин. пополнение «Своя сумма»** | Снизить **мин. 200 ₽ → 10 ₽** (1 изображение = 10 ₽); макс. **100 000 ₽** | план (сейчас в UI **200 ₽**) |
+| **Мин. пополнение «Своя сумма»** | Мин. **10 ₽** (1 изображение = 10 ₽); макс. **100 000 ₽** | ✅ |
+| **Русский ввод на «Создать»** | Поле описания принимает кириллицу (Chrome / Android emulator / desktop) | ✅ проверено |
 
 Подробнее: [app_design_strategy.md](app_design_strategy.md), [roadmap.md](roadmap.md).
 
@@ -278,6 +279,35 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 **Development:** **`POST /debug/add-balance`** (`ENVIRONMENT=development`) — JSON `{ paid_image_generations, paid_photoshoots }` добавляет к профилю; ответ как `GET /balance`.
 
 **Flutter:** баланс в **Профиль**, **Пакеты**, **Создать**; обновление после генерации из `balance` в response; **402** → SnackBar на русском.
+
+### Проверка списаний и mock-фотосессии (ручная, успешно)
+
+**Условия теста:** временный запуск backend с `ENABLE_CREDIT_CONSUMPTION=true` (без изменения committed `.env`); пополнение через **`POST /debug/add-balance`** в development.
+
+**Обычные изображения (`POST /generate`):**
+
+- При `ENABLE_CREDIT_CONSUMPTION=true` сначала списываются **бесплатные генерации** (`free_generations_remaining` уменьшается).
+- После `free=0` списываются **`paid_image_generations`**.
+- Успешный response содержит актуальный объект **`balance`**.
+- При нулевом балансе — **`402`** `insufficient_images` (списание не выполняется).
+
+**Mock-фотосессия (`POST /photoshoots/generate`):**
+
+- При `ENABLE_CREDIT_CONSUMPTION=true`, `ENABLE_PHOTOSHOOT_GENERATION=true`, **`IMAGE_PROVIDER=mock`**:
+  - Gemini **не вызывается**; backend возвращает mock **`image_urls`** (`placehold.co`).
+  - **`paid_photoshoots`** уменьшается на **1** после успешной генерации.
+  - Response содержит актуальный **`balance`**.
+  - Результаты сохраняются в **`generations`** с общим **`photoshoot_id`** и `prompt`: **`Фотосессия: <style.title>`**.
+
+**Flutter UI (проверено в flow):**
+
+- Баланс обновляется после генерации во вкладках **Профиль**, **Пакеты**, **Создать** (поле `balance` в response + `GET /balance`).
+- **Галерея** показывает результат сразу после генерации / фотосессии.
+- **Создать:** русский текст в поле описания → успешная генерация.
+- **Фотосессии (Android emulator, debug):** автоматическое **тестовое фото** (`MockPhotoshootPhoto`) — без галереи устройства; progress dialog с затемнённым фоном.
+- **Замечание:** один раз зафиксирован временный **Supabase timeout** (`503`); повторный запрос прошёл успешно.
+
+**Не подключено:** RuStore, верификация покупки, начисление баланса после реальной оплаты.
 
 ### Создать
 
@@ -535,6 +565,8 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 Дополнительно: **`POST /generate`** с **`IMAGE_PROVIDER=gemini`** — полный flow Gemini → Storage → **`public_url`** проверен вручную; **`GET /generations`** / **Галерея** отображают Storage URL. **`POST /photoshoots/generate`** + Flutter — photoshoot flow Gemini → Storage → **`generations`** → **Галерея** (в т.ч. после перезапуска через **`GET /generations`**).
 
+**Списание баланса (ручная проверка):** при `ENABLE_CREDIT_CONSUMPTION=true` — **`POST /generate`** (free → paid images, `balance` в response); **`POST /photoshoots/generate`** с **`IMAGE_PROVIDER=mock`** (mock URLs, −1 `paid_photoshoots`, `balance` в response). См. § **Проверка списаний и mock-фотосессии**.
+
 ### Проверено — Frontend (Flutter web)
 
 | Проверка | Результат |
@@ -556,6 +588,11 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | Платная фотосессия → «Оплата будет добавлена позже» | ✅ |
 | **Профиль** без `--dart-define` (fallback / demo mode) | ✅ работает |
 | **Профиль** с `--dart-define` (Supabase Auth mode) | ✅ работает |
+| **Списание баланса** — `POST /generate` (free → paid images) + Flutter refresh | ✅ проверено вручную |
+| **Mock-фотосессия** — `IMAGE_PROVIDER=mock`, списание `paid_photoshoots`, Gallery | ✅ проверено (curl + Flutter emulator) |
+| **Баланс после генерации** — **Профиль** / **Пакеты** / **Создать** | ✅ |
+| **Русский ввод** на вкладке **Создать** | ✅ |
+| Flutter Android emulator | ✅ запускается; mock-фото для фотосессии в debug |
 
 **Авторизация:** вход через Профиль + Bearer token → **Создать** / **Галерея** проверены в обоих режимах (с Supabase config и через development fallback `TEST_USER_ID`).
 

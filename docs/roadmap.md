@@ -100,6 +100,11 @@
 | **Flutter balance display** | ✅ | `GET /balance` в **Профиль**, **Пакеты**, динамический баннер на **«Создать»** |
 | **Balance spending rules** | ✅ | `/generate`: free → `paid_image_generations`; `/photoshoots/generate`: −1 `paid_photoshoots`; `balance` в response; **402** + SnackBar |
 | **Mock photoshoot debit testing** | ✅ | `IMAGE_PROVIDER=mock` + `ENABLE_PHOTOSHOOT_GENERATION=true` → mock `placehold.co` без Gemini; полный flow: history + списание `paid_photoshoots` |
+| **Manual paid image debit check** | ✅ | `POST /generate`: free → `paid_image_generations`; `balance` в response; проверено curl + Flutter |
+| **Manual mock photoshoot debit check** | ✅ | `POST /photoshoots/generate` + mock provider: −1 `paid_photoshoots`, `balance` в response |
+| **Frontend balance refresh after generation** | ✅ | **Профиль** / **Пакеты** / **Создать** обновляются из `balance` в response |
+| **Mock photoshoot debit flow (Flutter emulator)** | ✅ | Debug: тестовое фото без галереи; progress dialog; Gallery + balance refresh |
+| **Russian text input on Create tab** | ✅ | Кириллица в поле описания; Chrome + Android emulator |
 | **Min custom amount 10 ₽** | ✅ | `_customAmountMin = 10` во вкладке **«Пакеты»** |
 
 ### Flutter UI MVP (детали)
@@ -143,6 +148,17 @@
 | 10 | **Spending rules** — списание `paid_image_generations` / `paid_photoshoots`; `balance` в response | ✅ |
 | 11 | **RuStore / real paid balance flow** — верификация, начисление после покупки | план |
 
+### Следующие задачи (после проверки списаний)
+
+| Задача | Статус |
+|--------|--------|
+| **RuStore payment verification** | план |
+| **Real purchase → balance top-up** | план |
+| **402 UI polish** — доработка сообщений при недостаточном балансе (изображения / фотосессии) | план |
+| **Backend photo + description generation endpoint** | план |
+| **Improve prompts for face quality** | план |
+| **Replace placeholder/gradient examples with curated visuals** | план |
+
 ### Баланс и правила генерации (детализация)
 
 **Старт:**
@@ -172,7 +188,7 @@
 
 ### «Создать» — идеи и подсказки (реализовано во Flutter)
 
-- **Баннер:** «Вам доступно 3 бесплатные генерации» (UI; backend-учёт — позже).
+- **Баннер:** `_CreateBalanceInfoCard` — free/paid из API; backend-учёт и списание **проверены вручную**.
 - **«Попробуйте идею»:** режимы **«Без фото»** / **«С фото»**; категории в раскрывающихся блоках; **клик** → поле описания.
 - **«Как получить хороший результат»:** те же режимы; **текстовые** примеры (не кликабельны); для **«С фото»** — человек / предмет.
 
@@ -186,7 +202,7 @@
 |------|--------|------------|
 | **Gemini provider implementation** | ✅ | Код провайдера готов: `GeminiImageProvider` + `google-genai`; `mock` остаётся режимом по умолчанию |
 | **Gemini manual API test** | ✅ | Ручной тест пройден: Gemini → Storage → `public_url` → Галерея; после теста `IMAGE_PROVIDER=mock` |
-| **Supabase credits / balance** | 🔶 | `GET /balance`, списание free/paid реализовано; **по умолчанию** `ENABLE_CREDIT_CONSUMPTION=false` (демо); RuStore / начисление после покупки — позже |
+| **Supabase credits / balance** | 🔶 | Списание free/paid **проверено вручную**; **по умолчанию** `ENABLE_CREDIT_CONSUMPTION=false` (демо); RuStore / начисление после покупки — позже |
 | **История в галерее** | 🔶 | С Bearer token — история по auth user; без входа — dev fallback |
 
 ---
