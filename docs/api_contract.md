@@ -282,7 +282,9 @@
 3. Платный стиль → **`402`** (без чтения/обработки фото, если возможно)
 4. Валидация `photo` (формат, размер)
 5. **`ENABLE_PHOTOSHOOT_GENERATION=false`** → **`501`** (только для **бесплатных** стилей, прошедших шаги 1–4)
-6. **`ENABLE_PHOTOSHOOT_GENERATION=true`** → Gemini → Storage → **`generations`** → **`200`**
+6. **`ENABLE_PHOTOSHOOT_GENERATION=true`**:
+   - **`IMAGE_PROVIDER=mock`** → mock `placehold.co` URLs (без Gemini/Storage) → **`generations`** → списание `paid_photoshoots` (если consumption включён) → **`200`**
+   - **`IMAGE_PROVIDER=gemini`** → Gemini → Storage → **`generations`** → списание → **`200`**
 
 **Валидация файла** (только после шага 3 для бесплатных стилей):
 
@@ -294,10 +296,11 @@
 
 **Текущее поведение (бесплатные стили, после валидации photo):**
 
-| `ENABLE_PHOTOSHOOT_GENERATION` | Поведение |
-|--------------------------------|-----------|
-| **`false`** (по умолчанию) | **`501`** `Photoshoot generation is disabled in development mode` — Gemini **не вызывается** (защита от случайных кликов) |
-| **`true`** | Gemini → Supabase Storage → запись в **`generations`** → **`200 OK`** с `image_urls` |
+| `ENABLE_PHOTOSHOOT_GENERATION` | `IMAGE_PROVIDER` | Поведение |
+|--------------------------------|------------------|-----------|
+| **`false`** (по умолчанию) | любой | **`501`** `Photoshoot generation is disabled in development mode` — генерация **не выполняется** |
+| **`true`** | **`mock`** | Mock `placehold.co` URLs (1–`PHOTOSHOOT_OUTPUT_COUNT`, разные на каждый output) → **`generations`** → **`200 OK`**; для **безопасной проверки списания** `paid_photoshoots` без Gemini |
+| **`true`** | **`gemini`** | Gemini → Supabase Storage → **`generations`** → **`200 OK`** с Storage `public_url` |
 
 Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, диапазон **1–3**). Для controlled test рекомендуется **`PHOTOSHOOT_OUTPUT_COUNT=1`**. **Product target:** **3 изображения** на фотосессию (catalog `output_count=3`; включить после проверки стоимости).
 
@@ -336,7 +339,15 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
   "style_id": "studio_portrait",
   "style_title": "Студийный портрет",
   "image_urls": ["https://..."],
-  "output_count": 1
+  "output_count": 1,
+  "balance": {
+    "free_generations_limit": 3,
+    "free_generations_used": 0,
+    "free_generations_remaining": 3,
+    "paid_image_generations": 0,
+    "paid_photoshoots": 1,
+    "consumption_enabled": true
+  }
 }
 ```
 
@@ -344,8 +355,9 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 |------|-----|----------|
 | `style_id` | string | Идентификатор стиля из catalog |
 | `style_title` | string | Название стиля из catalog |
-| `image_urls` | string[] | Public URL результатов в Supabase Storage (`photoshoots/…`) |
+| `image_urls` | string[] | URL результатов: Storage `public_url` при **`IMAGE_PROVIDER=gemini`**; `placehold.co` при **`mock`** |
 | `output_count` | int | Фактическое число сгенерированных изображений (≤ `PHOTOSHOOT_OUTPUT_COUNT`) |
+| `balance` | object \| null | Актуальный баланс после списания; `null` если `ENABLE_CREDIT_CONSUMPTION=false` |
 
 ### Ошибки генерации
 
@@ -353,6 +365,7 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 |------|---------|
 | **400** | `Unknown photoshoot style` |
 | **402** | `Payment is required for this photoshoot style` (платный стиль без верификации оплаты) |
+| **402** | `insufficient_photoshoots` (нет `paid_photoshoots` при `ENABLE_CREDIT_CONSUMPTION=true`) |
 | **500** | `GEMINI_API_KEY is not configured` |
 | **500** | `Failed to save photoshoot result` |
 | **502** | `Gemini did not return a photoshoot image` |

@@ -1,9 +1,10 @@
-"""Photoshoot generation service: uploaded photo + style instruction → Gemini → Storage."""
+"""Photoshoot generation service: uploaded photo + style → mock or Gemini → history."""
 
 from __future__ import annotations
 
 import logging
 import re
+from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -186,6 +187,34 @@ def _save_photoshoot_results_to_history(
             ) from None
 
 
+def _mock_photoshoot_image_url(style: PhotoshootStyle, index: int) -> str:
+    label = quote(f"Photoshoot {style.id} #{index + 1}", safe="")
+    return f"https://placehold.co/1024x1024?text={label}"
+
+
+class MockPhotoshootProvider:
+    """Development mock: placeholder URLs without Gemini or Storage upload."""
+
+    def __init__(self, output_count: int | None = None) -> None:
+        self._output_count = output_count if output_count is not None else settings.photoshoot_output_count
+
+    @property
+    def output_count(self) -> int:
+        return self._output_count
+
+    def generate(
+        self,
+        style: PhotoshootStyle,
+        photo_bytes: bytes,
+        photo_content_type: str,
+    ) -> list[str]:
+        _ = photo_bytes, photo_content_type
+        return [
+            _mock_photoshoot_image_url(style, index)
+            for index in range(self._output_count)
+        ]
+
+
 class GeminiPhotoshootProvider:
     """Uploaded photo + style instruction → Gemini image data URLs."""
 
@@ -257,10 +286,15 @@ class GeminiPhotoshootProvider:
 
 
 class PhotoshootService:
-    """Orchestrates photoshoot generation: style + user photo → Storage public URLs."""
+    """Orchestrates photoshoot generation: style + user photo → public URLs + history."""
 
-    def __init__(self) -> None:
-        self._provider = GeminiPhotoshootProvider()
+    def _get_provider(self) -> MockPhotoshootProvider | GeminiPhotoshootProvider:
+        provider_name = settings.image_provider.strip().lower()
+        if provider_name == "mock":
+            return MockPhotoshootProvider()
+        if provider_name == "gemini":
+            return GeminiPhotoshootProvider()
+        raise HTTPException(status_code=500, detail="Unsupported image provider")
 
     def generate_photoshoot(
         self,
@@ -269,19 +303,27 @@ class PhotoshootService:
         photo_bytes: bytes,
         photo_content_type: str,
     ) -> list[str]:
-        data_urls = self._provider.generate(
-            style=style,
-            photo_bytes=photo_bytes,
-            photo_content_type=photo_content_type,
-        )
-        image_urls = [
-            storage_service.upload_generated_image_data_url(
-                user_id=user_id,
-                data_url=data_url,
-                folder="photoshoots",
+        provider = self._get_provider()
+        if isinstance(provider, MockPhotoshootProvider):
+            image_urls = provider.generate(
+                style=style,
+                photo_bytes=photo_bytes,
+                photo_content_type=photo_content_type,
             )
-            for data_url in data_urls
-        ]
+        else:
+            data_urls = provider.generate(
+                style=style,
+                photo_bytes=photo_bytes,
+                photo_content_type=photo_content_type,
+            )
+            image_urls = [
+                storage_service.upload_generated_image_data_url(
+                    user_id=user_id,
+                    data_url=data_url,
+                    folder="photoshoots",
+                )
+                for data_url in data_urls
+            ]
         _save_photoshoot_results_to_history(
             user_id=user_id,
             style=style,

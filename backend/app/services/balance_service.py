@@ -1,7 +1,12 @@
 from app.services.supabase_service import update_profile
 
 
-def build_balance_response(profile: dict, free_generations_limit: int) -> dict:
+def build_balance_response(
+    profile: dict,
+    free_generations_limit: int,
+    *,
+    consumption_enabled: bool = False,
+) -> dict:
     """Build public balance payload for GET /balance and debug helpers."""
     free_used = int(profile.get("free_generations_used") or 0)
     remaining_free = max(free_generations_limit - free_used, 0)
@@ -11,7 +16,23 @@ def build_balance_response(profile: dict, free_generations_limit: int) -> dict:
         "free_generations_remaining": remaining_free,
         "paid_image_generations": int(profile.get("paid_image_generations") or 0),
         "paid_photoshoots": int(profile.get("paid_photoshoots") or 0),
+        "consumption_enabled": consumption_enabled,
     }
+
+
+def determine_photoshoot_payment(profile: dict) -> dict:
+    paid_photoshoots = int(profile.get("paid_photoshoots") or 0)
+    if paid_photoshoots > 0:
+        return {"allowed": True, "reason": None}
+    return {"allowed": False, "reason": "insufficient_photoshoots"}
+
+
+def consume_photoshoot(profile: dict) -> dict:
+    user_id = profile["id"]
+    paid_photoshoots = int(profile.get("paid_photoshoots") or 0)
+    if paid_photoshoots <= 0:
+        raise RuntimeError("No photoshoots available")
+    return update_profile(user_id, {"paid_photoshoots": paid_photoshoots - 1})
 
 
 def add_paid_balance(

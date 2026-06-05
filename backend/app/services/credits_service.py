@@ -7,7 +7,7 @@ from app.services.supabase_service import (
 
 def determine_generation_payment(profile: dict, free_limit: int) -> dict:
     free_generations_used = profile.get("free_generations_used", 0)
-    paid_credits = profile.get("paid_credits", 0)
+    paid_image_generations = int(profile.get("paid_image_generations") or 0)
 
     if free_generations_used < free_limit:
         return {
@@ -15,7 +15,7 @@ def determine_generation_payment(profile: dict, free_limit: int) -> dict:
             "payment_type": "free",
             "reason": None,
         }
-    if paid_credits > 0:
+    if paid_image_generations > 0:
         return {
             "allowed": True,
             "payment_type": "paid",
@@ -24,7 +24,7 @@ def determine_generation_payment(profile: dict, free_limit: int) -> dict:
     return {
         "allowed": False,
         "payment_type": None,
-        "reason": "No available generations",
+        "reason": "insufficient_images",
     }
 
 
@@ -54,10 +54,13 @@ def consume_generation(
             }
         )
     elif payment_type == "paid":
-        if profile["paid_credits"] <= 0:
-            raise RuntimeError("No paid credits available")
-        new_paid_credits = profile["paid_credits"] - 1
-        updated_profile = update_profile(user_id, {"paid_credits": new_paid_credits})
+        paid_image_generations = int(profile.get("paid_image_generations") or 0)
+        if paid_image_generations <= 0:
+            raise RuntimeError("No paid image generations available")
+        new_paid_images = paid_image_generations - 1
+        updated_profile = update_profile(
+            user_id, {"paid_image_generations": new_paid_images}
+        )
         generation = create_generation_record(
             user_id=user_id,
             prompt=prompt,
@@ -70,7 +73,7 @@ def consume_generation(
                 "amount": -1,
                 "transaction_type": "generation_spend",
                 "source": "paid",
-                "description": "Paid credit spent",
+                "description": "Paid image generation spent",
             }
         )
     else:

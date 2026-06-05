@@ -19,6 +19,7 @@ class BalanceResponse(BaseModel):
     free_generations_remaining: int
     paid_image_generations: int
     paid_photoshoots: int
+    consumption_enabled: bool = False
 
 
 class GenerateRequest(BaseModel):
@@ -35,6 +36,7 @@ class PhotoshootGenerateResponse(BaseModel):
     style_title: str
     image_urls: list[str]
     output_count: int
+    balance: BalanceResponse | None = None
 
 
 class GenerateResponse(BaseModel):
@@ -44,6 +46,7 @@ class GenerateResponse(BaseModel):
     credit_consumed: bool = False
     remaining_free_generations: int | None = None
     remaining_paid_credits: int | None = None
+    balance: BalanceResponse | None = None
 
 
 class GenerationItem(BaseModel):

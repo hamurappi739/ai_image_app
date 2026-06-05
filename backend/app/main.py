@@ -19,7 +19,12 @@ from app.schemas import (
     GenerationsListResponse,
     PhotoshootGenerateResponse,
 )
-from app.services.balance_service import add_paid_balance, build_balance_response
+from app.services.balance_service import (
+    add_paid_balance,
+    build_balance_response,
+    consume_photoshoot,
+    determine_photoshoot_payment,
+)
 from app.services.image_service import generate_image
 from app.services.credits_service import (
     add_paid_credits,
@@ -97,7 +102,11 @@ def get_balance(user: CurrentUser = Depends(get_current_user)):
         profile = ensure_profile_exists(user.id, user.email)
     except RuntimeError:
         raise HTTPException(status_code=500, detail="Failed to ensure user profile")
-    return build_balance_response(profile, settings.free_generations_limit)
+    return build_balance_response(
+        profile,
+        settings.free_generations_limit,
+        consumption_enabled=settings.enable_credit_consumption,
+    )
 
 
 @app.get("/generations", response_model=GenerationsListResponse)
@@ -342,7 +351,11 @@ def debug_add_balance(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError:
         raise HTTPException(status_code=500, detail="Failed to update balance")
-    return build_balance_response(updated_profile, settings.free_generations_limit)
+    return build_balance_response(
+        updated_profile,
+        settings.free_generations_limit,
+        consumption_enabled=settings.enable_credit_consumption,
+    )
 
 
 @app.post("/debug/add-credits")
@@ -407,17 +420,19 @@ def generate(
         raise HTTPException(status_code=500, detail=str(exc))
 
     updated_profile = result["profile"]
-    remaining_free = max(
-        settings.free_generations_limit - updated_profile["free_generations_used"],
-        0,
+    balance = build_balance_response(
+        updated_profile,
+        settings.free_generations_limit,
+        consumption_enabled=True,
     )
     return GenerateResponse(
         image_url=image_url,
         prompt=prompt,
         payment_type=decision["payment_type"],
         credit_consumed=True,
-        remaining_free_generations=remaining_free,
-        remaining_paid_credits=updated_profile["paid_credits"],
+        remaining_free_generations=balance["free_generations_remaining"],
+        remaining_paid_credits=balance["paid_image_generations"],
+        balance=balance,
     )
 
 
@@ -455,15 +470,42 @@ def generate_photoshoot(
             detail="Photoshoot generation is disabled in development mode",
         )
 
+    profile = None
+    if settings.enable_credit_consumption:
+        try:
+            profile = ensure_profile_exists(user.id, user.email)
+        except RuntimeError:
+            raise HTTPException(status_code=500, detail="Failed to ensure user profile")
+        photoshoot_decision = determine_photoshoot_payment(profile)
+        if not photoshoot_decision["allowed"]:
+            raise HTTPException(
+                status_code=402,
+                detail=photoshoot_decision["reason"],
+            )
+
     image_urls = photoshoot_service.generate_photoshoot(
         user_id=user.id,
         style=style,
         photo_bytes=file_bytes,
         photo_content_type=photo.content_type,
     )
+
+    balance = None
+    if settings.enable_credit_consumption:
+        try:
+            updated_profile = consume_photoshoot(profile)
+        except RuntimeError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+        balance = build_balance_response(
+            updated_profile,
+            settings.free_generations_limit,
+            consumption_enabled=True,
+        )
+
     return PhotoshootGenerateResponse(
         style_id=style.id,
         style_title=style.title,
         image_urls=image_urls,
         output_count=len(image_urls),
+        balance=balance,
     )

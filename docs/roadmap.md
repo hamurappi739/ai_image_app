@@ -90,13 +90,17 @@
 | **Create generation countdown** | ✅ | **«Создать»**: ~60 с, заголовок «Создаём изображение», «Обычно это занимает до минуты.» |
 | **Photoshoot generation countdown** | ✅ | **Фотосессии** (бесплатно + backend): ~120 с, «Готовим фотосессию», «Фотосессия может занять до двух минут.» |
 | **Dimmed blocking loading overlay** | ✅ | `barrierDismissible: false`, `PopScope(canPop: false)`; при 0 с — «Почти готово, ждём результат...» |
-| **Create free generation notice** | ✅ | Баннер «Вам доступно 3 бесплатные генерации» на вкладке **«Создать»** (статический UI) |
+| **Create free generation notice** | ✅ | `_CreateBalanceInfoCard` на **«Создать»**: free/paid из `GET /balance`, демо-режим, подсказки при исчерпании free |
 | **Create generation progress dialog** | ✅ | `GenerationProgressDialog` на **«Создать»** (~60 с, затемнённый фон) |
 | **Create guidance for with-photo / without-photo** | ✅ | Блок **«Как получить хороший результат»**: переключатель без/с фото, примеры (человек / предмет), общие советы |
 | **Categorized Create ideas** | ✅ | **«Попробуйте идею»**: категории + `ExpansionTile`; режимы **«Без фото»** / **«С фото»** |
 | **Clickable Create ideas** | ✅ | Tap по идее → текст в поле описания; фото и генерация не меняются автоматически |
 | **Backend balance model** | ✅ | Migration `003_add_profile_balance_fields.sql`; `GET /balance`; `POST /debug/add-balance` (dev) |
 | **Profile balance fields** | ✅ | `paid_image_generations`, `paid_photoshoots` in `profiles`; `paid_credits` retained |
+| **Flutter balance display** | ✅ | `GET /balance` в **Профиль**, **Пакеты**, динамический баннер на **«Создать»** |
+| **Balance spending rules** | ✅ | `/generate`: free → `paid_image_generations`; `/photoshoots/generate`: −1 `paid_photoshoots`; `balance` в response; **402** + SnackBar |
+| **Mock photoshoot debit testing** | ✅ | `IMAGE_PROVIDER=mock` + `ENABLE_PHOTOSHOOT_GENERATION=true` → mock `placehold.co` без Gemini; полный flow: history + списание `paid_photoshoots` |
+| **Min custom amount 10 ₽** | ✅ | `_customAmountMin = 10` во вкладке **«Пакеты»** |
 
 ### Flutter UI MVP (детали)
 
@@ -104,10 +108,10 @@
 - **Создать:** описание, баннер 3 бесплатных генераций, **категоризированные кликабельные идеи** (без/с фото), подсказки без/с фото, modal ожидания (~60 с), **UI-каркас фото** (picker/preview/убрать; backend позже), **контекстная помощь**, `POST /generate` по описанию, «Открыть в Галерее»
 - **Фотосессии:** **каталог** (8 стилей + **«Своя фотосессия»** UI-каркас), рекомендации и примеры-заглушки в sheet; готовые стили: bottom sheet → multipart upload (бесплатно); **«Своя фотосессия»** — только dialog, SnackBar «будет добавлена позже»
 - **Галерея:** `GET /generations` + локальные новые; **группировка фотосессий** по `photoshoot_id`; **Очистить** (только на устройстве); empty state; без падения при недоступном backend
-- **Пакеты:** смешанная экономика **199 / 499 / 999 ₽**, переключатель режимов, **«Своя сумма»**, валидация суммы, **«Помощь»**; **оплата и backend balance — не подключены**
+- **Пакеты:** смешанная экономика **199 / 499 / 999 ₽**, переключатель режимов, **«Своя сумма»** (мин. **10 ₽**), валидация суммы, **«Помощь»**, баннер баланса; **оплата / RuStore — не подключены**
 - **Профиль:** вход / регистрация / выход (при Supabase dart-define)
 
-**UX (следующие задачи):** подключить Flutter **Профиль** / **Пакеты** к **`GET /balance`**, затем **spending rules**; **backend** фото+описание на **«Создать»**, **prompts** — см. [app_design_strategy.md](app_design_strategy.md) и § **«Ближайший порядок работ»** ниже.
+**UX (следующие задачи):** **backend** фото+описание на **«Создать»**, **prompts (качество)**, **RuStore** после покупки — см. [app_design_strategy.md](app_design_strategy.md) и § **«Ближайший порядок работ»** ниже.
 
 ---
 
@@ -127,24 +131,24 @@
 
 | # | Задача | Статус |
 |---|--------|--------|
-| 1 | **Снизить мин. сумму «Своя сумма» до 10 ₽** во frontend (1 изображение = 10 ₽; макс. 100 000 ₽) | **следующий** |
-| 2 | **Create tab UX** — баннер 3 free, progress dialog, подсказки/идеи без·с фото, категории, кликабельные идеи | ✅ |
-| 3 | **Показ баланса** в **«Профиль»** и кратко в **«Пакеты»** (*«Осталось: …»*; не «кредиты»); учёт на backend | план |
+| 1 | **Снизить мин. сумму «Своя сумма» до 10 ₽** во frontend (1 изображение = 10 ₽; макс. 100 000 ₽) | ✅ |
+| 2 | **Create tab UX** — баннер баланса, progress dialog, подсказки/идеи без·с фото, категории, кликабельные идеи | ✅ |
+| 3 | **Показ баланса** в **«Профиль»**, **«Пакеты»**, **«Создать»** (*бесплатные / изображения / фотосессии*; не «кредиты») | ✅ |
 | 4 | **Generation progress modal** + обратный отсчёт (**Создать** ~60 с, **Фотосессии** ~120 с) | ✅ |
-| 5 | **Backend endpoint: photo + description** (одно изображение) | план |
+| 5 | **Backend endpoint: photo + description** (одно изображение) | **следующий** |
 | 6 | **Connect Create photo mode to backend** | план |
 | 7 | **Backend prompts — качество** (лица, без коллажа, one image) | план |
 | 8 | **Backend balance model** — `GET /balance`, profile fields | ✅ |
-| 9 | **Flutter balance display** — `GET /balance` в Профиль / Пакеты | **следующий** |
-| 10 | **Spending rules** — списание `paid_image_generations` / `paid_photoshoots` | план |
+| 9 | **Flutter balance display** — `GET /balance` в Профиль / Пакеты / Создать | ✅ |
+| 10 | **Spending rules** — списание `paid_image_generations` / `paid_photoshoots`; `balance` в response | ✅ |
 | 11 | **RuStore / real paid balance flow** — верификация, начисление после покупки | план |
 
 ### Баланс и правила генерации (детализация)
 
 **Старт:**
 
-- **UI (готово):** баннер *«Вам доступно 3 бесплатные генерации»* на **«Создать»**.
-- **Backend (план):** учёт *«Осталось: 3 бесплатные генерации»*; **3 бесплатные** — только для обычной генерации (**«Создать»**), без оплаты.
+- **UI (готово):** `_CreateBalanceInfoCard` на **«Создать»** — free/paid из API, демо-режим при `consumption_enabled=false`.
+- **Backend (готово при `ENABLE_CREDIT_CONSUMPTION=true`):** **3 бесплатные** — только для **`POST /generate`**; затем `paid_image_generations`; фотосессии — `paid_photoshoots`.
 
 **После исчерпания бесплатных:**
 
@@ -182,7 +186,7 @@
 |------|--------|------------|
 | **Gemini provider implementation** | ✅ | Код провайдера готов: `GeminiImageProvider` + `google-genai`; `mock` остаётся режимом по умолчанию |
 | **Gemini manual API test** | ✅ | Ручной тест пройден: Gemini → Storage → `public_url` → Галерея; после теста `IMAGE_PROVIDER=mock` |
-| **Supabase credits / balance** | 🔶 | `GET /balance` + поля `paid_image_generations` / `paid_photoshoots`; legacy `paid_credits`; Flutter display и списание — позже |
+| **Supabase credits / balance** | 🔶 | `GET /balance`, списание free/paid реализовано; **по умолчанию** `ENABLE_CREDIT_CONSUMPTION=false` (демо); RuStore / начисление после покупки — позже |
 | **История в галерее** | 🔶 | С Bearer token — история по auth user; без входа — dev fallback |
 
 ---

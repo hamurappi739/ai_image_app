@@ -137,7 +137,9 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 - Backend принимает `multipart/form-data`: `style_id`, `style_title`, `photo`.
 - **Catalog стилей** (`app/services/photoshoot_styles.py`): backend валидирует `style_id`, хранит `title`, `price_rub`, `is_free`, `output_count=3`, `instruction` для Gemini-генерации.
-- **`PhotoshootService`** + **`GeminiPhotoshootProvider`** (`app/services/photoshoot_service.py`): uploaded photo + `style.instruction` → Gemini → data URLs → Supabase Storage (`photoshoots/…`) → **`public_url`** в ответе.
+- **`PhotoshootService`** (`app/services/photoshoot_service.py`): выбор провайдера по **`IMAGE_PROVIDER`**:
+  - **`mock`** + **`ENABLE_PHOTOSHOOT_GENERATION=true`** → **`MockPhotoshootProvider`**: `placehold.co` URLs без Gemini/Storage; запись в **`generations`**; для **безопасной проверки списания** `paid_photoshoots` без реального Gemini.
+  - **`gemini`** → **`GeminiPhotoshootProvider`**: uploaded photo + `style.instruction` → Gemini → Storage (`photoshoots/…`) → **`public_url`**.
 - **Известная проблема (Gemini):** иногда возвращал **коллаж/сетку** из нескольких кадров в одном изображении. **Backend prompt обновлён:** каждый вызов Gemini просит **ровно одну standalone photo** (без collage/grid/contact sheet); стили catalog больше не содержат «Create 3 photos» в одном instruction.
 - Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, max **3**); product target в catalog — **3** изображения.
 - Использует ту же auth-логику: Bearer token или development fallback `TEST_USER_ID`; перед обработкой — profile auto-sync.
@@ -259,22 +261,27 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
   "free_generations_used": 0,
   "free_generations_remaining": 3,
   "paid_image_generations": 0,
-  "paid_photoshoots": 0
+  "paid_photoshoots": 0,
+  "consumption_enabled": false
 }
 ```
 
 - `free_generations_remaining = max(FREE_GENERATIONS_LIMIT - free_generations_used, 0)`
+- `consumption_enabled` — зеркало `ENABLE_CREDIT_CONSUMPTION` (для демо-режима в UI)
 - **`ensure_profile_exists`** перед ответом; Supabase timeout → **`503`**
-- **Списание** `paid_image_generations` / `paid_photoshoots` в `/generate` и фотосессиях **пока не подключено** (отдельный этап)
-- При **`ENABLE_CREDIT_CONSUMPTION=false`** поведение `/generate` **без изменений**
+- **Списание (при `ENABLE_CREDIT_CONSUMPTION=true`):**
+  - **`POST /generate`:** сначала free, затем `paid_image_generations`; нет баланса → **`402`** `insufficient_images`
+  - **`POST /photoshoots/generate`:** −1 `paid_photoshoots`; нет → **`402`** `insufficient_photoshoots`
+  - Успешный response содержит **`balance`** с актуальным состоянием
+- При **`ENABLE_CREDIT_CONSUMPTION=false`** — списаний нет; UI показывает **демо-режим**
 
 **Development:** **`POST /debug/add-balance`** (`ENVIRONMENT=development`) — JSON `{ paid_image_generations, paid_photoshoots }` добавляет к профилю; ответ как `GET /balance`.
 
-**Flutter:** отображение *«Осталось: … изображений и … фотосессий»* в **Профиль** / **Пакеты** — **следующий шаг** (frontend не менялся в этом этапе).
+**Flutter:** баланс в **Профиль**, **Пакеты**, **Создать**; обновление после генерации из `balance` в response; **402** → SnackBar на русском.
 
 ### Создать
 
-- **Уведомление о старте (реализовано):** карточка *«Вам доступно 3 бесплатные генерации»* + короткий поясняющий текст (статический UI; реальный учёт баланса на backend — позже).
+- **Баннер баланса (реализовано):** `_CreateBalanceInfoCard` — free/paid из `GET /balance`; демо-режим; подсказка *«Бесплатные генерации закончились — используйте изображения из баланса»* при переходе на paid.
 - Ввод **описания**; **`POST /generate`** — **текст → одно изображение**.
 - **Модальное ожидание** при генерации — см. § **«Ожидание генерации»** (~60 с, затемнённый фон, таймер **60 → 0**).
 - **«Попробуйте идею» (реализовано):** переключатель **«Без фото»** / **«С фото»** (не влияет на прикреплённое фото); категории в **раскрывающихся блоках** (`ExpansionTile`); идеи — **кликабельные** chips → текст **подставляется** в поле описания (заменяет прежний текст); генерация **не** запускается автоматически.
@@ -337,13 +344,13 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | 3 | **«Своя фотосессия» — backend:** endpoint, Gemini, **Галерея** / `generations` | план |
 | 4 | **Visual branding / art direction** для каталога фотосессий | план |
 | 5 | **Помощь для «Пакетов»** — `PacksHelpDialog`, кнопка **«Помощь»** | ✅ |
-| 6 | **Мин. пополнение «Своя сумма» 10 ₽** (вместо 200 ₽ в UI) | план |
-| — | **Уведомление «3 бесплатные генерации»** на «Создать» | ✅ UI |
+| 6 | **Мин. пополнение «Своя сумма» 10 ₽** | ✅ |
+| — | **Баннер баланса на «Создать»** — free/paid, демо-режим | ✅ |
 | — | **Подсказки «Как получить хороший результат»** — режимы без/с фото, примеры | ✅ |
 | — | **Готовые идеи по категориям** — режимы без/с фото, клик → описание | ✅ |
 | — | **Модальное ожидание генерации** — обратный отсчёт, затемнённый фон (**Создать** 60 с, **Фотосессии** 120 с) | ✅ |
 | — | **Backend balance model** — `paid_image_generations`, `paid_photoshoots`, `GET /balance` | ✅ |
-| 7 | **Flutter:** `GET /balance` в Профиль / Пакеты + правила списания | план |
+| 7 | **Flutter:** `GET /balance` в Профиль / Пакеты / Создать + правила списания | ✅ |
 | 8 | **Backend prompts — качество лиц и изображений** | план |
 | 9 | **Оплата** — RuStore + real paid flow | план |
 | — | **Экономика пакетов** (10 ₽ / изображение, 100 ₽ / фотосессия, смешанные пакеты) | ✅ UI |
@@ -378,19 +385,19 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | **499 ₽** | **49** |
 | **999 ₽** | **99** |
 
-**Режим «Своя сумма» (Flutter UI, без оплаты):** сумма **200–100 000 ₽** в текущем UI (руководство: снизить **мин. до 10 ₽** — 1 изображение = 10 ₽, можно купить одну генерацию; макс. **100 000 ₽**). Stepper фотосессий → остаток ÷ 10 = изображения. Примеры: **10 ₽**, 0 фотосессий → **1** изображение; **1000 ₽**, **8** фотосессий → **8** + **20** изображений.
+**Режим «Своя сумма» (Flutter UI, без оплаты):** сумма **10–100 000 ₽**; stepper фотосессий → остаток ÷ 10 = изображения. Примеры: **10 ₽**, 0 фотосессий → **1** изображение; **1000 ₽**, **8** фотосессий → **8** + **20** изображений.
 
-**Статус реализации:** экономика и **Flutter UI вкладки «Пакеты»** реализованы; **RuStore, backend balance и списание — не подключены**.
+**Статус реализации:** экономика и **Flutter UI «Пакеты»** реализованы; **`GET /balance`** и **списание** (при `ENABLE_CREDIT_CONSUMPTION=true`) — реализованы; **RuStore / начисление после покупки — не подключены**.
 
 ### Пакеты
 
 - **Обновлено под смешанную экономику** (Flutter): переключатель **«С фотосессиями»** / **«Только изображения»**; готовые пакеты **199 / 499 / 999 ₽** с подписями; блок **«Как это работает»**; кнопки **«Оплата скоро»** → SnackBar *«Оплата будет добавлена позже»* (реальной оплаты нет).
 - **«С фотосессиями»:** 199 ₽ → 1 фотосессия + 9 изображений; 499 ₽ → 3 + 19 (**«Популярный»**); 999 ₽ → 8 + 19.
 - **«Только изображения»:** 199 ₽ → 19; 499 ₽ → 49; 999 ₽ → 99.
-- **«Своя сумма»:** поле суммы (**сейчас** мин. **200 ₽** в UI; **план:** мин. **10 ₽**, макс. **100 000 ₽**); выбор фотосессий; live-расчёт; placeholder оплаты.
+- **«Своя сумма»:** поле суммы (мин. **10 ₽**, макс. **100 000 ₽**); выбор фотосессий; live-расчёт; placeholder оплаты.
 - **Помощь:** кнопка **«Помощь»** → `PacksHelpDialog` (без автопоказа при первом входе).
 - **Layout:** адаптивная сетка (1 / 2 / 3 колонки); проверено на **Chrome (web)** и **Android emulator**; overflow исправлен; на mobile увеличены читаемые размеры (цена, бейджи, описание, кнопка).
-- **Баланс (план):** на старте — *«Вам доступно 3 бесплатные генерации в разделе «Создать»»* / *«Осталось: 3 бесплатные генерации»*; после покупок — *«Осталось: 12 изображений и 2 фотосессии»*; **не** «кредиты»; **Профиль** + кратко **Пакеты**.
+- **Баланс (реализовано):** `GET /balance` → **Профиль** (полный), **Пакеты** (краткий баннер), **Создать** (`_CreateBalanceInfoCard`); демо-режим при `consumption_enabled=false`; после генерации — обновление из поля `balance` в response.
 
 ### Профиль
 
@@ -561,7 +568,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 - **`git status`** должен быть **чистым** (после controlled test — проверено)
 - **`backend/.env`** не коммитить; после test: **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`PHOTOSHOOT_OUTPUT_COUNT=1`** (safe mode)
-- Следующие шаги (см. [roadmap.md](roadmap.md)): **Flutter `GET /balance`** + spending rules → **мин. пополнение 10 ₽** → **backend prompts (качество)** → **RuStore** → **фото + описание на «Создать»** → curated-примеры → **«Своя фотосессия»** backend
+- Следующие шаги (см. [roadmap.md](roadmap.md)): **backend prompts (качество)** → **фото + описание на «Создать»** → **RuStore** → curated-примеры → **«Своя фотосессия»** backend
 
 ---
 
