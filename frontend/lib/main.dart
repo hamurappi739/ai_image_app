@@ -1,7 +1,6 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -14,6 +13,7 @@ import 'services/auth_service.dart';
 import 'services/create_help_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/photoshoots_help_service.dart';
+import 'utils/mock_photoshoot_photo.dart';
 import 'widgets/create_help_dialog.dart';
 import 'widgets/generation_progress_dialog.dart';
 import 'widgets/packs_help_dialog.dart';
@@ -52,6 +52,16 @@ class AiImageGeneratorApp extends StatelessWidget {
     return MaterialApp(
       title: 'AI Фотогенератор',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('ru', 'RU'),
+      supportedLocales: const [
+        Locale('ru', 'RU'),
+        Locale('en', 'US'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: scaffoldBackground,
@@ -1927,6 +1937,8 @@ class _CustomPhotoshootDialogState extends State<_CustomPhotoshootDialog> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: _wishesController,
+                        keyboardType: TextInputType.text,
+                        textCapitalization: TextCapitalization.sentences,
                         maxLines: 4,
                         minLines: 3,
                         decoration: InputDecoration(
@@ -2299,6 +2311,25 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
   Uint8List? _selectedPhotoBytes;
   bool _isPickingPhoto = false;
   bool _isPreparingPhotoshoot = false;
+  bool _usingMockPhoto = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (MockPhotoshootPhoto.shouldAutoUseOnPlatform) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _applyMockPhoto();
+      });
+    }
+  }
+
+  void _applyMockPhoto() {
+    setState(() {
+      _selectedPhotoFile = MockPhotoshootPhoto.asXFile();
+      _selectedPhotoBytes = MockPhotoshootPhoto.bytes;
+      _usingMockPhoto = true;
+    });
+  }
 
   static const _outcomes = [
     '3 изображения в одном стиле',
@@ -2326,6 +2357,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
       setState(() {
         _selectedPhotoFile = file;
         _selectedPhotoBytes = bytes;
+        _usingMockPhoto = false;
       });
     } catch (_) {
       if (!mounted) return;
@@ -2526,7 +2558,31 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  if (_usingMockPhoto) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F2FF),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: _accentColor.withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: Text(
+                        'Для проверки на эмуляторе используется тестовое фото. '
+                        'Результат придёт с сервера в демо-режиме.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontSize: 13,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   InkWell(
                     onTap: _isPickingPhoto ? null : _pickPhoto,
                     borderRadius: BorderRadius.circular(16),
@@ -2575,7 +2631,9 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                                 Text(
                                   _isPickingPhoto
                                       ? 'Подождите...'
-                                      : 'Выберите своё фото',
+                                      : _usingMockPhoto
+                                          ? 'Тестовое фото выбрано'
+                                          : 'Выберите своё фото',
                                   textAlign: TextAlign.center,
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontSize: 15,
@@ -2583,7 +2641,9 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Пока фото не отправляется на сервер',
+                                  _usingMockPhoto
+                                      ? 'Можно запустить фотосессию для проверки'
+                                      : 'JPEG, PNG или WebP до 10 МБ',
                                   textAlign: TextAlign.center,
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     fontSize: 13,
@@ -2605,7 +2665,9 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
-                                  'Фото выбрано',
+                                  _usingMockPhoto
+                                      ? 'Тестовое фото'
+                                      : 'Фото выбрано',
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontSize: 15,
                                   ),
@@ -5748,10 +5810,15 @@ class _InputCard extends StatelessWidget {
     return _SoftCard(
       child: TextField(
         controller: controller,
+        keyboardType: TextInputType.text,
+        textCapitalization: TextCapitalization.sentences,
+        enableSuggestions: true,
+        enableIMEPersonalizedLearning: true,
+        autocorrect: true,
         minLines: 3,
         maxLines: 6,
         decoration: InputDecoration(
-          hintText: 'Например: портрет в деловом стиле',
+          hintText: 'Например: уютный домик в зимнем лесу, вечер, тёплый свет',
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 16),
           border: InputBorder.none,
           isDense: true,
