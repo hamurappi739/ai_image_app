@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:ai_image_generator/models/generated_image_item.dart';
+import 'package:ai_image_generator/models/user_balance.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -166,6 +167,17 @@ class ApiService {
       throw Exception('No available generations');
     }
     throw Exception('Failed to generate image');
+  }
+
+  Future<UserBalance> fetchBalance() async {
+    final uri = Uri.parse('$baseUrl/balance');
+    final response = await http.get(uri, headers: _requestHeaders());
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return UserBalance.fromJson(json);
+    }
+    throw Exception('Failed to fetch balance');
   }
 
   Future<List<GenerationHistoryItem>> fetchGenerations({int limit = 20}) async {

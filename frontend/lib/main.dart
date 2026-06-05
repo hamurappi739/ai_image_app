@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/gallery_display_item.dart';
 import 'models/generated_image_item.dart';
+import 'models/user_balance.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
@@ -101,12 +102,16 @@ class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   final List<GeneratedImageItem> _generatedImages = [];
   bool _backendHistoryUnavailable = false;
+  UserBalance? _userBalance;
+  bool _balanceLoading = false;
+  bool _balanceLoadFailed = false;
 
   @override
   void initState() {
     super.initState();
     _syncAccessTokenFromAuth();
     _loadGenerationsFromBackend();
+    _loadBalance();
   }
 
   void _syncAccessTokenFromAuth() {
@@ -120,7 +125,37 @@ class _MainShellState extends State<MainShell> {
   void _onProfileAuthChanged() {
     _syncAccessTokenFromAuth();
     _loadGenerationsFromBackend();
+    _loadBalance();
     setState(() {});
+  }
+
+  Future<void> _loadBalance() async {
+    if (!mounted) return;
+    setState(() {
+      _balanceLoading = true;
+      _balanceLoadFailed = false;
+    });
+    try {
+      final balance = await _apiService.fetchBalance();
+      if (!mounted) return;
+      setState(() {
+        _userBalance = balance;
+        _balanceLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _balanceLoading = false;
+        _balanceLoadFailed = true;
+      });
+    }
+  }
+
+  void _onTabSelected(int index) {
+    setState(() => _selectedIndex = index);
+    if (index == 3 || index == 4) {
+      _loadBalance();
+    }
   }
 
   Future<void> _loadGenerationsFromBackend() async {
@@ -183,12 +218,21 @@ class _MainShellState extends State<MainShell> {
         onClearGallery: _clearGallery,
         backendHistoryUnavailable: _backendHistoryUnavailable,
       ),
-      const PacksScreen(),
+      PacksScreen(
+        balance: _userBalance,
+        balanceLoading: _balanceLoading,
+        balanceLoadFailed: _balanceLoadFailed,
+        onRefreshBalance: _loadBalance,
+      ),
       ProfileScreen(
         authService: _authService,
         apiService: _apiService,
         onAuthChanged: _onProfileAuthChanged,
         onResetOnboarding: widget.onResetOnboarding,
+        balance: _userBalance,
+        balanceLoading: _balanceLoading,
+        balanceLoadFailed: _balanceLoadFailed,
+        onRefreshBalance: _loadBalance,
       ),
     ];
 
@@ -204,7 +248,7 @@ class _MainShellState extends State<MainShell> {
         unselectedItemColor: AiImageGeneratorApp.textSecondary,
         backgroundColor: Colors.white,
         elevation: 8,
-        onTap: (index) => setState(() => _selectedIndex = index),
+        onTap: _onTabSelected,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.auto_awesome),
@@ -330,7 +374,18 @@ String _packImageLabel(int count) {
 }
 
 class PacksScreen extends StatefulWidget {
-  const PacksScreen({super.key});
+  const PacksScreen({
+    super.key,
+    required this.balance,
+    required this.balanceLoading,
+    required this.balanceLoadFailed,
+    required this.onRefreshBalance,
+  });
+
+  final UserBalance? balance;
+  final bool balanceLoading;
+  final bool balanceLoadFailed;
+  final VoidCallback onRefreshBalance;
 
   @override
   State<PacksScreen> createState() => _PacksScreenState();
@@ -631,6 +686,13 @@ class _PacksScreenState extends State<PacksScreen> {
                           ),
                           SectionHelpButton(onPressed: _showHelp),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+                      _UserBalancePacksBanner(
+                        balance: widget.balance,
+                        isLoading: widget.balanceLoading,
+                        hasError: widget.balanceLoadFailed,
+                        onRefresh: widget.onRefreshBalance,
                       ),
                       const SizedBox(height: 20),
                       _SoftCard(
@@ -3626,12 +3688,20 @@ class ProfileScreen extends StatefulWidget {
     required this.authService,
     required this.apiService,
     required this.onAuthChanged,
+    required this.balance,
+    required this.balanceLoading,
+    required this.balanceLoadFailed,
+    required this.onRefreshBalance,
     this.onResetOnboarding,
   });
 
   final AuthService authService;
   final ApiService apiService;
   final VoidCallback onAuthChanged;
+  final UserBalance? balance;
+  final bool balanceLoading;
+  final bool balanceLoadFailed;
+  final VoidCallback onRefreshBalance;
   final VoidCallback? onResetOnboarding;
 
   @override
@@ -4004,6 +4074,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(theme),
+                  const SizedBox(height: 20),
+                  _UserBalanceProfileCard(
+                    balance: widget.balance,
+                    isLoading: widget.balanceLoading,
+                    hasError: widget.balanceLoadFailed,
+                    onRefresh: widget.onRefreshBalance,
+                  ),
                   const SizedBox(height: 24),
                   if (!auth.isConfigured) ...[
                     _buildNotConfiguredCard(theme),
@@ -4681,6 +4758,221 @@ class _CreateScreenState extends State<CreateScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _UserBalanceProfileCard extends StatelessWidget {
+  const _UserBalanceProfileCard({
+    required this.balance,
+    required this.isLoading,
+    required this.hasError,
+    required this.onRefresh,
+  });
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  final UserBalance? balance;
+  final bool isLoading;
+  final bool hasError;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final rowStyle = theme.textTheme.bodyMedium?.copyWith(
+      fontSize: 15,
+      height: 1.45,
+      color: AiImageGeneratorApp.textPrimary,
+    );
+
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDE9FF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: _accentColor,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Баланс', style: theme.textTheme.titleMedium),
+              ),
+              if (!isLoading && hasError)
+                TextButton(
+                  onPressed: onRefresh,
+                  child: const Text('Обновить'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Center(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+              ),
+            )
+          else if (hasError)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Не удалось загрузить баланс',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AiImageGeneratorApp.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: onRefresh,
+                  child: const Text('Обновить'),
+                ),
+              ],
+            )
+          else if (balance != null) ...[
+            Text(
+              'Бесплатные генерации: ${balance!.freeGenerationsRemaining} '
+              'из ${balance!.freeGenerationsLimit}',
+              style: rowStyle,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Изображения: ${balance!.paidImageGenerations}',
+              style: rowStyle,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Фотосессии: ${balance!.paidPhotoshoots}',
+              style: rowStyle,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _UserBalancePacksBanner extends StatelessWidget {
+  const _UserBalancePacksBanner({
+    required this.balance,
+    required this.isLoading,
+    required this.hasError,
+    required this.onRefresh,
+  });
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  final UserBalance? balance;
+  final bool isLoading;
+  final bool hasError;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F2FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Ваш баланс',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (!isLoading && hasError)
+                TextButton(
+                  onPressed: onRefresh,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Обновить'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 4),
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.2),
+              ),
+            )
+          else if (hasError)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Не удалось загрузить баланс',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 14,
+                      color: AiImageGeneratorApp.textSecondary,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: onRefresh,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  child: const Text('Обновить'),
+                ),
+              ],
+            )
+          else if (balance != null) ...[
+            Text(
+              '${balance!.paidImageGenerations} изображений · '
+              '${balance!.paidPhotoshoots} фотосессии',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AiImageGeneratorApp.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Бесплатно осталось: ${balance!.freeGenerationsRemaining}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 13,
+                color: AiImageGeneratorApp.textSecondary,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
