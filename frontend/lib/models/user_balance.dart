@@ -5,6 +5,7 @@ class UserBalance {
     required this.freeGenerationsRemaining,
     required this.paidImageGenerations,
     required this.paidPhotoshoots,
+    this.consumptionEnabled = false,
   });
 
   final int freeGenerationsLimit;
@@ -12,6 +13,7 @@ class UserBalance {
   final int freeGenerationsRemaining;
   final int paidImageGenerations;
   final int paidPhotoshoots;
+  final bool consumptionEnabled;
 
   factory UserBalance.fromJson(Map<String, dynamic> json) {
     return UserBalance(
@@ -20,6 +22,7 @@ class UserBalance {
       freeGenerationsRemaining: json['free_generations_remaining'] as int? ?? 0,
       paidImageGenerations: json['paid_image_generations'] as int? ?? 0,
       paidPhotoshoots: json['paid_photoshoots'] as int? ?? 0,
+      consumptionEnabled: json['consumption_enabled'] as bool? ?? false,
     );
   }
 }

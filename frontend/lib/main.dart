@@ -153,9 +153,13 @@ class _MainShellState extends State<MainShell> {
 
   void _onTabSelected(int index) {
     setState(() => _selectedIndex = index);
-    if (index == 3 || index == 4) {
+    if (index == 0 || index == 3 || index == 4) {
       _loadBalance();
     }
+  }
+
+  void _updateBalance(UserBalance balance) {
+    setState(() => _userBalance = balance);
   }
 
   Future<void> _loadGenerationsFromBackend() async {
@@ -203,13 +207,17 @@ class _MainShellState extends State<MainShell> {
       CreateScreen(
         isActive: _selectedIndex == 0,
         apiService: _apiService,
+        balance: _userBalance,
+        balanceLoading: _balanceLoading,
         onImageGenerated: _onImageGenerated,
+        onBalanceUpdated: _updateBalance,
         onOpenGallery: _goToGalleryTab,
       ),
       PhotoshootsScreen(
         isActive: _selectedIndex == 1,
         apiService: _apiService,
         onPhotoshootGenerated: _onPhotoshootGenerated,
+        onBalanceUpdated: _updateBalance,
         onOpenGallery: _goToGalleryTab,
       ),
       GalleryScreen(
@@ -1310,12 +1318,14 @@ class PhotoshootsScreen extends StatefulWidget {
     required this.isActive,
     required this.apiService,
     required this.onPhotoshootGenerated,
+    required this.onBalanceUpdated,
     required this.onOpenGallery,
   });
 
   final bool isActive;
   final ApiService apiService;
   final void Function(List<GeneratedImageItem> items) onPhotoshootGenerated;
+  final ValueChanged<UserBalance> onBalanceUpdated;
   final VoidCallback onOpenGallery;
 
   @override
@@ -1492,6 +1502,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
         apiService: widget.apiService,
         onShowMessage: (message) => _showSnackBar(context, message),
         onPhotoshootGenerated: widget.onPhotoshootGenerated,
+        onBalanceUpdated: widget.onBalanceUpdated,
         onOpenGallery: widget.onOpenGallery,
       ),
     );
@@ -2266,6 +2277,7 @@ class _PhotoshootDetailSheet extends StatefulWidget {
     required this.apiService,
     required this.onShowMessage,
     required this.onPhotoshootGenerated,
+    required this.onBalanceUpdated,
     required this.onOpenGallery,
   });
 
@@ -2273,6 +2285,7 @@ class _PhotoshootDetailSheet extends StatefulWidget {
   final ApiService apiService;
   final void Function(String message) onShowMessage;
   final void Function(List<GeneratedImageItem> items) onPhotoshootGenerated;
+  final ValueChanged<UserBalance> onBalanceUpdated;
   final VoidCallback onOpenGallery;
 
   @override
@@ -2360,6 +2373,10 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
         );
         return;
       }
+      final updatedBalance = result.balance;
+      if (updatedBalance != null) {
+        widget.onBalanceUpdated(updatedBalance);
+      }
       final description = 'Фотосессия: ${result.styleTitle}';
       final createdAt = DateTime.now();
       final galleryItems = result.imageUrls
@@ -2381,6 +2398,11 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
     } on PhotoshootInvalidPhotoException {
       if (!mounted) return;
       widget.onShowMessage('Выберите фото JPEG, PNG или WebP до 10 МБ');
+    } on InsufficientPhotoshootsException {
+      if (!mounted) return;
+      widget.onShowMessage(
+        'У вас недостаточно фотосессий. Пополните баланс.',
+      );
     } catch (_) {
       if (!mounted) return;
       widget.onShowMessage('Не удалось подготовить фотосессию. Попробуйте позже.');
@@ -4251,13 +4273,19 @@ class CreateScreen extends StatefulWidget {
     super.key,
     required this.isActive,
     required this.apiService,
+    required this.balance,
+    required this.balanceLoading,
     required this.onImageGenerated,
+    required this.onBalanceUpdated,
     required this.onOpenGallery,
   });
 
   final bool isActive;
   final ApiService apiService;
+  final UserBalance? balance;
+  final bool balanceLoading;
   final ValueChanged<GeneratedImageItem> onImageGenerated;
+  final ValueChanged<UserBalance> onBalanceUpdated;
   final VoidCallback onOpenGallery;
 
   @override
@@ -4628,6 +4656,10 @@ class _CreateScreenState extends State<CreateScreen> {
         task: () => widget.apiService.generateImage(text),
       );
       if (!mounted) return;
+      final updatedBalance = response.balance;
+      if (updatedBalance != null) {
+        widget.onBalanceUpdated(updatedBalance);
+      }
       widget.onImageGenerated(
         GeneratedImageItem(
           description: text,
@@ -4639,6 +4671,13 @@ class _CreateScreenState extends State<CreateScreen> {
         _lastResponse = response;
         _isLoading = false;
       });
+    } on InsufficientImagesException {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      setState(() => _showNoGenerationsWarning = true);
+      _showSnackBar(
+        'У вас недостаточно изображений. Пополните баланс.',
+      );
     } on Exception catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -4649,11 +4688,6 @@ class _CreateScreenState extends State<CreateScreen> {
   void _handleError(String message) {
     if (message == 'Prompt cannot be empty') {
       _showSnackBar('Сначала опишите изображение');
-    } else if (message == 'No available generations') {
-      setState(() => _showNoGenerationsWarning = true);
-      _showSnackBar(
-        'Генерации закончились. Купите пакет, чтобы продолжить.',
-      );
     } else {
       setState(() => _showGenerationErrorState = true);
       _showSnackBar('Не удалось создать изображение. Попробуйте ещё раз позже.');
@@ -4715,7 +4749,10 @@ class _CreateScreenState extends State<CreateScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              const _FreeGenerationsInfoCard(),
+              _CreateBalanceInfoCard(
+                balance: widget.balance,
+                isLoading: widget.balanceLoading,
+              ),
               const SizedBox(height: 20),
               _StatusCard(response: _lastResponse),
               const SizedBox(height: 20),
@@ -4847,6 +4884,16 @@ class _UserBalanceProfileCard extends StatelessWidget {
               ],
             )
           else if (balance != null) ...[
+            if (!balance!.consumptionEnabled) ...[
+              Text(
+                'Демо-режим: списание с баланса отключено',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: 14,
+                  color: AiImageGeneratorApp.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             Text(
               'Бесплатные генерации: ${balance!.freeGenerationsRemaining} '
               'из ${balance!.freeGenerationsLimit}',
@@ -4954,6 +5001,17 @@ class _UserBalancePacksBanner extends StatelessWidget {
               ],
             )
           else if (balance != null) ...[
+            if (!balance!.consumptionEnabled)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  'Демо-режим: списание отключено',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 13,
+                    color: AiImageGeneratorApp.textSecondary,
+                  ),
+                ),
+              ),
             Text(
               '${balance!.paidImageGenerations} изображений · '
               '${balance!.paidPhotoshoots} фотосессии',
@@ -4978,14 +5036,45 @@ class _UserBalancePacksBanner extends StatelessWidget {
   }
 }
 
-class _FreeGenerationsInfoCard extends StatelessWidget {
-  const _FreeGenerationsInfoCard();
+class _CreateBalanceInfoCard extends StatelessWidget {
+  const _CreateBalanceInfoCard({
+    required this.balance,
+    required this.isLoading,
+  });
 
   static const _accentColor = Color(0xFF5B6CFF);
+
+  final UserBalance? balance;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDemoMode = balance != null && !balance!.consumptionEnabled;
+    final freeRemaining = balance?.freeGenerationsRemaining ?? 0;
+    final freeLimit = balance?.freeGenerationsLimit ?? 3;
+    final paidImages = balance?.paidImageGenerations ?? 0;
+
+    String title;
+    String subtitle;
+    if (isLoading && balance == null) {
+      title = 'Загружаем баланс…';
+      subtitle = 'Скоро покажем доступные генерации.';
+    } else if (isDemoMode) {
+      title = 'Демо-режим';
+      subtitle = 'Создание изображений без списания с баланса.';
+    } else if (freeRemaining > 0) {
+      title =
+          'Бесплатные генерации: $freeRemaining из $freeLimit';
+      subtitle = 'Используйте их, чтобы попробовать создание изображений.';
+    } else if (paidImages > 0) {
+      title = 'Бесплатные генерации закончились';
+      subtitle =
+          'Используйте изображения из баланса. Доступно: $paidImages.';
+    } else {
+      title = 'Нет доступных генераций';
+      subtitle = 'Пополните баланс, чтобы создавать изображения.';
+    }
 
     return Container(
       width: double.infinity,
@@ -5007,8 +5096,10 @@ class _FreeGenerationsInfoCard extends StatelessWidget {
               color: const Color(0xFFEDE9FF),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.auto_awesome_outlined,
+            child: Icon(
+              isDemoMode
+                  ? Icons.science_outlined
+                  : Icons.auto_awesome_outlined,
               color: _accentColor,
               size: 24,
             ),
@@ -5019,7 +5110,7 @@ class _FreeGenerationsInfoCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Вам доступно 3 бесплатные генерации',
+                  title,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
@@ -5029,7 +5120,7 @@ class _FreeGenerationsInfoCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Используйте их, чтобы попробовать создание изображений.',
+                  subtitle,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontSize: 14,
                     height: 1.35,
@@ -5532,7 +5623,7 @@ class _StatusCard extends StatelessWidget {
             Text('Готово к созданию', style: theme.textTheme.bodyMedium)
           else if (response!.creditConsumed) ...[
             Text(
-              'Генерации обновлены',
+              'Баланс обновлён',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: AiImageGeneratorApp.textPrimary,
                 fontWeight: FontWeight.w500,
@@ -5540,14 +5631,26 @@ class _StatusCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Бесплатных осталось: ${response!.remainingFreeGenerations ?? 0}',
+              'Бесплатных осталось: '
+              '${response!.balance?.freeGenerationsRemaining ?? response!.remainingFreeGenerations ?? 0}',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 4),
             Text(
-              'Купленных осталось: ${response!.remainingPaidCredits ?? 0}',
+              'Изображений в балансе: '
+              '${response!.balance?.paidImageGenerations ?? response!.remainingPaidCredits ?? 0}',
               style: theme.textTheme.bodyMedium,
             ),
+            if (response!.paymentType == 'paid' &&
+                (response!.balance?.freeGenerationsRemaining ?? 0) == 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Бесплатные генерации закончились — используйте изображения из баланса.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AiImageGeneratorApp.textSecondary,
+                ),
+              ),
+            ],
           ] else
             Text(
               'Демо-режим: генерации не списываются',
@@ -5624,7 +5727,7 @@ class _NoGenerationsWarningCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Купите пакет генераций, чтобы продолжить создавать изображения',
+            'Пополните баланс, чтобы продолжить создавать изображения.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF9A5B00),
             ),

@@ -7,6 +7,14 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 
+class InsufficientImagesException implements Exception {
+  const InsufficientImagesException();
+}
+
+class InsufficientPhotoshootsException implements Exception {
+  const InsufficientPhotoshootsException();
+}
+
 class GenerateImageResponse {
   const GenerateImageResponse({
     required this.imageUrl,
@@ -15,6 +23,7 @@ class GenerateImageResponse {
     this.creditConsumed = false,
     this.remainingFreeGenerations,
     this.remainingPaidCredits,
+    this.balance,
   });
 
   final String imageUrl;
@@ -23,8 +32,10 @@ class GenerateImageResponse {
   final bool creditConsumed;
   final int? remainingFreeGenerations;
   final int? remainingPaidCredits;
+  final UserBalance? balance;
 
   factory GenerateImageResponse.fromJson(Map<String, dynamic> json) {
+    final rawBalance = json['balance'];
     return GenerateImageResponse(
       imageUrl: json['image_url'] as String,
       prompt: json['prompt'] as String,
@@ -32,6 +43,9 @@ class GenerateImageResponse {
       creditConsumed: json['credit_consumed'] as bool? ?? false,
       remainingFreeGenerations: json['remaining_free_generations'] as int?,
       remainingPaidCredits: json['remaining_paid_credits'] as int?,
+      balance: rawBalance is Map<String, dynamic>
+          ? UserBalance.fromJson(rawBalance)
+          : null,
     );
   }
 }
@@ -90,20 +104,26 @@ class PhotoshootGenerateResponse {
     required this.styleTitle,
     required this.imageUrls,
     required this.outputCount,
+    this.balance,
   });
 
   final String styleId;
   final String styleTitle;
   final List<String> imageUrls;
   final int outputCount;
+  final UserBalance? balance;
 
   factory PhotoshootGenerateResponse.fromJson(Map<String, dynamic> json) {
     final rawUrls = json['image_urls'] as List<dynamic>? ?? [];
+    final rawBalance = json['balance'];
     return PhotoshootGenerateResponse(
       styleId: json['style_id'] as String,
       styleTitle: json['style_title'] as String,
       imageUrls: rawUrls.map((url) => url as String).toList(),
       outputCount: json['output_count'] as int? ?? rawUrls.length,
+      balance: rawBalance is Map<String, dynamic>
+          ? UserBalance.fromJson(rawBalance)
+          : null,
     );
   }
 }
@@ -164,7 +184,7 @@ class ApiService {
       throw Exception('Prompt cannot be empty');
     }
     if (response.statusCode == 402) {
-      throw Exception('No available generations');
+      throw const InsufficientImagesException();
     }
     throw Exception('Failed to generate image');
   }
@@ -273,6 +293,9 @@ class ApiService {
     }
     if (response.statusCode == 400) {
       throw const PhotoshootInvalidPhotoException();
+    }
+    if (response.statusCode == 402) {
+      throw const InsufficientPhotoshootsException();
     }
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body) as Map<String, dynamic>;
