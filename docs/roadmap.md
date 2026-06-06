@@ -101,6 +101,7 @@
 | **Balance spending rules** | ✅ | `/generate`: free → `paid_image_generations`; `/photoshoots/generate`: −1 `paid_photoshoots`; `balance` в response; **402** → модалка + **Пакеты** |
 | **Mock photoshoot debit testing** | ✅ | `IMAGE_PROVIDER=mock` + `ENABLE_PHOTOSHOOT_GENERATION=true` → mock `placehold.co` без Gemini; полный flow: history + списание `paid_photoshoots` |
 | **Create photo mode UX** | ✅ | Режим по **тумблеру** (не по файлу); «Создать по фото»; фото обязательно для запуска; удаление фото не сбрасывает режим |
+| **Photoshoots demo-ready catalog UI** | ✅ | Intro + баланс, карточки с описаниями/бейджами, модалка «Создать фотосессию» |
 | **Manual paid image debit check** | ✅ | `POST /generate` + `/generate-with-photo`: free → paid; `balance` в response |
 | **Manual mock photoshoot debit check** | ✅ | `POST /photoshoots/generate` + mock provider: −1 `paid_photoshoots`, `balance` в response |
 | **Frontend balance refresh after generation** | ✅ | **Профиль** / **Пакеты** / **Создать** обновляются из `balance` в response |
