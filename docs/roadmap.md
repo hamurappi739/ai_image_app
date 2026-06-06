@@ -98,7 +98,7 @@
 | **Backend balance model** | ✅ | Migration `003_add_profile_balance_fields.sql`; `GET /balance`; `POST /debug/add-balance` (dev) |
 | **Profile balance fields** | ✅ | `paid_image_generations`, `paid_photoshoots` in `profiles`; `paid_credits` retained |
 | **Flutter balance display** | ✅ | `GET /balance` в **Профиль**, **Пакеты**, динамический баннер на **«Создать»** |
-| **Balance spending rules** | ✅ | `/generate`: free → `paid_image_generations`; `/photoshoots/generate`: −1 `paid_photoshoots`; `balance` в response; **402** + SnackBar |
+| **Balance spending rules** | ✅ | `/generate`: free → `paid_image_generations`; `/photoshoots/generate`: −1 `paid_photoshoots`; `balance` в response; **402** → модалка + **Пакеты** |
 | **Mock photoshoot debit testing** | ✅ | `IMAGE_PROVIDER=mock` + `ENABLE_PHOTOSHOOT_GENERATION=true` → mock `placehold.co` без Gemini; полный flow: history + списание `paid_photoshoots` |
 | **Create photo mode UX** | ✅ | Режим по **тумблеру** (не по файлу); «Создать по фото»; фото обязательно для запуска; удаление фото не сбрасывает режим |
 | **Manual paid image debit check** | ✅ | `POST /generate` + `/generate-with-photo`: free → paid; `balance` в response |
@@ -155,7 +155,7 @@
 |--------|--------|
 | **RuStore payment verification** | план |
 | **Real purchase → balance top-up** | план |
-| **402 UI polish** — доработка сообщений при недостаточном балансе (изображения / фотосессии) | план |
+| **402 UI — insufficient balance** | ✅ | Модалки «Изображения/Фотосессии закончились» + переход в **Пакеты**; предупреждения до генерации |
 | **Backend photo + description generation endpoint** | ✅ |
 | **Connect Create photo input to backend** | ✅ |
 | **Improve prompts for face quality** | план |

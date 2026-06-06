@@ -16,6 +16,7 @@ import 'services/photoshoots_help_service.dart';
 import 'utils/mock_photoshoot_photo.dart';
 import 'widgets/create_help_dialog.dart';
 import 'widgets/generation_progress_dialog.dart';
+import 'widgets/insufficient_balance_dialog.dart';
 import 'widgets/packs_help_dialog.dart';
 import 'widgets/photoshoots_help_dialog.dart';
 import 'widgets/section_help_button.dart';
@@ -192,6 +193,11 @@ class _MainShellState extends State<MainShell> {
 
   void _goToGalleryTab() => setState(() => _selectedIndex = 2);
 
+  void _goToPacksTab() {
+    setState(() => _selectedIndex = 3);
+    _loadBalance();
+  }
+
   void _onImageGenerated(GeneratedImageItem item) {
     setState(() {
       if (item.id != null) {
@@ -222,13 +228,17 @@ class _MainShellState extends State<MainShell> {
         onImageGenerated: _onImageGenerated,
         onBalanceUpdated: _updateBalance,
         onOpenGallery: _goToGalleryTab,
+        onOpenPacks: _goToPacksTab,
       ),
       PhotoshootsScreen(
         isActive: _selectedIndex == 1,
         apiService: _apiService,
+        balance: _userBalance,
+        balanceLoading: _balanceLoading,
         onPhotoshootGenerated: _onPhotoshootGenerated,
         onBalanceUpdated: _updateBalance,
         onOpenGallery: _goToGalleryTab,
+        onOpenPacks: _goToPacksTab,
       ),
       GalleryScreen(
         images: _generatedImages,
@@ -1327,16 +1337,22 @@ class PhotoshootsScreen extends StatefulWidget {
     super.key,
     required this.isActive,
     required this.apiService,
+    required this.balance,
+    required this.balanceLoading,
     required this.onPhotoshootGenerated,
     required this.onBalanceUpdated,
     required this.onOpenGallery,
+    required this.onOpenPacks,
   });
 
   final bool isActive;
   final ApiService apiService;
+  final UserBalance? balance;
+  final bool balanceLoading;
   final void Function(List<GeneratedImageItem> items) onPhotoshootGenerated;
   final ValueChanged<UserBalance> onBalanceUpdated;
   final VoidCallback onOpenGallery;
+  final VoidCallback onOpenPacks;
 
   @override
   State<PhotoshootsScreen> createState() => _PhotoshootsScreenState();
@@ -1510,10 +1526,13 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       builder: (sheetContext) => _PhotoshootDetailSheet(
         style: style,
         apiService: widget.apiService,
+        balance: widget.balance,
+        balanceLoading: widget.balanceLoading,
         onShowMessage: (message) => _showSnackBar(context, message),
         onPhotoshootGenerated: widget.onPhotoshootGenerated,
         onBalanceUpdated: widget.onBalanceUpdated,
         onOpenGallery: widget.onOpenGallery,
+        onOpenPacks: widget.onOpenPacks,
       ),
     );
   }
@@ -1521,6 +1540,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final showPhotoshootDepleted = widget.balance != null &&
+        !widget.balanceLoading &&
+        widget.balance!.showPhotoshootDepletedWarning;
 
     return Scaffold(
       backgroundColor: AiImageGeneratorApp.scaffoldBackground,
@@ -1563,6 +1585,15 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                           ),
                         ],
                       ),
+                      if (showPhotoshootDepleted) ...[
+                        const SizedBox(height: 16),
+                        InsufficientBalanceHint(
+                          message:
+                              'Фотосессии закончились. Пополните баланс, '
+                              'чтобы продолжить.',
+                          onOpenPacks: widget.onOpenPacks,
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       GridView.builder(
                         shrinkWrap: true,
@@ -2287,18 +2318,24 @@ class _PhotoshootDetailSheet extends StatefulWidget {
   const _PhotoshootDetailSheet({
     required this.style,
     required this.apiService,
+    required this.balance,
+    required this.balanceLoading,
     required this.onShowMessage,
     required this.onPhotoshootGenerated,
     required this.onBalanceUpdated,
     required this.onOpenGallery,
+    required this.onOpenPacks,
   });
 
   final _PhotoshootStyle style;
   final ApiService apiService;
+  final UserBalance? balance;
+  final bool balanceLoading;
   final void Function(String message) onShowMessage;
   final void Function(List<GeneratedImageItem> items) onPhotoshootGenerated;
   final ValueChanged<UserBalance> onBalanceUpdated;
   final VoidCallback onOpenGallery;
+  final VoidCallback onOpenPacks;
 
   @override
   State<_PhotoshootDetailSheet> createState() => _PhotoshootDetailSheetState();
@@ -2373,6 +2410,13 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
     }
   }
 
+  bool get _photoshootsBalanceDepleted {
+    final balance = widget.balance;
+    return balance != null &&
+        !widget.balanceLoading &&
+        !balance.isPhotoshootBalanceAvailable;
+  }
+
   Future<void> _onSecondaryActionPressed() async {
     if (_isPreparingPhotoshoot) return;
     final selectedPhotoFile = _selectedPhotoFile;
@@ -2383,6 +2427,13 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
     }
     if (!widget.style.isFree) {
       widget.onShowMessage('Оплата будет добавлена позже');
+      return;
+    }
+    if (_photoshootsBalanceDepleted) {
+      await InsufficientBalanceDialog.showInsufficientPhotoshoots(
+        context,
+        onOpenPacks: widget.onOpenPacks,
+      );
       return;
     }
     setState(() => _isPreparingPhotoshoot = true);
@@ -2432,8 +2483,9 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
       widget.onShowMessage('Выберите фото JPEG, PNG или WebP до 10 МБ');
     } on InsufficientPhotoshootsException {
       if (!mounted) return;
-      widget.onShowMessage(
-        'У вас недостаточно фотосессий. Пополните баланс.',
+      await InsufficientBalanceDialog.showInsufficientPhotoshoots(
+        context,
+        onOpenPacks: widget.onOpenPacks,
       );
     } catch (_) {
       if (!mounted) return;
@@ -4340,6 +4392,7 @@ class CreateScreen extends StatefulWidget {
     required this.onImageGenerated,
     required this.onBalanceUpdated,
     required this.onOpenGallery,
+    required this.onOpenPacks,
   });
 
   final bool isActive;
@@ -4349,6 +4402,7 @@ class CreateScreen extends StatefulWidget {
   final ValueChanged<GeneratedImageItem> onImageGenerated;
   final ValueChanged<UserBalance> onBalanceUpdated;
   final VoidCallback onOpenGallery;
+  final VoidCallback onOpenPacks;
 
   @override
   State<CreateScreen> createState() => _CreateScreenState();
@@ -4621,7 +4675,6 @@ class _CreateScreenState extends State<CreateScreen> {
   final _imagePicker = ImagePicker();
 
   bool _isLoading = false;
-  bool _showNoGenerationsWarning = false;
   bool _showGenerationErrorState = false;
   bool _isHelpDialogVisible = false;
   bool _isPickingPhoto = false;
@@ -4724,6 +4777,20 @@ class _CreateScreenState extends State<CreateScreen> {
     });
   }
 
+  bool get _imagesBalanceDepleted {
+    final balance = widget.balance;
+    return balance != null &&
+        !widget.balanceLoading &&
+        !balance.isImageGenerationAvailable;
+  }
+
+  Future<void> _showInsufficientImagesDialog() {
+    return InsufficientBalanceDialog.showInsufficientImages(
+      context,
+      onOpenPacks: widget.onOpenPacks,
+    );
+  }
+
   Future<GenerateImageResponse> _runGeneration(String text) {
     if (_isPhotoMode) {
       final photoFile = _selectedPhotoFile;
@@ -4755,10 +4822,14 @@ class _CreateScreenState extends State<CreateScreen> {
       return;
     }
 
+    if (_imagesBalanceDepleted) {
+      await _showInsufficientImagesDialog();
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _lastResponse = null;
-      _showNoGenerationsWarning = false;
       _showGenerationErrorState = false;
     });
 
@@ -4793,10 +4864,7 @@ class _CreateScreenState extends State<CreateScreen> {
     } on InsufficientImagesException {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      setState(() => _showNoGenerationsWarning = true);
-      _showSnackBar(
-        'У вас недостаточно изображений. Пополните баланс.',
-      );
+      await _showInsufficientImagesDialog();
     } on PhotoGenerationInvalidPhotoException {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -4837,6 +4905,9 @@ class _CreateScreenState extends State<CreateScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final showImagesDepleted = widget.balance != null &&
+        !widget.balanceLoading &&
+        widget.balance!.showImageDepletedWarning;
 
     return Scaffold(
       backgroundColor: AiImageGeneratorApp.scaffoldBackground,
@@ -4922,15 +4993,20 @@ class _CreateScreenState extends State<CreateScreen> {
                 isBusy: _isLoading,
               ),
               const SizedBox(height: 24),
+              if (showImagesDepleted) ...[
+                InsufficientBalanceHint(
+                  message:
+                      'Изображения закончились. Пополните баланс, '
+                      'чтобы продолжить.',
+                  onOpenPacks: widget.onOpenPacks,
+                ),
+                const SizedBox(height: 12),
+              ],
               _GenerateButton(
                 isLoading: _isLoading,
                 isPhotoMode: _isPhotoMode,
                 onPressed: _isLoading ? null : _onGenerate,
               ),
-              if (_showNoGenerationsWarning) ...[
-                const SizedBox(height: 20),
-                const _NoGenerationsWarningCard(),
-              ],
               if (_showGenerationErrorState) ...[
                 const SizedBox(height: 20),
                 const _GenerationErrorCard(),
@@ -5963,44 +6039,6 @@ class _GenerationErrorCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Попробуйте изменить описание или повторить позже.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF9A5B00),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NoGenerationsWarningCard extends StatelessWidget {
-  const _NoGenerationsWarningCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return _SoftCard(
-      borderColor: const Color(0xFFF5D0A8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.info_outline, size: 20, color: Colors.orange.shade800),
-              const SizedBox(width: 8),
-              Text(
-                'Генерации закончились',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: const Color(0xFF9A5B00),
-                  fontSize: 15,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Пополните баланс, чтобы продолжить создавать изображения.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF9A5B00),
             ),

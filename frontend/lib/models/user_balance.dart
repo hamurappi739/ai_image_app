@@ -25,4 +25,21 @@ class UserBalance {
       consumptionEnabled: json['consumption_enabled'] as bool? ?? false,
     );
   }
+
+  /// Списание выключено — генерации доступны без проверки остатка.
+  bool get isImageGenerationAvailable =>
+      !consumptionEnabled ||
+      freeGenerationsRemaining > 0 ||
+      paidImageGenerations > 0;
+
+  bool get isPhotoshootBalanceAvailable =>
+      !consumptionEnabled || paidPhotoshoots > 0;
+
+  bool get showImageDepletedWarning =>
+      consumptionEnabled &&
+      freeGenerationsRemaining == 0 &&
+      paidImageGenerations == 0;
+
+  bool get showPhotoshootDepletedWarning =>
+      consumptionEnabled && paidPhotoshoots == 0;
 }

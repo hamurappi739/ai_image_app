@@ -279,7 +279,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 **Development:** **`POST /debug/add-balance`** (`ENVIRONMENT=development`) — JSON `{ paid_image_generations, paid_photoshoots }` добавляет к профилю; ответ как `GET /balance`.
 
-**Flutter:** баланс в **Профиль**, **Пакеты**, **Создать**; обновление после генерации из `balance` в response; **402** → SnackBar на русском.
+**Flutter:** баланс в **Профиль**, **Пакеты**, **Создать**; обновление после генерации из `balance` в response; **402** → модальное окно с переходом в **«Пакеты»** (реальная оплата / RuStore — не подключены).
 
 ### Проверка списаний и mock-фотосессии (ручная, успешно)
 
@@ -330,7 +330,8 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **«Фото для образа» (реализовано):** виден в режиме **«С фото»**; picker, preview, **«Убрать фото»**; endpoint по **режиму**: **`/generate-with-photo`** или **`/generate`**.
 - **Списание:** при `ENABLE_CREDIT_CONSUMPTION=true` — проверка баланса → генерация → списание **только после успеха**; при ошибке Gemini (**502**) баланс **не уменьшается**.
 - **Mock:** `IMAGE_PROVIDER=mock` → `placehold.co` без Gemini.
-- **402 / пустое описание:** SnackBar *«У вас недостаточно изображений. Пополните баланс.»* / *«Опишите, что нужно сделать с фото.»*
+- **402 / пустое описание:** модалка *«Изображения закончились»* + **«Пополнить баланс»** → **Пакеты**; или *«Опишите, что нужно сделать с фото.»*
+- **Предупреждение до генерации:** при `consumption_enabled` и нулевом остатке изображений — подсказка над кнопкой; нажатие «Создать» → та же модалка.
 - **Контекстная помощь:** готовые идеи, описание, фото, где результат.
 - Результат: `Image.network` или **fallback-preview** при ошибке загрузки.
 - Кнопка **«Открыть в Галерее»**.
@@ -354,6 +355,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - По умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**: после валидации backend возвращает **`501`**; Flutter показывает «Обработка фото будет добавлена позже» (Gemini не вызывается) — **safe mode проверен**.
 - При **`ENABLE_PHOTOSHOOT_GENERATION=true`**: Gemini → **`200`** с `image_urls` (1–3) → modal закрывается → результаты в **Галерею** → SnackBar **«Фотосессия готова»** → переход на вкладку **Галерея**. После перезагрузки истории с backend записи с общим **`photoshoot_id`** отображаются **одной карточкой-группой**.
 - **Controlled 3-output test пройден** через Flutter UI (см. §11); после теста **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`PHOTOSHOOT_OUTPUT_COUNT=1`** (safe mode возвращён).
+- **402 insufficient_photoshoots:** модалка *«Фотосессии закончились»* + **«Пополнить баланс»** → **Пакеты**; предупреждение на вкладке при `paid_photoshoots=0` и `consumption_enabled`.
 - Платные фотосессии: Flutter пока **не отправляет** фото на backend → **«Оплата будет добавлена позже»**; backend **дополнительно защищён** — платный `style_id` → **`402`** без Gemini/Storage/`generations`, даже при `ENABLE_PHOTOSHOOT_GENERATION=true`.
 - Запись в backend **`generations`** выполняется для **готовых** стилей; **оплата** платных стилей — следующий этап; **backend для «Своей фотосессии»** — см. roadmap.
 
