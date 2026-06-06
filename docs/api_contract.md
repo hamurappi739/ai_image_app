@@ -97,11 +97,62 @@
 | HTTP | `detail` (пример) | Когда |
 |------|-------------------|--------|
 | `400` | `Prompt cannot be empty` | Пустой prompt |
-| `402` | `No available generations` | Нет free и paid кредитов (только при включённом credit consumption) |
+| `402` | `insufficient_images` | Нет free и paid изображений (только при включённом credit consumption) |
 | `404` | `Profile not found` | Профиль пользователя не найден (dev / будущая auth) |
 | `500` | `TEST_USER_ID is not configured` | Backend без тестового пользователя (dev misconfiguration) |
 
 Тело ошибки FastAPI: `{"detail": "..."}` (строка или объект).
+
+---
+
+## 3.1 POST /generate-with-photo
+
+**Назначение:** генерация **одного** изображения по **загруженному фото + описанию** (вкладка **«Создать»**, режим «С фото»).
+
+**Headers:** `Content-Type: multipart/form-data`
+
+| Поле (form) | Тип | Описание |
+|-------------|-----|----------|
+| `description` | string | Описание / пожелания (обязательно, не пустое после trim) |
+| `photo` | file | JPEG / PNG / WebP, max **10 MB** (обязательно) |
+
+### Поведение
+
+| `IMAGE_PROVIDER` | Генерация | Storage |
+|------------------|-----------|---------|
+| **`mock`** | `placehold.co` URL, **без Gemini** | Не используется |
+| **`gemini`** | Фото + описание → Gemini → data URL → Storage `public_url` | Да |
+
+### Списание баланса (`ENABLE_CREDIT_CONSUMPTION=true`)
+
+1. Проверка доступности баланса (**free** → **`paid_image_generations`**).
+2. Генерация изображения.
+3. **Только после успешной генерации** — списание и запись в **`generations`** (как у **`POST /generate`**).
+4. При ошибке Gemini (**502**) или Storage — **баланс не уменьшается**.
+
+При **`ENABLE_CREDIT_CONSUMPTION=false`** — списаний нет (демо-режим).
+
+### Response `200`
+
+Тот же формат, что **`POST /generate`** (см. §5): `image_url`, `prompt` (текст описания), `payment_type`, `credit_consumed`, `remaining_free_generations`, `remaining_paid_credits`, `balance`.
+
+### Errors
+
+| HTTP | `detail` | Когда |
+|------|----------|--------|
+| `400` | `Description cannot be empty` | Пустое описание |
+| `400` | `Photo is required` | Файл не передан |
+| `400` | `Unsupported photo format` | Не JPEG/PNG/WebP |
+| `400` | `Photo is too large` | > 10 MB |
+| `402` | `insufficient_images` | Нет free/paid изображений |
+| `502` | `Gemini did not return an image` / `Gemini photo generation failed: …` | Gemini не вернул изображение |
+
+### Flutter (вкладка «Создать»)
+
+- Если **фото выбрано** → `ApiService.generateImageWithPhoto()` → **`POST /generate-with-photo`**.
+- Если **фото не выбрано** → **`POST /generate`** (JSON) как раньше.
+- При **402** → *«У вас недостаточно изображений. Пополните баланс.»*
+- При пустом описании с фото → *«Опишите, что нужно сделать с фото.»*
 
 ---
 
@@ -127,7 +178,7 @@
 - Поле `prompt` в JSON отображается в UI как **описание** (не слово «промпт»).
 - Служебные dev-записи с текстом вроде `debug test prompt` **фильтруются на клиенте** (не показываются пользователю).
 - Ошибки загрузки (backend выключен, 500) **не** показываются техническим SnackBar; галерея остаётся usable (empty state или только локально добавленные кадры).
-- Новые результаты после **`POST /generate`** или успешной **`POST /photoshoots/generate`** добавляются в список **сразу сверху**, без повторного `GET`.
+- Новые результаты после **`POST /generate`**, **`POST /generate-with-photo`** или успешной **`POST /photoshoots/generate`** добавляются в список **сразу сверху**, без повторного `GET`.
 - Записи фотосессий из **`GET /generations`** имеют `prompt`: **`Фотосессия: <style.title>`** (например `Фотосессия: Студийный портрет`).
 - Записи одной фотосессии из нескольких изображений имеют **одинаковый** `photoshoot_id`; обычные генерации — **`photoshoot_id: null`** (поле можно игнорировать в текущем Flutter).
 

@@ -15,6 +15,14 @@ class InsufficientPhotoshootsException implements Exception {
   const InsufficientPhotoshootsException();
 }
 
+class PhotoGenerationInvalidPhotoException implements Exception {
+  const PhotoGenerationInvalidPhotoException();
+}
+
+class PhotoGenerationDescriptionException implements Exception {
+  const PhotoGenerationDescriptionException();
+}
+
 class GenerateImageResponse {
   const GenerateImageResponse({
     required this.imageUrl,
@@ -187,6 +195,47 @@ class ApiService {
       throw const InsufficientImagesException();
     }
     throw Exception('Failed to generate image');
+  }
+
+  Future<GenerateImageResponse> generateImageWithPhoto({
+    required String description,
+    required XFile photoFile,
+  }) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/generate-with-photo'),
+    );
+    request.headers.addAll(_requestHeaders());
+    request.fields['description'] = description;
+
+    final photoBytes = await photoFile.readAsBytes();
+    final mimeType = _resolveMultipartMimeType(photoFile);
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'photo',
+        photoBytes,
+        filename: _resolveFileName(photoFile),
+        contentType: MediaType.parse(mimeType),
+      ),
+    );
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return GenerateImageResponse.fromJson(json);
+    }
+    if (response.statusCode == 400) {
+      final body = response.body;
+      if (body.contains('Description cannot be empty')) {
+        throw const PhotoGenerationDescriptionException();
+      }
+      throw const PhotoGenerationInvalidPhotoException();
+    }
+    if (response.statusCode == 402) {
+      throw const InsufficientImagesException();
+    }
+    throw Exception('Failed to generate image with photo');
   }
 
   Future<UserBalance> fetchBalance() async {

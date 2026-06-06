@@ -4606,6 +4606,7 @@ class _CreateScreenState extends State<CreateScreen> {
   bool _isHelpDialogVisible = false;
   bool _isPickingPhoto = false;
   Uint8List? _selectedPhotoBytes;
+  XFile? _selectedPhotoFile;
   GenerateImageResponse? _lastResponse;
 
   @override
@@ -4675,7 +4676,10 @@ class _CreateScreenState extends State<CreateScreen> {
       if (file == null || !mounted) return;
       final bytes = await file.readAsBytes();
       if (!mounted) return;
-      setState(() => _selectedPhotoBytes = bytes);
+      setState(() {
+        _selectedPhotoFile = file;
+        _selectedPhotoBytes = bytes;
+      });
     } catch (_) {
       if (!mounted) return;
       _showSnackBar('Не удалось выбрать фото. Попробуйте ещё раз.');
@@ -4685,21 +4689,33 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 
   void _clearReferencePhoto() {
-    setState(() => _selectedPhotoBytes = null);
+    setState(() {
+      _selectedPhotoBytes = null;
+      _selectedPhotoFile = null;
+    });
+  }
+
+  Future<GenerateImageResponse> _runGeneration(String text) {
+    final photoFile = _selectedPhotoFile;
+    if (photoFile != null) {
+      return widget.apiService.generateImageWithPhoto(
+        description: text,
+        photoFile: photoFile,
+      );
+    }
+    return widget.apiService.generateImage(text);
   }
 
   Future<void> _onGenerate() async {
     final text = _descriptionController.text.trim();
+    final hasPhoto = _selectedPhotoBytes != null;
     if (text.isEmpty) {
-      _showSnackBar('Сначала опишите изображение');
-      return;
-    }
-
-    if (_selectedPhotoBytes != null) {
       _showSnackBar(
-        'Создание по фото будет добавлено позже. '
-        'Сейчас изображение создаётся по описанию.',
+        hasPhoto
+            ? 'Опишите, что нужно сделать с фото.'
+            : 'Сначала опишите изображение',
       );
+      return;
     }
 
     setState(() {
@@ -4713,9 +4729,11 @@ class _CreateScreenState extends State<CreateScreen> {
       final response = await GenerationProgressDialog.run<GenerateImageResponse>(
         context: context,
         title: 'Создаём изображение',
-        subtitle: 'Обычно это занимает до минуты.',
+        subtitle: hasPhoto
+            ? 'Создание по фото обычно занимает до минуты.'
+            : 'Обычно это занимает до минуты.',
         totalSeconds: 60,
-        task: () => widget.apiService.generateImage(text),
+        task: () => _runGeneration(text),
       );
       if (!mounted) return;
       final updatedBalance = response.balance;
@@ -4740,6 +4758,10 @@ class _CreateScreenState extends State<CreateScreen> {
       _showSnackBar(
         'У вас недостаточно изображений. Пополните баланс.',
       );
+    } on PhotoGenerationInvalidPhotoException {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showSnackBar('Выберите фото JPEG, PNG или WebP до 10 МБ');
     } on Exception catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);

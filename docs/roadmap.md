@@ -100,7 +100,8 @@
 | **Flutter balance display** | ✅ | `GET /balance` в **Профиль**, **Пакеты**, динамический баннер на **«Создать»** |
 | **Balance spending rules** | ✅ | `/generate`: free → `paid_image_generations`; `/photoshoots/generate`: −1 `paid_photoshoots`; `balance` в response; **402** + SnackBar |
 | **Mock photoshoot debit testing** | ✅ | `IMAGE_PROVIDER=mock` + `ENABLE_PHOTOSHOOT_GENERATION=true` → mock `placehold.co` без Gemini; полный flow: history + списание `paid_photoshoots` |
-| **Manual paid image debit check** | ✅ | `POST /generate`: free → `paid_image_generations`; `balance` в response; проверено curl + Flutter |
+| **Create with photo generation** | ✅ | `POST /generate-with-photo`; Flutter multipart when photo selected |
+| **Manual paid image debit check** | ✅ | `POST /generate` + `/generate-with-photo`: free → paid; `balance` в response |
 | **Manual mock photoshoot debit check** | ✅ | `POST /photoshoots/generate` + mock provider: −1 `paid_photoshoots`, `balance` в response |
 | **Frontend balance refresh after generation** | ✅ | **Профиль** / **Пакеты** / **Создать** обновляются из `balance` в response |
 | **Mock photoshoot debit flow (Flutter emulator)** | ✅ | Debug: тестовое фото без галереи; progress dialog; Gallery + balance refresh |
@@ -140,8 +141,8 @@
 | 2 | **Create tab UX** — баннер баланса, progress dialog, подсказки/идеи без·с фото, категории, кликабельные идеи | ✅ |
 | 3 | **Показ баланса** в **«Профиль»**, **«Пакеты»**, **«Создать»** (*бесплатные / изображения / фотосессии*; не «кредиты») | ✅ |
 | 4 | **Generation progress modal** + обратный отсчёт (**Создать** ~60 с, **Фотосессии** ~120 с) | ✅ |
-| 5 | **Backend endpoint: photo + description** (одно изображение) | **следующий** |
-| 6 | **Connect Create photo mode to backend** | план |
+| 5 | **Backend endpoint: photo + description** (одно изображение) | ✅ |
+| 6 | **Connect Create photo mode to backend** | ✅ |
 | 7 | **Backend prompts — качество** (лица, без коллажа, one image) | план |
 | 8 | **Backend balance model** — `GET /balance`, profile fields | ✅ |
 | 9 | **Flutter balance display** — `GET /balance` в Профиль / Пакеты / Создать | ✅ |
@@ -155,7 +156,8 @@
 | **RuStore payment verification** | план |
 | **Real purchase → balance top-up** | план |
 | **402 UI polish** — доработка сообщений при недостаточном балансе (изображения / фотосессии) | план |
-| **Backend photo + description generation endpoint** | план |
+| **Backend photo + description generation endpoint** | ✅ |
+| **Connect Create photo input to backend** | ✅ |
 | **Improve prompts for face quality** | план |
 | **Replace placeholder/gradient examples with curated visuals** | план |
 
@@ -215,9 +217,9 @@
 
 1. **Replace placeholders with real curated example images** — на карточках каталога и в блоке «Пример результата» вместо gradient-заглушек.
 2. **Improve visual branding and final art direction** — единый визуальный язык каталога фотосессий.
-3. **Backend endpoint for photo + description single-image generation** — новый или расширенный API (не ломая текущий `POST /generate` по тексту).
-4. **Connect Create photo input to backend** — отправка выбранного фото + описания с вкладки **«Создать»**.
-5. **Save photo-based generation results to Gallery/history** — один результат в **Галерею** / `generations`.
+3. ~~**Backend endpoint for photo + description single-image generation**~~ — **`POST /generate-with-photo`** ✅
+4. ~~**Connect Create photo input to backend**~~ — Flutter multipart ✅
+5. ~~**Save photo-based generation results to Gallery/history**~~ — через `consume_generation` / локальная Галерея ✅
 6. **Backend endpoint for custom photoshoot** — API для **«Своей фотосессии»** (фото + текст пользователя).
 7. **Connect custom photoshoot to Gemini** — генерация набора изображений по пользовательскому описанию.
 8. **Payment logic for custom photoshoot if needed** — монетизация (если потребуется).

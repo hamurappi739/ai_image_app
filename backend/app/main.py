@@ -31,6 +31,7 @@ from app.services.credits_service import (
     consume_generation,
     determine_generation_payment,
 )
+from app.services.photo_generation_service import photo_generation_service
 from app.services.photoshoot_styles import get_photoshoot_style
 from app.services.photoshoot_service import photoshoot_service
 from app.services.storage_service import storage_service
@@ -94,6 +95,39 @@ def _resolve_user_for_image_storage(
     if user is not None:
         return user
     return get_current_user(authorization=authorization)
+
+
+def _validate_upload_photo(photo: UploadFile | None) -> tuple[bytes, str]:
+    if photo is None:
+        raise HTTPException(status_code=400, detail="Photo is required")
+    if photo.content_type not in _ALLOWED_PHOTOSHOOT_CONTENT_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported photo format")
+    file_bytes = photo.file.read(_MAX_PHOTOSHOOT_FILE_SIZE_BYTES + 1)
+    if len(file_bytes) > _MAX_PHOTOSHOOT_FILE_SIZE_BYTES:
+        raise HTTPException(status_code=400, detail="Photo is too large")
+    return file_bytes, photo.content_type
+
+
+def _build_generate_response_after_consume(
+    image_url: str,
+    prompt: str,
+    payment_type: str,
+    updated_profile: dict,
+) -> GenerateResponse:
+    balance = build_balance_response(
+        updated_profile,
+        settings.free_generations_limit,
+        consumption_enabled=True,
+    )
+    return GenerateResponse(
+        image_url=image_url,
+        prompt=prompt,
+        payment_type=payment_type,
+        credit_consumed=True,
+        remaining_free_generations=balance["free_generations_remaining"],
+        remaining_paid_credits=balance["paid_image_generations"],
+        balance=balance,
+    )
 
 
 @app.get("/balance", response_model=BalanceResponse)
@@ -420,19 +454,72 @@ def generate(
         raise HTTPException(status_code=500, detail=str(exc))
 
     updated_profile = result["profile"]
-    balance = build_balance_response(
-        updated_profile,
-        settings.free_generations_limit,
-        consumption_enabled=True,
-    )
-    return GenerateResponse(
+    return _build_generate_response_after_consume(
         image_url=image_url,
         prompt=prompt,
         payment_type=decision["payment_type"],
-        credit_consumed=True,
-        remaining_free_generations=balance["free_generations_remaining"],
-        remaining_paid_credits=balance["paid_image_generations"],
-        balance=balance,
+        updated_profile=updated_profile,
+    )
+
+
+@app.post("/generate-with-photo", response_model=GenerateResponse)
+def generate_with_photo(
+    description: str = Form(...),
+    photo: UploadFile | None = File(default=None),
+    authorization: str | None = Header(default=None),
+):
+    prompt = description.strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Description cannot be empty")
+
+    file_bytes, photo_content_type = _validate_upload_photo(photo)
+
+    user: CurrentUser | None = None
+    if authorization is not None or settings.enable_credit_consumption:
+        user = get_current_user(authorization=authorization)
+
+    profile = None
+    payment_decision = None
+    if settings.enable_credit_consumption:
+        if user is None:
+            raise HTTPException(status_code=500, detail="User id resolution failed")
+        try:
+            profile = ensure_profile_exists(user.id, user.email)
+        except RuntimeError:
+            raise HTTPException(status_code=500, detail="Failed to ensure user profile")
+        payment_decision = determine_generation_payment(
+            profile, settings.free_generations_limit
+        )
+        if not payment_decision["allowed"]:
+            raise HTTPException(status_code=402, detail=payment_decision["reason"])
+
+    image_url = photo_generation_service.generate(
+        description=prompt,
+        photo_bytes=file_bytes,
+        photo_content_type=photo_content_type,
+    )
+    if image_url.startswith("data:image/"):
+        storage_user = _resolve_user_for_image_storage(user, authorization)
+        image_url = _store_generated_image_if_needed(storage_user.id, image_url)
+
+    if not settings.enable_credit_consumption:
+        return GenerateResponse(
+            image_url=image_url,
+            prompt=prompt,
+        )
+
+    try:
+        result = consume_generation(
+            profile, payment_decision["payment_type"], prompt, image_url
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return _build_generate_response_after_consume(
+        image_url=image_url,
+        prompt=prompt,
+        payment_type=payment_decision["payment_type"],
+        updated_profile=result["profile"],
     )
 
 
@@ -454,15 +541,7 @@ def generate_photoshoot(
             detail="Payment is required for this photoshoot style",
         )
 
-    if photo is None:
-        raise HTTPException(status_code=400, detail="Photo is required")
-
-    if photo.content_type not in _ALLOWED_PHOTOSHOOT_CONTENT_TYPES:
-        raise HTTPException(status_code=400, detail="Unsupported photo format")
-
-    file_bytes = photo.file.read(_MAX_PHOTOSHOOT_FILE_SIZE_BYTES + 1)
-    if len(file_bytes) > _MAX_PHOTOSHOOT_FILE_SIZE_BYTES:
-        raise HTTPException(status_code=400, detail="Photo is too large")
+    file_bytes, photo_content_type = _validate_upload_photo(photo)
 
     if not settings.enable_photoshoot_generation:
         raise HTTPException(
@@ -487,7 +566,7 @@ def generate_photoshoot(
         user_id=user.id,
         style=style,
         photo_bytes=file_bytes,
-        photo_content_type=photo.content_type,
+        photo_content_type=photo_content_type,
     )
 
     balance = None

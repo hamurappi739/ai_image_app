@@ -4,11 +4,11 @@
 
 Сейчас проект в **MVP / demo-mode**: **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`ENABLE_CREDIT_CONSUMPTION=false`** (safe mode в `.env`). Вкладка **«Пакеты»** — mixed package UI, **«Своя сумма»** (min **10 ₽**), layout web + Android; **оплата не подключена**. **Списание баланса** (free → paid images, mock photoshoot → `paid_photoshoots`) **проверено вручную** при временном `ENABLE_CREDIT_CONSUMPTION=true`; **RuStore** — будущая работа. Подробнее: [project_status.md](docs/project_status.md).
 
-**Create tab:** free-generation notice, **categorized clickable ideas** (modes **«Без фото»** / **«С фото»**), mode-specific guidance in **«Как получить хороший результат»**, and a **generation countdown modal** (~60 s, dimmed background). Photo-based generation is **UI-only** until backend is connected.
+**Create tab:** free-generation notice, **categorized clickable ideas** (modes **«Без фото»** / **«С фото»**), mode-specific guidance in **«Как получить хороший результат»**, and a **generation countdown modal** (~60 s, dimmed background). **With photo:** **`POST /generate-with-photo`** (multipart); **without photo:** **`POST /generate`** (JSON). Balance debited **only after successful generation**; mock mode works without Gemini.
 
 **Generation UX (Фотосессии):** blocking progress dialog (~120 s) when a real backend request runs; *«Почти готово, ждём результат...»* if the timer ends first.
 
-**Ближайшее (руководство):** **photo + description** on **«Создать»** → backend **generation quality** prompts → **RuStore** + real purchase top-up ([roadmap.md](docs/roadmap.md)). Balance debit flow **manually checked** for regular images and mock photoshoots.
+**Ближайшее (руководство):** backend **generation quality** prompts → **RuStore** + real purchase top-up ([roadmap.md](docs/roadmap.md)). Balance debit flow **manually checked** for regular images, **photo generation**, and mock photoshoots.
 
 **Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход) с loading states для auth-действий. Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. Backend автоматически создаёт профиль пользователя при первом **`/generate`** или **`/generations`** (profile auto-sync). **Без** Flutter Supabase config приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
@@ -23,7 +23,7 @@
 - Flutter **web** UI на **русском** языке
 - **First-run onboarding** (5 экранов) + **контекстная помощь** на **«Создать»**, **«Фотосессии»**, **«Пакеты»** (кнопка **«Помощь»**; автопоказ на **Создать** / **Фотосессии**)
 - **Фотосессии — catalog-style cards** + **Custom photoshoot UI placeholder** (photo picker, пожелания, «Как описать лучше»; backend later)
-- **Create tab** — free-generation notice; **categorized clickable ideas** (without-photo / with-photo modes); mode-specific **«Как получить хороший результат»**; **generation countdown modal** (~60 s); photo picker UI (backend later); `POST /generate` by description
+- **Create tab** — free-generation notice; **categorized clickable ideas** (without-photo / with-photo modes); mode-specific **«Как получить хороший результат»**; **generation countdown modal** (~60 s); photo picker + **`POST /generate-with-photo`** when photo selected; **`POST /generate`** by description when no photo
 - Генерация через backend **`POST /generate`** (demo-mode)
 - Результат на экране + **fallback-preview** при ошибке загрузки картинки
 - Кнопка **«Открыть в Галерее»**
@@ -124,7 +124,7 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 
 **Использовать:** описание, идея, **изображение** / **изображений**, **фотосессия** / **фотосессии**, **пакеты**; баланс: *«осталось: N изображений и M фотосессий»* (не «кредиты»).
 
-**Ближайший UX (план):** **402 UI polish** → **Create** photo + description API → backend prompts for **face/quality** → curated visuals → **RuStore**. **Готово:** balance display + debit flow (manually checked), categorized ideas, countdown modal, Russian input. [app_design_strategy.md](docs/app_design_strategy.md), [roadmap.md](docs/roadmap.md).
+**Ближайший UX (план):** **402 UI polish** → backend prompts for **face/quality** → curated visuals → **RuStore**. **Готово:** balance display + debit flow (manually checked), **Create photo generation** (`POST /generate-with-photo`), categorized ideas, countdown modal, Russian input. [app_design_strategy.md](docs/app_design_strategy.md), [roadmap.md](docs/roadmap.md).
 
 ---
 
@@ -132,9 +132,9 @@ Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android п
 
 - **Постоянная** Gemini-генерация в dev (по умолчанию **mock**; Gemini — только контролируемые ручные тесты)
 - **Packages tab** — mixed UI + balance banner; **оплата / RuStore не подключены**
-- **Balance debit** — проверено вручную (images + mock photoshoot); **real purchase top-up** — в плане
-- **Create** photo API, **generation quality** prompts, **curated examples** — в плане
-- **Backend** для фото+описание на **«Создать»** и **«Своей фотосессии»** (UI-каркасы готовы), **реальные curated-примеры**
+- **Balance debit** — проверено вручную (images + **photo generation** + mock photoshoot); **real purchase top-up** — в плане
+- **Generation quality** prompts, **curated examples** — в плане
+- **Backend** для **«Своей фотосессии»** (UI-каркас готов), **реальные curated-примеры**
 - Подтверждение email, восстановление пароля, production без `TEST_USER_ID`
 - **Production security** (debug routes, CORS, RLS)
 

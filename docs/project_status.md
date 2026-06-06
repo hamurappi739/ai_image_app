@@ -119,6 +119,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 |-------|------|------------|
 | GET | `/health` | Жив ли сервер |
 | POST | `/generate` | Генерация по тексту (mock по умолчанию; Gemini + Storage проверен вручную) |
+| POST | `/generate-with-photo` | Генерация по **фото + описанию** (multipart); mock без Gemini; списание как у `/generate` |
 | GET | `/generations` | История генераций (`?limit=1..100`, по умолчанию 20) |
 | GET | `/balance` | Баланс: free remaining + `paid_image_generations` + `paid_photoshoots` |
 
@@ -291,6 +292,12 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Успешный response содержит актуальный объект **`balance`**.
 - При нулевом балансе — **`402`** `insufficient_images` (списание не выполняется).
 
+**Генерация по фото (`POST /generate-with-photo`, проверено):**
+
+- При `ENABLE_CREDIT_CONSUMPTION=true`, `IMAGE_PROVIDER=mock`: mock `image_url`, списание **`paid_image_generations`** (если free=0), **`balance`** в response.
+- Порядок: проверка баланса → генерация → списание; при **502** баланс **не уменьшается**.
+- Flutter: фото + описание → multipart; **Галерея** и баланс обновляются.
+
 **Mock-фотосессия (`POST /photoshoots/generate`):**
 
 - При `ENABLE_CREDIT_CONSUMPTION=true`, `ENABLE_PHOTOSHOOT_GENERATION=true`, **`IMAGE_PROVIDER=mock`**:
@@ -320,12 +327,12 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **«Как получить хороший результат» (реализовано):** отдельный переключатель **«Без фото»** / **«С фото»**; компактные общие советы; **текстовые** примеры (**не** кликабельны).
   - **Без фото:** объяснение + 2 примера + примечание про создание с нуля.
   - **С фото:** объяснение + блоки **«Если на фото человек»** и **«Если на фото предмет или другое»** (по несколько примеров) + совет про качество исходного фото.
-- **UI-каркас «фото + описание» (реализовано):** **«Фото для образа»** — picker, preview, **«Убрать фото»**; фото только **локально** (не backend, не Gallery).
-- **Генерация по фото на backend не подключена.** При «Создать» с выбранным фото — SnackBar *«Создание по фото будет добавлено позже…»*, затем обычная генерация **по описанию**.
-- **План:** учёт баланса после исчерпания free; блокировка без платного остатка; **backend:** фото + описание → одно изображение.
-- **Контекстная помощь:** готовые идеи по категориям и режимам, описание, фото (UI; backend позже), где результат.
-- **`POST /generate`** через `ApiService` — **текст → одно изображение** (как раньше).
-- **План (backend):** подключить **фото + описание → одно изображение**; см. [app_design_strategy.md](app_design_strategy.md) §10.
+- **«Фото для образа» (реализовано):** picker, preview, **«Убрать фото»**; при выбранном фото → **`POST /generate-with-photo`** (`description` + `photo`).
+- **Без фото:** **`POST /generate`** (JSON) — текст → одно изображение.
+- **Списание:** при `ENABLE_CREDIT_CONSUMPTION=true` — проверка баланса → генерация → списание **только после успеха**; при ошибке Gemini (**502**) баланс **не уменьшается**.
+- **Mock:** `IMAGE_PROVIDER=mock` → `placehold.co` без Gemini.
+- **402 / пустое описание:** SnackBar *«У вас недостаточно изображений. Пополните баланс.»* / *«Опишите, что нужно сделать с фото.»*
+- **Контекстная помощь:** готовые идеи, описание, фото, где результат.
 - Результат: `Image.network` или **fallback-preview** при ошибке загрузки.
 - Кнопка **«Открыть в Галерее»**.
 - Frontend скрывает технические ошибки генерации: в UI показывается только понятное сообщение для пользователя.
@@ -367,10 +374,10 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | — | **First-run onboarding** (5 экранов, «Далее» / «Пропустить» / «Начать») | ✅ |
 | — | **Контекстная помощь** — «Создать» и «Фотосессии» | ✅ |
 | — | **Каталог карточек фотосессий** — «3 фото», цена/«Бесплатно», placeholder preview, рекомендации и примеры-заглушки в sheet | ✅ |
-| — | **«Создать» — UI-каркас фото** (picker, preview, убрать фото; без backend) | ✅ |
+| — | **«Создать» — фото + описание** (`POST /generate-with-photo`) | ✅ |
 | — | **«Своя фотосессия» — UI-каркас** (карточка, dialog, picker, пожелания, «Как описать лучше»; без backend) | ✅ |
 | 1 | **Реальные curated-примеры** на карточках и в sheet (вместо gradient placeholders) | план |
-| 2 | **«Создать» — backend:** фото + **описание** → **одно** изображение + запись в **Галерею** | план |
+| 2 | **«Создать» — backend:** фото + **описание** → **одно** изображение + запись в **Галерею** | ✅ |
 | 3 | **«Своя фотосессия» — backend:** endpoint, Gemini, **Галерея** / `generations` | план |
 | 4 | **Visual branding / art direction** для каталога фотосессий | план |
 | 5 | **Помощь для «Пакетов»** — `PacksHelpDialog`, кнопка **«Помощь»** | ✅ |
@@ -605,7 +612,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 - **`git status`** должен быть **чистым** (после controlled test — проверено)
 - **`backend/.env`** не коммитить; после test: **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`PHOTOSHOOT_OUTPUT_COUNT=1`** (safe mode)
-- Следующие шаги (см. [roadmap.md](roadmap.md)): **backend prompts (качество)** → **фото + описание на «Создать»** → **RuStore** → curated-примеры → **«Своя фотосессия»** backend
+- Следующие шаги (см. [roadmap.md](roadmap.md)): **backend prompts (качество)** → **RuStore** → curated-примеры → **«Своя фотосессия»** backend
 
 ---
 
