@@ -102,7 +102,8 @@
 | **Mock photoshoot debit testing** | ✅ | `IMAGE_PROVIDER=mock` + `ENABLE_PHOTOSHOOT_GENERATION=true` → mock `placehold.co` без Gemini; полный flow: history + списание `paid_photoshoots` |
 | **Create photo mode UX** | ✅ | Режим по **тумблеру** (не по файлу); «Создать по фото»; фото обязательно для запуска; удаление фото не сбрасывает режим |
 | **Photoshoots demo-ready catalog UI** | ✅ | Intro + баланс, карточки с описаниями/бейджами, модалка «Создать фотосессию» |
-| **Packs demo-ready UI** | ✅ | Hero **«Ваш баланс»**, продуктовые карточки пакетов, **«Своя сумма»**, диалог **«Оплата скоро появится»** |
+| **Packs demo-ready UI** | ✅ | Hero **«Ваш баланс»**, продуктовые карточки пакетов, **«Своя сумма»**, диалог **«Оплата скоро появится»**; карточки одинаковой высоты |
+| **Photoshoots final polish** | ✅ | **«3 фото»** (не «до 3»), расширенные описания стилей, **«Пример результата»** в модалке |
 | **Manual paid image debit check** | ✅ | `POST /generate` + `/generate-with-photo`: free → paid; `balance` в response |
 | **Manual mock photoshoot debit check** | ✅ | `POST /photoshoots/generate` + mock provider: −1 `paid_photoshoots`, `balance` в response |
 | **Frontend balance refresh after generation** | ✅ | **Профиль** / **Пакеты** / **Создать** обновляются из `balance` в response |
@@ -162,6 +163,7 @@
 | **Connect Create photo input to backend** | ✅ |
 | **Improve prompts for face quality** | план |
 | **Replace placeholder/gradient examples with curated visuals** | план |
+| **Gallery selective hide/delete** | план | Выборочно скрывать/удалять изображения из **локальной** Галереи (без изменения backend) |
 
 ### Баланс и правила генерации (детализация)
 

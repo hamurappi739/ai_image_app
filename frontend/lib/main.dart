@@ -930,13 +930,15 @@ class _PackOfferingCard extends StatelessWidget {
     final hasPhotoshootLine =
         showPhotoshoots && offering.photoshootCount > 0;
 
-    return Container(
+    return SizedBox(
+      height: layout.rowHeight,
+      child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: offering.featured
             ? Border.all(color: const Color(0xFF6B5CFF), width: 2)
-            : null,
+            : Border.all(color: const Color(0xFFE8EAEF)),
         boxShadow: [
           BoxShadow(
             color: (offering.featured ? _accentColor : Colors.black)
@@ -949,84 +951,89 @@ class _PackOfferingCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          if (offering.featured)
-            Container(
-              height: layout.featuredBannerHeight,
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(gradient: _featuredGradient),
-              child: Text(
-                'Популярно',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: layout.featuredBannerFontSize,
-                ),
+          SizedBox(
+            height: layout.featuredBannerHeight,
+            child: offering.featured
+                ? DecoratedBox(
+                    decoration: const BoxDecoration(gradient: _featuredGradient),
+                    child: Center(
+                      child: Text(
+                        'Популярно',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: layout.featuredBannerFontSize,
+                        ),
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+          Expanded(
+            child: Padding(
+              padding: layout.contentPadding,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    offering.priceLabel,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontSize: layout.priceFontSize,
+                      fontWeight: FontWeight.w800,
+                      color: _accentColor,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: layout.statRowHeight,
+                    child: hasPhotoshootLine
+                        ? _PackStatRow(
+                            label:
+                                '${offering.photoshootCount} ${_packPhotoshootLabel(offering.photoshootCount)}',
+                            backgroundColor: const Color(0xFFEDE9FF),
+                            textColor: _accentColor,
+                            fontSize: layout.badgeFontSize,
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    height: layout.statRowHeight,
+                    child: _PackStatRow(
+                      label:
+                          '${offering.imageCount} ${_packImageLabel(offering.imageCount)}',
+                      backgroundColor: const Color(0xFFF0F2FF),
+                      textColor: AiImageGeneratorApp.textPrimary,
+                      fontSize: layout.badgeFontSize,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    offering.subtitle,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: layout.subtitleFontSize,
+                      height: 1.25,
+                      color: AiImageGeneratorApp.textSecondary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Spacer(),
+                  _PackPaymentButton(
+                    featured: offering.featured,
+                    height: layout.buttonHeight,
+                    fontSize: layout.buttonFontSize,
+                    onPressed: onPaymentSoon,
+                  ),
+                ],
               ),
-            ),
-          Padding(
-            padding: layout.contentPadding,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  offering.priceLabel,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontSize: layout.priceFontSize,
-                    fontWeight: FontWeight.w800,
-                    color: _accentColor,
-                    height: 1,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: layout.statRowHeight,
-                  child: hasPhotoshootLine
-                      ? _PackStatRow(
-                          label:
-                              '${offering.photoshootCount} ${_packPhotoshootLabel(offering.photoshootCount)}',
-                          backgroundColor: const Color(0xFFEDE9FF),
-                          textColor: _accentColor,
-                          fontSize: layout.badgeFontSize,
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  height: layout.statRowHeight,
-                  child: _PackStatRow(
-                    label:
-                        '${offering.imageCount} ${_packImageLabel(offering.imageCount)}',
-                    backgroundColor: const Color(0xFFF0F2FF),
-                    textColor: AiImageGeneratorApp.textPrimary,
-                    fontSize: layout.badgeFontSize,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  offering.subtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: layout.subtitleFontSize,
-                    height: 1.25,
-                    color: AiImageGeneratorApp.textSecondary,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 10),
-                _PackPaymentButton(
-                  featured: offering.featured,
-                  height: layout.buttonHeight,
-                  fontSize: layout.buttonFontSize,
-                  onPressed: onPaymentSoon,
-                ),
-              ],
             ),
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -1412,7 +1419,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     _PhotoshootStyle(
       id: 'studio_portrait',
       title: 'Студийный портрет',
-      description: 'Чистый фон, мягкий свет, универсальный портрет.',
+      description:
+          'Получится аккуратный портрет на чистом фоне с мягким светом. '
+          'Подходит для аватара, профиля и первого знакомства с сервисом.',
       recommendation: 'Для аватара',
       initials: 'СП',
       icon: Icons.portrait_outlined,
@@ -1423,7 +1432,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     _PhotoshootStyle(
       id: 'business_portrait',
       title: 'Деловой портрет',
-      description: 'Аккуратный образ для резюме, сайта или профиля.',
+      description:
+          'Создаёт образ для резюме, сайта, мессенджеров и рабочих профилей. '
+          'Визуально — аккуратно, спокойно и профессионально.',
       recommendation: 'Для работы',
       initials: 'ДП',
       icon: Icons.business_center_outlined,
@@ -1434,7 +1445,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     _PhotoshootStyle(
       id: 'home_portrait',
       title: 'Домашний портрет',
-      description: 'Тёплая атмосфера и естественный свет.',
+      description:
+          'Тёплый естественный образ с мягким светом и уютной атмосферой. '
+          'Подходит для личного профиля и социальных сетей.',
       recommendation: 'Для личного профиля',
       initials: 'ДМ',
       icon: Icons.home_outlined,
@@ -1445,7 +1458,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     _PhotoshootStyle(
       id: 'premium_portrait',
       title: 'Премиум-портрет',
-      description: 'Более выразительный свет и дорогой визуальный стиль.',
+      description:
+          'Более выразительная подача: дорогой свет, контраст '
+          'и ощущение профессиональной съёмки.',
       recommendation: 'Премиум',
       initials: 'ПР',
       icon: Icons.diamond_outlined,
@@ -1456,7 +1471,8 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     _PhotoshootStyle(
       id: 'winter_photoshoot',
       title: 'Зимняя фотосессия',
-      description: 'Зимняя атмосфера, мягкий свет и уютный образ.',
+      description:
+          'Зимняя атмосфера, мягкий свет, уютный образ и сезонное настроение.',
       recommendation: 'Для сезона',
       initials: 'ЗМ',
       icon: Icons.ac_unit,
@@ -1467,7 +1483,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     _PhotoshootStyle(
       id: 'urban_portrait',
       title: 'Городской портрет',
-      description: 'Современный городской фон и стильная подача.',
+      description:
+          'Современный городской фон, стильная подача '
+          'и кадр для социальных сетей.',
       recommendation: 'Для соцсетей',
       initials: 'ГР',
       icon: Icons.location_city_outlined,
@@ -1478,7 +1496,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     _PhotoshootStyle(
       id: 'evening_look',
       title: 'Вечерний образ',
-      description: 'Элегантный свет, вечернее настроение и выразительность.',
+      description:
+          'Элегантный свет, вечернее настроение '
+          'и более выразительный визуальный стиль.',
       recommendation: 'Для образа',
       initials: 'ВЧ',
       icon: Icons.nightlife_outlined,
@@ -1489,7 +1509,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     _PhotoshootStyle(
       id: 'travel_portrait',
       title: 'Портрет в путешествии',
-      description: 'Атмосфера поездки и красивый фон.',
+      description:
+          'Атмосфера поездки, красивый фон '
+          'и ощущение живой фотографии из путешествия.',
       recommendation: 'Для истории',
       initials: 'ПТ',
       icon: Icons.flight_outlined,
@@ -1804,7 +1826,7 @@ class _PhotoshootsIntroHeader extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '1 фотосессия = до 3 изображений',
+                      '1 фотосессия = 3 изображения',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1988,7 +2010,7 @@ class _CustomPhotoshootCatalogCard extends StatelessWidget {
                   runSpacing: 6,
                   children: const [
                     _PhotoshootMetaChip(
-                      label: 'до 3 фото',
+                      label: '3 фото',
                       backgroundColor: Color(0xFFF0F2FF),
                       textColor: _accentColor,
                     ),
@@ -2465,7 +2487,7 @@ class _PhotoshootCard extends StatelessWidget {
                           textColor: priceFg,
                         ),
                         const _PhotoshootMetaChip(
-                          label: 'до 3 фото',
+                          label: '3 фото',
                           backgroundColor: Color(0xFFF0F2FF),
                           textColor: _accentColor,
                         ),
@@ -2565,6 +2587,116 @@ class _PhotoshootMetaChip extends StatelessWidget {
   }
 }
 
+class _PhotoshootResultExamplesSection extends StatelessWidget {
+  const _PhotoshootResultExamplesSection({required this.gradientColors});
+
+  final List<Color> gradientColors;
+
+  static const _labels = ['Фото 1', 'Фото 2', 'Фото 3'];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Пример результата',
+          style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            for (var i = 0; i < _labels.length; i++) ...[
+              if (i > 0) const SizedBox(width: 8),
+              Expanded(
+                child: _PhotoshootResultPlaceholder(
+                  label: _labels[i],
+                  gradientColors: gradientColors,
+                  variant: i,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PhotoshootResultPlaceholder extends StatelessWidget {
+  const _PhotoshootResultPlaceholder({
+    required this.label,
+    required this.gradientColors,
+    required this.variant,
+  });
+
+  final String label;
+  final List<Color> gradientColors;
+  final int variant;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = gradientColors.length > 1
+        ? gradientColors.last
+        : const Color(0xFF5B6CFF);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AspectRatio(
+          aspectRatio: 3 / 4,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  gradientColors.first.withValues(alpha: 0.85),
+                  gradientColors.last.withValues(alpha: 0.95),
+                ],
+              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Positioned(
+                  right: -6,
+                  bottom: -8,
+                  child: Icon(
+                    Icons.photo_outlined,
+                    size: 36,
+                    color: accent.withValues(alpha: 0.18),
+                  ),
+                ),
+                Icon(
+                  Icons.person_outline,
+                  size: 22 + variant * 2.0,
+                  color: Colors.white.withValues(alpha: 0.75),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AiImageGeneratorApp.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _PhotoshootDetailSheet extends StatefulWidget {
   const _PhotoshootDetailSheet({
     required this.style,
@@ -2620,7 +2752,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
   }
 
   static const _outcomes = [
-    'до 3 готовых изображений',
+    '3 готовых изображения',
     'единый стиль',
     'результат появится в Галерее',
   ];
@@ -2883,6 +3015,10 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  _PhotoshootResultExamplesSection(
+                    gradientColors: style.gradientColors,
                   ),
                   const SizedBox(height: 20),
                   Text(
