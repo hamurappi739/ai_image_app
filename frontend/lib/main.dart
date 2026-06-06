@@ -4445,24 +4445,61 @@ class _CreateQuickIdeasCatalog {
 
 enum _CreateTipsMode { withoutPhoto, withPhoto }
 
-class _CreateQuickIdeasPanel extends StatefulWidget {
+class _CreateModeToggle extends StatelessWidget {
+  const _CreateModeToggle({
+    required this.mode,
+    required this.onModeChanged,
+    this.enabled = true,
+  });
+
+  final _CreateTipsMode mode;
+  final ValueChanged<_CreateTipsMode> onModeChanged;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SegmentedButton<_CreateTipsMode>(
+      segments: const [
+        ButtonSegment(
+          value: _CreateTipsMode.withoutPhoto,
+          label: Text('Без фото'),
+        ),
+        ButtonSegment(
+          value: _CreateTipsMode.withPhoto,
+          label: Text('С фото'),
+        ),
+      ],
+      selected: {mode},
+      onSelectionChanged: enabled
+          ? (selection) => onModeChanged(selection.first)
+          : null,
+      style: ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        textStyle: WidgetStatePropertyAll(
+          theme.textTheme.labelLarge?.copyWith(fontSize: 13),
+        ),
+      ),
+    );
+  }
+}
+
+class _CreateQuickIdeasPanel extends StatelessWidget {
   const _CreateQuickIdeasPanel({
+    required this.mode,
+    required this.onModeChanged,
     required this.isBusy,
     required this.onIdeaSelected,
   });
 
+  final _CreateTipsMode mode;
+  final ValueChanged<_CreateTipsMode> onModeChanged;
   final bool isBusy;
   final ValueChanged<String> onIdeaSelected;
 
-  @override
-  State<_CreateQuickIdeasPanel> createState() => _CreateQuickIdeasPanelState();
-}
-
-class _CreateQuickIdeasPanelState extends State<_CreateQuickIdeasPanel> {
-  _CreateTipsMode _mode = _CreateTipsMode.withoutPhoto;
-
   List<_CreateIdeaCategory> get _categories =>
-      _mode == _CreateTipsMode.withoutPhoto
+      mode == _CreateTipsMode.withoutPhoto
           ? _CreateQuickIdeasCatalog.withoutPhotoCategories
           : _CreateQuickIdeasCatalog.withPhotoCategories;
 
@@ -4484,41 +4521,24 @@ class _CreateQuickIdeasPanelState extends State<_CreateQuickIdeasPanel> {
           ),
         ),
         const SizedBox(height: 12),
-        SegmentedButton<_CreateTipsMode>(
-          segments: const [
-            ButtonSegment(
-              value: _CreateTipsMode.withoutPhoto,
-              label: Text('Без фото'),
-            ),
-            ButtonSegment(
-              value: _CreateTipsMode.withPhoto,
-              label: Text('С фото'),
-            ),
-          ],
-          selected: {_mode},
-          onSelectionChanged: (selection) {
-            setState(() => _mode = selection.first);
-          },
-          style: ButtonStyle(
-            visualDensity: VisualDensity.compact,
-            textStyle: WidgetStatePropertyAll(
-              theme.textTheme.labelLarge?.copyWith(fontSize: 13),
-            ),
-          ),
+        _CreateModeToggle(
+          mode: mode,
+          onModeChanged: onModeChanged,
+          enabled: !isBusy,
         ),
         const SizedBox(height: 10),
         _SoftCard(
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
             child: Column(
-              key: ValueKey(_mode),
+              key: ValueKey(mode),
               children: [
                 for (var i = 0; i < _categories.length; i++)
                   _CreateIdeaCategoryTile(
                     category: _categories[i],
                     initiallyExpanded: i == 0,
-                    isBusy: widget.isBusy,
-                    onIdeaSelected: widget.onIdeaSelected,
+                    isBusy: isBusy,
+                    onIdeaSelected: onIdeaSelected,
                   ),
               ],
             ),
@@ -4605,9 +4625,18 @@ class _CreateScreenState extends State<CreateScreen> {
   bool _showGenerationErrorState = false;
   bool _isHelpDialogVisible = false;
   bool _isPickingPhoto = false;
+  _CreateTipsMode _createMode = _CreateTipsMode.withoutPhoto;
   Uint8List? _selectedPhotoBytes;
   XFile? _selectedPhotoFile;
   GenerateImageResponse? _lastResponse;
+
+  bool get _isPhotoMode => _createMode == _CreateTipsMode.withPhoto;
+
+  bool get _hasSelectedPhoto => _selectedPhotoBytes != null;
+
+  void _onCreateModeChanged(_CreateTipsMode mode) {
+    setState(() => _createMode = mode);
+  }
 
   @override
   void initState() {
@@ -4696,8 +4725,11 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 
   Future<GenerateImageResponse> _runGeneration(String text) {
-    final photoFile = _selectedPhotoFile;
-    if (photoFile != null) {
+    if (_isPhotoMode) {
+      final photoFile = _selectedPhotoFile;
+      if (photoFile == null) {
+        throw StateError('Photo required in photo mode');
+      }
       return widget.apiService.generateImageWithPhoto(
         description: text,
         photoFile: photoFile,
@@ -4708,13 +4740,18 @@ class _CreateScreenState extends State<CreateScreen> {
 
   Future<void> _onGenerate() async {
     final text = _descriptionController.text.trim();
-    final hasPhoto = _selectedPhotoBytes != null;
-    if (text.isEmpty) {
-      _showSnackBar(
-        hasPhoto
-            ? 'Опишите, что нужно сделать с фото.'
-            : 'Сначала опишите изображение',
-      );
+
+    if (_isPhotoMode) {
+      if (!_hasSelectedPhoto) {
+        _showSnackBar('Сначала добавьте фото.');
+        return;
+      }
+      if (text.isEmpty) {
+        _showSnackBar('Опишите, что нужно сделать с фото.');
+        return;
+      }
+    } else if (text.isEmpty) {
+      _showSnackBar('Сначала опишите изображение');
       return;
     }
 
@@ -4728,8 +4765,10 @@ class _CreateScreenState extends State<CreateScreen> {
     try {
       final response = await GenerationProgressDialog.run<GenerateImageResponse>(
         context: context,
-        title: 'Создаём изображение',
-        subtitle: hasPhoto
+        title: _isPhotoMode
+            ? 'Создаём изображение по вашему фото…'
+            : 'Создаём изображение',
+        subtitle: _isPhotoMode
             ? 'Создание по фото обычно занимает до минуты.'
             : 'Обычно это занимает до минуты.',
         totalSeconds: 60,
@@ -4839,26 +4878,53 @@ class _CreateScreenState extends State<CreateScreen> {
               ),
               const SizedBox(height: 20),
               _StatusCard(response: _lastResponse),
-              const SizedBox(height: 20),
-              _InputCard(controller: _descriptionController),
-              const SizedBox(height: 20),
-              _CreateReferencePhotoCard(
-                photoBytes: _selectedPhotoBytes,
-                isPickingPhoto: _isPickingPhoto,
+              const SizedBox(height: 16),
+              _CreateModeBanner(
+                isPhotoMode: _isPhotoMode,
+                hasSelectedPhoto: _hasSelectedPhoto,
+                mode: _createMode,
+                onModeChanged: _onCreateModeChanged,
                 isBusy: _isLoading,
-                onPickPhoto: _pickReferencePhoto,
-                onClearPhoto: _clearReferencePhoto,
               ),
+              const SizedBox(height: 16),
+              _InputCard(
+                controller: _descriptionController,
+                isPhotoMode: _isPhotoMode,
+              ),
+              if (_isPhotoMode) ...[
+                const SizedBox(height: 10),
+                _CreatePhotoDescriptionHints(
+                  isBusy: _isLoading,
+                  onHintSelected: _applyQuickIdea,
+                ),
+              ],
+              if (_isPhotoMode) ...[
+                const SizedBox(height: 20),
+                _CreateReferencePhotoCard(
+                  photoBytes: _selectedPhotoBytes,
+                  isPickingPhoto: _isPickingPhoto,
+                  isBusy: _isLoading,
+                  onPickPhoto: _pickReferencePhoto,
+                  onClearPhoto: _clearReferencePhoto,
+                ),
+              ],
               const SizedBox(height: 24),
               _CreateQuickIdeasPanel(
+                mode: _createMode,
+                onModeChanged: _onCreateModeChanged,
                 isBusy: _isLoading,
                 onIdeaSelected: _applyQuickIdea,
               ),
               const SizedBox(height: 20),
-              const _CreateTipsCard(),
+              _CreateTipsCard(
+                mode: _createMode,
+                onModeChanged: _onCreateModeChanged,
+                isBusy: _isLoading,
+              ),
               const SizedBox(height: 24),
               _GenerateButton(
                 isLoading: _isLoading,
+                isPhotoMode: _isPhotoMode,
                 onPressed: _isLoading ? null : _onGenerate,
               ),
               if (_showNoGenerationsWarning) ...[
@@ -5220,6 +5286,153 @@ class _CreateBalanceInfoCard extends StatelessWidget {
   }
 }
 
+class _CreateModeBanner extends StatelessWidget {
+  const _CreateModeBanner({
+    required this.isPhotoMode,
+    required this.hasSelectedPhoto,
+    required this.mode,
+    required this.onModeChanged,
+    this.isBusy = false,
+  });
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  final bool isPhotoMode;
+  final bool hasSelectedPhoto;
+  final _CreateTipsMode mode;
+  final ValueChanged<_CreateTipsMode> onModeChanged;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final label = isPhotoMode ? 'Режим: с фото' : 'Режим: без фото';
+    final description = isPhotoMode
+        ? (hasSelectedPhoto
+            ? 'Мы используем выбранное фото как основу. '
+                'Опишите, что нужно изменить или добавить.'
+            : 'Выберите фото и опишите, что нужно изменить или добавить.')
+        : 'Опишите, что нужно создать — приложение сделает '
+            'изображение по вашему описанию.';
+
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CreateModeToggle(
+            mode: mode,
+            onModeChanged: onModeChanged,
+            enabled: !isBusy,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: isPhotoMode
+                      ? const Color(0xFFEDE9FF)
+                      : const Color(0xFFF7F8FC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isPhotoMode
+                        ? _accentColor.withValues(alpha: 0.35)
+                        : const Color(0xFFE8EAEF),
+                  ),
+                ),
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isPhotoMode
+                        ? _accentColor
+                        : AiImageGeneratorApp.textPrimary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  description,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 13,
+                    height: 1.4,
+                    color: AiImageGeneratorApp.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CreatePhotoDescriptionHints extends StatelessWidget {
+  const _CreatePhotoDescriptionHints({
+    required this.isBusy,
+    required this.onHintSelected,
+  });
+
+  static const _hints = [
+    'сделай фон светлым и чистым',
+    'добавь атмосферу зимней улицы',
+    'сделай фото в стиле рекламного баннера',
+  ];
+
+  final bool isBusy;
+  final ValueChanged<String> onHintSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hintStyle = theme.textTheme.bodyMedium?.copyWith(
+      fontSize: 13,
+      height: 1.35,
+      color: AiImageGeneratorApp.textSecondary,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Подсказки для описания', style: hintStyle),
+        const SizedBox(height: 8),
+        ..._hints.map(
+          (hint) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: isBusy ? null : () => onHintSelected(hint),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  foregroundColor: const Color(0xFF5B6CFF),
+                  backgroundColor: const Color(0xFFF7F8FC),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: const BorderSide(color: Color(0xFFE8EAEF)),
+                  ),
+                ),
+                child: Text(
+                  'Например: $hint',
+                  style: hintStyle?.copyWith(
+                    color: AiImageGeneratorApp.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _CreateReferencePhotoCard extends StatelessWidget {
   const _CreateReferencePhotoCard({
     required this.photoBytes,
@@ -5252,8 +5465,9 @@ class _CreateReferencePhotoCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Позже здесь можно будет создать одно изображение '
-            'на основе вашего фото и описания.',
+            hasPhoto
+                ? 'Выбранное фото будет основой для нового изображения.'
+                : 'Нажмите «Добавить фото», чтобы продолжить.',
             style: theme.textTheme.bodyMedium?.copyWith(
               fontSize: 13,
               height: 1.35,
@@ -5311,31 +5525,24 @@ class _CreateReferencePhotoCard extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 4),
-          Text(
-            'Сейчас создание работает по описанию. '
-            'Генерация по фото будет добавлена позже.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 12,
-              color: AiImageGeneratorApp.textSecondary,
-              height: 1.35,
-            ),
-          ),
         ],
       ),
     );
   }
 }
 
-class _CreateTipsCard extends StatefulWidget {
-  const _CreateTipsCard();
+class _CreateTipsCard extends StatelessWidget {
+  const _CreateTipsCard({
+    required this.mode,
+    required this.onModeChanged,
+    required this.isBusy,
+  });
 
-  @override
-  State<_CreateTipsCard> createState() => _CreateTipsCardState();
-}
-
-class _CreateTipsCardState extends State<_CreateTipsCard> {
   static const _accentColor = Color(0xFF5B6CFF);
+
+  final _CreateTipsMode mode;
+  final ValueChanged<_CreateTipsMode> onModeChanged;
+  final bool isBusy;
 
   static const _generalTips = [
     'Укажите главный объект.',
@@ -5376,8 +5583,6 @@ class _CreateTipsCardState extends State<_CreateTipsCard> {
   static const _withPhotoNote =
       'Чем лучше видно объект на фото, тем лучше получится результат.';
 
-  _CreateTipsMode _mode = _CreateTipsMode.withoutPhoto;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -5391,6 +5596,7 @@ class _CreateTipsCardState extends State<_CreateTipsCard> {
       height: 1.45,
       color: AiImageGeneratorApp.textSecondary,
     );
+    final isPhotoMode = mode == _CreateTipsMode.withPhoto;
 
     return _SoftCard(
       child: Column(
@@ -5422,27 +5628,32 @@ class _CreateTipsCardState extends State<_CreateTipsCard> {
             ],
           ),
           const SizedBox(height: 14),
-          SegmentedButton<_CreateTipsMode>(
-            segments: const [
-              ButtonSegment(
-                value: _CreateTipsMode.withoutPhoto,
-                label: Text('Без фото'),
-              ),
-              ButtonSegment(
-                value: _CreateTipsMode.withPhoto,
-                label: Text('С фото'),
-              ),
-            ],
-            selected: {_mode},
-            onSelectionChanged: (selection) {
-              setState(() => _mode = selection.first);
-            },
-            style: ButtonStyle(
-              visualDensity: VisualDensity.compact,
-              textStyle: WidgetStatePropertyAll(
-                theme.textTheme.labelLarge?.copyWith(fontSize: 13),
-              ),
-            ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: !isPhotoMode
+                ? _WithoutPhotoTipsContent(
+                    key: const ValueKey('tips_without_photo'),
+                    intro: _withoutPhotoIntro,
+                    examples: _withoutPhotoExamples,
+                    note: _withoutPhotoNote,
+                    bodySecondary: bodySecondary,
+                    theme: theme,
+                  )
+                : _WithPhotoTipsContent(
+                    key: const ValueKey('tips_with_photo'),
+                    intro: _withPhotoIntro,
+                    personExamples: _withPhotoPersonExamples,
+                    objectExamples: _withPhotoObjectExamples,
+                    note: _withPhotoNote,
+                    bodySecondary: bodySecondary,
+                    theme: theme,
+                  ),
+          ),
+          const SizedBox(height: 14),
+          _CreateModeToggle(
+            mode: mode,
+            onModeChanged: onModeChanged,
+            enabled: !isBusy,
           ),
           const SizedBox(height: 14),
           Wrap(
@@ -5464,28 +5675,6 @@ class _CreateTipsCardState extends State<_CreateTipsCard> {
                   ),
                 )
                 .toList(),
-          ),
-          const SizedBox(height: 14),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: _mode == _CreateTipsMode.withoutPhoto
-                ? _WithoutPhotoTipsContent(
-                    key: const ValueKey('tips_without_photo'),
-                    intro: _withoutPhotoIntro,
-                    examples: _withoutPhotoExamples,
-                    note: _withoutPhotoNote,
-                    bodySecondary: bodySecondary,
-                    theme: theme,
-                  )
-                : _WithPhotoTipsContent(
-                    key: const ValueKey('tips_with_photo'),
-                    intro: _withPhotoIntro,
-                    personExamples: _withPhotoPersonExamples,
-                    objectExamples: _withPhotoObjectExamples,
-                    note: _withPhotoNote,
-                    bodySecondary: bodySecondary,
-                    theme: theme,
-                  ),
           ),
         ],
       ),
@@ -5823,9 +6012,13 @@ class _NoGenerationsWarningCard extends StatelessWidget {
 }
 
 class _InputCard extends StatelessWidget {
-  const _InputCard({required this.controller});
+  const _InputCard({
+    required this.controller,
+    this.isPhotoMode = false,
+  });
 
   final TextEditingController controller;
+  final bool isPhotoMode;
 
   @override
   Widget build(BuildContext context) {
@@ -5840,7 +6033,9 @@ class _InputCard extends StatelessWidget {
         minLines: 3,
         maxLines: 6,
         decoration: InputDecoration(
-          hintText: 'Например: уютный домик в зимнем лесу, вечер, тёплый свет',
+          hintText: isPhotoMode
+              ? 'Например: сделай деловой портрет на светлом фоне'
+              : 'Например: уютный домик в зимнем лесу, вечер, тёплый свет',
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 16),
           border: InputBorder.none,
           isDense: true,
@@ -5856,10 +6051,12 @@ class _GenerateButton extends StatelessWidget {
   const _GenerateButton({
     required this.isLoading,
     required this.onPressed,
+    this.isPhotoMode = false,
   });
 
   final bool isLoading;
   final VoidCallback? onPressed;
+  final bool isPhotoMode;
 
   static const _gradient = LinearGradient(
     colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
@@ -5905,9 +6102,9 @@ class _GenerateButton extends StatelessWidget {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'Создать изображение',
-                          style: TextStyle(
+                      : Text(
+                          isPhotoMode ? 'Создать по фото' : 'Создать',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 17,
                             fontWeight: FontWeight.w600,
@@ -5921,8 +6118,12 @@ class _GenerateButton extends StatelessWidget {
         const SizedBox(height: 10),
         Text(
           isLoading
-              ? 'Создаём изображение. Обычно это занимает до минуты.'
-              : 'Обычно создание занимает 20–60 секунд.',
+              ? (isPhotoMode
+                  ? 'Создаём изображение по вашему фото. Обычно это занимает до минуты.'
+                  : 'Создаём изображение. Обычно это занимает до минуты.')
+              : (isPhotoMode
+                  ? 'Обычно создание по фото занимает 20–60 секунд.'
+                  : 'Обычно создание занимает 20–60 секунд.'),
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 13,

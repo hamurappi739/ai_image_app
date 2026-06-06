@@ -100,7 +100,7 @@
 | **Flutter balance display** | ✅ | `GET /balance` в **Профиль**, **Пакеты**, динамический баннер на **«Создать»** |
 | **Balance spending rules** | ✅ | `/generate`: free → `paid_image_generations`; `/photoshoots/generate`: −1 `paid_photoshoots`; `balance` в response; **402** + SnackBar |
 | **Mock photoshoot debit testing** | ✅ | `IMAGE_PROVIDER=mock` + `ENABLE_PHOTOSHOOT_GENERATION=true` → mock `placehold.co` без Gemini; полный flow: history + списание `paid_photoshoots` |
-| **Create with photo generation** | ✅ | `POST /generate-with-photo`; Flutter multipart when photo selected |
+| **Create photo mode UX** | ✅ | Режим по **тумблеру** (не по файлу); «Создать по фото»; фото обязательно для запуска; удаление фото не сбрасывает режим |
 | **Manual paid image debit check** | ✅ | `POST /generate` + `/generate-with-photo`: free → paid; `balance` в response |
 | **Manual mock photoshoot debit check** | ✅ | `POST /photoshoots/generate` + mock provider: −1 `paid_photoshoots`, `balance` в response |
 | **Frontend balance refresh after generation** | ✅ | **Профиль** / **Пакеты** / **Создать** обновляются из `balance` в response |
@@ -111,13 +111,13 @@
 ### Flutter UI MVP (детали)
 
 - **Onboarding:** 5 экранов при первом запуске; после «Начать» / «Пропустить» — основное приложение
-- **Создать:** описание, баннер 3 бесплатных генераций, **категоризированные кликабельные идеи** (без/с фото), подсказки без/с фото, modal ожидания (~60 с), **UI-каркас фото** (picker/preview/убрать; backend позже), **контекстная помощь**, `POST /generate` по описанию, «Открыть в Галерее»
+- **Создать:** режим по **тумблеру** «Без фото» / «С фото» (синхронизирован); кнопка **«Создать»** / **«Создать по фото»**; **`POST /generate`** / **`POST /generate-with-photo`** по режиму; modal, идеи, «Открыть в Галерее»
 - **Фотосессии:** **каталог** (8 стилей + **«Своя фотосессия»** UI-каркас), рекомендации и примеры-заглушки в sheet; готовые стили: bottom sheet → multipart upload (бесплатно); **«Своя фотосессия»** — только dialog, SnackBar «будет добавлена позже»
 - **Галерея:** `GET /generations` + локальные новые; **группировка фотосессий** по `photoshoot_id`; **Очистить** (только на устройстве); empty state; без падения при недоступном backend
 - **Пакеты:** смешанная экономика **199 / 499 / 999 ₽**, переключатель режимов, **«Своя сумма»** (мин. **10 ₽**), валидация суммы, **«Помощь»**, баннер баланса; **оплата / RuStore — не подключены**
 - **Профиль:** вход / регистрация / выход (при Supabase dart-define)
 
-**UX (следующие задачи):** **backend** фото+описание на **«Создать»**, **prompts (качество)**, **RuStore** после покупки — см. [app_design_strategy.md](app_design_strategy.md) и § **«Ближайший порядок работ»** ниже.
+**UX (следующие задачи):** **prompts (качество)**, **RuStore** после покупки — см. [app_design_strategy.md](app_design_strategy.md) и § **«Ближайший порядок работ»** ниже.
 
 ---
 
