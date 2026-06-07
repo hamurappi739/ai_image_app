@@ -141,7 +141,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **`PhotoshootService`** (`app/services/photoshoot_service.py`): выбор провайдера по **`IMAGE_PROVIDER`**:
   - **`mock`** + **`ENABLE_PHOTOSHOOT_GENERATION=true`** → **`MockPhotoshootProvider`**: `placehold.co` URLs без Gemini/Storage; запись в **`generations`**; для **безопасной проверки списания** `paid_photoshoots` без реального Gemini.
   - **`gemini`** → **`GeminiPhotoshootProvider`**: uploaded photo + `style.instruction` → Gemini → Storage (`photoshoots/…`) → **`public_url`**.
-- **Известная проблема (Gemini):** иногда возвращал **коллаж/сетку** из нескольких кадров в одном изображении. **Backend prompt обновлён:** каждый вызов Gemini просит **ровно одну standalone photo** (без collage/grid/contact sheet); стили catalog больше не содержат «Create 3 photos» в одном instruction.
+- **Качество Gemini (backend):** общий модуль **`app/services/gemini_quality_instructions.py`** — усиленные **instruction** для **`/generate`**, **`/generate-with-photo`**, **`/photoshoots/generate`**: одно цельное изображение, без коллажа/сетки/contact sheet, без лишних вариантов на одном холсте; аккуратные лица и анатомия; сохранение узнаваемости при генерации с фото; фотосессия = **3 отдельных** последовательных вызова (по одному кадру). **Mock mode** не изменён. **RuStore** не подключён.
 - Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, max **3**); product target в catalog — **3** изображения.
 - Использует ту же auth-логику: Bearer token или development fallback `TEST_USER_ID`; перед обработкой — profile auto-sync.
 - Валидирует формат файла: **JPEG / PNG / WebP**, максимум **10 MB**.
@@ -204,7 +204,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 | Область | Требование | Статус |
 |---------|------------|--------|
-| **Качество генераций** | Красивые, аккуратные результаты; без кривых лиц, искажений, лишних людей, коллажей | план (backend prompts) |
+| **Качество генераций** | Красивые, аккуратные результаты; без кривых лиц, искажений, лишних людей, коллажей | ✅ backend instructions (`gemini_quality_instructions.py`) |
 | **Идеи на «Создать»** | Категории + режимы **«Без фото»** / **«С фото»**; кликабельные идеи → поле описания | ✅ UI |
 | **Время генерации / ожидание** | Блокирующее модальное окно с обратным отсчётом (**«Создать»** ~60 с, **«Фотосессии»** ~120 с), затемнённый фон | ✅ |
 | **Стартовый баланс** | Динамический баннер на **«Создать»** (`_CreateBalanceInfoCard`) из `GET /balance` | ✅ |
@@ -216,17 +216,14 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 Подробнее: [app_design_strategy.md](app_design_strategy.md), [roadmap.md](roadmap.md).
 
-### Качество генераций (план backend)
+### Качество генераций (backend, реализовано)
 
-- Результаты должны выглядеть **красиво и аккуратно**; избегать: кривые лица, странные искажения, лишние люди, коллажи, низкое качество.
-- **Позже улучшить backend prompts** (не в видимом UI) для **`POST /generate`** и фото-сценариев. Целевые ограничения в instruction:
-  - realistic high-quality image
-  - natural face
-  - no distorted face
-  - no extra faces
-  - no collage / grid
-  - **one final image**, если явно не требуется фотосессия из нескольких файлов
-- **Фотосессии:** уже зафиксировано — **каждый результат = отдельная фотография**, не коллаж (см. § `POST /photoshoots/generate`).
+- Модуль **`app/services/gemini_quality_instructions.py`** оборачивает пользовательское описание **instruction** для Gemini (не в UI).
+- **Обычная генерация:** одно законченное изображение; без коллажа, сетки, contact sheet и нескольких вариантов на одном холсте; реалистичные пропорции; аккуратные лица; нормальные руки/пальцы; естественный свет; без текста на кадре, если пользователь явно не просил.
+- **С фото:** сохранение узнаваемости человека/объекта; без искажения лица; фон/стиль/атмосфера меняются по запросу, без ломки объекта.
+- **Фотосессии:** **3 отдельных** последовательных вызова Gemini (по одному кадру); единый стиль по `style_title`; не triptych на одном холсте.
+- **Безопасность:** при **502** (Gemini не вернул изображение) или ошибке Storage — **баланс не списывается**, запись в **`generations`** не создаётся.
+- **Mock mode** без изменений.
 
 ### Ожидание генерации (модальное окно, реализовано)
 

@@ -13,6 +13,7 @@ from google import genai
 from google.genai import types
 
 from app.config import settings
+from app.services.gemini_quality_instructions import build_photoshoot_frame_instruction
 from app.services.image_service import (
     _blob_to_data_url,
     _extract_gemini_error_status,
@@ -27,39 +28,17 @@ logger = logging.getLogger(__name__)
 
 _MAX_PHOTOSHOOT_DIAGNOSTIC_TEXT_LEN = 200
 
-_STANDALONE_PHOTO_RULES = (
-    "Generate exactly ONE standalone final photo. "
-    "The output must contain only one scene and one final image. "
-    "Do not create a collage, contact sheet, storyboard, grid, split-screen, "
-    "before/after comparison, or multiple panels. "
-    "Do not place multiple versions of the person in the same image. "
-    "Do not show multiple photos inside one image. "
-    "Return a single realistic portrait/photo only."
-)
-
-
 def _build_photoshoot_instruction(
     style: PhotoshootStyle,
     *,
     variation_index: int = 1,
     variation_total: int = 1,
 ) -> str:
-    variation_note = ""
-    if variation_total > 1:
-        variation_note = (
-            f"\nThis is variation {variation_index} of {variation_total} separate generation calls. "
-            "Generate only this one standalone photo; other variations are produced in separate calls. "
-            "Do not combine multiple variations into one image."
-        )
-    return (
-        f"{style.instruction}\n\n"
-        "Use the uploaded user photo as identity/reference. "
-        "Preserve the person's identity, face structure, age, and key facial features. "
-        "Apply the selected style to a single realistic portrait/photo. "
-        "Improve lighting, background, color, and composition. "
-        f"{_STANDALONE_PHOTO_RULES}"
-        f"{variation_note}\n\n"
-        "Do not create NSFW content. Return an image only."
+    return build_photoshoot_frame_instruction(
+        style.instruction,
+        style.title,
+        variation_index=variation_index,
+        variation_total=variation_total,
     )
 
 

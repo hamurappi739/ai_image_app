@@ -58,6 +58,7 @@
 | **Photoshoot result added to Gallery** | ✅ | Успешные `image_urls` → локальная Галерея, описание «Фотосессия: …» |
 | **Manual Flutter photoshoot-to-gallery test passed** | ✅ | Flutter UI + `ENABLE_PHOTOSHOOT_GENERATION=true`; после теста **`false`** |
 | **Controlled 3-output photoshoot test** | ✅ | `PHOTOSHOOT_OUTPUT_COUNT=3` через Flutter UI; 1 photo → 3 images |
+| **Gemini quality instructions** | ✅ | `gemini_quality_instructions.py`: `/generate`, `/generate-with-photo`, `/photoshoots/generate`; anti-collage/grid; identity preservation; mock unchanged |
 | **Storage upload for 3 photoshoot results** | ✅ | 3 файла в bucket `generated-images` (`photoshoots/…`) |
 | **History save for 3 photoshoot results** | ✅ | 3 записи в `generations`; `GET /generations` возвращает все три |
 | **Backend photoshoot grouping id (`photoshoot_id`)** | ✅ | Nullable column + index; все результаты одной фотосессии — один `photoshoot_id`; обычные генерации — `null` |
@@ -121,7 +122,7 @@
 - **Пакеты:** demo-ready UI — hero **«Ваш баланс»** (изображения / фотосессии / бесплатные), переключатель **«С фотосессиями»** / **«Только изображения»** с пояснением, карточки **199 / 499 / 999 ₽** (**«Популярно»** на 499), **«Своя сумма»** (мин. **10 ₽**), кнопки **«Выбрать пакет»** / **«Пополнить баланс»** → диалог **«Оплата скоро появится»**; **RuStore / реальная оплата — не подключены**
 - **Профиль:** вход / регистрация / выход (при Supabase dart-define)
 
-**UX (следующие задачи):** **prompts (качество)**, **RuStore** после покупки — см. [app_design_strategy.md](app_design_strategy.md) и § **«Ближайший порядок работ»** ниже.
+**UX (следующие задачи):** **RuStore** после покупки — см. [app_design_strategy.md](app_design_strategy.md) и § **«Ближайший порядок работ»** ниже.
 
 ---
 
@@ -147,7 +148,7 @@
 | 4 | **Generation progress modal** + обратный отсчёт (**Создать** ~60 с, **Фотосессии** ~120 с) | ✅ |
 | 5 | **Backend endpoint: photo + description** (одно изображение) | ✅ |
 | 6 | **Connect Create photo mode to backend** | ✅ |
-| 7 | **Backend prompts — качество** (лица, без коллажа, one image) | план |
+| 7 | **Backend prompts — качество** (лица, без коллажа, one image) | ✅ |
 | 8 | **Backend balance model** — `GET /balance`, profile fields | ✅ |
 | 9 | **Flutter balance display** — `GET /balance` в Профиль / Пакеты / Создать | ✅ |
 | 10 | **Spending rules** — списание `paid_image_generations` / `paid_photoshoots`; `balance` в response | ✅ |
@@ -162,7 +163,7 @@
 | **402 UI — insufficient balance** | ✅ | Модалки «Изображения/Фотосессии закончились» + переход в **Пакеты**; предупреждения до генерации |
 | **Backend photo + description generation endpoint** | ✅ |
 | **Connect Create photo input to backend** | ✅ |
-| **Improve prompts for face quality** | план |
+| **Improve prompts for face quality** | ✅ | `gemini_quality_instructions.py` |
 | **Replace placeholder/gradient examples with curated visuals** | план |
 | **Gallery selective hide/delete** | ✅ (hide) | **«Скрыть из Галереи»** — локально на устройстве; backend/Storage не трогаются; удаление на сервере — план |
 | **Gallery 2.0 viewer** | ✅ | Просмотр изображения/фотосессии, **Скачать**, локальное скрытие, empty state |
@@ -181,18 +182,15 @@
 
 **Позже в UI:** краткий остаток на **«Создать»** и **«Фотосессии»** перед кнопкой генерации.
 
-### Качество генераций (backend prompts, план)
+### Качество генераций (backend instructions, реализовано)
 
-Улучшить instruction для **`POST /generate`** и фото-сценариев (не показывать пользователю как «промпт»):
+Модуль **`app/services/gemini_quality_instructions.py`** — общие правила для Gemini (не показываются пользователю):
 
-- realistic high-quality image
-- natural face
-- no distorted face
-- no extra faces
-- no collage / grid
-- **one final image**, если не запрошена фотосессия из нескольких результатов
+- **`POST /generate`:** одно цельное изображение по описанию; без коллажа/сетки; аккуратные лица и анатомия; без текста на кадре, если пользователь не просил.
+- **`POST /generate-with-photo`:** входное фото как основа; сохранение узнаваемости; изменение фона/стиля без ломки объекта; одно изображение.
+- **`POST /photoshoots/generate`:** **3 последовательных** вызова — по одному полноценному кадру; единый визуальный стиль; не triptych на одном холсте.
 
-**Фотосессии:** каждый output — **отдельная фотография** (уже в product/backend; усилить при доработке prompts).
+**Mock mode** не изменён. При ошибке Gemini (**502**) или Storage — **баланс не списывается**.
 
 ### «Создать» — идеи и подсказки (реализовано во Flutter)
 

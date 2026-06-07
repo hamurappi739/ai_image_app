@@ -7,6 +7,7 @@ from google import genai
 from google.genai import types
 
 from app.config import settings
+from app.services.gemini_quality_instructions import build_text_to_image_instruction
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +38,12 @@ class GeminiImageProvider:
                 detail="GEMINI_API_KEY is not configured",
             )
 
+        instruction = build_text_to_image_instruction(prompt)
         try:
             client = genai.Client(api_key=api_key.strip())
             response = client.models.generate_content(
                 model=settings.gemini_model,
-                contents=[prompt],
+                contents=[instruction],
                 config=types.GenerateContentConfig(
                     response_modalities=["Image"],
                 ),

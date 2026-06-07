@@ -8,7 +8,7 @@
 
 **Generation UX (Фотосессии):** blocking progress dialog (~120 s) when a real backend request runs; *«Почти готово, ждём результат...»* if the timer ends first.
 
-**Ближайшее (руководство):** backend **generation quality** prompts → **RuStore** + real purchase top-up ([roadmap.md](docs/roadmap.md)). Balance debit flow **manually checked** for regular images, **photo generation**, and mock photoshoots.
+**Ближайшее (руководство):** **RuStore** + real purchase top-up ([roadmap.md](docs/roadmap.md)). Backend **generation quality** instructions для Gemini **реализованы** (`gemini_quality_instructions.py`). Balance debit flow **manually checked** for regular images, **photo generation**, and mock photoshoots.
 
 **Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход) с loading states для auth-действий. Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. Backend автоматически создаёт профиль пользователя при первом **`/generate`** или **`/generations`** (profile auto-sync). **Без** Flutter Supabase config приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
@@ -38,7 +38,7 @@
 - **Русский ввод** на вкладке **Создать**; **mock-фотосессия** на Android emulator (debug, тестовое фото)
 - Backend: **Gemini → Storage → Галерея** проверен вручную; по умолчанию **`IMAGE_PROVIDER=mock`**
 - Backend: **Gemini photoshoot** + Flutter **Gallery grouping** + **`generations`** / **`photoshoot_id`**; по умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**
-- Backend: безопасная обработка **Supabase timeouts** (`503`)
+- Backend: **Gemini quality instructions** (`gemini_quality_instructions.py`) — anti-collage/grid, identity preservation, 3 separate photoshoot frames; **mock unchanged**
 
 ---
 

@@ -45,6 +45,8 @@ copy .env.example .env
 
 Публичная точка входа: `generate_image(prompt)`.
 
+При **`IMAGE_PROVIDER=gemini`** пользовательское описание оборачивается quality-**instruction** из **`app/services/gemini_quality_instructions.py`** (одно изображение, без коллажа/сетки, аккуратная анатомия). В response поле **`prompt`** остаётся **исходным** текстом пользователя. **Mock** instruction не использует.
+
 #### Включить Gemini
 
 В `backend/.env` (не коммитить; шаблон — `.env.example`):

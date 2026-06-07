@@ -89,18 +89,18 @@
 - коллажей, сеток, contact sheet
 - низкого или «странного» качества
 
-**Backend (план):** усилить **instruction** для Gemini (не показывать пользователю как «промпт»):
+**Backend (реализовано):** модуль **`gemini_quality_instructions.py`** — усиленные **instruction** для Gemini (не показываются пользователю):
 
-| Требование | Обычная генерация | Фотосессия |
-|------------|-------------------|------------|
-| realistic high-quality image | ✅ | ✅ |
-| natural face | ✅ | ✅ |
-| no distorted face | ✅ | ✅ |
-| no extra faces | ✅ | ✅ |
-| no collage / grid | ✅ | ✅ (уже в product) |
-| one final image | ✅ по умолчанию | ❌ — **3 отдельных** файла, каждый = одна фото |
+| Требование | Обычная генерация | С фото | Фотосессия |
+|------------|-------------------|--------|------------|
+| realistic high-quality image | ✅ | ✅ | ✅ |
+| natural face / no distorted face | ✅ | ✅ | ✅ |
+| no extra faces / hands / fingers | ✅ | ✅ | ✅ |
+| no collage / grid / contact sheet | ✅ | ✅ | ✅ |
+| preserve identity from uploaded photo | — | ✅ | ✅ |
+| one final image per call | ✅ | ✅ | ✅ (3 вызова → 3 файла) |
 
-**Фотосессии:** каждый результат — **отдельная standalone-фотография**, не коллаж (реализовано в backend product rules; при доработке prompts — сохранить).
+**Фотосессии:** каждый результат — **отдельная standalone-фотография**, не коллаж; **3 последовательных** Gemini-вызова под одним **`photoshoot_id`**. **Mock mode** без изменений.
 
 ---
 

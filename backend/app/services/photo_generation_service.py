@@ -10,6 +10,7 @@ from google import genai
 from google.genai import types
 
 from app.config import settings
+from app.services.gemini_quality_instructions import build_photo_edit_instruction
 from app.services.image_service import (
     _extract_gemini_error_status,
     _extract_gemini_safe_message,
@@ -17,26 +18,6 @@ from app.services.image_service import (
 )
 
 logger = logging.getLogger(__name__)
-
-_PHOTO_GENERATION_RULES = (
-    "Generate exactly ONE standalone final image based on the uploaded photo "
-    "and the user description. "
-    "Do not create a collage, grid, contact sheet, storyboard, split-screen, "
-    "before/after comparison, or multiple variants in one image. "
-    "Do not place multiple versions of the subject in the same image. "
-    "Preserve the recognizable identity of the person or object from the uploaded photo. "
-    "Improve quality, lighting, color, and realism with natural proportions. "
-    "Avoid extra fingers, extra hands, distorted faces, or extra faces. "
-    "Return a single high-quality realistic image only."
-)
-
-
-def _build_photo_generation_instruction(description: str) -> str:
-    return (
-        f"User description: {description.strip()}\n\n"
-        f"{_PHOTO_GENERATION_RULES}\n\n"
-        "Do not create NSFW content. Return an image only."
-    )
 
 
 def _photo_gemini_error_detail(exc: Exception) -> str:
@@ -77,7 +58,7 @@ class GeminiPhotoGenerationProvider:
                 detail="GEMINI_API_KEY is not configured",
             )
 
-        instruction = _build_photo_generation_instruction(description)
+        instruction = build_photo_edit_instruction(description)
         try:
             client = genai.Client(api_key=api_key.strip())
             response = client.models.generate_content(
