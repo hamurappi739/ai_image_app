@@ -104,6 +104,7 @@
 | **Photoshoots demo-ready catalog UI** | ✅ | Intro + баланс, карточки с описаниями/бейджами, модалка «Создать фотосессию» |
 | **Packs demo-ready UI** | ✅ | Hero **«Ваш баланс»**, продуктовые карточки пакетов, **«Своя сумма»**, диалог **«Оплата скоро появится»**; карточки одинаковой высоты |
 | **Photoshoots final polish** | ✅ | **«3 фото»** (не «до 3»), расширенные описания стилей, **«Пример результата»** в модалке |
+| **Photoshoot 3-photo flow** | ✅ | `PHOTOSHOOT_OUTPUT_COUNT` default **3**; response **`photoshoot_id`**; **Галерея** группирует сразу после генерации; списание **1** `paid_photoshoots` |
 | **Manual paid image debit check** | ✅ | `POST /generate` + `/generate-with-photo`: free → paid; `balance` в response |
 | **Manual mock photoshoot debit check** | ✅ | `POST /photoshoots/generate` + mock provider: −1 `paid_photoshoots`, `balance` в response |
 | **Frontend balance refresh after generation** | ✅ | **Профиль** / **Пакеты** / **Создать** обновляются из `balance` в response |

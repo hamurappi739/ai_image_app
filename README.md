@@ -12,7 +12,7 @@
 
 **Статус авторизации:** добавлена **базовая авторизация** через Supabase Auth (вкладка **Профиль**: вход / регистрация / выход) с loading states для auth-действий. Работает при запуске Flutter с **`--dart-define=SUPABASE_URL=...`** и **`SUPABASE_ANON_KEY=...`**; после входа токен уходит в backend через **`ApiService`**. Backend автоматически создаёт профиль пользователя при первом **`/generate`** или **`/generations`** (profile auto-sync). **Без** Flutter Supabase config приложение продолжает работать в **demo-mode** (development fallback `TEST_USER_ID`). Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
-**Фотосессии:** backend + Flutter flow проверен (Storage, **`generations`**, **`photoshoot_id`**, grouped Gallery card). По умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`PHOTOSHOOT_OUTPUT_COUNT=1`** — safe mode после тестов.
+**Фотосессии:** одна фотосессия = **3 фото**; backend возвращает **`image_urls`** (3), **`photoshoot_id`**, списание **1** `paid_photoshoots`; **Галерея** группирует по `photoshoot_id`. По умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`** (safe mode); **`PHOTOSHOOT_OUTPUT_COUNT=3`** по умолчанию в коде.
 
 **Backend / Supabase:** **реальная Gemini-генерация проверена вручную** — Gemini → data URL → Supabase Storage (`generated-images`) → **`public_url`** в response и **Галерея**. **Gemini photoshoot** (uploaded photo + style) также **проверен вручную** → Storage → `image_urls`; по умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**. Приложение работает в **`IMAGE_PROVIDER=mock`** для безопасной разработки без расхода API.
 

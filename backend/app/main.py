@@ -562,7 +562,7 @@ def generate_photoshoot(
                 detail=photoshoot_decision["reason"],
             )
 
-    image_urls = photoshoot_service.generate_photoshoot(
+    photoshoot_result = photoshoot_service.generate_photoshoot(
         user_id=user.id,
         style=style,
         photo_bytes=file_bytes,
@@ -584,7 +584,8 @@ def generate_photoshoot(
     return PhotoshootGenerateResponse(
         style_id=style.id,
         style_title=style.title,
-        image_urls=image_urls,
-        output_count=len(image_urls),
+        image_urls=photoshoot_result.image_urls,
+        output_count=len(photoshoot_result.image_urls),
+        photoshoot_id=photoshoot_result.photoshoot_id,
         balance=balance,
     )

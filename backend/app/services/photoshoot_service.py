@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+from dataclasses import dataclass
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -162,11 +163,17 @@ def _photoshoot_payment_type(style: PhotoshootStyle) -> str:
     return "free" if style.is_free else "paid"
 
 
+@dataclass(frozen=True)
+class PhotoshootGenerateResult:
+    image_urls: list[str]
+    photoshoot_id: str
+
+
 def _save_photoshoot_results_to_history(
     user_id: str,
     style: PhotoshootStyle,
     image_urls: list[str],
-) -> None:
+) -> str:
     prompt = _photoshoot_history_prompt(style)
     payment_type = _photoshoot_payment_type(style)
     photoshoot_id = str(uuid4())
@@ -185,6 +192,7 @@ def _save_photoshoot_results_to_history(
                 status_code=500,
                 detail="Failed to save photoshoot result",
             ) from None
+    return photoshoot_id
 
 
 def _mock_photoshoot_image_url(style: PhotoshootStyle, index: int) -> str:
@@ -302,7 +310,7 @@ class PhotoshootService:
         style: PhotoshootStyle,
         photo_bytes: bytes,
         photo_content_type: str,
-    ) -> list[str]:
+    ) -> PhotoshootGenerateResult:
         provider = self._get_provider()
         if isinstance(provider, MockPhotoshootProvider):
             image_urls = provider.generate(
@@ -316,20 +324,24 @@ class PhotoshootService:
                 photo_bytes=photo_bytes,
                 photo_content_type=photo_content_type,
             )
-            image_urls = [
-                storage_service.upload_generated_image_data_url(
-                    user_id=user_id,
-                    data_url=data_url,
-                    folder="photoshoots",
+            image_urls = []
+            for data_url in data_urls:
+                image_urls.append(
+                    storage_service.upload_generated_image_data_url(
+                        user_id=user_id,
+                        data_url=data_url,
+                        folder="photoshoots",
+                    )
                 )
-                for data_url in data_urls
-            ]
-        _save_photoshoot_results_to_history(
+        photoshoot_id = _save_photoshoot_results_to_history(
             user_id=user_id,
             style=style,
             image_urls=image_urls,
         )
-        return image_urls
+        return PhotoshootGenerateResult(
+            image_urls=image_urls,
+            photoshoot_id=photoshoot_id,
+        )
 
 
 photoshoot_service = PhotoshootService()

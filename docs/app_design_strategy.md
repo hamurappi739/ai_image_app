@@ -311,7 +311,7 @@ Placeholder examples are **temporary** and will be **replaced with curated visua
   - если фото выбрано и стиль **бесплатный**:
     - отправка `multipart/form-data` на `POST /photoshoots/generate`;
     - **генерация выключена** (backend `ENABLE_PHOTOSHOOT_GENERATION=false`, по умолчанию): **«Обработка фото будет добавлена позже»**;
-    - **генерация включена** (`ENABLE_PHOTOSHOOT_GENERATION=true`, controlled test): backend → **`image_urls`** → **Галерея** (после reload — **одна grouped card** по `photoshoot_id`) → SnackBar **«Фотосессия готова»** → вкладка **Галерея**;
+    - **генерация включена** (`ENABLE_PHOTOSHOOT_GENERATION=true`): backend → **`image_urls`** (default **3**) + **`photoshoot_id`** → **Галерея** (**одна grouped card** сразу) → SnackBar **«Фотосессия готова»** → вкладка **Галерея**; списание **1** `paid_photoshoots` только после успеха;
   - если фото выбрано и стиль **платный**: **«Оплата будет добавлена позже»** (backend upload пока не вызывается).
 
 Технический статус **`501`**, HTTP-коды, backend `detail` и пути файлов пользователю **не показываются**.
@@ -346,7 +346,7 @@ Placeholder examples are **temporary** and will be **replaced with curated visua
 |--------|-----------|
 | При старте | `ApiService.fetchGenerations()` → **`GET /generations`** (limit по умолчанию 20) |
 | Состояние | In-memory в `MainShell` (`GeneratedImageItem` + группировка в `GalleryDisplayItem` по `photoshootId`) |
-| Новые за сессию | После **`POST /generate`** или **фотосессии** — элемент(ы) **сразу сверху**; фотосессия с backend **`photoshoot_id`** после reload = **одна карточка-группа** |
+| Новые за сессию | После **`POST /generate`** или **фотосессии** — элемент(ы) **сразу сверху**; фотосессия с **`photoshoot_id`** из response = **одна карточка «Фотосессия · стиль» + «N фото»** |
 | Backend недоступен | Приложение **не падает**; ошибка не показывается SnackBar; в пустой галерее — мягкий текст (без технических деталей) |
 | Debug-записи | В UI **скрываются** ответы с служебным описанием (`debug test prompt`, `debug`, `test prompt` — без учёта регистра); данные в Supabase **не удаляются** |
 | **Очистить** | Кнопка в шапке галереи: сбрасывает **только** in-memory список на **текущем устройстве** / в текущей сессии; **не** удаляет строки в Supabase и **не** вызывает DELETE на backend |

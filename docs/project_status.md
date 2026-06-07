@@ -355,8 +355,8 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **Backend** валидирует **JPEG / PNG / WebP** и размер до **10 MB**; исходное фото на сервере не сохраняется.
 - **Flutter Photoshoots** принимает успешный backend response с **`image_urls`** (`PhotoshootGenerateResponse`).
 - По умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**: после валидации backend возвращает **`501`**; Flutter показывает «Обработка фото будет добавлена позже» (Gemini не вызывается) — **safe mode проверен**.
-- При **`ENABLE_PHOTOSHOOT_GENERATION=true`**: Gemini → **`200`** с `image_urls` (1–3) → modal закрывается → результаты в **Галерею** → SnackBar **«Фотосессия готова»** → переход на вкладку **Галерея**. После перезагрузки истории с backend записи с общим **`photoshoot_id`** отображаются **одной карточкой-группой**.
-- **Controlled 3-output test пройден** через Flutter UI (см. §11); после теста **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`PHOTOSHOOT_OUTPUT_COUNT=1`** (safe mode возвращён).
+- При **`ENABLE_PHOTOSHOOT_GENERATION=true`**: mock или Gemini → **`200`** с **`image_urls`** (default **3**), **`output_count`**, **`photoshoot_id`** → все 3 изображения сразу в **Галерею** одной группой → SnackBar **«Фотосессия готова»**; списание **1** `paid_photoshoots` только после успеха.
+- **`PHOTOSHOOT_OUTPUT_COUNT`:** default **3** (override через env для dev); mock возвращает **3 разные** `placehold.co` ссылки; Gemini — **3 последовательных** вызова, один **`photoshoot_id`**.
 - **402 insufficient_photoshoots:** модалка *«Фотосессии закончились»* + **«Пополнить баланс»** → **Пакеты**; предупреждение на вкладке при `paid_photoshoots=0` и `consumption_enabled`.
 - Платные фотосессии: Flutter пока **не отправляет** фото на backend → **«Оплата будет добавлена позже»**; backend **дополнительно защищён** — платный `style_id` → **`402`** без Gemini/Storage/`generations`, даже при `ENABLE_PHOTOSHOOT_GENERATION=true`.
 - Запись в backend **`generations`** выполняется для **готовых** стилей; **оплата** платных стилей — следующий этап; **backend для «Своей фотосессии»** — см. roadmap.
@@ -364,7 +364,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 ### Галерея
 
 - При старте: **`GET /generations`** (тихо при ошибке backend).
-- **Группировка фотосессий:** записи с одинаковым non-null **`photoshoot_id`** → **одна карточка** с несколькими preview; legacy / обычные записи с **`photoshoot_id=null`** — **отдельные карточки**.
+- **Группировка фотосессий:** записи с одинаковым non-null **`photoshoot_id`** → **одна карточка** «**Фотосессия · &lt;стиль&gt;**» + бейдж **«N фото»** + сетка preview (1/2/3); legacy / обычные записи с **`photoshoot_id=null`** — **отдельные карточки**.
 - Скрывает служебные **debug**-описания в UI.
 - Новые результаты сессии — **сверху** после **Создать** или фотосессии.
 - **«Очистить»** — только локальный список; **Supabase не удаляется**.

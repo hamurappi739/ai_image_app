@@ -15,8 +15,19 @@ class GalleryDisplayItem {
   final String? photoshootId;
 
   bool get isPhotoshootGroup =>
-      photoshootId != null && photoshootId!.isNotEmpty && imageUrls.length > 1;
+      photoshootId != null && photoshootId!.isNotEmpty;
 }
+
+String? galleryPhotoshootStyleTitle(String description) {
+  const prefix = 'Фотосессия: ';
+  if (description.startsWith(prefix)) {
+    final title = description.substring(prefix.length).trim();
+    return title.isEmpty ? null : title;
+  }
+  return null;
+}
+
+String galleryPhotoshootPhotoCountLabel(int count) => '$count фото';
 
 List<GalleryDisplayItem> groupGalleryItems(List<GeneratedImageItem> items) {
   if (items.isEmpty) {

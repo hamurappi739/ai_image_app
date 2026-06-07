@@ -36,6 +36,7 @@ class PhotoshootGenerateResponse(BaseModel):
     style_title: str
     image_urls: list[str]
     output_count: int
+    photoshoot_id: str
     balance: BalanceResponse | None = None
 
 

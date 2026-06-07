@@ -353,7 +353,7 @@
 | **`true`** | **`mock`** | Mock `placehold.co` URLs (1–`PHOTOSHOOT_OUTPUT_COUNT`, разные на каждый output) → **`generations`** → **`200 OK`**; для **безопасной проверки списания** `paid_photoshoots` без Gemini |
 | **`true`** | **`gemini`** | Gemini → Supabase Storage → **`generations`** → **`200 OK`** с Storage `public_url` |
 
-Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **1**, диапазон **1–3**). Для controlled test рекомендуется **`PHOTOSHOOT_OUTPUT_COUNT=1`**. **Product target:** **3 изображения** на фотосессию (catalog `output_count=3`; включить после проверки стоимости).
+Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **3**, диапазон **1–3**). Для controlled dev-теста можно временно **`PHOTOSHOOT_OUTPUT_COUNT=1`**. **Product:** одна фотосессия = **3 изображения** в одном стиле.
 
 При успехе (**`ENABLE_PHOTOSHOOT_GENERATION=true`**) для каждого `image_url` создаётся запись в **`generations`**:
 - `prompt`: **`Фотосессия: <style.title>`** (из catalog)
@@ -389,8 +389,13 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 {
   "style_id": "studio_portrait",
   "style_title": "Студийный портрет",
-  "image_urls": ["https://..."],
-  "output_count": 1,
+  "image_urls": [
+    "https://placehold.co/1024x1024?text=Photoshoot%20studio_portrait%20%231",
+    "https://placehold.co/1024x1024?text=Photoshoot%20studio_portrait%20%232",
+    "https://placehold.co/1024x1024?text=Photoshoot%20studio_portrait%20%233"
+  ],
+  "output_count": 3,
+  "photoshoot_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
   "balance": {
     "free_generations_limit": 3,
     "free_generations_used": 0,
@@ -406,9 +411,10 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 |------|-----|----------|
 | `style_id` | string | Идентификатор стиля из catalog |
 | `style_title` | string | Название стиля из catalog |
-| `image_urls` | string[] | URL результатов: Storage `public_url` при **`IMAGE_PROVIDER=gemini`**; `placehold.co` при **`mock`** |
-| `output_count` | int | Фактическое число сгенерированных изображений (≤ `PHOTOSHOOT_OUTPUT_COUNT`) |
-| `balance` | object \| null | Актуальный баланс после списания; `null` если `ENABLE_CREDIT_CONSUMPTION=false` |
+| `image_urls` | string[] | URL результатов: Storage `public_url` при **`IMAGE_PROVIDER=gemini`**; `placehold.co` при **`mock`** (по одному URL на output) |
+| `output_count` | int | Фактическое число сгенерированных изображений (≤ `PHOTOSHOOT_OUTPUT_COUNT`; product default **3**) |
+| `photoshoot_id` | string (uuid) | Общий id сессии для всех записей в **`generations`** и группировки в **Галерее** |
+| `balance` | object \| null | Актуальный баланс после списания **1** `paid_photoshoots`; `null` если `ENABLE_CREDIT_CONSUMPTION=false` |
 
 ### Ошибки генерации
 
@@ -485,7 +491,7 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 ## 9. Flutter notes
 
 - **Основной рабочий endpoint:** `POST /generate` (вкладка **Создать**).
-- **Фотосессии:** `POST /photoshoots/generate` — `multipart/form-data`; **`ENABLE_PHOTOSHOOT_GENERATION=false`** по умолчанию → **501**; при **`true`** → Gemini + Storage + **`generations`**; test `output_count=1`, product target **3**; без списаний.
+- **Фотосессии:** `POST /photoshoots/generate` — `multipart/form-data`; **`ENABLE_PHOTOSHOOT_GENERATION=false`** по умолчанию → **501**; при **`true`** → **3** результата (по `PHOTOSHOOT_OUTPUT_COUNT`, default **3**) + **`photoshoot_id`** в response; списание **1** `paid_photoshoots` только после успеха (при `ENABLE_CREDIT_CONSUMPTION=true`).
 - **`GET /generations`** — галерея при старте; после auth — тот же endpoint с user id авторизованного пользователя.
 - **`GET /balance`** — остаток бесплатных генераций + платные **изображения** и **фотосессии** (UI без слов credits/tokens/prompt).
 - **Не вызывать** `/debug/*` из release-сборки.

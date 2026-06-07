@@ -112,6 +112,7 @@ class PhotoshootGenerateResponse {
     required this.styleTitle,
     required this.imageUrls,
     required this.outputCount,
+    required this.photoshootId,
     this.balance,
   });
 
@@ -119,6 +120,7 @@ class PhotoshootGenerateResponse {
   final String styleTitle;
   final List<String> imageUrls;
   final int outputCount;
+  final String photoshootId;
   final UserBalance? balance;
 
   factory PhotoshootGenerateResponse.fromJson(Map<String, dynamic> json) {
@@ -129,6 +131,7 @@ class PhotoshootGenerateResponse {
       styleTitle: json['style_title'] as String,
       imageUrls: rawUrls.map((url) => url as String).toList(),
       outputCount: json['output_count'] as int? ?? rawUrls.length,
+      photoshootId: json['photoshoot_id'] as String? ?? '',
       balance: rawBalance is Map<String, dynamic>
           ? UserBalance.fromJson(rawBalance)
           : null,

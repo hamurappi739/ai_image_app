@@ -7,6 +7,7 @@ _BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 _PHOTOSHOOT_OUTPUT_COUNT_MIN = 1
 _PHOTOSHOOT_OUTPUT_COUNT_MAX = 3
+_PHOTOSHOOT_OUTPUT_COUNT_DEFAULT = 3
 
 
 class Settings(BaseSettings):
@@ -29,7 +30,7 @@ class Settings(BaseSettings):
     test_user_id: str | None = None
     enable_credit_consumption: bool = False
     enable_photoshoot_generation: bool = False
-    photoshoot_output_count: int = 1
+    photoshoot_output_count: int = _PHOTOSHOOT_OUTPUT_COUNT_DEFAULT
 
     @field_validator("photoshoot_output_count", mode="before")
     @classmethod
@@ -37,7 +38,7 @@ class Settings(BaseSettings):
         try:
             parsed = int(value)  # type: ignore[arg-type]
         except (TypeError, ValueError):
-            return _PHOTOSHOOT_OUTPUT_COUNT_MIN
+            return _PHOTOSHOOT_OUTPUT_COUNT_DEFAULT
         return max(
             _PHOTOSHOOT_OUTPUT_COUNT_MIN,
             min(_PHOTOSHOOT_OUTPUT_COUNT_MAX, parsed),

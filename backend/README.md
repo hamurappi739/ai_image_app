@@ -28,7 +28,7 @@ copy .env.example .env
 | `TEST_USER_ID` | UUID тестового пользователя (только development) |
 | `ENABLE_CREDIT_CONSUMPTION` | Включить проверку и списание кредитов в `POST /generate` (по умолчанию `false`) |
 | `ENABLE_PHOTOSHOOT_GENERATION` | Включить реальную Gemini-генерацию в `POST /photoshoots/generate` (по умолчанию **`false`**) |
-| `PHOTOSHOOT_OUTPUT_COUNT` | Сколько изображений генерировать за одну фотосессию (**1–3**, по умолчанию **1** для безопасных dev-тестов; product target — **3**) |
+| `PHOTOSHOOT_OUTPUT_COUNT` | Сколько изображений генерировать за одну фотосессию (**1–3**, по умолчанию **3**; для dev можно временно **1**) |
 
 ### IMAGE_PROVIDER
 
@@ -97,8 +97,8 @@ GEMINI_MODEL=gemini-2.5-flash-image
 
 ### PHOTOSHOOT_OUTPUT_COUNT
 
-- **`PHOTOSHOOT_OUTPUT_COUNT=1`** (по умолчанию) — безопасный режим для controlled dev-тестов фотосессии (меньше Gemini-запросов).
-- **`PHOTOSHOOT_OUTPUT_COUNT=3`** — product target: три результата на фотосессию (как в UI и catalog `output_count`).
+- **`PHOTOSHOOT_OUTPUT_COUNT=3`** (по умолчанию) — product: три результата на фотосессию (как в UI).
+- **`PHOTOSHOOT_OUTPUT_COUNT=1`** — временный override для controlled dev-тестов (меньше Gemini-запросов).
 - Значение **ограничено 1–3**; меньше 1 → **1**, больше 3 → **3**.
 - Используется **`GeminiPhotoshootProvider`** при **`ENABLE_PHOTOSHOOT_GENERATION=true`**.
 - Проверка: `GET /debug/config` → `"photoshoot_output_count": 1`

@@ -2846,12 +2846,14 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
       }
       final description = 'Фотосессия: ${result.styleTitle}';
       final createdAt = DateTime.now();
+      final photoshootId = result.photoshootId.trim();
       final galleryItems = result.imageUrls
           .map(
             (url) => GeneratedImageItem(
               description: description,
               imageUrl: url,
               createdAt: createdAt,
+              photoshootId: photoshootId.isEmpty ? null : photoshootId,
             ),
           )
           .toList();
@@ -3772,6 +3774,13 @@ class _GalleryImageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isPhotoshoot = item.isPhotoshootGroup;
+    final styleTitle = galleryPhotoshootStyleTitle(item.description);
+    final photoshootTitle = styleTitle != null
+        ? 'Фотосессия · $styleTitle'
+        : 'Фотосессия';
+    final photoCountLabel =
+        galleryPhotoshootPhotoCountLabel(item.imageUrls.length);
     final imageCountLabel = galleryImageCountLabel(item.imageUrls.length);
 
     return Container(
@@ -3798,34 +3807,66 @@ class _GalleryImageCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Создано по описанию:',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: 12,
-                    color: AiImageGeneratorApp.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.description,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AiImageGeneratorApp.textPrimary,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (imageCountLabel.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                if (isPhotoshoot) ...[
                   Text(
-                    imageCountLabel,
+                    photoshootTitle,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AiImageGeneratorApp.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F2FF),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      photoCountLabel,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF5B6CFF),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  Text(
+                    'Создано по описанию:',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: 12,
                       color: AiImageGeneratorApp.textSecondary,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.description,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AiImageGeneratorApp.textPrimary,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (imageCountLabel.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      imageCountLabel,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 12,
+                        color: AiImageGeneratorApp.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ],
                 const SizedBox(height: 6),
                 Text(
