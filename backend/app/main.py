@@ -18,6 +18,9 @@ from app.schemas import (
     GenerationItem,
     GenerationsListResponse,
     PhotoshootGenerateResponse,
+    RuStoreMockVerifyRequest,
+    RuStoreMockVerifyResponse,
+    PaymentAddedBalance,
 )
 from app.services.balance_service import (
     add_paid_balance,
@@ -31,6 +34,7 @@ from app.services.credits_service import (
     consume_generation,
     determine_generation_payment,
 )
+from app.services.payment_service import mock_verify_rustore_purchase
 from app.services.photo_generation_service import photo_generation_service
 from app.services.photoshoot_styles import get_photoshoot_style
 from app.services.photoshoot_service import photoshoot_service
@@ -48,6 +52,12 @@ app = FastAPI(title="AI Image Generator API")
 
 def _require_development_for_debug() -> None:
     """404 unless ENVIRONMENT is ``development`` (case-insensitive)."""
+    if settings.environment.strip().lower() != "development":
+        raise HTTPException(status_code=404)
+
+
+def _require_development_for_payment_mock() -> None:
+    """404 unless ENVIRONMENT is ``development`` (mock RuStore verify only)."""
     if settings.environment.strip().lower() != "development":
         raise HTTPException(status_code=404)
 
@@ -394,6 +404,30 @@ def debug_add_balance(
         updated_profile,
         settings.free_generations_limit,
         consumption_enabled=settings.enable_credit_consumption,
+    )
+
+
+@app.post("/payments/rustore/mock-verify", response_model=RuStoreMockVerifyResponse)
+def rustore_mock_verify_purchase(
+    body: RuStoreMockVerifyRequest,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Development-only mock RuStore purchase verification (no real RuStore API)."""
+    _require_development_for_payment_mock()
+    result = mock_verify_rustore_purchase(
+        user_id=user.id,
+        email=user.email,
+        package_id=body.package_id,
+        provider_payment_id=body.provider_payment_id,
+    )
+    return RuStoreMockVerifyResponse(
+        status=result.status,
+        package_id=result.package_id,
+        added=PaymentAddedBalance(
+            paid_image_generations=result.added_paid_image_generations,
+            paid_photoshoots=result.added_paid_photoshoots,
+        ),
+        balance=result.balance,
     )
 
 

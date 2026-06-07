@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -88,6 +89,23 @@ class DebugStorageImagePersistResponse(BaseModel):
     path: str
     public_url: str
     persisted: bool
+
+
+class RuStoreMockVerifyRequest(BaseModel):
+    package_id: str
+    provider_payment_id: str
+
+
+class PaymentAddedBalance(BaseModel):
+    paid_image_generations: int
+    paid_photoshoots: int
+
+
+class RuStoreMockVerifyResponse(BaseModel):
+    status: Literal["verified", "already_processed"]
+    package_id: str
+    added: PaymentAddedBalance
+    balance: BalanceResponse
 
 
 class DebugConfigResponse(BaseModel):

@@ -240,3 +240,80 @@ def insert_credit_transaction(data: dict) -> dict:
     url = f"{base_url}/rest/v1/credit_transactions"
     response = _supabase_post(url, json=data)
     return _parse_supabase_response(response, "Failed to insert credit transaction")
+
+
+class DuplicatePaymentTransactionError(Exception):
+    """Raised when (provider, provider_payment_id) already exists."""
+
+
+class PaymentTransactionsTableMissingError(Exception):
+    """Raised when ``payment_transactions`` table is not available in Supabase."""
+
+
+_PAYMENT_TRANSACTIONS_TABLE_MISSING_DETAIL = (
+    "payment_transactions table is missing. "
+    "Apply migration 004_create_payment_transactions.sql"
+)
+
+
+def _is_payment_transactions_table_missing(response: httpx.Response) -> bool:
+    """Detect PostgREST/Postgres errors when ``payment_transactions`` does not exist."""
+    if response.status_code not in (400, 404, 406, 500):
+        return False
+
+    haystack = response.text.lower()
+    if "payment_transactions" not in haystack:
+        return False
+
+    markers = (
+        "does not exist",
+        "schema cache",
+        "pgrst205",
+        "42p01",
+        "could not find the table",
+        "relation",
+    )
+    return any(marker in haystack for marker in markers)
+
+
+def _raise_if_payment_transactions_table_missing(response: httpx.Response) -> None:
+    if _is_payment_transactions_table_missing(response):
+        raise PaymentTransactionsTableMissingError(
+            _PAYMENT_TRANSACTIONS_TABLE_MISSING_DETAIL
+        )
+
+
+def get_payment_transaction_by_provider(
+    provider: str,
+    provider_payment_id: str,
+) -> dict | None:
+    base_url = _require_supabase_config()
+    url = (
+        f"{base_url}/rest/v1/payment_transactions"
+        f"?provider=eq.{quote(provider, safe='')}"
+        f"&provider_payment_id=eq.{quote(provider_payment_id, safe='')}"
+        "&select=id,user_id,provider,provider_payment_id,package_id,status,"
+        "amount_rub,paid_image_generations,paid_photoshoots,created_at"
+        "&limit=1"
+    )
+    response = _supabase_get(url)
+    if response.status_code in (200, 206):
+        rows = response.json()
+        if not isinstance(rows, list) or not rows:
+            return None
+        return rows[0]
+
+    _raise_if_payment_transactions_table_missing(response)
+    raise RuntimeError("Failed to fetch payment transaction")
+
+
+def insert_payment_transaction(data: dict) -> dict:
+    base_url = _require_supabase_config()
+    url = f"{base_url}/rest/v1/payment_transactions"
+    response = _supabase_post(url, json=data)
+    if response.status_code == 409:
+        raise DuplicatePaymentTransactionError()
+    if response.status_code in _SUCCESS_STATUSES:
+        return _parse_supabase_response(response, "Failed to insert payment transaction")
+    _raise_if_payment_transactions_table_missing(response)
+    raise RuntimeError("Failed to insert payment transaction")
