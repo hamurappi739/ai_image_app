@@ -14,7 +14,8 @@
 |---------|------------|
 | `profiles` | Профиль пользователя и баланс (free used + paid images + paid photoshoots; legacy `paid_credits`) |
 | `generations` | История генераций изображений |
-| `credit_transactions` | Аудит начислений и списаний кредитов |
+| `credit_transactions` | Аудит начислений и списаний кредитов (legacy path) |
+| `payment_transactions` | Верифицированные покупки пакетов; идемпотентность по `(provider, provider_payment_id)` |
 
 ---
 
@@ -160,6 +161,62 @@ create table credit_transactions (
 
 ---
 
+## 4. `payment_transactions`
+
+**Назначение:** журнал **верифицированных** покупок пакетов (RuStore и др.); защита от повторного начисления баланса при повторной доставке одного и того же `provider_payment_id`.
+
+**Миграция:** `backend/migrations/004_create_payment_transactions.sql`
+
+### Поля
+
+| Поле | Тип | Ограничения | Описание |
+|------|-----|-------------|----------|
+| `id` | `uuid` | PRIMARY KEY, DEFAULT `gen_random_uuid()` | ID записи |
+| `user_id` | `uuid` | NOT NULL, FK → `profiles(id)` ON DELETE CASCADE | Покупатель |
+| `provider` | `text` | NOT NULL | Провайдер оплаты (например `rustore`) |
+| `provider_payment_id` | `text` | NOT NULL | Уникальный ID покупки у провайдера |
+| `package_id` | `text` | NOT NULL | ID пакета из backend catalog |
+| `amount_rub` | `integer` | NOT NULL, > 0 | Сумма в рублях (из catalog) |
+| `paid_image_generations` | `integer` | NOT NULL, DEFAULT `0`, ≥ 0 | Начислено изображений |
+| `paid_photoshoots` | `integer` | NOT NULL, DEFAULT `0`, ≥ 0 | Начислено фотосессий |
+| `status` | `text` | NOT NULL, DEFAULT `'verified'` | `pending`, `verified`, `rejected`, `already_processed` |
+| `raw_payload` | `jsonb` | NULL | Сырой ответ провайдера / mock metadata |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT `now()` | Время записи |
+
+### Ограничения и индексы
+
+- **UNIQUE** `(provider, provider_payment_id)` — одна покупка не может начислить баланс дважды.
+- **CHECK** `status IN ('pending', 'verified', 'rejected', 'already_processed')`.
+- **Индексы:** `user_id`, `provider_payment_id`, `created_at DESC`.
+
+### Пояснения
+
+- Суммы пакета (**изображения / фотосессии / ₽**) берутся **только** из backend **`package_catalog`**, не из frontend.
+- После успешной verification backend обновляет **`profiles.paid_image_generations`** и **`profiles.paid_photoshoots`**.
+- Development mock: **`POST /payments/rustore/mock-verify`** (без реального RuStore API).
+
+### Пример SQL (фрагмент)
+
+```sql
+create table public.payment_transactions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  provider text not null,
+  provider_payment_id text not null,
+  package_id text not null,
+  amount_rub integer not null,
+  paid_image_generations integer not null default 0,
+  paid_photoshoots integer not null default 0,
+  status text not null default 'verified',
+  raw_payload jsonb null,
+  created_at timestamptz not null default now(),
+  constraint payment_transactions_provider_payment_unique
+    unique (provider, provider_payment_id)
+);
+```
+
+---
+
 ## Business logic
 
 Лимит **`FREE_GENERATIONS_LIMIT`** читается на **FastAPI** из env (MVP: `3`), не хранится в БД.
@@ -190,10 +247,14 @@ create table credit_transactions (
 - вставка в **`generations`** (`prompt`, `image_url`, `payment_type`);
 - обновление **`profiles.updated_at`**.
 
-Покупка пакета (RuStore, позже):
+Покупка пакета (реализовано — backend foundation, mock verify):
 
-- `paid_credits += N`;
-- `credit_transactions`: `amount = +N`, `transaction_type = purchase`, `source = rustore`, `external_payment_id = …`.
+1. Server-side verification (mock или будущий RuStore API).
+2. Insert в **`payment_transactions`** (unique `provider` + `provider_payment_id`).
+3. `profiles.paid_image_generations += N`, `profiles.paid_photoshoots += M` (из catalog).
+4. Response с актуальным **`balance`**.
+
+Legacy path через **`paid_credits`** / **`credit_transactions`** сохранён для старого consume flow.
 
 ---
 
@@ -204,11 +265,11 @@ auth.users (Supabase)
        │
        │ 1:1
        ▼
-   profiles ─────┬──────────────┐
-       │          │              │
-       │ 1:N      │ 1:N          │
-       ▼          ▼              │
- generations   credit_transactions
+   profiles ─────┬──────────────┬──────────────┐
+       │          │              │              │
+       │ 1:N      │ 1:N          │ 1:N          │
+       ▼          ▼              ▼              │
+ generations   credit_transactions   payment_transactions
 ```
 
 ---

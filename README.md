@@ -2,13 +2,13 @@
 
 **Flutter + FastAPI** приложение для AI-генерации изображений.
 
-Сейчас проект в **MVP / demo-mode**: committed `.env` — **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`ENABLE_CREDIT_CONSUMPTION=false`**. **Проверены оба режима:** **mock mode** (ежедневная разработка) и **реальный Gemini в safe mode** (`IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false`) — все три flow (`/generate`, `/generate-with-photo`, `/photoshoots/generate`) работают, результаты в **Галерее**, баланс не списывается. **Списание баланса** (mock) **проверено вручную** при временном `ENABLE_CREDIT_CONSUMPTION=true`. **Оплата / RuStore не подключены.** Подробнее: [project_status.md](docs/project_status.md).
+Сейчас проект в **MVP / demo-mode**: committed `.env` — **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`ENABLE_CREDIT_CONSUMPTION=false`**. **Проверены оба режима:** **mock mode** (ежедневная разработка) и **реальный Gemini в safe mode** (`IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false`) — все три flow (`/generate`, `/generate-with-photo`, `/photoshoots/generate`) работают, результаты в **Галерее**, баланс не списывается. **Списание баланса** (mock) **проверено вручную** при временном `ENABLE_CREDIT_CONSUMPTION=true`. **Оплата:** реальный **RuStore не подключён**; есть **backend foundation** для verified top-up (`payment_transactions`, package catalog, **`POST /payments/rustore/mock-verify`** в development — проверен вручную). Подробнее: [project_status.md](docs/project_status.md).
 
 **Create tab:** free-generation notice, **categorized clickable ideas** (modes **«Без фото»** / **«С фото»**), mode-specific guidance in **«Как получить хороший результат»**, and a **generation countdown modal** (~60 s, dimmed background). **With photo:** **`POST /generate-with-photo`** (multipart); **without photo:** **`POST /generate`** (JSON). Balance debited **only after successful generation**; mock mode works without Gemini.
 
 **Generation UX (Фотосессии):** blocking progress dialog (~120 s) when a real backend request runs; *«Почти готово, ждём результат...»* if the timer ends first.
 
-**Ближайшее (руководство):** **RuStore** + real purchase top-up ([roadmap.md](docs/roadmap.md)). Backend **generation quality** instructions для Gemini **реализованы** (`gemini_quality_instructions.py`). Balance debit flow **manually checked** for regular images, **photo generation**, and mock photoshoots.
+**Ближайшее (руководство):** реальный **RuStore SDK** + frontend purchase flow ([roadmap.md](docs/roadmap.md)). Backend **payment foundation** (mock-verify) **готов**; **generation quality** instructions для Gemini **реализованы**. Balance **debit** и **mock top-up** проверены вручную.
 
 **Статус авторизации:** Supabase Auth во вкладке **Профиль** (вход / регистрация / выход). Bearer token передаётся в **`/balance`**, **`/generations`**, **`/generate`**, **`/generate-with-photo`**, **`/photoshoots/generate`**. После выхода Галерея и баланс в UI очищаются; данные разных пользователей не смешиваются. В **production** без `Authorization` backend возвращает **`401`**. Dev fallback **`TEST_USER_ID`** — только `ENVIRONMENT=development` без токена. **RuStore** не подключён. Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
@@ -38,7 +38,8 @@
 - **Русский ввод** на вкладке **Создать**; **mock-фотосессия** на Android emulator (debug, тестовое фото)
 - Backend: **mock mode** и **Gemini safe mode** — все три generation flow **проверены вручную**; результаты в **Галерее**
 - Backend: **Gemini photoshoot** (3 кадра) + Flutter **Gallery grouping** + **`photoshoot_id`**; по умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**
-- **Оплата / RuStore** — **не подключены** (UI пакетов — placeholder)
+- Backend: **payment foundation** — `payment_transactions`, package catalog, dev **`POST /payments/rustore/mock-verify`** (idempotent top-up)
+- **Реальный RuStore / frontend оплата** — **не подключены** (UI пакетов — placeholder)
 - Backend: **Gemini quality instructions** (`gemini_quality_instructions.py`) — anti-collage/grid, identity preservation, 3 separate photoshoot frames; **mock unchanged**
 
 ---

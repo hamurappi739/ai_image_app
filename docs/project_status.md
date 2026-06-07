@@ -320,7 +320,17 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **Фотосессии (Android emulator, debug):** автоматическое **тестовое фото** (`MockPhotoshootPhoto`) — без галереи устройства; progress dialog с затемнённым фоном.
 - **Замечание:** один раз зафиксирован временный **Supabase timeout** (`503`); повторный запрос прошёл успешно.
 
-**Не подключено:** RuStore, верификация покупки, начисление баланса после реальной оплаты.
+### Оплата — backend foundation (реализовано, mock-verify проверен)
+
+- **Backend foundation для RuStore** готов: таблица **`payment_transactions`** (migration **`004_create_payment_transactions.sql`**), **package catalog** на сервере (`package_catalog.py`), сервис **`payment_service.py`**.
+- **Начисление баланса** (`paid_image_generations`, `paid_photoshoots`) выполняется **только на backend** после verification; **frontend не должен** сам начислять или «рисовать» купленный баланс без ответа API.
+- **Development endpoint:** **`POST /payments/rustore/mock-verify`** — mock-проверка покупки без реального RuStore SDK/API.
+- **Ручная проверка mock-verify (успешно):**
+  - `package_499_mix` + новый `provider_payment_id` → **`status: verified`**, **+19** изображений, **+3** фотосессии, актуальный **`balance`** в response.
+  - Повтор с тем же `provider_payment_id` → **`status: already_processed`**, **`added: {0, 0}`**, баланс **не** начисляется второй раз.
+  - Неверный `package_id` → **`400`** `Unknown package_id`; пустой `provider_payment_id` → **`400`** `provider_payment_id is required`.
+- **Защита от повторного начисления:** unique **`(provider, provider_payment_id)`** в БД + проверка перед credit.
+- **Не подключено:** реальный RuStore Pay SDK, server-side RuStore API verification, frontend purchase flow, **«Своя сумма»** через реальную оплату.
 
 ### Создать
 
@@ -435,7 +445,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 
 **Режим «Своя сумма» (Flutter UI, без оплаты):** сумма **10–100 000 ₽**; stepper фотосессий → остаток ÷ 10 = изображения. Примеры: **10 ₽**, 0 фотосессий → **1** изображение; **1000 ₽**, **8** фотосессий → **8** + **20** изображений.
 
-**Статус реализации:** экономика и **Flutter UI «Пакеты»** реализованы; **`GET /balance`** и **списание** (при `ENABLE_CREDIT_CONSUMPTION=true`) — реализованы; **RuStore / начисление после покупки — не подключены**.
+**Статус реализации:** экономика и **Flutter UI «Пакеты»** реализованы; **`GET /balance`** и **списание** (при `ENABLE_CREDIT_CONSUMPTION=true`) — реализованы; **backend foundation** для verified top-up (**`POST /payments/rustore/mock-verify`**, development) — **готов и проверен вручную**; **реальный RuStore / frontend purchase flow — не подключены**.
 
 ### Пакеты
 
@@ -465,7 +475,8 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 |---------|------------|
 | `profiles` | Пользователь, `free_generations_used`, `paid_credits` (legacy), `paid_image_generations`, `paid_photoshoots` |
 | `generations` | История: prompt, `image_url`, `payment_type` |
-| `credit_transactions` | Аудит начислений/списаний |
+| `credit_transactions` | Аудит начислений/списаний (legacy credits path) |
+| `payment_transactions` | Верифицированные покупки пакетов; idempotency по `(provider, provider_payment_id)` |
 
 ### Подключение
 

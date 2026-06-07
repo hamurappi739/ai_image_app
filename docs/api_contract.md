@@ -447,6 +447,98 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 
 ---
 
+## 6.1 POST /payments/rustore/mock-verify (development only)
+
+**Назначение:** mock-верификация покупки пакета для тестирования backend top-up **без** реального RuStore SDK/API. Начисление баланса — **только здесь** (или будущий real-verify endpoint), не на клиенте.
+
+**Доступность:** только при `ENVIRONMENT=development`. Вне development → **`404`**.
+
+**Auth:** `Authorization: Bearer <access_token>` или development fallback `TEST_USER_ID` (как у `GET /balance`).
+
+**Request:**
+
+```json
+{
+  "package_id": "package_499_mix",
+  "provider_payment_id": "test-payment-002"
+}
+```
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `package_id` | string | ID пакета из backend catalog (`package_199_mix`, `package_499_mix`, …) |
+| `provider_payment_id` | string | Уникальный ID покупки (в mock — произвольная строка; в production — ID от RuStore) |
+
+**Response `200` — первая обработка (`verified`):**
+
+```json
+{
+  "status": "verified",
+  "package_id": "package_499_mix",
+  "added": {
+    "paid_image_generations": 19,
+    "paid_photoshoots": 3
+  },
+  "balance": {
+    "free_generations_limit": 3,
+    "free_generations_used": 0,
+    "free_generations_remaining": 3,
+    "paid_image_generations": 19,
+    "paid_photoshoots": 3,
+    "consumption_enabled": false
+  }
+}
+```
+
+**Response `200` — повтор с тем же `provider_payment_id` (`already_processed`):**
+
+```json
+{
+  "status": "already_processed",
+  "package_id": "package_499_mix",
+  "added": {
+    "paid_image_generations": 0,
+    "paid_photoshoots": 0
+  },
+  "balance": { }
+}
+```
+
+| Поле | Описание |
+|------|----------|
+| `status` | `verified` — баланс начислен; `already_processed` — покупка уже была, повторного начисления нет |
+| `added` | Сколько добавлено в этот запрос (при `already_processed` — нули) |
+| `balance` | Тот же формат, что **`GET /balance`** |
+
+**Backend catalog (суммы только на сервере):**
+
+| `package_id` | ₽ | изображения | фотосессии |
+|--------------|---|-------------|------------|
+| `package_199_mix` | 199 | 9 | 1 |
+| `package_499_mix` | 499 | 19 | 3 |
+| `package_999_mix` | 999 | 19 | 8 |
+| `package_199_images` | 199 | 19 | 0 |
+| `package_499_images` | 499 | 49 | 0 |
+| `package_999_images` | 999 | 99 | 0 |
+
+**Custom amount** через этот endpoint **не поддерживается**.
+
+### Errors
+
+| HTTP | `detail` (пример) | Когда |
+|------|-------------------|--------|
+| `400` | `Unknown package_id` | Неизвестный `package_id` |
+| `400` | `provider_payment_id is required` | Пустой / пробельный `provider_payment_id` |
+| `404` | — | `ENVIRONMENT` ≠ `development` |
+| `503` | `payment_transactions table is missing. Apply migration 004_create_payment_transactions.sql` | Таблица не создана в Supabase |
+| `500` | `Failed to ensure user profile` / `Failed to update balance` | Ошибка Supabase REST |
+
+**Идемпотентность:** unique **`(provider, provider_payment_id)`** в `payment_transactions`; повторный запрос не увеличивает `profiles.paid_*`.
+
+**Flutter production:** **не вызывать** этот endpoint; будущий real RuStore flow — отдельный server-side verification.
+
+---
+
 ## 7. Development-only endpoints
 
 **Не использовать во Flutter production.** Не документировать в публичном SDK приложения.
@@ -487,7 +579,7 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 | **Создать** | `POST /generate` через `ApiService.generateImage()` | **Работает** |
 | **Фотосессии** | `POST /photoshoots/generate` (multipart) | Бесплатные: по умолчанию **501**; при `ENABLE_PHOTOSHOOT_GENERATION=true` → `image_urls`. Платные без оплаты → **402** |
 | **Галерея** | `GET /generations` при старте + локально новые сверху | **Работает** (dev: `TEST_USER_ID`; фильтр debug в UI) |
-| **Пакеты** | — | UI-заглушка под будущую оплату (RuStore) |
+| **Пакеты** | UI placeholder; backend **`POST /payments/rustore/mock-verify`** (dev only) | UI без реальной оплаты; mock top-up — только ручная отладка backend |
 | **Профиль** | `GET /balance` (готов на backend) | Endpoint есть; **Flutter пока не подключён** |
 
 - **Production / release** Flutter **не должен** вызывать `/debug/*` (только ручная отладка backend).

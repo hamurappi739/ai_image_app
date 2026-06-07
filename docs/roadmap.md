@@ -78,6 +78,11 @@
 | **Android packages layout polish** | ✅ | Адаптивная высота карточек, читаемые размеры на mobile, без overflow |
 | **Packages help UI** | ✅ | `PacksHelpDialog` + кнопка **«Помощь»** (без автопоказа) |
 | **Section help button (text)** | ✅ | **«Помощь»** вместо **?** на **Создать**, **Фотосессии**, **Пакеты** |
+| **Backend payment foundation** | ✅ | `payment_service.py`, `package_catalog.py`, idempotent top-up после verification |
+| **payment_transactions table** | ✅ | Migration `004_create_payment_transactions.sql`; unique `(provider, provider_payment_id)` |
+| **Backend package catalog** | ✅ | 6 пакетов (mix + images-only); суммы только на сервере |
+| **Development mock-verify endpoint** | ✅ | `POST /payments/rustore/mock-verify`; проверен вручную (`package_499_mix`) |
+| **Duplicate payment protection** | ✅ | Повторный `provider_payment_id` → `already_processed`, баланс не начисляется |
 | **Backend paid photoshoot protection** | ✅ | Платные стили → **`402`** до Gemini/Storage/`generations`; бесплатные — как раньше |
 | **Richer photoshoot cards** | ✅ | Каталог-style UI: gradient placeholder preview, название, описание, цена/«Бесплатно» |
 | **“3 фото” label on photoshoot cards** | ✅ | Чип **«3 фото»** на карточке и в bottom sheet |
@@ -156,7 +161,7 @@
 | 8 | **Backend balance model** — `GET /balance`, profile fields | ✅ |
 | 9 | **Flutter balance display** — `GET /balance` в Профиль / Пакеты / Создать | ✅ |
 | 10 | **Spending rules** — списание `paid_image_generations` / `paid_photoshoots`; `balance` в response | ✅ |
-| 11 | **RuStore / real paid balance flow** — верификация, начисление после покупки | план |
+| 11 | **RuStore / real paid balance flow** — SDK + server verification + frontend purchase | план (backend foundation ✅) |
 
 ### Следующие задачи (после проверки списаний)
 
@@ -221,14 +226,18 @@
 
 После блока **«Ближайший порядок работ»** (см. выше): curated-примеры, backend **«Своя фотосессия»**, production cleanup.
 
-### После успешного Gemini smoke test (план)
+### После backend payment foundation (план)
 
 | Задача | Статус |
 |--------|--------|
-| **Более глубокое качество генераций** на разных входных фото (лица, освещение, стили) | план |
-| **Edge cases ошибок Gemini** (502, пустой ответ, Storage failure) — UX и мониторинг | план |
-| **RuStore payment integration** — верификация покупки, начисление баланса | план |
-| **Production deploy** — CORS, RLS, убрать `TEST_USER_ID` fallback, защита `/debug/*` | план |
+| **Реальный RuStore Pay SDK** (клиент) | план |
+| **Server-side RuStore verification** (real API, не mock) | план |
+| **Frontend purchase flow** — покупка → backend verify → обновление баланса в UI | план |
+| **Custom amount через реальную оплату** | план |
+| **Production hardening** — RLS на `payment_transactions`, webhook security, мониторинг | план |
+| **Более глубокое качество генераций** на разных фото | план |
+| **Edge cases ошибок Gemini** (502, пустой ответ, Storage failure) | план |
+| **Production deploy** — CORS, убрать `TEST_USER_ID` fallback | план |
 
 ### Ближайший UX (генерация и каталог)
 
