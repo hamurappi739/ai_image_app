@@ -19,7 +19,8 @@
 - **Ошибки для пользователя:** технические ошибки Supabase не показываются; вместо этого отображаются мягкие пользовательские сообщения.
 - **Supabase Auth во Flutter** включается **только** при запуске с **`--dart-define=SUPABASE_URL=...`** и **`--dart-define=SUPABASE_ANON_KEY=...`** (`Supabase.initialize` в `main.dart`).
 - **Без dart-define:** авторизация в UI недоступна; приложение работает в **demo / development fallback** (`TEST_USER_ID` на backend).
-- **После входа:** access token из `AuthService` передаётся в **`ApiService.setAccessToken(...)`** → backend получает **`Authorization: Bearer`**.
+- **После входа:** access token из `AuthService` передаётся в **`ApiService.setAccessToken(...)`** → backend получает **`Authorization: Bearer`**; перезагружаются **баланс** и **Галерея** (`GET /balance`, `GET /generations`).
+- **После выхода:** токен очищается; локальная **Галерея** и баланс в UI сбрасываются; без токена Flutter **не** запрашивает историю (избегает смешивания с dev `TEST_USER_ID` при настроенном Supabase).
 - **Backend:** `get_current_user()` валидирует Bearer через Supabase Auth REST (`/auth/v1/user`) → **`CurrentUser { id, email }`**.
 - **Profiles auto-create/sync:** backend автоматически вызывает **`ensure_profile_exists`** для пользователя на **`GET /generations`**, **`GET /balance`** и **`POST /generate`**; если профиля нет, создаёт строку в `profiles` (`free_generations_used=0`, `paid_credits=0`, `paid_image_generations=0`, `paid_photoshoots=0`) и мягко синхронизирует `email` без перезаписи уже заполненного значения.
 - **Работает в двух режимах:** и для Bearer token пользователя, и для development fallback **`TEST_USER_ID`**.
@@ -130,7 +131,8 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - Для ручного Gemini-теста использовать **`ENABLE_CREDIT_CONSUMPTION=false`** — без списания генераций из Supabase.
 - После любого Gemini-теста **обязательно** вернуть **`IMAGE_PROVIDER=mock`** (см. [gemini_test_checklist.md](gemini_test_checklist.md)).
 - В backend auth helper `get_current_user()` поддерживает `Authorization: Bearer <token>` через Supabase Auth REST (`/auth/v1/user`).
-- Если заголовка нет в development — остаётся fallback на `TEST_USER_ID`; в non-development без токена — `401`.
+- Если заголовка нет в development — остаётся fallback на `TEST_USER_ID`; в non-development без токена — **`401`** `Authorization required`.
+- **`/debug/*`:** только при `ENVIRONMENT=development` (иначе **`404`**); **`POST /debug/add-balance`** начисляет баланс **текущему** пользователю (Bearer или dev fallback).
 - **`ENABLE_CREDIT_CONSUMPTION=false`** (безопасный режим тестов): **не списывает** генерации из Supabase и не выполняет запись в `generations`.
 - **`ENABLE_CREDIT_CONSUMPTION=true`**: профиль по user id (из Bearer token или dev fallback `TEST_USER_ID`), auto-sync профиля через `ensure_profile_exists`, списание free/paid, запись в Supabase (`generations`, `credit_transactions`).
 

@@ -179,6 +179,7 @@ def debug_config():
 
 @app.get("/debug/supabase")
 def debug_supabase():
+    _require_development_for_debug()
     try:
         if check_supabase_connection():
             return {"status": "ok", "supabase": "connected"}
@@ -271,6 +272,7 @@ def debug_storage_image_persist():
 
 @app.get("/debug/profile")
 def debug_profile():
+    _require_development_for_debug()
     if not settings.test_user_id:
         raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
     try:
@@ -284,6 +286,7 @@ def debug_profile():
 
 @app.get("/debug/credits")
 def debug_credits():
+    _require_development_for_debug()
     if not settings.test_user_id:
         raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
     try:
@@ -298,6 +301,7 @@ def debug_credits():
 
 @app.get("/debug/history")
 def debug_history():
+    _require_development_for_debug()
     if not settings.test_user_id:
         raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
     try:
@@ -337,6 +341,7 @@ _MAX_PHOTOSHOOT_FILE_SIZE_BYTES = 10 * 1024 * 1024
 
 @app.post("/debug/consume-generation")
 def debug_consume_generation():
+    _require_development_for_debug()
     if not settings.test_user_id:
         raise HTTPException(status_code=500, detail="TEST_USER_ID is not configured")
     try:
@@ -394,6 +399,7 @@ def debug_add_balance(
 
 @app.post("/debug/add-credits")
 def debug_add_credits(request: AddCreditsRequest):
+    _require_development_for_debug()
     if request.amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be positive")
     if not settings.test_user_id:

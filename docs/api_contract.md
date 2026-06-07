@@ -168,8 +168,13 @@
 
 Примеры: `GET /generations`, `GET /generations?limit=10`.
 
-**Пользователь (сейчас):** без JWT. Backend читает историю для **`TEST_USER_ID`** из env (только development).  
-**Позже:** тот же endpoint с **id авторизованного пользователя** из Supabase Auth (JWT / session).
+**Auth (как у `GET /balance`):**
+
+- `Authorization: Bearer <access_token>` — история **только** этого пользователя (`generations.user_id`);
+- без токена в `development` — fallback **`TEST_USER_ID`**;
+- без токена вне `development` — **`401`** `Authorization required`.
+
+**Flutter:** при настроенном Supabase Auth и **выходе** из аккаунта клиент **не** вызывает `GET /generations` без токена (чтобы не подмешивать dev-fallback); Галерея очищается локально. После входа — повторная загрузка истории текущего пользователя.
 
 ### Flutter (вкладка «Галерея»)
 
@@ -223,7 +228,8 @@
 | HTTP | `detail` (пример) | Когда |
 |------|-------------------|--------|
 | `422` | validation error | `limit` &lt; 1 или &gt; 100 |
-| `500` | `TEST_USER_ID is not configured` | Нет тестового пользователя в env |
+| `401` | `Authorization required` | Нет токена вне development |
+| `500` | `TEST_USER_ID is not configured` | Нет тестового пользователя в env (development) |
 | `500` | `Failed to fetch generations` | Ошибка Supabase REST |
 
 Записи появляются в таблице после `POST /generate` с `ENABLE_CREDIT_CONSUMPTION=true` или `POST /debug/consume-generation`.
@@ -444,6 +450,8 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 ## 7. Development-only endpoints
 
 **Не использовать во Flutter production.** Не документировать в публичном SDK приложения.
+
+Все пути **`/debug/*`** (включая `/debug/supabase`, `/debug/profile`, `/debug/history`, `/debug/consume-generation`, `/debug/add-credits`) возвращают **`404`**, если `ENVIRONMENT` ≠ `development` (без раскрытия деталей).
 
 | Метод | Путь | Назначение |
 |-------|------|------------|

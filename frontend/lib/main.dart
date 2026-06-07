@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -120,13 +122,50 @@ class _MainShellState extends State<MainShell> {
   UserBalance? _userBalance;
   bool _balanceLoading = false;
   bool _balanceLoadFailed = false;
+  StreamSubscription<AuthState>? _authSubscription;
+
+  bool get _canLoadUserBackendData {
+    if (!_authService.isConfigured) {
+      return true;
+    }
+    return _authService.isSignedIn;
+  }
+
+  bool get _showUserBalance => _canLoadUserBackendData;
 
   @override
   void initState() {
     super.initState();
     _syncAccessTokenFromAuth();
-    _loadGenerationsFromBackend();
-    _loadBalance();
+    if (_authService.isConfigured) {
+      _authSubscription = _authService.onAuthStateChange.listen(_onAuthStateChanged);
+    }
+    if (_canLoadUserBackendData) {
+      _loadGenerationsFromBackend();
+      _loadBalance();
+    } else {
+      _clearSessionUserData();
+    }
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _onAuthStateChanged(AuthState state) {
+    _syncAccessTokenFromAuth();
+    if (state.event == AuthChangeEvent.signedOut) {
+      _clearSessionUserData();
+    } else if (state.event == AuthChangeEvent.signedIn ||
+        state.event == AuthChangeEvent.tokenRefreshed) {
+      _loadGenerationsFromBackend();
+      _loadBalance();
+    }
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _syncAccessTokenFromAuth() {
@@ -139,12 +178,37 @@ class _MainShellState extends State<MainShell> {
 
   void _onProfileAuthChanged() {
     _syncAccessTokenFromAuth();
-    _loadGenerationsFromBackend();
-    _loadBalance();
+    if (_canLoadUserBackendData) {
+      _loadGenerationsFromBackend();
+      _loadBalance();
+    } else {
+      _clearSessionUserData();
+    }
     setState(() {});
   }
 
+  void _clearSessionUserData() {
+    setState(() {
+      _generatedImages.clear();
+      _hiddenGalleryImageKeys.clear();
+      _hiddenPhotoshootIds.clear();
+      _userBalance = null;
+      _balanceLoading = false;
+      _balanceLoadFailed = false;
+      _backendHistoryUnavailable = false;
+    });
+  }
+
   Future<void> _loadBalance() async {
+    if (!_canLoadUserBackendData) {
+      if (!mounted) return;
+      setState(() {
+        _userBalance = null;
+        _balanceLoading = false;
+        _balanceLoadFailed = false;
+      });
+      return;
+    }
     if (!mounted) return;
     setState(() {
       _balanceLoading = true;
@@ -178,6 +242,16 @@ class _MainShellState extends State<MainShell> {
   }
 
   Future<void> _loadGenerationsFromBackend() async {
+    if (!_canLoadUserBackendData) {
+      if (!mounted) return;
+      setState(() {
+        _generatedImages.clear();
+        _hiddenGalleryImageKeys.clear();
+        _hiddenPhotoshootIds.clear();
+        _backendHistoryUnavailable = false;
+      });
+      return;
+    }
     try {
       final history = await _apiService.fetchGenerations();
       if (!mounted) return;
@@ -281,6 +355,7 @@ class _MainShellState extends State<MainShell> {
         balanceLoading: _balanceLoading,
         balanceLoadFailed: _balanceLoadFailed,
         onRefreshBalance: _loadBalance,
+        showUserBalance: _showUserBalance,
       ),
     ];
 
@@ -4035,6 +4110,7 @@ class ProfileScreen extends StatefulWidget {
     required this.balanceLoading,
     required this.balanceLoadFailed,
     required this.onRefreshBalance,
+    required this.showUserBalance,
     this.onResetOnboarding,
   });
 
@@ -4045,6 +4121,7 @@ class ProfileScreen extends StatefulWidget {
   final bool balanceLoading;
   final bool balanceLoadFailed;
   final VoidCallback onRefreshBalance;
+  final bool showUserBalance;
   final VoidCallback? onResetOnboarding;
 
   @override
@@ -4167,9 +4244,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Text(
           widget.authService.isConfigured
               ? (widget.authService.isSignedIn
-                  ? 'Ваш аккаунт'
-                  : 'Войдите, чтобы сохранять историю')
-              : 'Аккаунт и настройки',
+                  ? 'Ваш аккаунт и баланс'
+                  : 'Войдите, чтобы сохранять баланс и историю')
+              : 'Аккаунт и настройки (режим разработки)',
           style: theme.textTheme.bodyMedium,
         ),
       ],
@@ -4236,7 +4313,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Text('Вход в аккаунт', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(
-            'Сохраняйте изображения, фотосессии и покупки в своём профиле',
+            'Войдите, чтобы сохранять баланс и историю в Галерее',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 20),
@@ -4368,7 +4445,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Теперь приложение может сохранять ваши изображения и историю в аккаунте.',
+            'Баланс и Галерея привязаны к этому аккаунту.',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 20),
@@ -4418,13 +4495,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   _buildHeader(theme),
                   const SizedBox(height: 20),
-                  _UserBalanceProfileCard(
-                    balance: widget.balance,
-                    isLoading: widget.balanceLoading,
-                    hasError: widget.balanceLoadFailed,
-                    onRefresh: widget.onRefreshBalance,
-                  ),
-                  const SizedBox(height: 24),
+                  if (widget.showUserBalance) ...[
+                    _UserBalanceProfileCard(
+                      balance: widget.balance,
+                      isLoading: widget.balanceLoading,
+                      hasError: widget.balanceLoadFailed,
+                      onRefresh: widget.onRefreshBalance,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                   if (!auth.isConfigured) ...[
                     _buildNotConfiguredCard(theme),
                     const SizedBox(height: 20),

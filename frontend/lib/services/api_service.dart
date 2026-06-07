@@ -249,6 +249,9 @@ class ApiService {
       final json = jsonDecode(response.body) as Map<String, dynamic>;
       return UserBalance.fromJson(json);
     }
+    if (response.statusCode == 401) {
+      throw Exception('Authorization required');
+    }
     throw Exception('Failed to fetch balance');
   }
 
@@ -271,6 +274,9 @@ class ApiService {
       return items
           .where((item) => !_isHiddenDevGenerationDescription(item.prompt))
           .toList();
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Authorization required');
     }
     throw Exception('Failed to fetch generations');
   }
