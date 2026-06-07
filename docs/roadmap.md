@@ -60,6 +60,9 @@
 | **Manual Flutter photoshoot-to-gallery test passed** | ✅ | Flutter UI + `ENABLE_PHOTOSHOOT_GENERATION=true`; после теста **`false`** |
 | **Controlled 3-output photoshoot test** | ✅ | `PHOTOSHOOT_OUTPUT_COUNT=3` через Flutter UI; 1 photo → 3 images |
 | **Gemini quality instructions** | ✅ | `gemini_quality_instructions.py`: `/generate`, `/generate-with-photo`, `/photoshoots/generate`; anti-collage/grid; identity preservation; mock unchanged |
+| **Real Gemini smoke test — ordinary generation** | ✅ | Safe mode: `IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false` → `POST /generate` → Storage → **Галерея** |
+| **Real Gemini smoke test — photo-based generation** | ✅ | Safe mode → `POST /generate-with-photo` → Storage → **Галерея** |
+| **Real Gemini smoke test — photoshoots (3 outputs)** | ✅ | Safe mode + `ENABLE_PHOTOSHOOT_GENERATION=true`, `PHOTOSHOOT_OUTPUT_COUNT=3` → `POST /photoshoots/generate` → **Галерея**; баланс не списывается |
 | **Storage upload for 3 photoshoot results** | ✅ | 3 файла в bucket `generated-images` (`photoshoots/…`) |
 | **History save for 3 photoshoot results** | ✅ | 3 записи в `generations`; `GET /generations` возвращает все три |
 | **Backend photoshoot grouping id (`photoshoot_id`)** | ✅ | Nullable column + index; все результаты одной фотосессии — один `photoshoot_id`; обычные генерации — `null` |
@@ -208,7 +211,7 @@
 | Этап | Статус | Примечание |
 |------|--------|------------|
 | **Gemini provider implementation** | ✅ | Код провайдера готов: `GeminiImageProvider` + `google-genai`; `mock` остаётся режимом по умолчанию |
-| **Gemini manual API test** | ✅ | Ручной тест пройден: Gemini → Storage → `public_url` → Галерея; после теста `IMAGE_PROVIDER=mock` |
+| **Gemini manual API test (all flows)** | ✅ | Safe mode smoke test: `/generate`, `/generate-with-photo`, `/photoshoots/generate` (3); баланс не списывается; после теста `IMAGE_PROVIDER=mock` |
 | **Supabase credits / balance** | 🔶 | Списание free/paid **проверено вручную**; **по умолчанию** `ENABLE_CREDIT_CONSUMPTION=false` (демо); RuStore / начисление после покупки — позже |
 | **История в галерее** | 🔶 | С Bearer token — история по auth user; без входа — dev fallback |
 
@@ -216,7 +219,16 @@
 
 ## Следующие крупные этапы
 
-После блока **«Ближайший порядок работ»** (см. выше): curated-примеры, backend **«Создать»** / **«Своя фотосессия»**, production cleanup.
+После блока **«Ближайший порядок работ»** (см. выше): curated-примеры, backend **«Своя фотосессия»**, production cleanup.
+
+### После успешного Gemini smoke test (план)
+
+| Задача | Статус |
+|--------|--------|
+| **Более глубокое качество генераций** на разных входных фото (лица, освещение, стили) | план |
+| **Edge cases ошибок Gemini** (502, пустой ответ, Storage failure) — UX и мониторинг | план |
+| **RuStore payment integration** — верификация покупки, начисление баланса | план |
+| **Production deploy** — CORS, RLS, убрать `TEST_USER_ID` fallback, защита `/debug/*` | план |
 
 ### Ближайший UX (генерация и каталог)
 

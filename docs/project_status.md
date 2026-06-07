@@ -98,12 +98,19 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
   - возвращает **`public_url`**.
 - Ошибки валидации helper: **`400`** — `Invalid image data`, `Unsupported image format`, `Image is too large`.
 - **`POST /generate`** подключён к helper: если provider вернул **`data:image/...`**, backend загружает в Storage и возвращает **`public_url`** (в response и в **`generations.image_url`** при `ENABLE_CREDIT_CONSUMPTION=true`). **Mock mode** (`placehold.co`) — **без изменений**, Storage не вызывается.
-- **Ручной Gemini-тест успешно пройден:** временно `IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false` → Gemini вернул реальное изображение → backend загрузил в bucket **`generated-images`** → frontend получил **`public_url`** → **Галерея** показала реальную картинку. После теста **`IMAGE_PROVIDER` возвращён на `mock`**.
-- **Ручной Gemini photoshoot test успешно пройден:** `ENABLE_PHOTOSHOOT_GENERATION=true`, `PHOTOSHOOT_OUTPUT_COUNT=1` → **`POST /photoshoots/generate`** принял uploaded photo → Gemini вернул photoshoot image → backend загрузил результат в bucket **`generated-images`** (`photoshoots/…`) → response содержит **`image_urls`** с **`public_url`**. После теста **`ENABLE_PHOTOSHOOT_GENERATION=false`**.
-- **`POST /photoshoots/generate`** при **`ENABLE_PHOTOSHOOT_GENERATION=true`**: Gemini → Storage → **`image_urls`** + запись каждого результата в **`generations`** (`prompt`: `Фотосессия: …`).
+- **Полный реальный Gemini smoke test (safe mode) — успешно пройден** (временные env, без изменения committed `.env`):
+  - `ENABLE_CREDIT_CONSUMPTION=false`
+  - `IMAGE_PROVIDER=gemini`
+  - `ENABLE_PHOTOSHOOT_GENERATION=true`
+  - `PHOTOSHOOT_OUTPUT_COUNT=3`
+  - Проверены все три flow: **`POST /generate`**, **`POST /generate-with-photo`**, **`POST /photoshoots/generate`** — **работают**.
+  - Gemini → Supabase Storage (`generated-images`) → **`public_url`** в response; результаты **появляются в Галерее** (локально сразу + через **`GET /generations`** при включённом consumption).
+  - В safe mode **баланс не списывается** (`ENABLE_CREDIT_CONSUMPTION=false`); запись в **`generations`** через consume-path **не выполняется**.
+  - После теста env **возвращены** на безопасные значения: `IMAGE_PROVIDER=mock`, `ENABLE_PHOTOSHOOT_GENERATION=false` (см. [gemini_test_checklist.md](gemini_test_checklist.md)).
+- **`POST /photoshoots/generate`** при **`ENABLE_PHOTOSHOOT_GENERATION=true`** + **`IMAGE_PROVIDER=gemini`**: **3** последовательных вызова Gemini → Storage → **`image_urls`**; при `ENABLE_CREDIT_CONSUMPTION=true` — запись в **`generations`** (`prompt`: `Фотосессия: …`, общий **`photoshoot_id`**).
 - **`POST /debug/storage-test`** (development only) — **успешно проверен**: backend загружает маленький in-memory тестовый файл в Storage и возвращает **`public_url`**; **`public_url` проверен вручную** в браузере.
 - **`POST /debug/storage-image-test`** (development only) — **успешно проверен**: вызывает **`upload_generated_image_data_url`** с тестовым **1×1 PNG** data URL; **`public_url` открыт вручную** в браузере.
-- **Следующий этап:** решить, когда включать **`IMAGE_PROVIDER=gemini`** для обычной разработки; проверить стоимость/лимиты; позже **`ENABLE_CREDIT_CONSUMPTION=true`**.
+- **Следующий этап:** более глубокая проверка качества на разных фото; edge cases ошибок Gemini; **RuStore** / production deploy. Для ежедневной разработки остаётся **`IMAGE_PROVIDER=mock`**.
 - Исходные пользовательские фото для фотосессий **не планируется** хранить долго без необходимости.
 
 ### Supabase REST — ошибки и таймауты
@@ -120,7 +127,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 |-------|------|------------|
 | GET | `/health` | Жив ли сервер |
 | POST | `/generate` | Генерация по тексту (mock по умолчанию; Gemini + Storage проверен вручную) |
-| POST | `/generate-with-photo` | Генерация по **фото + описанию** (multipart); mock без Gemini; списание как у `/generate` |
+| POST | `/generate-with-photo` | Генерация по **фото + описанию** (multipart); mock / Gemini; списание как у `/generate`; **Gemini smoke test пройден** (safe mode) |
 | GET | `/generations` | История генераций (`?limit=1..100`, по умолчанию 20) |
 | GET | `/balance` | Баланс: free remaining + `paid_image_generations` + `paid_photoshoots` |
 
@@ -514,32 +521,35 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **`IMAGE_PROVIDER=mock`** — mock-генерация по умолчанию; Storage не вызывается для обычных запросов
 - **`ENABLE_CREDIT_CONSUMPTION=false`** — без списания генераций и без записи в `generations` через `/generate`
 - **`ENABLE_PHOTOSHOOT_GENERATION=false`** — photoshoot Gemini выключен по умолчанию (защита от случайных кликов во Flutter)
-- **Gemini provider** реализован и **успешно проверен вручную** (Gemini → Storage → `public_url` → Галерея); для ежедневной разработки остаётся **`mock`**
-- **Gemini photoshoot** реализован и **успешно проверен вручную** (backend + Flutter Gallery); по умолчанию выключен через **`ENABLE_PHOTOSHOOT_GENERATION=false`**
+- **Gemini provider** реализован; **полный smoke test всех трёх flow пройден** в safe mode (см. ниже); для ежедневной разработки остаётся **`mock`**
+- **Gemini photoshoot** (3 кадра) **проверен в safe mode**; по умолчанию выключен через **`ENABLE_PHOTOSHOOT_GENERATION=false`**
+- **Оплата / RuStore** — **не подключены**
 
-### Ручной Gemini-тест (пройден)
+### Полный реальный Gemini smoke test в safe mode (пройден)
+
+**Временные env (не коммитить):**
+
+| Переменная | Значение |
+|------------|----------|
+| `ENABLE_CREDIT_CONSUMPTION` | `false` |
+| `IMAGE_PROVIDER` | `gemini` |
+| `ENABLE_PHOTOSHOOT_GENERATION` | `true` |
+| `PHOTOSHOOT_OUTPUT_COUNT` | `3` |
+
+| Flow | Результат |
+|------|-----------|
+| **`POST /generate`** (текст) | ✅ Gemini → Storage → **`public_url`** → **Галерея** |
+| **`POST /generate-with-photo`** (фото + описание) | ✅ Gemini → Storage → **`public_url`** → **Галерея** |
+| **`POST /photoshoots/generate`** (3 кадра) | ✅ **3** `image_urls` с **`public_url`** → **Галерея** (группировка по **`photoshoot_id`**) |
+| Баланс в safe mode | ✅ **не списывается** |
+| После теста env возвращены | ✅ `IMAGE_PROVIDER=mock`, `ENABLE_PHOTOSHOOT_GENERATION=false` |
+
+### Ранние точечные Gemini-тесты (пройдены ранее)
 
 | Шаг | Результат |
 |-----|-----------|
-| Временно `IMAGE_PROVIDER=gemini` | ✅ |
-| `ENABLE_CREDIT_CONSUMPTION=false` (без списания) | ✅ |
-| Gemini вернул реальное изображение | ✅ |
-| Backend загрузил в bucket **`generated-images`** | ✅ |
-| Frontend получил **`image_url` как `public_url`** | ✅ |
-| **Галерея** показала реальную картинку | ✅ |
-| После теста **`IMAGE_PROVIDER=mock`** | ✅ |
-
-### Ручной Gemini photoshoot test (пройден)
-
-| Шаг | Результат |
-|-----|-----------|
-| Временно `ENABLE_PHOTOSHOOT_GENERATION=true` | ✅ |
-| `PHOTOSHOOT_OUTPUT_COUNT=1` | ✅ |
-| `POST /photoshoots/generate` принял uploaded photo | ✅ |
-| Gemini вернул photoshoot image | ✅ |
-| Backend загрузил в bucket **`generated-images`** | ✅ |
-| Response содержит **`image_urls`** с **`public_url`** | ✅ |
-| После теста **`ENABLE_PHOTOSHOOT_GENERATION=false`** | ✅ |
+| `POST /generate` + `IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false` | ✅ |
+| `POST /photoshoots/generate`, `PHOTOSHOOT_OUTPUT_COUNT=1` | ✅ |
 
 ### Ручной Flutter photoshoot-to-gallery test (пройден)
 

@@ -102,6 +102,23 @@
 
 **Фотосессии:** каждый результат — **отдельная standalone-фотография**, не коллаж; **3 последовательных** Gemini-вызова под одним **`photoshoot_id`**. **Mock mode** без изменений.
 
+### Safe mode для проверки реального Gemini (реализовано)
+
+Для ручной проверки **реальных** генераций без списаний используется **safe mode** на backend:
+
+| Переменная | Значение для теста |
+|------------|-------------------|
+| `ENABLE_CREDIT_CONSUMPTION` | `false` |
+| `IMAGE_PROVIDER` | `gemini` |
+| `ENABLE_PHOTOSHOOT_GENERATION` | `true` (для фотосессий) |
+| `PHOTOSHOOT_OUTPUT_COUNT` | `3` (product target) |
+
+**Проверено:** `POST /generate`, `POST /generate-with-photo`, `POST /photoshoots/generate` — все три flow работают; результаты **должны появляться в Галерее** (сразу после генерации и при перезагрузке через `GET /generations`, когда consumption включён).
+
+**Правило безопасности:** при ошибке Gemini (**502**) или сбое Storage **баланс не списывается**; запись в `generations` через consume-path не создаётся. В safe mode (`ENABLE_CREDIT_CONSUMPTION=false`) списаний нет по определению.
+
+После теста env возвращают на **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**. **RuStore / оплата не подключены.**
+
 ---
 
 ## 2.2. Долгие операции: явное состояние ожидания (реализовано)
