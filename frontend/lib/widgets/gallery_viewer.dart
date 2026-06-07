@@ -1,0 +1,484 @@
+import 'package:ai_image_generator/models/gallery_display_item.dart';
+import 'package:ai_image_generator/utils/gallery_download.dart';
+import 'package:flutter/material.dart';
+
+const _accentColor = Color(0xFF5B6CFF);
+
+Future<bool?> _confirmHideImage(BuildContext context) {
+  return showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text(
+        'Скрыть изображение?',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+      ),
+      content: const Text(
+        'Оно исчезнет из Галереи на этом устройстве. '
+        'Файл на сервере не удаляется.',
+        style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          style: FilledButton.styleFrom(
+            backgroundColor: _accentColor,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: const Text('Скрыть'),
+        ),
+      ],
+    ),
+  );
+}
+
+Future<bool?> _confirmHidePhotoshoot(BuildContext context) {
+  return showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text(
+        'Скрыть фотосессию?',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+      ),
+      content: const Text(
+        'Эта фотосессия исчезнет из Галереи на этом устройстве. '
+        'Файлы на сервере не удаляются.',
+        style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          style: FilledButton.styleFrom(
+            backgroundColor: _accentColor,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: const Text('Скрыть'),
+        ),
+      ],
+    ),
+  );
+}
+
+class GallerySingleImageViewer extends StatelessWidget {
+  const GallerySingleImageViewer({
+    super.key,
+    required this.imageUrl,
+    required this.description,
+    required this.hideKey,
+    required this.onHide,
+  });
+
+  final String imageUrl;
+  final String description;
+  final String hideKey;
+  final ValueChanged<String> onHide;
+
+  static Future<void> show(
+    BuildContext context, {
+    required GalleryDisplayItem item,
+    required ValueChanged<String> onHide,
+  }) {
+    final hideKey = item.hideKey;
+    if (hideKey == null) return Future.value();
+
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => GallerySingleImageViewer(
+        imageUrl: item.imageUrls.first,
+        description: item.description,
+        hideKey: hideKey,
+        onHide: onHide,
+      ),
+    );
+  }
+
+  Future<void> _onHidePressed(BuildContext context) async {
+    final confirmed = await _confirmHideImage(context);
+    if (confirmed != true || !context.mounted) return;
+    onHide(hideKey);
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Изображение скрыто из Галереи'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 720,
+          maxHeight: maxHeight,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Flexible(
+              child: Container(
+                color: const Color(0xFFF0F2F8),
+                child: InteractiveViewer(
+                  minScale: 0.8,
+                  maxScale: 3,
+                  child: Center(
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const Padding(
+                          padding: EdgeInsets.all(48),
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) => const Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          size: 48,
+                          color: Color(0xFF9CA3AF),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (description.trim().isNotEmpty) ...[
+                    Text(
+                      description,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        height: 1.35,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => downloadGalleryImage(
+                          context,
+                          imageUrl,
+                          suggestedFileName: 'image',
+                        ),
+                        icon: const Icon(Icons.download_outlined, size: 18),
+                        label: const Text('Скачать'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => _onHidePressed(context),
+                        icon: const Icon(Icons.visibility_off_outlined, size: 18),
+                        label: const Text('Скрыть из Галереи'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _accentColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Закрыть'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class GalleryPhotoshootViewer extends StatelessWidget {
+  const GalleryPhotoshootViewer({
+    super.key,
+    required this.item,
+    required this.onHidePhotoshoot,
+  });
+
+  final GalleryDisplayItem item;
+  final ValueChanged<String> onHidePhotoshoot;
+
+  static Future<void> show(
+    BuildContext context, {
+    required GalleryDisplayItem item,
+    required ValueChanged<String> onHidePhotoshoot,
+  }) {
+    final photoshootId = item.photoshootId;
+    if (photoshootId == null || photoshootId.isEmpty) {
+      return Future.value();
+    }
+
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => GalleryPhotoshootViewer(
+        item: item,
+        onHidePhotoshoot: onHidePhotoshoot,
+      ),
+    );
+  }
+
+  Future<void> _onHidePressed(BuildContext context) async {
+    final photoshootId = item.photoshootId;
+    if (photoshootId == null) return;
+
+    final confirmed = await _confirmHidePhotoshoot(context);
+    if (confirmed != true || !context.mounted) return;
+    onHidePhotoshoot(photoshootId);
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Фотосессия скрыта из Галереи'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final styleTitle = galleryPhotoshootStyleTitle(item.description);
+    final title = styleTitle != null
+        ? 'Фотосессия · $styleTitle'
+        : 'Фотосессия';
+    final countLabel = galleryPhotoshootPhotoCountLabel(item.imageUrls.length);
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.9;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 720, maxHeight: maxHeight),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0F2FF),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            countLabel,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: _accentColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Закрыть',
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final columns = constraints.maxWidth >= 480 ? 3 : 1;
+                    if (columns == 3) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (var i = 0; i < item.imageUrls.length; i++) ...[
+                            if (i > 0) const SizedBox(width: 10),
+                            Expanded(
+                              child: _PhotoshootPhotoTile(
+                                imageUrl: item.imageUrls[i],
+                                label: 'Фото ${i + 1}',
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    }
+                    return Column(
+                      children: [
+                        for (var i = 0; i < item.imageUrls.length; i++) ...[
+                          if (i > 0) const SizedBox(height: 12),
+                          _PhotoshootPhotoTile(
+                            imageUrl: item.imageUrls[i],
+                            label: 'Фото ${i + 1}',
+                          ),
+                        ],
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _onHidePressed(context),
+                    icon: const Icon(Icons.visibility_off_outlined, size: 18),
+                    label: const Text('Скрыть фотосессию из Галереи'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _accentColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Закрыть'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PhotoshootPhotoTile extends StatelessWidget {
+  const _PhotoshootPhotoTile({
+    required this.imageUrl,
+    required this.label,
+  });
+
+  final String imageUrl;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: AspectRatio(
+            aspectRatio: 3 / 4,
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return Container(
+                  color: const Color(0xFFF0F2F8),
+                  alignment: Alignment.center,
+                  child: const CircularProgressIndicator(strokeWidth: 2.5),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: const Color(0xFFF0F2F8),
+                alignment: Alignment.center,
+                child: const Icon(Icons.broken_image_outlined),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => downloadGalleryImage(
+                context,
+                imageUrl,
+                suggestedFileName: label.replaceAll(' ', '_').toLowerCase(),
+              ),
+              icon: const Icon(Icons.download_outlined, size: 18),
+              label: const Text('Скачать'),
+              style: TextButton.styleFrom(
+                foregroundColor: _accentColor,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}

@@ -1,4 +1,5 @@
 import 'package:ai_image_generator/models/generated_image_item.dart';
+import 'package:ai_image_generator/utils/gallery_item_key.dart';
 
 /// One row in the Gallery grid: a single image or a photoshoot group.
 class GalleryDisplayItem {
@@ -7,12 +8,14 @@ class GalleryDisplayItem {
     required this.createdAt,
     required this.imageUrls,
     this.photoshootId,
+    this.hideKey,
   });
 
   final String description;
   final DateTime createdAt;
   final List<String> imageUrls;
   final String? photoshootId;
+  final String? hideKey;
 
   bool get isPhotoshootGroup =>
       photoshootId != null && photoshootId!.isNotEmpty;
@@ -45,6 +48,7 @@ List<GalleryDisplayItem> groupGalleryItems(List<GeneratedImageItem> items) {
           description: item.description,
           createdAt: item.createdAt,
           imageUrls: [item.imageUrl],
+          hideKey: galleryImageHideKey(item),
         ),
       );
       continue;

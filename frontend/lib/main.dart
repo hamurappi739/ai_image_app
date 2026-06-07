@@ -13,8 +13,10 @@ import 'services/auth_service.dart';
 import 'services/create_help_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/photoshoots_help_service.dart';
+import 'utils/gallery_item_key.dart';
 import 'utils/mock_photoshoot_photo.dart';
 import 'widgets/create_help_dialog.dart';
+import 'widgets/gallery_viewer.dart';
 import 'widgets/generation_progress_dialog.dart';
 import 'widgets/insufficient_balance_dialog.dart';
 import 'widgets/packs_help_dialog.dart';
@@ -112,6 +114,8 @@ class _MainShellState extends State<MainShell> {
 
   int _selectedIndex = 0;
   final List<GeneratedImageItem> _generatedImages = [];
+  final Set<String> _hiddenGalleryImageKeys = {};
+  final Set<String> _hiddenPhotoshootIds = {};
   bool _backendHistoryUnavailable = false;
   UserBalance? _userBalance;
   bool _balanceLoading = false;
@@ -214,7 +218,19 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _clearGallery() {
-    setState(() => _generatedImages.clear());
+    setState(() {
+      _generatedImages.clear();
+      _hiddenGalleryImageKeys.clear();
+      _hiddenPhotoshootIds.clear();
+    });
+  }
+
+  void _hideGalleryImage(String hideKey) {
+    setState(() => _hiddenGalleryImageKeys.add(hideKey));
+  }
+
+  void _hidePhotoshoot(String photoshootId) {
+    setState(() => _hiddenPhotoshootIds.add(photoshootId));
   }
 
   @override
@@ -242,6 +258,10 @@ class _MainShellState extends State<MainShell> {
       ),
       GalleryScreen(
         images: _generatedImages,
+        hiddenImageKeys: _hiddenGalleryImageKeys,
+        hiddenPhotoshootIds: _hiddenPhotoshootIds,
+        onHideImage: _hideGalleryImage,
+        onHidePhotoshoot: _hidePhotoshoot,
         onCreateFirst: _goToCreateTab,
         onClearGallery: _clearGallery,
         backendHistoryUnavailable: _backendHistoryUnavailable,
@@ -3459,12 +3479,20 @@ class GalleryScreen extends StatelessWidget {
   const GalleryScreen({
     super.key,
     required this.images,
+    required this.hiddenImageKeys,
+    required this.hiddenPhotoshootIds,
+    required this.onHideImage,
+    required this.onHidePhotoshoot,
     required this.onCreateFirst,
     required this.onClearGallery,
     this.backendHistoryUnavailable = false,
   });
 
   final List<GeneratedImageItem> images;
+  final Set<String> hiddenImageKeys;
+  final Set<String> hiddenPhotoshootIds;
+  final ValueChanged<String> onHideImage;
+  final ValueChanged<String> onHidePhotoshoot;
   final VoidCallback onCreateFirst;
   final VoidCallback onClearGallery;
   final bool backendHistoryUnavailable;
@@ -3502,7 +3530,12 @@ class GalleryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayItems = groupGalleryItems(images);
+    final visibleImages = filterVisibleGalleryImages(
+      images,
+      hiddenImageKeys: hiddenImageKeys,
+      hiddenPhotoshootIds: hiddenPhotoshootIds,
+    );
+    final displayItems = groupGalleryItems(visibleImages);
 
     if (displayItems.isEmpty) {
       return _GalleryEmptyState(
@@ -3580,7 +3613,11 @@ class GalleryScreen extends StatelessWidget {
                         ),
                         itemCount: displayItems.length,
                         itemBuilder: (context, index) {
-                          return _GalleryImageCard(item: displayItems[index]);
+                          return _GalleryImageCard(
+                            item: displayItems[index],
+                            onHideImage: onHideImage,
+                            onHidePhotoshoot: onHidePhotoshoot,
+                          );
                         },
                       ),
                     ],
@@ -3653,7 +3690,7 @@ class _GalleryEmptyState extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          'Пока нет изображений',
+                          'В Галерее пока пусто',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontSize: 18,
                           ),
@@ -3661,7 +3698,8 @@ class _GalleryEmptyState extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Создайте первое изображение или фотосессию, чтобы увидеть результат здесь.',
+                          'Создайте изображение или фотосессию — '
+                          'результат появится здесь.',
                           style: theme.textTheme.bodyMedium,
                           textAlign: TextAlign.center,
                         ),
@@ -3767,9 +3805,31 @@ class _GalleryEmptyState extends StatelessWidget {
 }
 
 class _GalleryImageCard extends StatelessWidget {
-  const _GalleryImageCard({required this.item});
+  const _GalleryImageCard({
+    required this.item,
+    required this.onHideImage,
+    required this.onHidePhotoshoot,
+  });
 
   final GalleryDisplayItem item;
+  final ValueChanged<String> onHideImage;
+  final ValueChanged<String> onHidePhotoshoot;
+
+  void _onTap(BuildContext context) {
+    if (item.isPhotoshootGroup) {
+      GalleryPhotoshootViewer.show(
+        context,
+        item: item,
+        onHidePhotoshoot: onHidePhotoshoot,
+      );
+      return;
+    }
+    GallerySingleImageViewer.show(
+      context,
+      item: item,
+      onHide: onHideImage,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -3783,31 +3843,36 @@ class _GalleryImageCard extends StatelessWidget {
         galleryPhotoshootPhotoCountLabel(item.imageUrls.length);
     final imageCountLabel = galleryImageCountLabel(item.imageUrls.length);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _onTap(context),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _GalleryImagePreview(imageUrls: item.imageUrls),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (isPhotoshoot) ...[
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _GalleryImagePreview(imageUrls: item.imageUrls),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isPhotoshoot) ...[
                   Text(
                     photoshootTitle,
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -3868,15 +3933,17 @@ class _GalleryImageCard extends StatelessWidget {
                     ),
                   ],
                 ],
-                const SizedBox(height: 6),
-                Text(
-                  _formatGalleryTimestamp(item.createdAt),
-                  style: theme.textTheme.bodyMedium?.copyWith(fontSize: 12),
+                    const SizedBox(height: 6),
+                    Text(
+                      _formatGalleryTimestamp(item.createdAt),
+                      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 12),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
