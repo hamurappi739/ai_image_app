@@ -535,6 +535,8 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 
 **Идемпотентность:** unique **`(provider, provider_payment_id)`** в `payment_transactions`; повторный запрос не увеличивает `profiles.paid_*`.
 
+**Flutter (development):** вкладка **«Пакеты»** — **«Выбрать пакет»** → `ApiService.mockVerifyRuStorePayment(packageId, providerPaymentId)`; `provider_payment_id` генерируется как `dev-package-<package_id>-<timestamp>`; баланс обновляется из поля **`balance`** в response (не на клиенте). **«Своя сумма»** mock-verify **не вызывает**.
+
 **Flutter production:** **не вызывать** этот endpoint; будущий real RuStore flow — отдельный server-side verification.
 
 ---
@@ -579,7 +581,7 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 | **Создать** | `POST /generate` через `ApiService.generateImage()` | **Работает** |
 | **Фотосессии** | `POST /photoshoots/generate` (multipart) | Бесплатные: по умолчанию **501**; при `ENABLE_PHOTOSHOOT_GENERATION=true` → `image_urls`. Платные без оплаты → **402** |
 | **Галерея** | `GET /generations` при старте + локально новые сверху | **Работает** (dev: `TEST_USER_ID`; фильтр debug в UI) |
-| **Пакеты** | UI placeholder; backend **`POST /payments/rustore/mock-verify`** (dev only) | UI без реальной оплаты; mock top-up — только ручная отладка backend |
+| **Пакеты** | Dev: **«Выбрать пакет»** → **`POST /payments/rustore/mock-verify`**; **«Своя сумма»** — placeholder | Реальный RuStore — позже |
 | **Профиль** | `GET /balance` (готов на backend) | Endpoint есть; **Flutter пока не подключён** |
 
 - **Production / release** Flutter **не должен** вызывать `/debug/*` (только ручная отладка backend).

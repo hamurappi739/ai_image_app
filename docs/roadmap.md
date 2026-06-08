@@ -83,6 +83,7 @@
 | **Backend package catalog** | ✅ | 6 пакетов (mix + images-only); суммы только на сервере |
 | **Development mock-verify endpoint** | ✅ | `POST /payments/rustore/mock-verify`; проверен вручную (`package_499_mix`) |
 | **Duplicate payment protection** | ✅ | Повторный `provider_payment_id` → `already_processed`, баланс не начисляется |
+| **Flutter Packs → mock-verify (development)** | ✅ | «Выбрать пакет» → backend top-up; баланс в Пакеты/Профиль/Создать; «Своя сумма» — placeholder |
 | **Backend paid photoshoot protection** | ✅ | Платные стили → **`402`** до Gemini/Storage/`generations`; бесплатные — как раньше |
 | **Richer photoshoot cards** | ✅ | Каталог-style UI: gradient placeholder preview, название, описание, цена/«Бесплатно» |
 | **“3 фото” label on photoshoot cards** | ✅ | Чип **«3 фото»** на карточке и в bottom sheet |

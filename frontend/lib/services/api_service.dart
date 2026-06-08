@@ -98,6 +98,63 @@ class GenerationHistoryItem {
   }
 }
 
+class MockPaymentUnavailableException implements Exception {
+  const MockPaymentUnavailableException();
+}
+
+class MockPaymentFailedException implements Exception {
+  const MockPaymentFailedException();
+}
+
+class MockPaymentAddedBalance {
+  const MockPaymentAddedBalance({
+    required this.paidImageGenerations,
+    required this.paidPhotoshoots,
+  });
+
+  final int paidImageGenerations;
+  final int paidPhotoshoots;
+
+  factory MockPaymentAddedBalance.fromJson(Map<String, dynamic> json) {
+    return MockPaymentAddedBalance(
+      paidImageGenerations: json['paid_image_generations'] as int? ?? 0,
+      paidPhotoshoots: json['paid_photoshoots'] as int? ?? 0,
+    );
+  }
+}
+
+class MockVerifyRuStorePaymentResponse {
+  const MockVerifyRuStorePaymentResponse({
+    required this.status,
+    required this.packageId,
+    required this.added,
+    this.balance,
+  });
+
+  final String status;
+  final String packageId;
+  final MockPaymentAddedBalance added;
+  final UserBalance? balance;
+
+  factory MockVerifyRuStorePaymentResponse.fromJson(Map<String, dynamic> json) {
+    final rawBalance = json['balance'];
+    final rawAdded = json['added'];
+    return MockVerifyRuStorePaymentResponse(
+      status: json['status'] as String? ?? '',
+      packageId: json['package_id'] as String? ?? '',
+      added: rawAdded is Map<String, dynamic>
+          ? MockPaymentAddedBalance.fromJson(rawAdded)
+          : const MockPaymentAddedBalance(
+              paidImageGenerations: 0,
+              paidPhotoshoots: 0,
+            ),
+      balance: rawBalance is Map<String, dynamic>
+          ? UserBalance.fromJson(rawBalance)
+          : null,
+    );
+  }
+}
+
 class PhotoshootPlaceholderException implements Exception {
   const PhotoshootPlaceholderException();
 }
@@ -318,6 +375,30 @@ class ApiService {
       return 'photoshoot.jpg';
     }
     return path.substring(idx + 1);
+  }
+
+  Future<MockVerifyRuStorePaymentResponse> mockVerifyRuStorePayment({
+    required String packageId,
+    required String providerPaymentId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/payments/rustore/mock-verify');
+    final response = await http.post(
+      uri,
+      headers: _requestHeaders(jsonBody: true),
+      body: jsonEncode({
+        'package_id': packageId,
+        'provider_payment_id': providerPaymentId,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return MockVerifyRuStorePaymentResponse.fromJson(json);
+    }
+    if (response.statusCode == 403 || response.statusCode == 404) {
+      throw const MockPaymentUnavailableException();
+    }
+    throw const MockPaymentFailedException();
   }
 
   Future<PhotoshootGenerateResponse> generatePhotoshoot({

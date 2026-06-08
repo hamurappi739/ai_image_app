@@ -341,10 +341,12 @@ class _MainShellState extends State<MainShell> {
         backendHistoryUnavailable: _backendHistoryUnavailable,
       ),
       PacksScreen(
+        apiService: _apiService,
         balance: _userBalance,
         balanceLoading: _balanceLoading,
         balanceLoadFailed: _balanceLoadFailed,
         onRefreshBalance: _loadBalance,
+        onBalanceUpdated: _updateBalance,
       ),
       ProfileScreen(
         authService: _authService,
@@ -460,6 +462,7 @@ class _AppEntryState extends State<AppEntry> {
 
 class _PackOffering {
   const _PackOffering({
+    required this.packageId,
     required this.priceRub,
     required this.imageCount,
     required this.subtitle,
@@ -467,6 +470,7 @@ class _PackOffering {
     this.featured = false,
   });
 
+  final String packageId;
   final int priceRub;
   final int imageCount;
   final int photoshootCount;
@@ -541,19 +545,37 @@ String _formatPackReceiveSummary(int images, int photoshoots) {
   return 'Увеличьте сумму или уменьшите число фотосессий';
 }
 
+String _formatMockPaymentAddedSummary(int images, int photoshoots) {
+  if (photoshoots > 0 && images > 0) {
+    return 'Добавлено: $images ${_packImageLabel(images)} '
+        'и $photoshoots ${_packPhotoshootLabel(photoshoots)}';
+  }
+  if (images > 0) {
+    return 'Добавлено: $images ${_packImageLabel(images)}';
+  }
+  if (photoshoots > 0) {
+    return 'Добавлено: $photoshoots ${_packPhotoshootLabel(photoshoots)}';
+  }
+  return 'Баланс обновлён';
+}
+
 class PacksScreen extends StatefulWidget {
   const PacksScreen({
     super.key,
+    required this.apiService,
     required this.balance,
     required this.balanceLoading,
     required this.balanceLoadFailed,
     required this.onRefreshBalance,
+    required this.onBalanceUpdated,
   });
 
+  final ApiService apiService;
   final UserBalance? balance;
   final bool balanceLoading;
   final bool balanceLoadFailed;
   final VoidCallback onRefreshBalance;
+  final ValueChanged<UserBalance> onBalanceUpdated;
 
   @override
   State<PacksScreen> createState() => _PacksScreenState();
@@ -570,12 +592,14 @@ class _PacksScreenState extends State<PacksScreen> {
 
   static const _mixedPackages = <_PackOffering>[
     _PackOffering(
+      packageId: 'package_199_mix',
       priceRub: 199,
       photoshootCount: 1,
       imageCount: 9,
       subtitle: 'Для первого теста',
     ),
     _PackOffering(
+      packageId: 'package_499_mix',
       priceRub: 499,
       photoshootCount: 3,
       imageCount: 19,
@@ -583,6 +607,7 @@ class _PacksScreenState extends State<PacksScreen> {
       featured: true,
     ),
     _PackOffering(
+      packageId: 'package_999_mix',
       priceRub: 999,
       photoshootCount: 8,
       imageCount: 19,
@@ -592,22 +617,27 @@ class _PacksScreenState extends State<PacksScreen> {
 
   static const _imagesOnlyPackages = <_PackOffering>[
     _PackOffering(
+      packageId: 'package_199_images',
       priceRub: 199,
       imageCount: 19,
       subtitle: 'Для первого теста',
     ),
     _PackOffering(
+      packageId: 'package_499_images',
       priceRub: 499,
       imageCount: 49,
       subtitle: 'Оптимальный вариант',
       featured: true,
     ),
     _PackOffering(
+      packageId: 'package_999_images',
       priceRub: 999,
       imageCount: 99,
       subtitle: 'Для активного использования',
     ),
   ];
+
+  String? _processingPackageId;
 
   _PackCatalogMode _catalogMode = _PackCatalogMode.withPhotoshoots;
   int _customPhotoshootCount = 8;
@@ -721,11 +751,189 @@ class _PacksScreenState extends State<PacksScreen> {
     };
   }
 
+  Future<void> _showMockTopUpLoadingDialog() {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  'Пополняем баланс…',
+                  style: Theme.of(dialogContext).textTheme.bodyMedium?.copyWith(
+                        fontSize: 15,
+                        color: AiImageGeneratorApp.textPrimary,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onPackSelected(_PackOffering offering) async {
+    if (_processingPackageId != null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Пополнить баланс?',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        ),
+        content: const Text(
+          'Это демонстрационное пополнение без реальной оплаты. '
+          'В будущем здесь будет RuStore.',
+          style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF5B6CFF),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Пополнить'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _processingPackageId = offering.packageId);
+    unawaited(_showMockTopUpLoadingDialog());
+    await Future<void>.delayed(Duration.zero);
+
+    final providerPaymentId =
+        'dev-package-${offering.packageId}-${DateTime.now().millisecondsSinceEpoch}';
+
+    try {
+      final result = await widget.apiService.mockVerifyRuStorePayment(
+        packageId: offering.packageId,
+        providerPaymentId: providerPaymentId,
+      );
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+
+      if (result.balance != null) {
+        widget.onBalanceUpdated(result.balance!);
+      }
+
+      if (result.status == 'already_processed') {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Покупка уже обработана',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            content: const Text(
+              'Эта покупка уже была обработана.',
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.45,
+                color: Color(0xFF6B7280),
+              ),
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF5B6CFF),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Понятно'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Баланс пополнен',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+          content: Text(
+            _formatMockPaymentAddedSummary(
+              result.added.paidImageGenerations,
+              result.added.paidPhotoshoots,
+            ),
+            style: const TextStyle(
+              fontSize: 15,
+              height: 1.45,
+              color: Color(0xFF6B7280),
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF5B6CFF),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Понятно'),
+            ),
+          ],
+        ),
+      );
+    } on MockPaymentUnavailableException {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      _showPackPaymentSoonDialog(context);
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Не удалось пополнить баланс. Попробуйте ещё раз.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _processingPackageId = null);
+      }
+    }
+  }
+
   Widget _buildPackCardsGrid({
     required BuildContext context,
     required int columns,
     required bool showPhotoshoots,
-    required VoidCallback onPaymentSoon,
   }) {
     const spacing = 16.0;
     final packages = _activePackages;
@@ -748,7 +956,10 @@ class _PacksScreenState extends State<PacksScreen> {
             layout: layout,
             offering: packages[index],
             showPhotoshoots: showPhotoshoots,
-            onPaymentSoon: onPaymentSoon,
+            isLoading: _processingPackageId == packages[index].packageId,
+            isDisabled: _processingPackageId != null &&
+                _processingPackageId != packages[index].packageId,
+            onSelect: () => _onPackSelected(packages[index]),
           ),
         );
       },
@@ -923,8 +1134,6 @@ class _PacksScreenState extends State<PacksScreen> {
                         context: context,
                         columns: columns,
                         showPhotoshoots: showPhotoshoots,
-                        onPaymentSoon: () =>
-                            _showPackPaymentSoonDialog(context),
                       ),
                       const SizedBox(height: 32),
                       Text(
@@ -1006,13 +1215,17 @@ class _PackOfferingCard extends StatelessWidget {
     required this.layout,
     required this.offering,
     required this.showPhotoshoots,
-    required this.onPaymentSoon,
+    required this.isLoading,
+    required this.isDisabled,
+    required this.onSelect,
   });
 
   final _PackCardLayout layout;
   final _PackOffering offering;
   final bool showPhotoshoots;
-  final VoidCallback onPaymentSoon;
+  final bool isLoading;
+  final bool isDisabled;
+  final VoidCallback onSelect;
 
   static const _accentColor = Color(0xFF5B6CFF);
   static const _featuredGradient = LinearGradient(
@@ -1120,7 +1333,8 @@ class _PackOfferingCard extends StatelessWidget {
                     featured: offering.featured,
                     height: layout.buttonHeight,
                     fontSize: layout.buttonFontSize,
-                    onPressed: onPaymentSoon,
+                    isLoading: isLoading,
+                    onPressed: isDisabled ? null : onSelect,
                   ),
                 ],
               ),
@@ -1138,13 +1352,15 @@ class _PackPaymentButton extends StatelessWidget {
     required this.featured,
     required this.height,
     required this.fontSize,
+    required this.isLoading,
     required this.onPressed,
   });
 
   final bool featured;
   final double height;
   final double fontSize;
-  final VoidCallback onPressed;
+  final bool isLoading;
+  final VoidCallback? onPressed;
 
   static const _accentColor = Color(0xFF5B6CFF);
   static const _featuredGradient = LinearGradient(
@@ -1168,14 +1384,23 @@ class _PackPaymentButton extends StatelessWidget {
               onTap: onPressed,
               borderRadius: BorderRadius.circular(10),
               child: Center(
-                child: Text(
-                  'Выбрать пакет',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: fontSize,
-                  ),
-                ),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'Выбрать пакет',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: fontSize,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -1201,13 +1426,19 @@ class _PackPaymentButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
           ),
         ),
-        child: Text(
-          'Выбрать пакет',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: fontSize,
-          ),
-        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2.2),
+              )
+            : Text(
+                'Выбрать пакет',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: fontSize,
+                ),
+              ),
       ),
     );
   }
