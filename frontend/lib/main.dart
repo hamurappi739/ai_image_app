@@ -17,6 +17,7 @@ import 'services/payment_service.dart';
 import 'services/create_help_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/photoshoots_help_service.dart';
+import 'utils/create_description_text_field.dart';
 import 'utils/gallery_item_key.dart';
 import 'utils/mock_photoshoot_photo.dart';
 import 'widgets/create_help_dialog.dart';
@@ -6852,25 +6853,11 @@ class _InputCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SoftCard(
-      child: TextField(
+      child: CreateDescriptionTextField(
         controller: controller,
-        keyboardType: TextInputType.text,
-        textCapitalization: TextCapitalization.sentences,
-        enableSuggestions: true,
-        enableIMEPersonalizedLearning: true,
-        autocorrect: true,
-        minLines: 3,
-        maxLines: 6,
-        decoration: InputDecoration(
-          hintText: isPhotoMode
-              ? 'Например: сделай деловой портрет на светлом фоне'
-              : 'Например: уютный домик в зимнем лесу, вечер, тёплый свет',
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 16),
-          border: InputBorder.none,
-          isDense: true,
-          contentPadding: EdgeInsets.zero,
-        ),
-        style: const TextStyle(fontSize: 16, height: 1.45),
+        hintText: isPhotoMode
+            ? 'Например: сделай деловой портрет на светлом фоне'
+            : 'Например: уютный домик в зимнем лесу, вечер, тёплый свет',
       ),
     );
   }
