@@ -334,6 +334,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **«Своя сумма» (development):** через **`PaymentService.purchaseCustomAmountDemo`** → **`mock-verify-custom`**; retry на **503** в `ApiService`. **Реальный RuStore — future**.
 - **Не подключено:** реальный RuStore Pay SDK, server-side RuStore API verification, production payment flow.
 - **Android / RuStore readiness audit (✅):** проверены `applicationId`, SDK versions (Flutter defaults: min **24**, target/compile **36**), `MainActivity`, `INTERNET` в main manifest; release signing — debug keys (TODO keystore); deprecated **BillingClient** не использовать — целевой **RuStore Pay SDK**. Подробнее: [rustore_integration_plan.md](rustore_integration_plan.md).
+- **Demo / release readiness (✅):** debug APK build проверен (`flutter build apk --debug` → `app-debug.apk`); чеклист демо — [demo_release_checklist.md](demo_release_checklist.md). **Production release** (signing, deploy, RuStore, store) — **future**.
 
 ### Создать
 
@@ -656,6 +657,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | [app_design_strategy.md](app_design_strategy.md) | UX, вкладки |
 | [roadmap.md](roadmap.md) | Этапы |
 | [demo_script.md](demo_script.md) | Сценарий демо |
+| [demo_release_checklist.md](demo_release_checklist.md) | Debug APK, backend modes, install, not-production |
 | [flutter_auth_setup.md](flutter_auth_setup.md) | Запуск Flutter с Supabase Auth |
 | `frontend/README.md` | Запуск Flutter |
 | `backend/README.md` | Env, endpoints |

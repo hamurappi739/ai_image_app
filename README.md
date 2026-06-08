@@ -55,6 +55,10 @@
 
 Подробнее по запуску: `backend/README.md`, `frontend/README.md`.
 
+### Demo APK / release readiness
+
+Сборка debug APK, установка на Android, режимы backend для демо и что **ещё не production** — см. **[docs/demo_release_checklist.md](docs/demo_release_checklist.md)**.
+
 ---
 
 ## Быстрый запуск backend
