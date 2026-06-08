@@ -8,7 +8,7 @@
 
 **Generation UX (Фотосессии):** blocking progress dialog (~120 s) when a real backend request runs; *«Почти готово, ждём результат...»* if the timer ends first.
 
-**Ближайшее (руководство):** реальный **RuStore SDK** + frontend purchase flow ([roadmap.md](docs/roadmap.md)). Backend **payment foundation** (mock-verify) **готов**; **generation quality** instructions для Gemini **реализованы**. Balance **debit** и **mock top-up** проверены вручную.
+**Ближайшее (руководство):** реальный **RuStore SDK** в **`PaymentService`** ([roadmap.md](docs/roadmap.md)). Backend **payment foundation** (mock-verify) **готов**; Flutter **`PaymentService`** готов к замене demo-id на purchase id от RuStore. Balance **debit** и **mock top-up** проверены вручную.
 
 **Статус авторизации:** Supabase Auth во вкладке **Профиль** (вход / регистрация / выход). Bearer token передаётся в **`/balance`**, **`/generations`**, **`/generate`**, **`/generate-with-photo`**, **`/photoshoots/generate`**. После выхода Галерея и баланс в UI очищаются; данные разных пользователей не смешиваются. В **production** без `Authorization` backend возвращает **`401`**. Dev fallback **`TEST_USER_ID`** — только `ENVIRONMENT=development` без токена. **RuStore** не подключён. Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
@@ -39,7 +39,7 @@
 - Backend: **mock mode** и **Gemini safe mode** — все три generation flow **проверены вручную**; результаты в **Галерее**
 - Backend: **Gemini photoshoot** (3 кадра) + Flutter **Gallery grouping** + **`photoshoot_id`**; по умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**
 - Backend: **payment foundation** — `payment_transactions`, package catalog, dev **`POST /payments/rustore/mock-verify`** и **`POST /payments/rustore/mock-verify-custom`**
-- **Пакеты (dev):** **«Выбрать пакет»** и **«Своя сумма»** → mock-verify → обновление баланса из response; custom amount считает backend
+- **Пакеты (dev):** **`PaymentService`** → mock-verify → обновление баланса из response; custom amount считает backend; RuStore SDK — **не подключён**
 - **Реальный RuStore** — **не подключён**
 - Backend: **Gemini quality instructions** (`gemini_quality_instructions.py`) — anti-collage/grid, identity preservation, 3 separate photoshoot frames; **mock unchanged**
 

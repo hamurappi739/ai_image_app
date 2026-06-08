@@ -86,6 +86,7 @@
 | **Flutter Packs → mock-verify (development)** | ✅ | «Выбрать пакет» → backend top-up; баланс в Пакеты/Профиль/Создать/Фотосессии |
 | **Development mock-verify-custom endpoint** | ✅ | `POST /payments/rustore/mock-verify-custom`; backend считает изображения/фотосессии |
 | **Flutter «Своя сумма» → mock-verify-custom (development)** | ✅ | «Пополнить баланс» → backend top-up; retry на 503; real RuStore — future |
+| **Flutter PaymentService layer** | ✅ | `payment_service.dart` + `PaymentResult`; demo methods; RuStore stubs — future |
 | **Backend paid photoshoot protection** | ✅ | Платные стили → **`402`** до Gemini/Storage/`generations`; бесплатные — как раньше |
 | **Richer photoshoot cards** | ✅ | Каталог-style UI: gradient placeholder preview, название, описание, цена/«Бесплатно» |
 | **“3 фото” label on photoshoot cards** | ✅ | Чип **«3 фото»** на карточке и в bottom sheet |
@@ -131,7 +132,7 @@
 - **Создать:** режим по **тумблеру** «Без фото» / «С фото» (синхронизирован); кнопка **«Создать»** / **«Создать по фото»**; **`POST /generate`** / **`POST /generate-with-photo`** по режиму; modal, идеи, «Открыть в Галерее»
 - **Фотосессии:** **каталог** (8 стилей + **«Своя фотосессия»** UI-каркас), рекомендации и примеры-заглушки в sheet; готовые стили: bottom sheet → multipart upload (бесплатно); **«Своя фотосессия»** — только dialog, SnackBar «будет добавлена позже»
 - **Галерея:** `GET /generations` + локальные новые; **группировка фотосессий** по `photoshoot_id`; **просмотр** (крупно), **Скачать**, **«Скрыть из Галереи»** (локально); **Очистить** (только на устройстве); empty state
-- **Пакеты:** demo-ready UI — hero **«Ваш баланс»** (изображения / фотосессии / бесплатные), переключатель **«С фотосессиями»** / **«Только изображения»** с пояснением, карточки **199 / 499 / 999 ₽** (**«Популярно»** на 499), **«Своя сумма»** (мин. **10 ₽**); development: **«Выбрать пакет»** / **«Пополнить баланс»** → mock-verify через backend; **RuStore / реальная оплата — не подключены**
+- **Пакеты:** demo-ready UI — hero **«Ваш баланс»** (изображения / фотосессии / бесплатные), переключатель **«С фотосессиями»** / **«Только изображения»** с пояснением, карточки **199 / 499 / 999 ₽** (**«Популярно»** на 499), **«Своя сумма»** (мин. **10 ₽**); development: **`PaymentService`** → mock-verify через backend; **RuStore SDK / реальная оплата — не подключены**
 - **Профиль:** вход / регистрация / выход (при Supabase dart-define)
 
 **UX (следующие задачи):** **RuStore** после покупки — см. [app_design_strategy.md](app_design_strategy.md) и § **«Ближайший порядок работ»** ниже.

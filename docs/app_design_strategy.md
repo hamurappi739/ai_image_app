@@ -444,14 +444,14 @@ Placeholder examples are **temporary** and will be **replaced with curated visua
 | **«Своя сумма»** | Правила (10 ₽ / 10 ₽ за изображение / 100 ₽ за фотосессию); **«К оплате»** + **«Вы получите»**; dev: **«Пополнить баланс»** → **`mock-verify-custom`** → **«Баланс пополнен»** (backend считает начисление) |
 | Сетка | 3 колонки (web), 2 (tablet), 1 (mobile); **одинаковая высота** (слот **«Популярно»** у всех карточек) |
 | Помощь | **«Помощь»** → `PacksHelpDialog` |
-| Оплата | Dev: **mock-verify** / **mock-verify-custom** через backend; frontend не начисляет баланс; **реальный RuStore — не подключён** |
+| Оплата | **`PaymentService`** (Flutter): dev demo → backend **mock-verify** / **mock-verify-custom**; баланс только из verification response; **RuStore SDK — не подключён** |
 
 ### Верификация покупки и баланс (backend foundation)
 
 - **Баланс начисляется только после backend verification** — не на клиенте и не «вручную» в UI.
 - Пользовательский интерфейс **не должен** сам увеличивать «изображения» / «фотосессии» без ответа backend (`balance` после verify или `GET /balance`).
 - При **повторной отправке** того же purchase id (`provider_payment_id`) backend возвращает **`already_processed`** — баланс **не** начисляется второй раз.
-- Development: вкладка **«Пакеты»** вызывает **`POST /payments/rustore/mock-verify`** (готовые пакеты) и **`POST /payments/rustore/mock-verify-custom`** (**«Своя сумма»**); баланс обновляется только из ответа backend. При повторном `provider_payment_id` — **«Покупка уже обработана»**, без двойного начисления. Production RuStore SDK — **позже**.
+- Development: вкладка **«Пакеты»** → **`PaymentService`** (`purchasePackageDemo` / `purchaseCustomAmountDemo`) → backend mock-verify; баланс только из ответа verification. Будущий RuStore: SDK purchase id → backend verification (обязательно). При повторном `provider_payment_id` — **«Покупка уже обработана»**. **RuStore SDK — позже**.
 
 ### UX баланса и бесплатных генераций (реализовано)
 

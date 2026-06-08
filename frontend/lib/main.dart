@@ -8,10 +8,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/gallery_display_item.dart';
 import 'models/generated_image_item.dart';
+import 'models/payment_result.dart';
 import 'models/user_balance.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
+import 'services/payment_service.dart';
 import 'services/create_help_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/photoshoots_help_service.dart';
@@ -112,6 +114,8 @@ class _MainShellState extends State<MainShell> {
   static const _accentColor = Color(0xFF5B6CFF);
 
   final _apiService = ApiService();
+  late final PaymentService _paymentService =
+      PaymentService(apiService: _apiService);
   final _authService = AuthService();
 
   int _selectedIndex = 0;
@@ -341,7 +345,7 @@ class _MainShellState extends State<MainShell> {
         backendHistoryUnavailable: _backendHistoryUnavailable,
       ),
       PacksScreen(
-        apiService: _apiService,
+        paymentService: _paymentService,
         balance: _userBalance,
         balanceLoading: _balanceLoading,
         balanceLoadFailed: _balanceLoadFailed,
@@ -562,7 +566,7 @@ String _formatMockPaymentAddedSummary(int images, int photoshoots) {
 class PacksScreen extends StatefulWidget {
   const PacksScreen({
     super.key,
-    required this.apiService,
+    required this.paymentService,
     required this.balance,
     required this.balanceLoading,
     required this.balanceLoadFailed,
@@ -570,7 +574,7 @@ class PacksScreen extends StatefulWidget {
     required this.onBalanceUpdated,
   });
 
-  final ApiService apiService;
+  final PaymentService paymentService;
   final UserBalance? balance;
   final bool balanceLoading;
   final bool balanceLoadFailed;
@@ -784,6 +788,117 @@ class _PacksScreenState extends State<PacksScreen> {
     );
   }
 
+  Future<void> _presentPaymentResult(PaymentResult result) async {
+    if (result.isFailed) {
+      switch (result.failureReason) {
+        case PaymentFailureReason.unavailable:
+          _showPackPaymentSoonDialog(context);
+        case PaymentFailureReason.serviceUnavailable:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Не удалось пополнить баланс. Проверьте подключение и попробуйте ещё раз.',
+              ),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        case PaymentFailureReason.generic:
+        case null:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Не удалось пополнить баланс. Попробуйте ещё раз.',
+              ),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+      }
+      return;
+    }
+
+    if (result.balance != null) {
+      widget.onBalanceUpdated(result.balance!);
+    }
+
+    if (result.isAlreadyProcessed) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Покупка уже обработана',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+          content: const Text(
+            'Эта покупка уже была обработана.',
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.45,
+              color: Color(0xFF6B7280),
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF5B6CFF),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Понятно'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    var successSummary = _formatMockPaymentAddedSummary(
+      result.addedImageGenerations,
+      result.addedPhotoshoots,
+    );
+    final unusedRub = result.unusedRub;
+    if (unusedRub != null && unusedRub > 0) {
+      successSummary += '\n\nОстаток $unusedRub ₽ пока не используется';
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Баланс пополнен',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          successSummary,
+          style: const TextStyle(
+            fontSize: 15,
+            height: 1.45,
+            color: Color(0xFF6B7280),
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF5B6CFF),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Понятно'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _onPackSelected(_PackOffering offering) async {
     if (_processingPackageId != null) return;
 
@@ -826,118 +941,13 @@ class _PacksScreenState extends State<PacksScreen> {
     unawaited(_showMockTopUpLoadingDialog());
     await Future<void>.delayed(Duration.zero);
 
-    final providerPaymentId =
-        'dev-package-${offering.packageId}-${DateTime.now().millisecondsSinceEpoch}';
-
     try {
-      final result = await widget.apiService.mockVerifyRuStorePayment(
-        packageId: offering.packageId,
-        providerPaymentId: providerPaymentId,
+      final result = await widget.paymentService.purchasePackageDemo(
+        offering.packageId,
       );
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
-
-      if (result.balance != null) {
-        widget.onBalanceUpdated(result.balance!);
-      }
-
-      if (result.status == 'already_processed') {
-        await showDialog<void>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: const Text(
-              'Покупка уже обработана',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-            content: const Text(
-              'Эта покупка уже была обработана.',
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.45,
-                color: Color(0xFF6B7280),
-              ),
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF5B6CFF),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Понятно'),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text(
-            'Баланс пополнен',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          content: Text(
-            _formatMockPaymentAddedSummary(
-              result.added.paidImageGenerations,
-              result.added.paidPhotoshoots,
-            ),
-            style: const TextStyle(
-              fontSize: 15,
-              height: 1.45,
-              color: Color(0xFF6B7280),
-            ),
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF5B6CFF),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Понятно'),
-            ),
-          ],
-        ),
-      );
-    } on MockPaymentUnavailableException {
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-      _showPackPaymentSoonDialog(context);
-    } on MockPaymentServiceUnavailableException {
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Не удалось пополнить баланс. Проверьте подключение и попробуйте ещё раз.',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Не удалось пополнить баланс. Попробуйте ещё раз.',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      await _presentPaymentResult(result);
     } finally {
       if (mounted) {
         setState(() => _processingPackageId = null);
@@ -1052,125 +1062,14 @@ class _PacksScreenState extends State<PacksScreen> {
     unawaited(_showMockTopUpLoadingDialog());
     await Future<void>.delayed(Duration.zero);
 
-    final providerPaymentId =
-        'dev-custom-${DateTime.now().millisecondsSinceEpoch}';
-
     try {
-      final result = await widget.apiService.mockVerifyCustomAmountPayment(
+      final result = await widget.paymentService.purchaseCustomAmountDemo(
         amountRub: amount,
         paidPhotoshoots: _customPhotoshootCount,
-        providerPaymentId: providerPaymentId,
       );
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
-
-      if (result.balance != null) {
-        widget.onBalanceUpdated(result.balance!);
-      }
-
-      if (result.status == 'already_processed') {
-        await showDialog<void>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: const Text(
-              'Покупка уже обработана',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-            content: const Text(
-              'Эта покупка уже была обработана.',
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.45,
-                color: Color(0xFF6B7280),
-              ),
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF5B6CFF),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Понятно'),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-
-      var successSummary = _formatMockPaymentAddedSummary(
-        result.added.paidImageGenerations,
-        result.added.paidPhotoshoots,
-      );
-      if (result.unusedRub > 0) {
-        successSummary +=
-            '\n\nОстаток ${result.unusedRub} ₽ пока не используется';
-      }
-
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text(
-            'Баланс пополнен',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          content: Text(
-            successSummary,
-            style: const TextStyle(
-              fontSize: 15,
-              height: 1.45,
-              color: Color(0xFF6B7280),
-            ),
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF5B6CFF),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Понятно'),
-            ),
-          ],
-        ),
-      );
-    } on MockPaymentUnavailableException {
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-      _showPackPaymentSoonDialog(context);
-    } on MockPaymentServiceUnavailableException {
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Не удалось пополнить баланс. Проверьте подключение и попробуйте ещё раз.',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Не удалось пополнить баланс. Попробуйте ещё раз.',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      await _presentPaymentResult(result);
     } finally {
       if (mounted) {
         setState(() => _processingPackageId = null);
