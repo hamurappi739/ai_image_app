@@ -1,0 +1,174 @@
+# Production safety checklist
+
+Аудит безопасности перед публичным запуском. **Текущий demo/development flow не отключён.**
+
+Связанные документы: [demo_release_checklist.md](demo_release_checklist.md), [rustore_integration_plan.md](rustore_integration_plan.md), [api_contract.md](api_contract.md).
+
+---
+
+## Environment
+
+| Переменная | Development (сейчас) | Production (цель) |
+|------------|----------------------|-------------------|
+| `ENVIRONMENT` | `development` | `production` |
+| `TEST_USER_ID` | Fallback без Bearer | **Не используется** |
+| `ENABLE_CREDIT_CONSUMPTION` | `true` / `false` по сценарию | Обычно `true` |
+| `IMAGE_PROVIDER` | `mock` / `gemini` | `gemini` (или policy) |
+| `ENABLE_PHOTOSHOOT_GENERATION` | по сценарию | по policy |
+
+**Проверено:** `settings.environment` читается из `.env`; guards сравнивают `strip().lower() == "development"`.
+
+---
+
+## Auth
+
+| Endpoint | Development | Production |
+|----------|-------------|------------|
+| `GET /balance` | Bearer или `TEST_USER_ID` | **401** без Bearer |
+| `GET /generations` | Bearer или `TEST_USER_ID` | **401** без Bearer |
+| `POST /generate` | Без Bearer только если `ENVIRONMENT=development` и consumption off | **401** без Bearer (всегда) |
+| `POST /generate-with-photo` | То же | **401** без Bearer |
+| `POST /photoshoots/generate` | Bearer или `TEST_USER_ID` | **401** без Bearer |
+| Mock payment | Bearer или `TEST_USER_ID` + **404** если не development | **401** / **404**, баланс не начисляется |
+
+Реализация: `app/auth.py` → `get_current_user()`; `app/main.py` → `_optional_user_for_generation()` для generate endpoints.
+
+---
+
+## Debug endpoints (development-only)
+
+Все возвращают **404**, если `ENVIRONMENT` ≠ `development`:
+
+| Endpoint |
+|----------|
+| `GET /debug/config` |
+| `GET /debug/supabase` |
+| `POST /debug/storage-test` |
+| `POST /debug/storage-image-test` |
+| `POST /debug/storage-image-persist` |
+| `GET /debug/profile` |
+| `GET /debug/credits` |
+| `GET /debug/history` |
+| `POST /debug/consume-generation` |
+| `POST /debug/add-balance` |
+| `POST /debug/add-credits` |
+
+`GET /debug/config` возвращает только **флаги** (`*_configured`), не секреты.
+
+---
+
+## Mock payments (development-only)
+
+| Endpoint | Guard |
+|----------|--------|
+| `POST /payments/rustore/mock-verify` | `_require_development_for_payment_mock()` → **404** |
+| `POST /payments/rustore/mock-verify-custom` | то же |
+
+В production mock-verify **не начисляет** баланс (endpoint недоступен).
+
+**Frontend:** `PaymentService` → `MockPaymentUnavailableException` (403/404) → `PaymentFailureReason.unavailable` → UI **«Оплата скоро появится»**; баланс **не** обновляется на клиенте.
+
+---
+
+## Balance integrity
+
+- Начисление paid balance: только backend (`mock_verify_*`, будущий RuStore verify, `add_paid_balance`).
+- Списание: `consume_generation` / `consume_photoshoot` при `ENABLE_CREDIT_CONSUMPTION=true`.
+- Frontend **никогда** не инкрементирует баланс локально — только из `balance` в API response.
+- Идемпотентность платежей: unique `(provider, provider_payment_id)` в `payment_transactions`.
+
+---
+
+## User data isolation
+
+| Данные | Фильтр |
+|--------|--------|
+| `GET /generations` | `get_generations_by_user_id(user.id)` |
+| `GET /balance` | `ensure_profile_exists(user.id)` |
+| Генерации в БД | `user_id` текущего пользователя |
+| `payment_transactions` | `user_id` из `CurrentUser` |
+| Storage paths | `{folder}/{user_id}/...` |
+
+**Проверено:** запросы к Supabase REST с `user_id=eq.{id}`; service role только на backend.
+
+---
+
+## CORS
+
+| Сейчас | Production TODO |
+|--------|-----------------|
+| `allow_origins=["*"]`, `allow_credentials=False` | Явный список доверенных origin (web/admin) |
+| Комментарий в `main.py` | Не использовать `*` + credentials в production |
+
+---
+
+## Supabase RLS
+
+- Backend использует **service role** через httpx REST.
+- **Перед production:** финальный review RLS/policies в Supabase для `profiles`, `generations`, `payment_transactions`.
+- Клиент не должен обходить backend для мутаций баланса.
+
+---
+
+## Secrets
+
+- `.env` не коммитить (`GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, …).
+- API responses: generic `401` / `500` без stack trace (FastAPI default).
+- `GET /debug/config`: только boolean `*_configured`, не значения ключей.
+- Избегать `detail=str(exc)` в **публичных** production paths (в debug endpoints допустимо для dev).
+
+---
+
+## Release signing
+
+- Debug APK / debug signing — только для demo.
+- RuStore release: production keystore вне git — см. [rustore_integration_plan.md](rustore_integration_plan.md).
+
+---
+
+## RuStore verification
+
+- **Не подключено:** RuStore Pay SDK, server-side RuStore API verify.
+- **Готово:** `PaymentService` abstraction, `payment_transactions`, package catalog.
+- Production: mock-verify **отключён**; только verified real purchases.
+
+---
+
+## Pre-release checklist
+
+- [ ] `ENVIRONMENT=production` на сервере
+- [ ] `TEST_USER_ID` пустой или игнорируется (fallback отключён в коде)
+- [ ] Все `/debug/*` → 404
+- [ ] Mock payment → 404
+- [ ] Без `Authorization` → 401 на `/balance`, `/generations`, `/generate`, `/photoshoots/generate`
+- [ ] CORS: явные origins
+- [ ] Supabase RLS review
+- [ ] Секреты в secure storage / CI
+- [ ] Release signing + RuStore console
+- [ ] Real RuStore verification endpoint
+- [ ] `ENABLE_CREDIT_CONSUMPTION` policy согласована с продуктом
+
+---
+
+## Manual verification commands
+
+**Development (ожидание: работает):**
+
+```powershell
+# /debug/config → 200
+curl http://127.0.0.1:8000/debug/config
+```
+
+**Production-like (ожидание: заблокировано):**
+
+```powershell
+cd backend
+$env:ENVIRONMENT='production'
+python -m uvicorn app.main:app --port 8001
+# Другой терминал:
+curl http://127.0.0.1:8001/debug/config          # → 404
+curl http://127.0.0.1:8001/balance               # → 401
+curl -X POST http://127.0.0.1:8001/payments/rustore/mock-verify -H "Content-Type: application/json" -d "{\"package_id\":\"package_499_mix\",\"provider_payment_id\":\"x\"}"  # → 401 or 404
+```
+
+Вернуть `ENVIRONMENT=development` для локальной разработки.

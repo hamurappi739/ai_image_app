@@ -13,7 +13,10 @@ class CurrentUser:
 
 
 def get_current_user(authorization: str | None = Header(default=None)) -> CurrentUser:
-    """Resolve current user from Bearer token or development fallback."""
+    """Resolve current user from Bearer token or development TEST_USER_ID fallback.
+
+    Production (ENVIRONMENT != development): Bearer token required; no TEST_USER_ID fallback.
+    """
     if authorization:
         return _resolve_user_from_authorization_header(authorization)
 

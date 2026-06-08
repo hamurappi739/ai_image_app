@@ -130,7 +130,8 @@ RuStore Console SKU должны однозначно маппиться на `p
 - [ ] RuStore API secrets только на backend / secure CI.
 - [ ] Не доверять `amount_rub` / количеству изображений с клиента для catalog-пакетов.
 - [ ] Уникальный `provider_payment_id` / purchase id на транзакцию.
-- [ ] Production: отключить mock-verify endpoints (`ENVIRONMENT` ≠ development).
+- [ ] Production: отключить mock-verify endpoints (`ENVIRONMENT` ≠ development) — **уже в коде** (`_require_development_for_payment_mock` → 404).
+- [ ] См. [production_safety_checklist.md](production_safety_checklist.md) — auth, RLS, CORS, secrets.
 
 ---
 

@@ -452,6 +452,7 @@ Placeholder examples are **temporary** and will be **replaced with curated visua
 - Пользовательский интерфейс **не должен** сам увеличивать «изображения» / «фотосессии» без ответа backend (`balance` после verify или `GET /balance`).
 - При **повторной отправке** того же purchase id (`provider_payment_id`) backend возвращает **`already_processed`** — баланс **не** начисляется второй раз.
 - Development: вкладка **«Пакеты»** → **`PaymentService`** (`purchasePackageDemo` / `purchaseCustomAmountDemo`) → backend mock-verify; баланс только из ответа verification. Будущий RuStore Pay SDK (не BillingClient): purchase id → backend verification (обязательно). Android audit: `com.aiimagegenerator.ai_image_generator`, minSdk 24 — см. [rustore_integration_plan.md](rustore_integration_plan.md). **RuStore Pay SDK — позже**.
+- **Production safety:** mock-verify и `/debug/*` — только `ENVIRONMENT=development`; в production без Bearer — **401**; mock 404 → UI **«Оплата скоро появится»** — [production_safety_checklist.md](production_safety_checklist.md).
 
 ### UX баланса и бесплатных генераций (реализовано)
 

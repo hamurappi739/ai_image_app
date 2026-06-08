@@ -67,12 +67,28 @@ def _require_development_for_payment_mock() -> None:
         raise HTTPException(status_code=404)
 
 
+def _is_development() -> bool:
+    return settings.environment.strip().lower() == "development"
+
+
+def _optional_user_for_generation(
+    authorization: str | None,
+) -> CurrentUser | None:
+    """Production always requires Authorization. Development may use TEST_USER_ID when consumption is off."""
+    if not _is_development():
+        return get_current_user(authorization=authorization)
+    if settings.enable_credit_consumption or authorization is not None:
+        return get_current_user(authorization=authorization)
+    return None
+
+
 def _env_value_configured(value: str | None) -> bool:
     return bool(value and str(value).strip())
 
 
 # Development only: allow any origin so Flutter web (random localhost port) can call the API.
-# Before production, replace allow_origins=["*"] with an explicit list of trusted origins.
+# TODO(production): set allow_origins to explicit trusted origins when ENVIRONMENT=production.
+# Do not use allow_origins=["*"] with allow_credentials=True in production.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -495,9 +511,7 @@ def generate(
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt cannot be empty")
 
-    user: CurrentUser | None = None
-    if authorization is not None or settings.enable_credit_consumption:
-        user = get_current_user(authorization=authorization)
+    user = _optional_user_for_generation(authorization)
 
     image_url = generate_image(prompt)
     if image_url.startswith("data:image/"):
@@ -549,9 +563,7 @@ def generate_with_photo(
 
     file_bytes, photo_content_type = _validate_upload_photo(photo)
 
-    user: CurrentUser | None = None
-    if authorization is not None or settings.enable_credit_consumption:
-        user = get_current_user(authorization=authorization)
+    user = _optional_user_for_generation(authorization)
 
     profile = None
     payment_decision = None

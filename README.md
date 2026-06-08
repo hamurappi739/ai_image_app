@@ -59,6 +59,10 @@
 
 Сборка debug APK, установка на Android, режимы backend для демо и что **ещё не production** — см. **[docs/demo_release_checklist.md](docs/demo_release_checklist.md)**.
 
+### Production safety
+
+Debug/mock endpoints только в development; production требует Authorization; чеклист перед релизом — **[docs/production_safety_checklist.md](docs/production_safety_checklist.md)**.
+
 ---
 
 ## Быстрый запуск backend
