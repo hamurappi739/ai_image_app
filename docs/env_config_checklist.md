@@ -197,13 +197,33 @@ flutter run -d chrome
 flutter run -d chrome --dart-define=API_BASE_URL=https://your-backend.example.com
 ```
 
-**Android emulator:**
+**Android emulator / debug APK (✅ проверено на эмуляторе):**
+
+Backend на хосте:
+
+```powershell
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+`--host 0.0.0.0` нужен, чтобы эмулятор достучался до API на ПК. Адрес backend с точки зрения эмулятора: **`http://10.0.2.2:8000`**.
+
+```powershell
+cd frontend
+flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
+adb install -r build/app/outputs/flutter-apk/app-debug.apk
+```
+
+**`flutter run` без APK:**
 
 ```powershell
 flutter run -d emulator-5554
 ```
 
-**Debug APK, внешний backend:**
+**Smoke test на эмуляторе (✅):** **Профиль** (баланс), **Создать**, **Пакеты** (demo-пополнение), **Фотосессии**, **Галерея**. Подробнее: [demo_release_checklist.md](demo_release_checklist.md) §D.
+
+**Русский ввод:** в Chrome работает; на эмуляторе — от раскладки клавиатуры; блокировки в приложении нет; на физическом телефоне — проверить отдельно.
+
+**Debug APK, LAN / production backend (не эмулятор):**
 
 ```powershell
 flutter build apk --debug --dart-define=API_BASE_URL=https://your-backend.example.com

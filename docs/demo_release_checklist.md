@@ -60,11 +60,22 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ## C. Build debug APK
 
+**Локальный backend на эмуляторе (проверено):**
+
 ```powershell
 cd C:\Users\shuly\Desktop\ai_image_app\frontend
+flutter pub get
+flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
+```
+
+Без `API_BASE_URL` на Android по умолчанию тоже `http://10.0.2.2:8000`; явный dart-define зафиксирован в ручной проверке.
+
+**Полная пересборка (при необходимости):**
+
+```powershell
 flutter clean
 flutter pub get
-flutter build apk --debug
+flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
 ```
 
 **Путь к APK:**
@@ -77,7 +88,7 @@ frontend/build/app/outputs/flutter-apk/app-debug.apk
 |---|---|
 | Тип сборки | **debug** — не для RuStore / Play |
 | Подпись | Debug keystore (Flutter template) |
-| Проверка | Сборка `app-debug.apk` уже проходила успешно на текущем проекте |
+| **Ручная проверка (✅)** | Сборка с `API_BASE_URL=http://10.0.2.2:8000` → `app-debug.apk`; установка на **Android emulator** через `adb install -r` |
 
 ---
 
@@ -102,9 +113,26 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 | **Android emulator** | `http://10.0.2.2:8000` | `--dart-define=API_BASE_URL=...` |
 | **Физический телефон (APK)** | `http://10.0.2.2:8000` (не работает на реальном устройстве) | **Обязательно** `--dart-define=API_BASE_URL=https://...` или IP/LAN URL |
 
-**Для демо через APK на эмуляторе:** backend на ПК (`--host 0.0.0.0`), `flutter run -d emulator-5554`.
+**Для демо через APK на эмуляторе (✅ проверено):**
 
-**Для физического телефона:** собрать APK с публичным или LAN URL:
+1. Backend на ПК: `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000` (раздел A).
+2. Сборка: `flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000`.
+3. Установка: `adb install -r build/app/outputs/flutter-apk/app-debug.apk`.
+4. Эмулятор видит хост-машину как **`http://10.0.2.2:8000`**.
+
+**Smoke test на Android emulator (✅):**
+
+| Вкладка / действие | Результат |
+|--------------------|-----------|
+| **Профиль** | Баланс отображается |
+| **Создать** | Генерация работает |
+| **Пакеты** | Demo-пополнение (mock-verify) работает |
+| **Фотосессии** | Экран открывается |
+| **Галерея** | Экран открывается |
+
+**Русский ввод на «Создать»:** в **Chrome** кириллица вводится нормально. На **Android emulator** ввод русского зависит от **настроек клавиатуры** эмулятора / физической клавиатуры (раскладка RU). На уровне приложения **отдельной блокировки кириллицы не обнаружено**. На **физическом телефоне** ввод нужно проверить отдельно.
+
+**Для физического телефона:** `10.0.2.2` **не работает** — LAN IP или HTTPS:
 
 ```powershell
 flutter build apk --debug --dart-define=API_BASE_URL=https://your-backend.example.com
@@ -118,12 +146,24 @@ flutter build apk --debug --dart-define=API_BASE_URL=https://your-backend.exampl
 
 ## E. Android emulator
 
+**`flutter run` (без APK):**
+
 ```powershell
 cd C:\Users\shuly\Desktop\ai_image_app\frontend
 flutter run -d emulator-5554
 ```
 
-Замените `emulator-5554` на id из `flutter devices`. Backend: `http://10.0.2.2:8000` из приложения.
+**Debug APK (проверенный сценарий):**
+
+```powershell
+# backend (отдельный терминал, раздел A):
+# python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
+adb install -r build/app/outputs/flutter-apk/app-debug.apk
+```
+
+Замените `emulator-5554` на id из `flutter devices`. Backend для эмулятора: **`http://10.0.2.2:8000`**.
 
 ---
 
@@ -184,7 +224,8 @@ flutter run -d chrome --dart-define=API_BASE_URL=https://your-backend.example.co
 | Задача | Команда / путь |
 |--------|----------------|
 | Demo backend | `uvicorn` + env из раздела A |
-| Debug APK | `flutter build apk --debug` |
+| Debug APK | `flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000` |
+| Backend для emulator/APK | `uvicorn … --host 0.0.0.0 --port 8000` |
 | APK файл | `frontend/build/app/outputs/flutter-apk/app-debug.apk` |
 | Установка | `adb install -r build/app/outputs/flutter-apk/app-debug.apk` |
 | Chrome | `flutter run -d chrome` |

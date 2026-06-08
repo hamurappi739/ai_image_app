@@ -75,9 +75,9 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | Платформа | Backend URL (`ApiService`) |
 |-----------|----------------------------|
 | Web / Chrome | `http://127.0.0.1:8000` |
-| Android emulator (позже) | `http://10.0.2.2:8000` |
+| Android emulator / debug APK | `http://10.0.2.2:8000` (alias хоста ПК; `--dart-define=API_BASE_URL=...` при сборке) |
 
-- **Android-сборка** пока отложена (Gradle / SSL при загрузке плагинов).
+- **Debug APK на эмуляторе (✅):** `flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000` → `adb install -r`; backend **`--host 0.0.0.0 --port 8000`**. Проверены: **Профиль** (баланс), **Создать**, **Пакеты** (demo-пополнение), **Фотосессии**, **Галерея**. См. [demo_release_checklist.md](demo_release_checklist.md).
 - Перед демо убедиться, что backend запущен.
 
 ---
@@ -221,7 +221,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | **Генерация при балансе** | Free → paid images; фотосессии — `paid_photoshoots`; списание проверено вручную (см. § **Проверка списаний**) | ✅ |
 | **«Как получить хороший результат»** | Режимы **«Без фото»** / **«С фото»**; примеры (человек / предмет); общие советы; примеры **не** кликабельны | ✅ |
 | **Мин. пополнение «Своя сумма»** | Мин. **10 ₽** (1 изображение = 10 ₽); макс. **100 000 ₽** | ✅ |
-| **Русский ввод на «Создать»** | Поле описания принимает кириллицу (Chrome / Android emulator / desktop) | ✅ проверено |
+| **Русский ввод на «Создать»** | **Chrome:** кириллица ✅. **Android emulator:** зависит от раскладки клавиатуры; блокировки в приложении не найдено. **Физический телефон:** проверить отдельно | частично ✅ |
 
 Подробнее: [app_design_strategy.md](app_design_strategy.md), [roadmap.md](roadmap.md).
 
@@ -334,7 +334,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **«Своя сумма» (development):** через **`PaymentService.purchaseCustomAmountDemo`** → **`mock-verify-custom`**; retry на **503** в `ApiService`. **Реальный RuStore — future**.
 - **Не подключено:** реальный RuStore Pay SDK, server-side RuStore API verification, production payment flow.
 - **Android / RuStore readiness audit (✅):** проверены `applicationId`, SDK versions (Flutter defaults: min **24**, target/compile **36**), `MainActivity`, `INTERNET` в main manifest; release signing — debug keys (TODO keystore); deprecated **BillingClient** не использовать — целевой **RuStore Pay SDK**. Подробнее: [rustore_integration_plan.md](rustore_integration_plan.md).
-- **Demo / release readiness (✅):** debug APK build проверен (`flutter build apk --debug` → `app-debug.apk`); чеклист демо — [demo_release_checklist.md](demo_release_checklist.md). **Production release** (signing, deploy, RuStore, store) — **future**.
+- **Demo / release readiness (✅):** debug APK с **`--dart-define=API_BASE_URL=http://10.0.2.2:8000`** установлен на **Android emulator**; smoke test: **Профиль**, **Создать**, **Пакеты** (mock-пополнение), **Фотосессии**, **Галерея** — см. [demo_release_checklist.md](demo_release_checklist.md). **Production release** (signing, deploy, RuStore, store) — **future**.
 - **Production safety audit (✅):** [production_safety_checklist.md](production_safety_checklist.md) — debug/mock endpoints **development-only**; `TEST_USER_ID` fallback только development; production требует **Authorization**; `/generate` в production без токена → **401**; frontend не начисляет баланс; CORS `*` — TODO для production origins; RLS — финальный review перед релизом.
 - **Env / config checklist (✅):** [env_config_checklist.md](env_config_checklist.md) — режимы: safe local, demo mock+balance, Gemini safe test, production future; опасные комбинации; `backend/.env.example` с комментариями.
 - **Backend deploy plan (✅, документ):** [backend_deploy_plan.md](backend_deploy_plan.md) — хостинг, production env, health/CORS/Supabase, шаги деплоя, Flutter API URL; **реального деплоя на сервер ещё нет**.
@@ -635,7 +635,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | **Mock-фотосессия** — `IMAGE_PROVIDER=mock`, списание `paid_photoshoots`, Gallery | ✅ проверено (curl + Flutter emulator) |
 | **Баланс после генерации** — **Профиль** / **Пакеты** / **Создать** | ✅ |
 | **Русский ввод** на вкладке **Создать** | ✅ |
-| Flutter Android emulator | ✅ запускается; mock-фото для фотосессии в debug |
+| Flutter Android emulator | ✅ `flutter run` и **debug APK** (`API_BASE_URL=http://10.0.2.2:8000`); smoke test вкладок; mock-фото для фотосессии в debug |
 
 **Авторизация:** вход через Профиль + Bearer token → **Создать** / **Галерея** проверены в обоих режимах (с Supabase config и через development fallback `TEST_USER_ID`).
 

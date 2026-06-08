@@ -35,7 +35,7 @@
 - Вкладка **Пакеты** — mixed package UI (**199/499/999 ₽**), **«С фотосессиями»** / **«Только изображения»**, **«Своя сумма»** (min **10 ₽**), баннер баланса; dev **mock top-up** через backend; **реальный RuStore — не подключён**
 - Supabase: таблицы **`profiles`**, **`generations`**, **`credit_transactions`**
 - Backend + Flutter: **списание баланса проверено вручную** — free → `paid_image_generations`; mock photoshoot → −1 `paid_photoshoots`; `balance` в response; UI refresh в **Профиль** / **Пакеты** / **Создать**
-- **Русский ввод** на вкладке **Создать**; **mock-фотосессия** на Android emulator (debug, тестовое фото)
+- **Русский ввод** на **«Создать»** в Chrome; на Android emulator — от раскладки клавиатуры (блокировки в приложении нет); **физический телефон** — проверить отдельно; **mock-фотосессия** на эмуляторе (debug, тестовое фото)
 - Backend: **mock mode** и **Gemini safe mode** — все три generation flow **проверены вручную**; результаты в **Галерее**
 - Backend: **Gemini photoshoot** (3 кадра) + Flutter **Gallery grouping** + **`photoshoot_id`**; по умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**
 - Backend: **payment foundation** — `payment_transactions`, package catalog, dev **`POST /payments/rustore/mock-verify`** и **`POST /payments/rustore/mock-verify-custom`**
@@ -58,6 +58,8 @@
 ### Demo APK / release readiness
 
 Сборка debug APK, установка на Android, режимы backend для демо и что **ещё не production** — см. **[docs/demo_release_checklist.md](docs/demo_release_checklist.md)**.
+
+**Проверено на Android emulator:** debug APK с `--dart-define=API_BASE_URL=http://10.0.2.2:8000`, backend `uvicorn … --host 0.0.0.0 --port 8000` — **Профиль**, **Создать**, **Пакеты**, **Фотосессии**, **Галерея**.
 
 ### Production safety
 
@@ -114,13 +116,23 @@ flutter run -d chrome
 flutter run -d chrome --dart-define=API_BASE_URL=https://your-backend.example.com
 ```
 
-**Android emulator, локальный backend:**
+**Android emulator / debug APK (локальный backend на ПК):**
 
 ```powershell
+# backend (отдельный терминал):
+# cd backend
+# python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+
 flutter run -d emulator-5554
+
+# или установка debug APK:
+flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
+adb install -r build/app/outputs/flutter-apk/app-debug.apk
 ```
 
-**Debug APK, внешний backend:**
+Эмулятор обращается к backend хост-машины по **`http://10.0.2.2:8000`**.
+
+**Debug APK, внешний / LAN backend (не эмулятор):**
 
 ```powershell
 flutter build apk --debug --dart-define=API_BASE_URL=https://your-backend.example.com
