@@ -87,6 +87,7 @@
 | **Development mock-verify-custom endpoint** | ✅ | `POST /payments/rustore/mock-verify-custom`; backend считает изображения/фотосессии |
 | **Flutter «Своя сумма» → mock-verify-custom (development)** | ✅ | «Пополнить баланс» → backend top-up; retry на 503; real RuStore — future |
 | **Flutter PaymentService layer** | ✅ | `payment_service.dart` + `PaymentResult`; demo methods; RuStore stubs — future |
+| **Android / RuStore readiness audit** | ✅ | `applicationId`, SDK 24/36, manifest, signing TODO; [rustore_integration_plan.md](rustore_integration_plan.md) |
 | **Backend paid photoshoot protection** | ✅ | Платные стили → **`402`** до Gemini/Storage/`generations`; бесплатные — как раньше |
 | **Richer photoshoot cards** | ✅ | Каталог-style UI: gradient placeholder preview, название, описание, цена/«Бесплатно» |
 | **“3 фото” label on photoshoot cards** | ✅ | Чип **«3 фото»** на карточке и в bottom sheet |

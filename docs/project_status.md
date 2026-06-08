@@ -333,6 +333,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **Flutter payment flow:** вкладка **«Пакеты»** вызывает **`PaymentService`** (`frontend/lib/services/payment_service.dart`); UI не обращается к mock-verify напрямую. Сейчас: **`purchasePackageDemo`** / **`purchaseCustomAmountDemo`** → `ApiService` mock-verify → `PaymentResult`; баланс только из **`balance`** в response. Заготовки **`purchasePackageWithRuStore`** / **`purchaseCustomAmountWithRuStore`** — **не реализованы** (будущий RuStore SDK + backend verification).
 - **«Своя сумма» (development):** через **`PaymentService.purchaseCustomAmountDemo`** → **`mock-verify-custom`**; retry на **503** в `ApiService`. **Реальный RuStore — future**.
 - **Не подключено:** реальный RuStore Pay SDK, server-side RuStore API verification, production payment flow.
+- **Android / RuStore readiness audit (✅):** проверены `applicationId`, SDK versions (Flutter defaults: min **24**, target/compile **36**), `MainActivity`, `INTERNET` в main manifest; release signing — debug keys (TODO keystore); deprecated **BillingClient** не использовать — целевой **RuStore Pay SDK**. Подробнее: [rustore_integration_plan.md](rustore_integration_plan.md).
 
 ### Создать
 

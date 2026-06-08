@@ -8,7 +8,7 @@
 
 **Generation UX (Фотосессии):** blocking progress dialog (~120 s) when a real backend request runs; *«Почти готово, ждём результат...»* if the timer ends first.
 
-**Ближайшее (руководство):** реальный **RuStore SDK** в **`PaymentService`** ([roadmap.md](docs/roadmap.md)). Backend **payment foundation** (mock-verify) **готов**; Flutter **`PaymentService`** готов к замене demo-id на purchase id от RuStore. Balance **debit** и **mock top-up** проверены вручную.
+**Ближайшее (руководство):** **RuStore Pay SDK** в **`PaymentService`** ([roadmap.md](docs/roadmap.md), [rustore_integration_plan.md](docs/rustore_integration_plan.md)). Backend verification foundation **готов**; Android readiness audit **выполнен** (`applicationId` `com.aiimagegenerator.ai_image_generator`, SDK 24/36); release signing и финальный package name — перед публикацией в RuStore. **BillingClient (deprecated) не использовать.**
 
 **Статус авторизации:** Supabase Auth во вкладке **Профиль** (вход / регистрация / выход). Bearer token передаётся в **`/balance`**, **`/generations`**, **`/generate`**, **`/generate-with-photo`**, **`/photoshoots/generate`**. После выхода Галерея и баланс в UI очищаются; данные разных пользователей не смешиваются. В **production** без `Authorization` backend возвращает **`401`**. Dev fallback **`TEST_USER_ID`** — только `ENVIRONMENT=development` без токена. **RuStore** не подключён. Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
@@ -40,7 +40,7 @@
 - Backend: **Gemini photoshoot** (3 кадра) + Flutter **Gallery grouping** + **`photoshoot_id`**; по умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**
 - Backend: **payment foundation** — `payment_transactions`, package catalog, dev **`POST /payments/rustore/mock-verify`** и **`POST /payments/rustore/mock-verify-custom`**
 - **Пакеты (dev):** **`PaymentService`** → mock-verify → обновление баланса из response; custom amount считает backend; RuStore SDK — **не подключён**
-- **Реальный RuStore** — **не подключён**
+- **Реальный RuStore Pay SDK** — **не подключён**; Android readiness audit — [rustore_integration_plan.md](docs/rustore_integration_plan.md)
 - Backend: **Gemini quality instructions** (`gemini_quality_instructions.py`) — anti-collage/grid, identity preservation, 3 separate photoshoot frames; **mock unchanged**
 
 ---
