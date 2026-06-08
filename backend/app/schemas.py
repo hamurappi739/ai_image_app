@@ -108,6 +108,21 @@ class RuStoreMockVerifyResponse(BaseModel):
     balance: BalanceResponse
 
 
+class RuStoreMockVerifyCustomRequest(BaseModel):
+    amount_rub: int
+    paid_photoshoots: int = 0
+    provider_payment_id: str
+
+
+class RuStoreMockVerifyCustomResponse(BaseModel):
+    status: Literal["verified", "already_processed"]
+    package_id: str
+    amount_rub: int
+    added: PaymentAddedBalance
+    unused_rub: int
+    balance: BalanceResponse
+
+
 class DebugConfigResponse(BaseModel):
     """Safe subset of settings for GET /debug/config (development only)."""
 

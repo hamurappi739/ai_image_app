@@ -7,6 +7,11 @@ from dataclasses import dataclass
 from fastapi import HTTPException
 
 RUSTORE_PROVIDER = "rustore"
+CUSTOM_AMOUNT_PACKAGE_ID = "custom_amount"
+IMAGE_UNIT_RUB = 10
+PHOTOSHOOT_UNIT_RUB = 100
+CUSTOM_AMOUNT_MIN_RUB = 10
+CUSTOM_AMOUNT_MAX_RUB = 100_000
 
 
 @dataclass(frozen=True, slots=True)

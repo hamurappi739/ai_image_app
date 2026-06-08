@@ -2,7 +2,7 @@
 
 **Flutter + FastAPI** приложение для AI-генерации изображений.
 
-Сейчас проект в **MVP / demo-mode**: committed `.env` — **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`ENABLE_CREDIT_CONSUMPTION=false`**. **Проверены оба режима:** **mock mode** (ежедневная разработка) и **реальный Gemini в safe mode** (`IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false`) — все три flow (`/generate`, `/generate-with-photo`, `/photoshoots/generate`) работают, результаты в **Галерее**, баланс не списывается. **Списание баланса** (mock) **проверено вручную** при временном `ENABLE_CREDIT_CONSUMPTION=true`. **Оплата:** реальный **RuStore не подключён**; **backend foundation** + dev **mock-verify**; вкладка **«Пакеты»** в development пополняет баланс через backend (frontend не начисляет сам). **«Своя сумма»** — placeholder. Подробнее: [project_status.md](docs/project_status.md).
+Сейчас проект в **MVP / demo-mode**: committed `.env` — **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`ENABLE_CREDIT_CONSUMPTION=false`**. **Проверены оба режима:** **mock mode** (ежедневная разработка) и **реальный Gemini в safe mode** (`IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false`) — все три flow (`/generate`, `/generate-with-photo`, `/photoshoots/generate`) работают, результаты в **Галерее**, баланс не списывается. **Списание баланса** (mock) **проверено вручную** при временном `ENABLE_CREDIT_CONSUMPTION=true`. **Оплата:** реальный **RuStore не подключён**; **backend foundation** + dev **mock-verify** (готовые пакеты и **«Своя сумма»**); вкладка **«Пакеты»** в development пополняет баланс через backend (frontend не начисляет сам). Подробнее: [project_status.md](docs/project_status.md).
 
 **Create tab:** free-generation notice, **categorized clickable ideas** (modes **«Без фото»** / **«С фото»**), mode-specific guidance in **«Как получить хороший результат»**, and a **generation countdown modal** (~60 s, dimmed background). **With photo:** **`POST /generate-with-photo`** (multipart); **without photo:** **`POST /generate`** (JSON). Balance debited **only after successful generation**; mock mode works without Gemini.
 
@@ -32,14 +32,14 @@
 - Локальная кнопка **«Очистить»** (без удаления данных в Supabase)
 - Вкладка **Фотосессии** — **каталог** (8 стилей + **«Своя фотосессия»** UI), рекомендации в sheet, multipart upload для готовых стилей → **Галерея**; при запросе на backend — **progress dialog** (~120 с)
 - Вкладка **Профиль** — вход / регистрация через Supabase Auth (при dart-define)
-- Вкладка **Пакеты** — mixed package UI (**199/499/999 ₽**), **«С фотосессиями»** / **«Только изображения»**, **«Своя сумма»** (min **10 ₽**), баннер баланса; **оплата не подключена**
+- Вкладка **Пакеты** — mixed package UI (**199/499/999 ₽**), **«С фотосессиями»** / **«Только изображения»**, **«Своя сумма»** (min **10 ₽**), баннер баланса; dev **mock top-up** через backend; **реальный RuStore — не подключён**
 - Supabase: таблицы **`profiles`**, **`generations`**, **`credit_transactions`**
 - Backend + Flutter: **списание баланса проверено вручную** — free → `paid_image_generations`; mock photoshoot → −1 `paid_photoshoots`; `balance` в response; UI refresh в **Профиль** / **Пакеты** / **Создать**
 - **Русский ввод** на вкладке **Создать**; **mock-фотосессия** на Android emulator (debug, тестовое фото)
 - Backend: **mock mode** и **Gemini safe mode** — все три generation flow **проверены вручную**; результаты в **Галерее**
 - Backend: **Gemini photoshoot** (3 кадра) + Flutter **Gallery grouping** + **`photoshoot_id`**; по умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**
-- Backend: **payment foundation** — `payment_transactions`, package catalog, dev **`POST /payments/rustore/mock-verify`**
-- **Пакеты (dev):** **«Выбрать пакет»** → mock-verify → обновление баланса; **«Своя сумма»** — placeholder
+- Backend: **payment foundation** — `payment_transactions`, package catalog, dev **`POST /payments/rustore/mock-verify`** и **`POST /payments/rustore/mock-verify-custom`**
+- **Пакеты (dev):** **«Выбрать пакет»** и **«Своя сумма»** → mock-verify → обновление баланса из response; custom amount считает backend
 - **Реальный RuStore** — **не подключён**
 - Backend: **Gemini quality instructions** (`gemini_quality_instructions.py`) — anti-collage/grid, identity preservation, 3 separate photoshoot frames; **mock unchanged**
 

@@ -20,6 +20,8 @@ from app.schemas import (
     PhotoshootGenerateResponse,
     RuStoreMockVerifyRequest,
     RuStoreMockVerifyResponse,
+    RuStoreMockVerifyCustomRequest,
+    RuStoreMockVerifyCustomResponse,
     PaymentAddedBalance,
 )
 from app.services.balance_service import (
@@ -34,7 +36,10 @@ from app.services.credits_service import (
     consume_generation,
     determine_generation_payment,
 )
-from app.services.payment_service import mock_verify_rustore_purchase
+from app.services.payment_service import (
+    mock_verify_custom_amount_purchase,
+    mock_verify_rustore_purchase,
+)
 from app.services.photo_generation_service import photo_generation_service
 from app.services.photoshoot_styles import get_photoshoot_style
 from app.services.photoshoot_service import photoshoot_service
@@ -427,6 +432,36 @@ def rustore_mock_verify_purchase(
             paid_image_generations=result.added_paid_image_generations,
             paid_photoshoots=result.added_paid_photoshoots,
         ),
+        balance=result.balance,
+    )
+
+
+@app.post(
+    "/payments/rustore/mock-verify-custom",
+    response_model=RuStoreMockVerifyCustomResponse,
+)
+def rustore_mock_verify_custom_amount(
+    body: RuStoreMockVerifyCustomRequest,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Development-only mock RuStore custom amount verification (no real RuStore API)."""
+    _require_development_for_payment_mock()
+    result = mock_verify_custom_amount_purchase(
+        user_id=user.id,
+        email=user.email,
+        amount_rub=body.amount_rub,
+        paid_photoshoots=body.paid_photoshoots,
+        provider_payment_id=body.provider_payment_id,
+    )
+    return RuStoreMockVerifyCustomResponse(
+        status=result.status,
+        package_id=result.package_id,
+        amount_rub=result.amount_rub,
+        added=PaymentAddedBalance(
+            paid_image_generations=result.added_paid_image_generations,
+            paid_photoshoots=result.added_paid_photoshoots,
+        ),
+        unused_rub=result.unused_rub,
         balance=result.balance,
     )
 

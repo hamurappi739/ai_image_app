@@ -589,6 +589,7 @@ class _PacksScreenState extends State<PacksScreen> {
   static const _photoshootUnitRub = 100;
   static const _customAmountMin = 10;
   static const _customAmountMax = 100000;
+  static const _customPaymentProcessingId = '__custom__';
 
   static const _mixedPackages = <_PackOffering>[
     _PackOffering(
@@ -980,7 +981,9 @@ class _PacksScreenState extends State<PacksScreen> {
     );
   }
 
-  void _onCustomPaymentPressed() {
+  Future<void> _onCustomPaymentPressed() async {
+    if (_processingPackageId != null) return;
+
     if (!_isCustomAmountValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -993,7 +996,186 @@ class _PacksScreenState extends State<PacksScreen> {
       );
       return;
     }
-    _showPackPaymentSoonDialog(context);
+
+    final amount = _validCustomAmount!;
+    if (_customPhotoshootCount * _photoshootUnitRub > amount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Стоимость фотосессий не может превышать сумму пополнения.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Пополнить баланс?',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        ),
+        content: const Text(
+          'Это демонстрационное пополнение без реальной оплаты. '
+          'В будущем здесь будет RuStore.',
+          style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF5B6CFF),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Пополнить'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _processingPackageId = _customPaymentProcessingId);
+    unawaited(_showMockTopUpLoadingDialog());
+    await Future<void>.delayed(Duration.zero);
+
+    final providerPaymentId =
+        'dev-custom-${DateTime.now().millisecondsSinceEpoch}';
+
+    try {
+      final result = await widget.apiService.mockVerifyCustomAmountPayment(
+        amountRub: amount,
+        paidPhotoshoots: _customPhotoshootCount,
+        providerPaymentId: providerPaymentId,
+      );
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+
+      if (result.balance != null) {
+        widget.onBalanceUpdated(result.balance!);
+      }
+
+      if (result.status == 'already_processed') {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Покупка уже обработана',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            content: const Text(
+              'Эта покупка уже была обработана.',
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.45,
+                color: Color(0xFF6B7280),
+              ),
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF5B6CFF),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Понятно'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      var successSummary = _formatMockPaymentAddedSummary(
+        result.added.paidImageGenerations,
+        result.added.paidPhotoshoots,
+      );
+      if (result.unusedRub > 0) {
+        successSummary +=
+            '\n\nОстаток ${result.unusedRub} ₽ пока не используется';
+      }
+
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Баланс пополнен',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+          content: Text(
+            successSummary,
+            style: const TextStyle(
+              fontSize: 15,
+              height: 1.45,
+              color: Color(0xFF6B7280),
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF5B6CFF),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Понятно'),
+            ),
+          ],
+        ),
+      );
+    } on MockPaymentUnavailableException {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      _showPackPaymentSoonDialog(context);
+    } on MockPaymentServiceUnavailableException {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Не удалось пополнить баланс. Проверьте подключение и попробуйте ещё раз.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Не удалось пополнить баланс. Попробуйте ещё раз.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _processingPackageId = null);
+      }
+    }
   }
 
   void _showHelp() {
@@ -1184,6 +1366,9 @@ class _PacksScreenState extends State<PacksScreen> {
                                 _customPhotoshootCount < _maxCustomPhotoshoots
                             ? () => _adjustCustomPhotoshoots(1)
                             : null,
+                        isPaymentLoading:
+                            _processingPackageId == _customPaymentProcessingId,
+                        isPaymentDisabled: _processingPackageId != null,
                         onPaymentPressed: _onCustomPaymentPressed,
                       ),
                     ],
@@ -1508,6 +1693,8 @@ class _CustomAmountSection extends StatelessWidget {
     required this.onPhotoshootCountChanged,
     required this.onPhotoshootsDecrease,
     required this.onPhotoshootsIncrease,
+    required this.isPaymentLoading,
+    required this.isPaymentDisabled,
     required this.onPaymentPressed,
   });
 
@@ -1524,6 +1711,8 @@ class _CustomAmountSection extends StatelessWidget {
   final ValueChanged<int> onPhotoshootCountChanged;
   final VoidCallback? onPhotoshootsDecrease;
   final VoidCallback? onPhotoshootsIncrease;
+  final bool isPaymentLoading;
+  final bool isPaymentDisabled;
   final VoidCallback onPaymentPressed;
 
   @override
@@ -1677,7 +1866,9 @@ class _CustomAmountSection extends StatelessWidget {
             width: double.infinity,
             height: 48,
             child: FilledButton(
-              onPressed: isAmountValid ? onPaymentPressed : null,
+              onPressed: isAmountValid && !isPaymentDisabled
+                  ? onPaymentPressed
+                  : null,
               style: FilledButton.styleFrom(
                 backgroundColor: _accentColor,
                 disabledBackgroundColor: Colors.grey.shade200,
@@ -1686,10 +1877,19 @@ class _CustomAmountSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                'Пополнить баланс',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+              child: isPaymentLoading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Пополнить баланс',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
             ),
           ),
         ],

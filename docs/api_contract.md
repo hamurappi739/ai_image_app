@@ -535,9 +535,105 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 
 **Идемпотентность:** unique **`(provider, provider_payment_id)`** в `payment_transactions`; повторный запрос не увеличивает `profiles.paid_*`.
 
-**Flutter (development):** вкладка **«Пакеты»** — **«Выбрать пакет»** → `ApiService.mockVerifyRuStorePayment(packageId, providerPaymentId)`; `provider_payment_id` генерируется как `dev-package-<package_id>-<timestamp>`; баланс обновляется из поля **`balance`** в response (не на клиенте). **«Своя сумма»** mock-verify **не вызывает**.
+**Flutter (development):** вкладка **«Пакеты»** — **«Выбрать пакет»** → `ApiService.mockVerifyRuStorePayment(packageId, providerPaymentId)`; `provider_payment_id` генерируется как `dev-package-<package_id>-<timestamp>`; баланс обновляется из поля **`balance`** в response (не на клиенте). Готовые пакеты **не** используют custom amount endpoint.
 
 **Flutter production:** **не вызывать** этот endpoint; будущий real RuStore flow — отдельный server-side verification.
+
+---
+
+## 6.2 POST /payments/rustore/mock-verify-custom (development only)
+
+**Назначение:** mock-верификация **своей суммы** для тестирования backend top-up **без** реального RuStore SDK/API. Backend **сам** считает изображения и фотосессии; frontend **не** начисляет баланс.
+
+**Доступность:** только при `ENVIRONMENT=development`. Вне development → **`404`**.
+
+**Auth:** `Authorization: Bearer <access_token>` или development fallback `TEST_USER_ID` (как у `GET /balance`).
+
+**Request:**
+
+```json
+{
+  "amount_rub": 1000,
+  "paid_photoshoots": 8,
+  "provider_payment_id": "dev-custom-1717000000000"
+}
+```
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `amount_rub` | int | Сумма пополнения (**10–100 000** ₽) |
+| `paid_photoshoots` | int | Сколько фотосессий купить (0+) |
+| `provider_payment_id` | string | Уникальный ID покупки |
+
+**Правила расчёта (только backend):**
+
+- 1 фотосессия = **100** ₽
+- 1 изображение = **10** ₽
+- `photoshoot_cost = paid_photoshoots * 100`
+- если `photoshoot_cost > amount_rub` → **`400`**
+- `remaining_rub = amount_rub - photoshoot_cost`
+- `paid_image_generations = floor(remaining_rub / 10)`
+- остаток рублей, не кратный 10 ₽, → `unused_rub` (пока не начисляется)
+
+**Примеры:** `10 ₽`, 0 фотосессий → 1 изображение; `1000 ₽`, 8 фотосессий → 20 изображений + 8 фотосессий.
+
+**Response `200` — первая обработка (`verified`):**
+
+```json
+{
+  "status": "verified",
+  "package_id": "custom_amount",
+  "amount_rub": 1000,
+  "added": {
+    "paid_image_generations": 20,
+    "paid_photoshoots": 8
+  },
+  "unused_rub": 0,
+  "balance": { }
+}
+```
+
+**Response `200` — повтор с тем же `provider_payment_id` (`already_processed`):**
+
+```json
+{
+  "status": "already_processed",
+  "package_id": "custom_amount",
+  "amount_rub": 1000,
+  "added": {
+    "paid_image_generations": 0,
+    "paid_photoshoots": 0
+  },
+  "unused_rub": 0,
+  "balance": { }
+}
+```
+
+| Поле | Описание |
+|------|----------|
+| `package_id` | Всегда `custom_amount` |
+| `amount_rub` | Сумма из запроса |
+| `unused_rub` | Остаток ₽, не конвертированный в изображения (при `already_processed` — 0) |
+| `added` / `balance` | Как у §6.1 |
+
+**`payment_transactions`:** `package_id = custom_amount`, `raw_payload` содержит request и calculated values.
+
+### Errors
+
+| HTTP | `detail` (пример) | Когда |
+|------|-------------------|--------|
+| `400` | `amount_rub must be at least 10` | Сумма &lt; 10 ₽ |
+| `400` | `amount_rub must not exceed 100000` | Сумма &gt; 100 000 ₽ |
+| `400` | `paid_photoshoots cost exceeds amount_rub` | Фотосессии дороже суммы |
+| `400` | `provider_payment_id is required` | Пустой ID |
+| `404` | — | `ENVIRONMENT` ≠ `development` |
+| `503` | `payment_transactions table is missing…` | Таблица не создана |
+
+**Идемпотентность:** unique **`(provider, provider_payment_id)`**; повтор не увеличивает баланс.
+
+**Flutter (development):** **«Своя сумма»** → подтверждение → `ApiService.mockVerifyCustomAmountPayment(amountRub, paidPhotoshoots, providerPaymentId)`; `provider_payment_id` = `dev-custom-<timestamp>`; retry на **503** (до 2 повторов, тот же ID); баланс из **`balance`**.
+
+**Production / real RuStore:** custom amount через настоящую оплату — **future**; endpoint **не вызывать**.
 
 ---
 
@@ -581,7 +677,7 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 | **Создать** | `POST /generate` через `ApiService.generateImage()` | **Работает** |
 | **Фотосессии** | `POST /photoshoots/generate` (multipart) | Бесплатные: по умолчанию **501**; при `ENABLE_PHOTOSHOOT_GENERATION=true` → `image_urls`. Платные без оплаты → **402** |
 | **Галерея** | `GET /generations` при старте + локально новые сверху | **Работает** (dev: `TEST_USER_ID`; фильтр debug в UI) |
-| **Пакеты** | Dev: **«Выбрать пакет»** → **`POST /payments/rustore/mock-verify`**; **«Своя сумма»** — placeholder | Реальный RuStore — позже |
+| **Пакеты** | Dev: **«Выбрать пакет»** → **`mock-verify`**; **«Своя сумма»** → **`mock-verify-custom`**; баланс из response | Реальный RuStore — позже |
 | **Профиль** | `GET /balance` (готов на backend) | Endpoint есть; **Flutter пока не подключён** |
 
 - **Production / release** Flutter **не должен** вызывать `/debug/*` (только ручная отладка backend).

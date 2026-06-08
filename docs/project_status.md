@@ -331,7 +331,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
   - Неверный `package_id` → **`400`** `Unknown package_id`; пустой `provider_payment_id` → **`400`** `provider_payment_id is required`.
 - **Защита от повторного начисления:** unique **`(provider, provider_payment_id)`** в БД + проверка перед credit.
 - **Flutter «Пакеты» (development):** кнопка **«Выбрать пакет»** → подтверждение demo-пополнения → **`POST /payments/rustore/mock-verify`** → обновление баланса в **Пакеты** / **Профиль** / **Создать** / **Фотосессии** (из `balance` в response); frontend **не** начисляет баланс сам.
-- **«Своя сумма»** — по-прежнему placeholder **«Оплата скоро появится»** (custom amount через mock-verify не подключён).
+- **«Своя сумма» (development):** **`POST /payments/rustore/mock-verify-custom`** — backend считает изображения/фотосессии; frontend передаёт `amount_rub` и `paid_photoshoots`; баланс из `balance` в response; retry на **503** (как у готовых пакетов). **Реальный RuStore / оплата custom amount — future**.
 - **Не подключено:** реальный RuStore Pay SDK, server-side RuStore API verification, production payment flow.
 
 ### Создать
@@ -445,9 +445,9 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | **499 ₽** | **49** |
 | **999 ₽** | **99** |
 
-**Режим «Своя сумма» (Flutter UI, без оплаты):** сумма **10–100 000 ₽**; stepper фотосессий → остаток ÷ 10 = изображения. Примеры: **10 ₽**, 0 фотосессий → **1** изображение; **1000 ₽**, **8** фотосессий → **8** + **20** изображений.
+**Режим «Своя сумма»:** сумма **10–100 000 ₽**; stepper фотосессий; backend считает остаток ÷ 10 = изображения (`unused_rub` — остаток ₽, не кратный 10). Примеры: **10 ₽**, 0 фотосессий → **1** изображение; **1000 ₽**, **8** фотосессий → **8** + **20** изображений.
 
-**Статус реализации:** экономика и **Flutter UI «Пакеты»** реализованы; **`GET /balance`** и **списание** (при `ENABLE_CREDIT_CONSUMPTION=true`) — реализованы; **backend foundation** для verified top-up (**`POST /payments/rustore/mock-verify`**, development) — **готов и проверен вручную**; **реальный RuStore / frontend purchase flow — не подключены**.
+**Статус реализации:** экономика и **Flutter UI «Пакеты»** реализованы; **`GET /balance`** и **списание** (при `ENABLE_CREDIT_CONSUMPTION=true`) — реализованы; **backend foundation** для verified top-up (**`POST /payments/rustore/mock-verify`** и **`mock-verify-custom`**, development) — **готов**; **реальный RuStore SDK / настоящая оплата — не подключены**.
 
 ### Пакеты
 
@@ -456,7 +456,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **«С фотосессиями»:** 199 ₽ → 1 фотосессия + 9 изображений; 499 ₽ → 3 + 19; 999 ₽ → 8 + 19.
 - **«Только изображения»:** 199 ₽ → 19; 499 ₽ → 49; 999 ₽ → 99.
 - **«Выбрать пакет» (development):** подтверждение → **`mock-verify`** → **«Баланс пополнен»**; при **403/404** endpoint — fallback **«Оплата скоро появится»**.
-- **«Пополнить баланс»** (**«Своя сумма»**) → placeholder **«Оплата скоро появится»**; **реальный RuStore — не подключён**.
+- **«Пополнить баланс»** (**«Своя сумма»**, development): подтверждение → **`mock-verify-custom`** → **«Баланс пополнен»**; при **403/404** — fallback **«Оплата скоро появится»**; **реальный RuStore — не подключён**.
 - **«Своя сумма»:** правила (мин. **10 ₽**, 10 ₽ / изображение, 100 ₽ / фотосессия); stepper/slider фотосессий; **«К оплате: X ₽»** + **«Вы получите: …»**; валидация *«Минимальная сумма — 10 ₽.»*
 - **Помощь:** кнопка **«Помощь»** → `PacksHelpDialog` (без автопоказа).
 - **Layout:** адаптивная сетка (1 / 2 / 3 колонки); **одинаковая высота карточек** (в т.ч. с **«Популярно»**); Chrome + Android без overflow.
