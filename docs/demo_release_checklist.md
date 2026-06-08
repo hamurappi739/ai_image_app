@@ -4,6 +4,8 @@
 
 Связанные документы: [demo_script.md](demo_script.md), [rustore_integration_plan.md](rustore_integration_plan.md), [project_status.md](project_status.md).
 
+**Режимы env:** см. [env_config_checklist.md](env_config_checklist.md) (safe local, demo mock+balance, Gemini safe test, production).
+
 ---
 
 ## A. Demo backend mode (рекомендуется для показа логики)

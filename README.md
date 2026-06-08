@@ -63,6 +63,17 @@
 
 Debug/mock endpoints только в development; production требует Authorization; чеклист перед релизом — **[docs/production_safety_checklist.md](docs/production_safety_checklist.md)**.
 
+### Environment modes
+
+| Режим | Назначение |
+|-------|------------|
+| **Safe local** | mock, без списаний, без Gemini |
+| **Demo mock + balance** | mock, списания и mock-пополнение для демо |
+| **Gemini safe test** | реальный Gemini, без списаний (осторожно с API) |
+| **Production** (future) | gemini, consumption on, auth обязателен |
+
+Переменные и PowerShell-команды — **[docs/env_config_checklist.md](docs/env_config_checklist.md)**. Шаблон: `backend/.env.example`.
+
 ---
 
 ## Быстрый запуск backend

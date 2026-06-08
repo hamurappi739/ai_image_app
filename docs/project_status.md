@@ -336,6 +336,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **Android / RuStore readiness audit (✅):** проверены `applicationId`, SDK versions (Flutter defaults: min **24**, target/compile **36**), `MainActivity`, `INTERNET` в main manifest; release signing — debug keys (TODO keystore); deprecated **BillingClient** не использовать — целевой **RuStore Pay SDK**. Подробнее: [rustore_integration_plan.md](rustore_integration_plan.md).
 - **Demo / release readiness (✅):** debug APK build проверен (`flutter build apk --debug` → `app-debug.apk`); чеклист демо — [demo_release_checklist.md](demo_release_checklist.md). **Production release** (signing, deploy, RuStore, store) — **future**.
 - **Production safety audit (✅):** [production_safety_checklist.md](production_safety_checklist.md) — debug/mock endpoints **development-only**; `TEST_USER_ID` fallback только development; production требует **Authorization**; `/generate` в production без токена → **401**; frontend не начисляет баланс; CORS `*` — TODO для production origins; RLS — финальный review перед релизом.
+- **Env / config checklist (✅):** [env_config_checklist.md](env_config_checklist.md) — режимы: safe local, demo mock+balance, Gemini safe test, production future; опасные комбинации; `backend/.env.example` с комментариями.
 
 ### Создать
 
@@ -660,6 +661,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | [demo_script.md](demo_script.md) | Сценарий демо |
 | [demo_release_checklist.md](demo_release_checklist.md) | Debug APK, backend modes, install, not-production |
 | [production_safety_checklist.md](production_safety_checklist.md) | Auth, debug/mock guards, isolation, pre-release |
+| [env_config_checklist.md](env_config_checklist.md) | ENV presets: safe, demo, Gemini test, production |
 | [flutter_auth_setup.md](flutter_auth_setup.md) | Запуск Flutter с Supabase Auth |
 | `frontend/README.md` | Запуск Flutter |
 | `backend/README.md` | Env, endpoints |

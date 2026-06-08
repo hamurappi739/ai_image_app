@@ -4,6 +4,8 @@
 
 Связанные документы: [demo_release_checklist.md](demo_release_checklist.md), [rustore_integration_plan.md](rustore_integration_plan.md), [api_contract.md](api_contract.md).
 
+**Env mode checklist:** [env_config_checklist.md](env_config_checklist.md).
+
 ---
 
 ## Environment

@@ -90,6 +90,7 @@
 | **Android / RuStore readiness audit** | ✅ | `applicationId`, SDK 24/36, manifest, signing TODO; [rustore_integration_plan.md](rustore_integration_plan.md) |
 | **Demo / release checklist** | ✅ | [demo_release_checklist.md](demo_release_checklist.md) — debug APK, install, backend modes, demo scenario |
 | **Production safety audit** | ✅ | [production_safety_checklist.md](production_safety_checklist.md) — env/auth/debug/mock guards documented |
+| **Env / config checklist** | ✅ | [env_config_checklist.md](env_config_checklist.md) — safe, demo, Gemini test, production presets |
 | **Backend paid photoshoot protection** | ✅ | Платные стили → **`402`** до Gemini/Storage/`generations`; бесплатные — как раньше |
 | **Richer photoshoot cards** | ✅ | Каталог-style UI: gradient placeholder preview, название, описание, цена/«Бесплатно» |
 | **“3 фото” label on photoshoot cards** | ✅ | Чип **«3 фото»** на карточке и в bottom sheet |
@@ -175,6 +176,9 @@
 | Задача | Статус |
 |--------|--------|
 | **Production backend deploy** | план |
+| **Production env on real hosting** (secure secrets, no TEST_USER_ID) | план |
+| **CORS trusted origins** | план |
+| **RuStore real env / secrets / verification** | план |
 | **Release signing** (keystore, CI secrets) | план |
 | **RuStore real payment** | план |
 | **Store metadata** (icon, name, listing) | план |
