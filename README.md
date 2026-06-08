@@ -74,6 +74,10 @@ Debug/mock endpoints только в development; production требует Auth
 
 Переменные и PowerShell-команды — **[docs/env_config_checklist.md](docs/env_config_checklist.md)**. Шаблон: `backend/.env.example`.
 
+### Backend deploy (future)
+
+План деплоя FastAPI на публичный HTTPS (хостинг, env, Supabase, Flutter API URL) — **[docs/backend_deploy_plan.md](docs/backend_deploy_plan.md)**. Реальный деплой **ещё не выполнен**.
+
 ---
 
 ## Быстрый запуск backend

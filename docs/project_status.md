@@ -337,6 +337,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 - **Demo / release readiness (✅):** debug APK build проверен (`flutter build apk --debug` → `app-debug.apk`); чеклист демо — [demo_release_checklist.md](demo_release_checklist.md). **Production release** (signing, deploy, RuStore, store) — **future**.
 - **Production safety audit (✅):** [production_safety_checklist.md](production_safety_checklist.md) — debug/mock endpoints **development-only**; `TEST_USER_ID` fallback только development; production требует **Authorization**; `/generate` в production без токена → **401**; frontend не начисляет баланс; CORS `*` — TODO для production origins; RLS — финальный review перед релизом.
 - **Env / config checklist (✅):** [env_config_checklist.md](env_config_checklist.md) — режимы: safe local, demo mock+balance, Gemini safe test, production future; опасные комбинации; `backend/.env.example` с комментариями.
+- **Backend deploy plan (✅, документ):** [backend_deploy_plan.md](backend_deploy_plan.md) — хостинг, production env, health/CORS/Supabase, шаги деплоя, Flutter API URL; **реального деплоя на сервер ещё нет**.
 
 ### Создать
 
@@ -662,6 +663,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | [demo_release_checklist.md](demo_release_checklist.md) | Debug APK, backend modes, install, not-production |
 | [production_safety_checklist.md](production_safety_checklist.md) | Auth, debug/mock guards, isolation, pre-release |
 | [env_config_checklist.md](env_config_checklist.md) | ENV presets: safe, demo, Gemini test, production |
+| [backend_deploy_plan.md](backend_deploy_plan.md) | Future FastAPI deploy: hosting, env, smoke steps |
 | [flutter_auth_setup.md](flutter_auth_setup.md) | Запуск Flutter с Supabase Auth |
 | `frontend/README.md` | Запуск Flutter |
 | `backend/README.md` | Env, endpoints |

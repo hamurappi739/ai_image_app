@@ -175,7 +175,8 @@
 
 | Задача | Статус |
 |--------|--------|
-| **Production backend deploy** | план |
+| **Backend deploy plan (document)** | ✅ | [backend_deploy_plan.md](backend_deploy_plan.md) — hosting, env, steps; no real deploy yet |
+| **Production backend deploy** | план | Выполнить по deploy plan на выбранном хостинге |
 | **Production env on real hosting** (secure secrets, no TEST_USER_ID) | план |
 | **CORS trusted origins** | план |
 | **RuStore real env / secrets / verification** | план |
