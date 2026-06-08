@@ -175,6 +175,44 @@ curl http://127.0.0.1:8000/debug/config
 
 ---
 
+## H. Flutter API base URL (`API_BASE_URL`)
+
+`ApiService.baseUrl` читает `--dart-define=API_BASE_URL=...`. Если не задан:
+
+| Платформа | URL по умолчанию |
+|-----------|------------------|
+| Web / Chrome | `http://127.0.0.1:8000` |
+| Android (и др.) | `http://10.0.2.2:8000` |
+
+**Chrome, локальный backend:**
+
+```powershell
+cd frontend
+flutter run -d chrome
+```
+
+**Chrome, внешний backend:**
+
+```powershell
+flutter run -d chrome --dart-define=API_BASE_URL=https://your-backend.example.com
+```
+
+**Android emulator:**
+
+```powershell
+flutter run -d emulator-5554
+```
+
+**Debug APK, внешний backend:**
+
+```powershell
+flutter build apk --debug --dart-define=API_BASE_URL=https://your-backend.example.com
+```
+
+Подробнее: [backend_deploy_plan.md](backend_deploy_plan.md) §8.
+
+---
+
 ## Сводная таблица
 
 | Режим | `IMAGE_PROVIDER` | Consumption | Photoshoot gen | Gemini cost |

@@ -100,15 +100,38 @@ cd C:\Users\shuly\Desktop\ai_image_app\backend
 
 ## Быстрый запуск frontend
 
+**Chrome, локальный backend (по умолчанию):**
+
 ```powershell
 cd C:\Users\shuly\Desktop\ai_image_app\frontend
 flutter pub get
 flutter run -d chrome
 ```
 
-Flutter **web** обращается к backend: **http://127.0.0.1:8000**
+**Chrome, внешний backend:**
 
-Android emulator (позже): **http://10.0.2.2:8000**. Сборка Android пока отложена (Gradle / SSL).
+```powershell
+flutter run -d chrome --dart-define=API_BASE_URL=https://your-backend.example.com
+```
+
+**Android emulator, локальный backend:**
+
+```powershell
+flutter run -d emulator-5554
+```
+
+**Debug APK, внешний backend:**
+
+```powershell
+flutter build apk --debug --dart-define=API_BASE_URL=https://your-backend.example.com
+```
+
+| Платформа | URL по умолчанию (без dart-define) |
+|-----------|-------------------------------------|
+| Web / Chrome | `http://127.0.0.1:8000` |
+| Android emulator | `http://10.0.2.2:8000` |
+
+Переопределение: `ApiService.baseUrl` ← `--dart-define=API_BASE_URL=...` (см. [backend_deploy_plan.md](docs/backend_deploy_plan.md)).
 
 ---
 

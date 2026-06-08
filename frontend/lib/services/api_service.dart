@@ -251,7 +251,21 @@ bool _isHiddenDevGenerationDescription(String description) {
   return _hiddenDevDescriptionPatterns.any((pattern) => lower.contains(pattern));
 }
 
+const _apiBaseUrlFromEnvironment = String.fromEnvironment('API_BASE_URL');
+
+const _defaultWebApiBaseUrl = 'http://127.0.0.1:8000';
+const _defaultAndroidApiBaseUrl = 'http://10.0.2.2:8000';
+
 class ApiService {
+  static bool _baseUrlLogged = false;
+
+  ApiService() {
+    if (kDebugMode && !_baseUrlLogged) {
+      _baseUrlLogged = true;
+      debugPrint('ApiService base URL: $baseUrl');
+    }
+  }
+
   String? _accessToken;
 
   /// Sets optional Supabase (or other) access token for `Authorization: Bearer`.
@@ -273,11 +287,25 @@ class ApiService {
     return headers;
   }
 
+  /// Backend API root. Override at build/run time:
+  /// `--dart-define=API_BASE_URL=https://your-backend.example.com`
   static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://127.0.0.1:8000';
+    final override = _apiBaseUrlFromEnvironment.trim();
+    if (override.isNotEmpty) {
+      return _normalizeApiBaseUrl(override);
     }
-    return 'http://10.0.2.2:8000';
+    if (kIsWeb) {
+      return _defaultWebApiBaseUrl;
+    }
+    return _defaultAndroidApiBaseUrl;
+  }
+
+  static String _normalizeApiBaseUrl(String url) {
+    var normalized = url.trim();
+    while (normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    return normalized;
   }
 
   Future<GenerateImageResponse> generateImage(String prompt) async {

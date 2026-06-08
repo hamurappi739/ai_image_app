@@ -168,17 +168,40 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
 
 ## 8. Flutter API base URL
 
-| Сборка | Backend URL сейчас |
-|--------|-------------------|
-| Web dev | `http://127.0.0.1:8000` |
-| Android emulator | `http://10.0.2.2:8000` |
-| **Production APK** | Нужен **`https://api.example.com`** (пример) |
+Реализовано в `ApiService.baseUrl` (`frontend/lib/services/api_service.dart`):
 
-**План (без изменения кода в этом документе):**
+| Сборка | Backend URL |
+|--------|-------------|
+| Web dev (без dart-define) | `http://127.0.0.1:8000` |
+| Android emulator (без dart-define) | `http://10.0.2.2:8000` |
+| Любая платформа + `--dart-define=API_BASE_URL=...` | Указанный URL (trailing `/` убирается) |
 
-- Frontend должен получать API base URL через **`--dart-define=API_BASE_URL=...`** или аналогичный config layer
-- Сейчас URL **захардкожен** в `ApiService` — перед релизу APK собрать с production URL
-- Пример будущей сборки:
+**Chrome, локальный backend:**
+
+```powershell
+cd frontend
+flutter run -d chrome
+```
+
+**Chrome, внешний backend:**
+
+```powershell
+flutter run -d chrome --dart-define=API_BASE_URL=https://your-backend.example.com
+```
+
+**Android emulator, локальный backend:**
+
+```powershell
+flutter run -d emulator-5554
+```
+
+**Debug APK, внешний backend:**
+
+```powershell
+flutter build apk --debug --dart-define=API_BASE_URL=https://your-backend.example.com
+```
+
+**Release APK (будущий production):**
 
 ```powershell
 flutter build apk --release `
@@ -186,6 +209,8 @@ flutter build apk --release `
   --dart-define=SUPABASE_URL=https://xxx.supabase.co `
   --dart-define=SUPABASE_ANON_KEY=your-anon-key
 ```
+
+В debug-сборке base URL один раз пишется в консоль (`debugPrint`), не в UI.
 
 Проверить на **реальном телефоне**: `/health`, `/balance` с Bearer, генерация.
 
@@ -219,7 +244,7 @@ flutter build apk --release `
 | Supabase RLS production review | Pending |
 | Real purchase verification | Pending |
 | Monitoring / logging | Не настроен |
-| Configurable API URL в Flutter | Планируется (dart-define) |
+| Configurable API URL в Flutter | ✅ `API_BASE_URL` dart-define |
 
 ---
 

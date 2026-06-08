@@ -5233,6 +5233,55 @@ class _CreateQuickIdeasPanel extends StatelessWidget {
   }
 }
 
+class _CreateIdeaButton extends StatelessWidget {
+  const _CreateIdeaButton({
+    required this.idea,
+    required this.isBusy,
+    required this.onTap,
+  });
+
+  final String idea;
+  final bool isBusy;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isBusy ? null : onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F8FC),
+            border: Border.all(color: const Color(0xFFE8EAEF)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                idea,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 13,
+                  height: 1.35,
+                  color: AiImageGeneratorApp.textPrimary,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CreateIdeaCategoryTile extends StatelessWidget {
   const _CreateIdeaCategoryTile({
     required this.category,
@@ -5242,6 +5291,7 @@ class _CreateIdeaCategoryTile extends StatelessWidget {
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
+  static const _twoColumnBreakpoint = 480.0;
 
   final _CreateIdeaCategory category;
   final bool initiallyExpanded;
@@ -5268,30 +5318,43 @@ class _CreateIdeaCategoryTile extends StatelessWidget {
         iconColor: _accentColor,
         collapsedIconColor: AiImageGeneratorApp.textSecondary,
         children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: category.ideas
-                .map(
-                  (idea) => ActionChip(
-                    label: Text(
-                      idea,
-                      style: const TextStyle(fontSize: 12, height: 1.3),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final ideas = category.ideas;
+              final useTwoColumns =
+                  constraints.maxWidth >= _twoColumnBreakpoint;
+
+              Widget ideaButton(String idea) => _CreateIdeaButton(
+                    idea: idea,
+                    isBusy: isBusy,
+                    onTap: () => onIdeaSelected(idea),
+                  );
+
+              if (!useTwoColumns) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = 0; i < ideas.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 8),
+                      ideaButton(ideas[i]),
+                    ],
+                  ],
+                );
+              }
+
+              final itemWidth = (constraints.maxWidth - 8) / 2;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final idea in ideas)
+                    SizedBox(
+                      width: itemWidth,
+                      child: ideaButton(idea),
                     ),
-                    onPressed:
-                        isBusy ? null : () => onIdeaSelected(idea),
-                    backgroundColor: const Color(0xFFF7F8FC),
-                    side: const BorderSide(color: Color(0xFFE8EAEF)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 2,
-                    ),
-                  ),
-                )
-                .toList(),
+                ],
+              );
+            },
           ),
         ],
       ),
