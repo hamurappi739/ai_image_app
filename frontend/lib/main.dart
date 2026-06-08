@@ -909,6 +909,20 @@ class _PacksScreenState extends State<PacksScreen> {
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
       _showPackPaymentSoonDialog(context);
+    } on MockPaymentServiceUnavailableException {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Не удалось пополнить баланс. Проверьте подключение и попробуйте ещё раз.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();

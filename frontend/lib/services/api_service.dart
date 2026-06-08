@@ -106,6 +106,10 @@ class MockPaymentFailedException implements Exception {
   const MockPaymentFailedException();
 }
 
+class MockPaymentServiceUnavailableException implements Exception {
+  const MockPaymentServiceUnavailableException();
+}
+
 class MockPaymentAddedBalance {
   const MockPaymentAddedBalance({
     required this.paidImageGenerations,
@@ -377,28 +381,49 @@ class ApiService {
     return path.substring(idx + 1);
   }
 
+  static const _mockPaymentMaxRetries = 2;
+  static const _mockPaymentRetryDelay = Duration(milliseconds: 600);
+
   Future<MockVerifyRuStorePaymentResponse> mockVerifyRuStorePayment({
     required String packageId,
     required String providerPaymentId,
   }) async {
-    final uri = Uri.parse('$baseUrl/payments/rustore/mock-verify');
-    final response = await http.post(
-      uri,
-      headers: _requestHeaders(jsonBody: true),
-      body: jsonEncode({
-        'package_id': packageId,
-        'provider_payment_id': providerPaymentId,
-      }),
-    );
+    const maxAttempts = _mockPaymentMaxRetries + 1;
 
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
-      return MockVerifyRuStorePaymentResponse.fromJson(json);
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) {
+        await Future<void>.delayed(_mockPaymentRetryDelay);
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/payments/rustore/mock-verify'),
+        headers: _requestHeaders(jsonBody: true),
+        body: jsonEncode({
+          'package_id': packageId,
+          'provider_payment_id': providerPaymentId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        return MockVerifyRuStorePaymentResponse.fromJson(json);
+      }
+      if (response.statusCode == 403 || response.statusCode == 404) {
+        throw const MockPaymentUnavailableException();
+      }
+      if (response.statusCode == 400) {
+        throw const MockPaymentFailedException();
+      }
+      if (response.statusCode == 503) {
+        if (attempt < maxAttempts - 1) {
+          continue;
+        }
+        throw const MockPaymentServiceUnavailableException();
+      }
+      throw const MockPaymentFailedException();
     }
-    if (response.statusCode == 403 || response.statusCode == 404) {
-      throw const MockPaymentUnavailableException();
-    }
-    throw const MockPaymentFailedException();
+
+    throw const MockPaymentServiceUnavailableException();
   }
 
   Future<PhotoshootGenerateResponse> generatePhotoshoot({
