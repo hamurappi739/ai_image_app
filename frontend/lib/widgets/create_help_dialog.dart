@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'ui_preview_placeholders.dart';
+
 class CreateHelpDialog extends StatefulWidget {
   const CreateHelpDialog({
     super.key,
@@ -16,53 +18,49 @@ class _HelpBlock {
   const _HelpBlock({
     required this.title,
     required this.body,
-    required this.icon,
+    required this.previewBuilder,
   });
 
   final String title;
   final String body;
-  final IconData icon;
+  final Widget Function({required bool compact}) previewBuilder;
 }
 
 class _CreateHelpDialogState extends State<CreateHelpDialog> {
   static const _accentColor = Color(0xFF5B6CFF);
-  static const _blocks = [
+
+  static final _blocks = [
     _HelpBlock(
-      title: 'Бесплатный старт',
-      body:
-          'На старте доступны 3 бесплатные генерации, '
-          'чтобы попробовать приложение.',
-      icon: Icons.auto_awesome_outlined,
+      title: 'Начните с шаблона',
+      body: 'Самый простой путь — выберите готовый вариант. '
+          'Текст подставится сам.',
+      previewBuilder: ({required compact}) =>
+          HelpTemplatePreview(compact: compact),
     ),
     _HelpBlock(
-      title: 'Готовые идеи',
-      body:
-          'Идеи разделены по категориям: «Без фото» и «С фото» '
-          '(для будущего режима с фото). Нажмите идею — '
-          'описание заполнится автоматически.',
-      icon: Icons.lightbulb_outline,
+      title: 'Напишите описание',
+      body: 'Если нужна своя идея — коротко опишите, что хотите увидеть.',
+      previewBuilder: ({required compact}) =>
+          HelpDescriptionPreview(compact: compact),
     ),
     _HelpBlock(
-      title: 'Описание',
-      body:
-          'В блоке подсказок переключайте «Без фото» и «С фото» — '
-          'там разные примеры. Укажите объект, место, стиль и настроение.',
-      icon: Icons.edit_outlined,
+      title: 'Добавьте фото',
+      body: 'По желанию можно загрузить своё фото. '
+          'Лицо должно быть хорошо видно.',
+      previewBuilder: ({required compact}) =>
+          HelpPhotoUploadPreview(compact: compact),
     ),
     _HelpBlock(
-      title: 'Фото для образа',
-      body:
-          'Фото можно выбрать заранее — это подготовка к будущему сценарию. '
-          'Создание по фото подключим позже; сейчас изображение создаётся '
-          'по описанию.',
-      icon: Icons.add_photo_alternate_outlined,
+      title: 'Нажмите «Создать фото»',
+      body: 'Кнопка внизу экрана. Обычно ждать 20–60 секунд.',
+      previewBuilder: ({required compact}) =>
+          HelpCreateButtonPreview(compact: compact),
     ),
     _HelpBlock(
-      title: 'Где результат',
-      body:
-          'После создания изображение появится в Галерее. '
-          'Создание может занять до минуты — это нормально.',
-      icon: Icons.photo_library_outlined,
+      title: 'Смотрите результат',
+      body: 'Готовое фото появится в разделе «Готовые фото».',
+      previewBuilder: ({required compact}) =>
+          HelpGalleryPreview(compact: compact),
     ),
   ];
 
@@ -76,6 +74,7 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
     super.dispose();
   }
 
+  bool get _isFirstPage => _pageIndex == 0;
   bool get _isLastPage => _pageIndex == _blocks.length - 1;
 
   Future<void> _close() async {
@@ -101,6 +100,14 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
     );
   }
 
+  void _goBack() {
+    if (_isFirstPage || _isClosing) return;
+    _pageController.previousPage(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -109,14 +116,10 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
     final dialogPadding = isCompact
         ? const EdgeInsets.fromLTRB(20, 14, 20, 18)
         : const EdgeInsets.fromLTRB(24, 20, 24, 24);
-    final iconBoxSize = isCompact ? 48.0 : 56.0;
-    final iconSize = isCompact ? 24.0 : 28.0;
     final titleFontSize = isCompact ? 17.0 : 18.0;
-    final bodyFontSize = isCompact ? 14.0 : 15.0;
-    final iconTitleGap = isCompact ? 14.0 : 20.0;
-    final titleBodyGap = isCompact ? 8.0 : 10.0;
+    final bodyFontSize = isCompact ? 13.0 : 14.0;
     final maxDialogHeight = screenSize.height - 48;
-    final pageAreaHeight = (maxDialogHeight * 0.38).clamp(168.0, 240.0);
+    final pageAreaHeight = (maxDialogHeight * 0.42).clamp(180.0, 280.0);
 
     return Dialog(
       insetPadding: EdgeInsets.symmetric(
@@ -171,38 +174,28 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
                       physics: const ClampingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 2),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Container(
-                            width: iconBoxSize,
-                            height: iconBoxSize,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEDE9FF),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Icon(
-                              block.icon,
-                              color: _accentColor,
-                              size: iconSize,
-                            ),
-                          ),
-                          SizedBox(height: iconTitleGap),
                           Text(
                             block.title,
                             textAlign: TextAlign.center,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontSize: titleFontSize,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          SizedBox(height: titleBodyGap),
+                          SizedBox(height: isCompact ? 8 : 10),
                           Text(
                             block.body,
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontSize: bodyFontSize,
-                              height: 1.4,
+                              height: 1.35,
+                              color: const Color(0xFF6B7280),
                             ),
                           ),
+                          SizedBox(height: isCompact ? 12 : 16),
+                          block.previewBuilder(compact: isCompact),
                         ],
                       ),
                     );
@@ -236,38 +229,62 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
                   );
                 }),
               ),
-              SizedBox(height: isCompact ? 14 : 20),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: _isClosing
-                        ? null
-                        : const LinearGradient(
-                            colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
-                          ),
-                    color: _isClosing ? Colors.grey.shade300 : null,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: _isClosing ? null : _goNext,
-                      child: Center(
-                        child: Text(
-                          _isLastPage ? 'Понятно' : 'Далее',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
+              SizedBox(height: isCompact ? 12 : 16),
+              Row(
+                children: [
+                  if (!_isFirstPage) ...[
+                    SizedBox(
+                      height: 48,
+                      child: TextButton(
+                        onPressed: _isClosing ? null : _goBack,
+                        child: const Text(
+                          'Назад',
+                          style: TextStyle(
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                  ],
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: _isClosing
+                              ? null
+                              : const LinearGradient(
+                                  colors: [
+                                    Color(0xFF7C5CFF),
+                                    Color(0xFF4A7CFF),
+                                  ],
+                                ),
+                          color: _isClosing ? Colors.grey.shade300 : null,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: _isClosing ? null : _goNext,
+                            child: Center(
+                              child: Text(
+                                _isLastPage ? 'Понятно' : 'Далее',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
