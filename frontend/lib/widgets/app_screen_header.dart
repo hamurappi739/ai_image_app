@@ -35,14 +35,17 @@ class AppScreenHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: theme.textTheme.headlineSmall),
-              if (subtitle case final subtitleText?) ...[
-                const SizedBox(height: 6),
-                Text(subtitleText, style: theme.textTheme.bodyMedium),
-              ],
+              ...?switch (subtitle) {
+                null => null,
+                final subtitleText => [
+                  const SizedBox(height: 6),
+                  Text(subtitleText, style: theme.textTheme.bodyMedium),
+                ],
+              },
             ],
           ),
         ),
-        if (trailing != null) trailing!,
+        ?trailing,
       ],
     );
   }
