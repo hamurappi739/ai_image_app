@@ -20,16 +20,18 @@ class AppDrawer extends StatelessWidget {
   final String? userEmail;
   final String? userDisplayName;
 
-  static const _menuSections = [
-    AppSection.home,
-    AppSection.templatePhoto,
-    AppSection.photoshoots,
-    AppSection.customRequest,
-    AppSection.gallery,
-    AppSection.buy,
-    AppSection.profile,
-    AppSection.help,
-  ];
+  String _greetingLine() {
+    final name = userDisplayName?.trim();
+    if (name != null && name.isNotEmpty) {
+      return 'Здравствуйте, $name';
+    }
+    return 'Здравствуйте';
+  }
+
+  void _goTo(BuildContext context, AppSection section) {
+    Navigator.of(context).pop();
+    onSectionSelected(section);
+  }
 
   IconData _iconFor(AppSection section) => switch (section) {
         AppSection.home => Icons.home_outlined,
@@ -42,17 +44,37 @@ class AppDrawer extends StatelessWidget {
         AppSection.help => Icons.help_outline,
       };
 
-  String _greetingLine() {
-    final name = userDisplayName?.trim();
-    if (name != null && name.isNotEmpty) {
-      return 'Здравствуйте, $name';
-    }
-    return 'Здравствуйте';
+  Widget _menuTile(
+    BuildContext context, {
+    required AppSection section,
+    required String label,
+    IconData? icon,
+  }) {
+    final selected = currentSection == section;
+    return ListTile(
+      leading: Icon(
+        icon ?? _iconFor(section),
+        color: selected ? _accentColor : _textSecondary,
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          color: selected ? _accentColor : _textPrimary,
+        ),
+      ),
+      selected: selected,
+      selectedTileColor: const Color(0xFFEDE9FF),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+      onTap: () => _goTo(context, section),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final email = userEmail?.trim();
 
     return Drawer(
       backgroundColor: Colors.white,
@@ -61,29 +83,63 @@ class AppDrawer extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _greetingLine(),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: _textPrimary,
-                    ),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFF5F7FF), Color(0xFFEDE9FF)],
                   ),
-                  if (userEmail != null && userEmail!.trim().isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      userEmail!.trim(),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 13,
-                        color: _textSecondary,
-                      ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _accentColor.withValues(alpha: 0.15),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.person_outline,
+                            color: _accentColor,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _greetingLine(),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: _textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                    if (email != null && email.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        email,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontSize: 13,
+                          color: _textSecondary,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
             const Divider(height: 1),
@@ -91,37 +147,55 @@ class AppDrawer extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
-                  for (final section in _menuSections)
-                    ListTile(
-                      leading: Icon(
-                        _iconFor(section),
-                        color: currentSection == section
-                            ? _accentColor
-                            : _textSecondary,
-                      ),
-                      title: Text(
-                        section.drawerLabel,
-                        style: TextStyle(
-                          fontWeight: currentSection == section
-                              ? FontWeight.w600
-                              : FontWeight.w500,
-                          color: currentSection == section
-                              ? _accentColor
-                              : _textPrimary,
-                        ),
-                      ),
-                      selected: currentSection == section,
-                      selectedTileColor: const Color(0xFFEDE9FF),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 20),
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        onSectionSelected(section);
-                      },
+                  _menuTile(context, section: AppSection.home, label: 'Главная'),
+                  _menuTile(
+                    context,
+                    section: AppSection.templatePhoto,
+                    label: 'Фото по шаблону',
+                  ),
+                  _menuTile(
+                    context,
+                    section: AppSection.photoshoots,
+                    label: 'Фотосессии',
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.trending_up,
+                      color: currentSection == AppSection.photoshoots
+                          ? _accentColor
+                          : _textSecondary,
                     ),
+                    title: Text(
+                      'Трендовые фотосессии',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: _textPrimary,
+                      ),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 20),
+                    onTap: () => _goTo(context, AppSection.photoshoots),
+                  ),
+                  _menuTile(
+                    context,
+                    section: AppSection.customRequest,
+                    label: 'Свой запрос',
+                  ),
+                  _menuTile(
+                    context,
+                    section: AppSection.gallery,
+                    label: 'Готовые фото',
+                  ),
+                  _menuTile(context, section: AppSection.buy, label: 'Купить'),
+                  _menuTile(
+                    context,
+                    section: AppSection.profile,
+                    label: 'Профиль',
+                  ),
+                  _menuTile(context, section: AppSection.help, label: 'Помощь'),
                 ],
               ),
             ),

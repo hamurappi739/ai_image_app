@@ -21,11 +21,12 @@ import 'services/payment_service.dart';
 import 'services/create_help_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/photoshoots_help_service.dart';
-import 'utils/create_description_text_field.dart';
 import 'utils/gallery_item_key.dart';
 import 'utils/mock_photoshoot_photo.dart';
 import 'widgets/app_drawer.dart';
+import 'widgets/app_navigation_scope.dart';
 import 'widgets/app_screen_header.dart';
+import 'widgets/custom_request_flow.dart';
 import 'widgets/create_help_dialog.dart';
 import 'widgets/create_result_tips_card.dart';
 import 'widgets/gallery_viewer.dart';
@@ -119,6 +120,7 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _apiService = ApiService();
   late final PaymentService _paymentService =
       PaymentService(apiService: _apiService);
@@ -408,15 +410,19 @@ class _MainShellState extends State<MainShell> {
     ];
 
     return Scaffold(
+      key: _scaffoldKey,
       drawer: AppDrawer(
         currentSection: _section,
         onSectionSelected: _navigateToSection,
         userEmail: _authService.currentUser?.email,
         userDisplayName: _userDisplayName(),
       ),
-      body: IndexedStack(
-        index: _section.index,
-        children: screens,
+      body: AppNavigationScope(
+        openDrawer: () => _scaffoldKey.currentState?.openDrawer(),
+        child: IndexedStack(
+          index: _section.index,
+          children: screens,
+        ),
       ),
     );
   }
@@ -5101,333 +5107,6 @@ class CreateScreen extends StatefulWidget {
   State<CreateScreen> createState() => _CreateScreenState();
 }
 
-class _CreateIdeaCategory {
-  const _CreateIdeaCategory({
-    required this.title,
-    required this.ideas,
-  });
-
-  final String title;
-  final List<String> ideas;
-}
-
-/// Готовые идеи для вкладки «Создать» по режимам и категориям.
-class _CreateQuickIdeasCatalog {
-  _CreateQuickIdeasCatalog._();
-
-  static const withoutPhotoCategories = [
-    _CreateIdeaCategory(
-      title: 'Природа',
-      ideas: [
-        'Уютный домик в зимнем лесу, вечер, тёплый свет из окон',
-        'Горное озеро на рассвете, туман, реализм',
-        'Цветочное поле летом, мягкий солнечный свет',
-      ],
-    ),
-    _CreateIdeaCategory(
-      title: 'Город',
-      ideas: [
-        'Современный город ночью, неоновые вывески, кинематографичный стиль',
-        'Уютная улица старого города после дождя',
-        'Панорама большого города на закате',
-      ],
-    ),
-    _CreateIdeaCategory(
-      title: 'Дом и интерьер',
-      ideas: [
-        'Светлая гостиная в современном стиле, уютный свет',
-        'Кухня мечты, светлые тона, аккуратный интерьер',
-        'Спальня в спокойных цветах, мягкое освещение',
-      ],
-    ),
-    _CreateIdeaCategory(
-      title: 'Праздник',
-      ideas: [
-        'Праздничная открытка с цветами, нежные цвета, красивый свет',
-        'Новогодняя открытка, ёлка, тёплые огни, уют',
-        'День рождения, воздушные шары, радостная атмосфера',
-      ],
-    ),
-    _CreateIdeaCategory(
-      title: 'Реклама и товар',
-      ideas: [
-        'Рекламное фото чашки кофе на деревянном столе, мягкий утренний свет',
-        'Карточка товара на светлом фоне, минимализм',
-        'Красивая упаковка косметики, студийный свет',
-      ],
-    ),
-    _CreateIdeaCategory(
-      title: 'Соцсети и аватар',
-      ideas: [
-        'Аватар для соцсетей, аккуратный портрет, светлый фон',
-        'Яркая обложка для поста, современный стиль',
-        'Минималистичная картинка для профиля, мягкие цвета',
-      ],
-    ),
-  ];
-
-  static const withPhotoCategories = [
-    _CreateIdeaCategory(
-      title: 'Если на фото человек',
-      ideas: [
-        'Сделай деловой портрет в светлой студии, аккуратный костюм, мягкий свет',
-        'Создай аватар для соцсетей, светлый фон, естественная улыбка',
-        'Сделай зимний портрет на улице, тёплая одежда, красивый снег',
-        'Добавь образ для резюме: спокойный фон, уверенный вид, реализм',
-        'Сделай красивый портрет в городской прогулке, мягкий вечерний свет',
-      ],
-    ),
-    _CreateIdeaCategory(
-      title: 'Если на фото предмет или другое',
-      ideas: [
-        'Сделай рекламное фото товара на светлом фоне, мягкий свет',
-        'Поставь предмет на деревянный стол, уютная атмосфера, реализм',
-        'Улучши фото комнаты: больше света, аккуратный интерьер, чистый фон',
-        'Сделай красивую карточку товара для магазина, минимализм',
-        'Добавь праздничный фон вокруг предмета, красивый свет',
-      ],
-    ),
-  ];
-}
-
-enum _CreateTipsMode { withoutPhoto, withPhoto }
-
-class _CreateModeToggle extends StatelessWidget {
-  const _CreateModeToggle({
-    required this.mode,
-    required this.onModeChanged,
-    this.enabled = true,
-  });
-
-  final _CreateTipsMode mode;
-  final ValueChanged<_CreateTipsMode> onModeChanged;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SegmentedButton<_CreateTipsMode>(
-      segments: const [
-        ButtonSegment(
-          value: _CreateTipsMode.withoutPhoto,
-          label: Text('Без фото'),
-        ),
-        ButtonSegment(
-          value: _CreateTipsMode.withPhoto,
-          label: Text('С фото'),
-        ),
-      ],
-      selected: {mode},
-      onSelectionChanged: enabled
-          ? (selection) => onModeChanged(selection.first)
-          : null,
-      style: ButtonStyle(
-        visualDensity: VisualDensity.compact,
-        textStyle: WidgetStatePropertyAll(
-          theme.textTheme.labelLarge?.copyWith(fontSize: 13),
-        ),
-      ),
-    );
-  }
-}
-
-class _CreateQuickIdeasPanel extends StatelessWidget {
-  const _CreateQuickIdeasPanel({
-    required this.mode,
-    required this.onModeChanged,
-    required this.isBusy,
-    required this.onIdeaSelected,
-  });
-
-  final _CreateTipsMode mode;
-  final ValueChanged<_CreateTipsMode> onModeChanged;
-  final bool isBusy;
-  final ValueChanged<String> onIdeaSelected;
-
-  List<_CreateIdeaCategory> get _categories =>
-      mode == _CreateTipsMode.withoutPhoto
-          ? _CreateQuickIdeasCatalog.withoutPhotoCategories
-          : _CreateQuickIdeasCatalog.withPhotoCategories;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Дополнительные идеи', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 6),
-        Text(
-          'Необязательно. Можно выбрать пример — текст подставится в описание.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontSize: 13,
-            color: AiImageGeneratorApp.textSecondary,
-            height: 1.35,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Opacity(
-          opacity: 0.88,
-          child: _CreateModeToggle(
-            mode: mode,
-            onModeChanged: onModeChanged,
-            enabled: !isBusy,
-          ),
-        ),
-        const SizedBox(height: 10),
-        _SoftCard(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: Column(
-              key: ValueKey(mode),
-              children: [
-                for (var i = 0; i < _categories.length; i++)
-                  _CreateIdeaCategoryTile(
-                    category: _categories[i],
-                    initiallyExpanded: i == 0,
-                    isBusy: isBusy,
-                    onIdeaSelected: onIdeaSelected,
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CreateIdeaButton extends StatelessWidget {
-  const _CreateIdeaButton({
-    required this.idea,
-    required this.isBusy,
-    required this.onTap,
-  });
-
-  final String idea;
-  final bool isBusy;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: isBusy ? null : onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF7F8FC),
-            border: Border.all(color: const Color(0xFFE8EAEF)),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                idea,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 13,
-                  height: 1.35,
-                  color: AiImageGeneratorApp.textPrimary,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                softWrap: true,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CreateIdeaCategoryTile extends StatelessWidget {
-  const _CreateIdeaCategoryTile({
-    required this.category,
-    required this.initiallyExpanded,
-    required this.isBusy,
-    required this.onIdeaSelected,
-  });
-
-  static const _accentColor = Color(0xFF5B6CFF);
-  static const _twoColumnBreakpoint = 480.0;
-
-  final _CreateIdeaCategory category;
-  final bool initiallyExpanded;
-  final bool isBusy;
-  final ValueChanged<String> onIdeaSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Theme(
-      data: theme.copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        initiallyExpanded: initiallyExpanded,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-        childrenPadding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
-        title: Text(
-          category.title,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-        ),
-        iconColor: _accentColor,
-        collapsedIconColor: AiImageGeneratorApp.textSecondary,
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final ideas = category.ideas;
-              final useTwoColumns =
-                  constraints.maxWidth >= _twoColumnBreakpoint;
-
-              Widget ideaButton(String idea) => _CreateIdeaButton(
-                    idea: idea,
-                    isBusy: isBusy,
-                    onTap: () => onIdeaSelected(idea),
-                  );
-
-              if (!useTwoColumns) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (var i = 0; i < ideas.length; i++) ...[
-                      if (i > 0) const SizedBox(height: 8),
-                      ideaButton(ideas[i]),
-                    ],
-                  ],
-                );
-              }
-
-              final itemWidth = (constraints.maxWidth - 8) / 2;
-              return Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final idea in ideas)
-                    SizedBox(
-                      width: itemWidth,
-                      child: ideaButton(idea),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _CreateScreenState extends State<CreateScreen> {
 
   final _descriptionController = TextEditingController();
@@ -5437,18 +5116,11 @@ class _CreateScreenState extends State<CreateScreen> {
   bool _showGenerationErrorState = false;
   bool _isHelpDialogVisible = false;
   bool _isPickingPhoto = false;
-  _CreateTipsMode _createMode = _CreateTipsMode.withoutPhoto;
   Uint8List? _selectedPhotoBytes;
   XFile? _selectedPhotoFile;
   GenerateImageResponse? _lastResponse;
 
-  bool get _isPhotoMode => _createMode == _CreateTipsMode.withPhoto;
-
   bool get _hasSelectedPhoto => _selectedPhotoBytes != null;
-
-  void _onCreateModeChanged(_CreateTipsMode mode) {
-    setState(() => _createMode = mode);
-  }
 
   @override
   void initState() {
@@ -5558,33 +5230,25 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 
   Future<GenerateImageResponse> _runGeneration(String text) {
-    if (_isPhotoMode) {
-      final photoFile = _selectedPhotoFile;
-      if (photoFile == null) {
-        throw StateError('Photo required in photo mode');
-      }
-      return widget.apiService.generateImageWithPhoto(
-        description: text,
-        photoFile: photoFile,
-      );
+    final photoFile = _selectedPhotoFile;
+    if (photoFile == null) {
+      throw StateError('Photo required');
     }
-    return widget.apiService.generateImage(text);
+    return widget.apiService.generateImageWithPhoto(
+      description: text,
+      photoFile: photoFile,
+    );
   }
 
   Future<void> _onGenerate() async {
     final text = _descriptionController.text.trim();
 
-    if (_isPhotoMode) {
-      if (!_hasSelectedPhoto) {
-        _showSnackBar('Сначала добавьте фото.');
-        return;
-      }
-      if (text.isEmpty) {
-        _showSnackBar('Опишите, что нужно сделать с фото.');
-        return;
-      }
-    } else if (text.isEmpty) {
-      _showSnackBar('Сначала опишите изображение');
+    if (!_hasSelectedPhoto) {
+      _showSnackBar('Сначала добавьте фото.');
+      return;
+    }
+    if (text.isEmpty) {
+      _showSnackBar('Напишите, что нужно сделать с фото.');
       return;
     }
 
@@ -5602,12 +5266,8 @@ class _CreateScreenState extends State<CreateScreen> {
     try {
       final response = await GenerationProgressDialog.run<GenerateImageResponse>(
         context: context,
-        title: _isPhotoMode
-            ? 'Создаём изображение по вашему фото…'
-            : 'Создаём изображение',
-        subtitle: _isPhotoMode
-            ? 'Создание по фото обычно занимает до минуты.'
-            : 'Обычно это занимает до минуты.',
+        title: 'Создаём фото по вашему изображению…',
+        subtitle: 'Обычно это занимает до минуты.',
         totalSeconds: 60,
         task: () => _runGeneration(text),
       );
@@ -5644,7 +5304,7 @@ class _CreateScreenState extends State<CreateScreen> {
 
   void _handleError(String message) {
     if (message == 'Prompt cannot be empty') {
-      _showSnackBar('Сначала опишите изображение');
+      _showSnackBar('Напишите, что нужно сделать с фото.');
     } else {
       setState(() => _showGenerationErrorState = true);
       _showSnackBar('Не удалось создать изображение. Попробуйте ещё раз позже.');
@@ -5685,8 +5345,7 @@ class _CreateScreenState extends State<CreateScreen> {
               AppScreenHeader(
                 title: 'Свой запрос',
                 subtitle:
-                    'Этот режим для своей идеи. Если вы не знаете, что написать, '
-                    'начните с раздела «Фото по шаблону».',
+                    'Добавьте фото и напишите, какой результат хотите получить.',
                 trailing: SectionHelpButton(
                   onPressed: _showHelp,
                   enabled: !_isHelpDialogVisible,
@@ -5696,7 +5355,7 @@ class _CreateScreenState extends State<CreateScreen> {
               TextButton.icon(
                 onPressed: _isLoading ? null : widget.onOpenTemplates,
                 icon: const Icon(Icons.dashboard_customize_outlined, size: 18),
-                label: const Text('Открыть фото по шаблону'),
+                label: const Text('Не знаете, что написать? Откройте шаблоны'),
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFF5B6CFF),
                   padding: EdgeInsets.zero,
@@ -5709,42 +5368,18 @@ class _CreateScreenState extends State<CreateScreen> {
                 isLoading: widget.balanceLoading,
               ),
               const SizedBox(height: 20),
-              _StatusCard(response: _lastResponse),
-              const SizedBox(height: 16),
-              _CreateModeBanner(
-                isPhotoMode: _isPhotoMode,
-                hasSelectedPhoto: _hasSelectedPhoto,
-              ),
-              const SizedBox(height: 16),
-              _InputCard(
-                controller: _descriptionController,
-                isPhotoMode: _isPhotoMode,
-              ),
-              if (_isPhotoMode) ...[
-                const SizedBox(height: 10),
-                _CreatePhotoDescriptionHints(
-                  isBusy: _isLoading,
-                  onHintSelected: _applyQuickIdea,
-                ),
-              ],
-              if (_isPhotoMode) ...[
-                const SizedBox(height: 20),
-                _CreateReferencePhotoCard(
-                  photoBytes: _selectedPhotoBytes,
-                  isPickingPhoto: _isPickingPhoto,
-                  isBusy: _isLoading,
-                  onPickPhoto: _pickReferencePhoto,
-                  onClearPhoto: _clearReferencePhoto,
-                ),
-              ],
-              const SizedBox(height: 24),
-              _CreateQuickIdeasPanel(
-                mode: _createMode,
-                onModeChanged: _onCreateModeChanged,
+              CustomRequestFlow(
+                descriptionController: _descriptionController,
+                photoBytes: _selectedPhotoBytes,
+                isPickingPhoto: _isPickingPhoto,
                 isBusy: _isLoading,
+                onPickPhoto: _pickReferencePhoto,
+                onClearPhoto: _clearReferencePhoto,
+                onCreate: _isLoading ? null : _onGenerate,
+                isCreating: _isLoading,
                 onIdeaSelected: _applyQuickIdea,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               const CreateResultTipsCard(),
               const SizedBox(height: 24),
               if (showImagesDepleted) ...[
@@ -5756,14 +5391,9 @@ class _CreateScreenState extends State<CreateScreen> {
                 ),
                 const SizedBox(height: 12),
               ],
-              _GenerateButton(
-                isLoading: _isLoading,
-                isPhotoMode: _isPhotoMode,
-                onPressed: _isLoading ? null : _onGenerate,
-              ),
               if (_showGenerationErrorState) ...[
-                const SizedBox(height: 20),
                 const _GenerationErrorCard(),
+                const SizedBox(height: 20),
               ],
               if (_lastResponse != null) ...[
                 const SizedBox(height: 32),
@@ -6214,218 +5844,6 @@ class _CreateBalanceInfoCard extends StatelessWidget {
   }
 }
 
-class _CreateModeBanner extends StatelessWidget {
-  const _CreateModeBanner({
-    required this.isPhotoMode,
-    required this.hasSelectedPhoto,
-  });
-
-  static const _accentColor = Color(0xFF5B6CFF);
-
-  final bool isPhotoMode;
-  final bool hasSelectedPhoto;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final description = isPhotoMode
-        ? (hasSelectedPhoto
-            ? 'Мы используем выбранное фото как основу. '
-                'Опишите, что нужно изменить или добавить.'
-            : 'Выберите фото и опишите, что нужно изменить или добавить.')
-        : 'Опишите, что нужно создать — приложение сделает '
-            'изображение по вашему описанию.';
-
-    return _SoftCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            isPhotoMode ? 'Режим с фото' : 'Описание для генерации',
-            style: theme.textTheme.labelLarge?.copyWith(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isPhotoMode
-                  ? _accentColor
-                  : AiImageGeneratorApp.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            description,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 13,
-              height: 1.4,
-              color: AiImageGeneratorApp.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CreatePhotoDescriptionHints extends StatelessWidget {
-  const _CreatePhotoDescriptionHints({
-    required this.isBusy,
-    required this.onHintSelected,
-  });
-
-  static const _hints = [
-    'сделай фон светлым и чистым',
-    'добавь атмосферу зимней улицы',
-    'сделай фото в стиле рекламного баннера',
-  ];
-
-  final bool isBusy;
-  final ValueChanged<String> onHintSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final hintStyle = theme.textTheme.bodyMedium?.copyWith(
-      fontSize: 13,
-      height: 1.35,
-      color: AiImageGeneratorApp.textSecondary,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Подсказки для описания', style: hintStyle),
-        const SizedBox(height: 8),
-        ..._hints.map(
-          (hint) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: isBusy ? null : () => onHintSelected(hint),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  foregroundColor: const Color(0xFF5B6CFF),
-                  backgroundColor: const Color(0xFFF7F8FC),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: const BorderSide(color: Color(0xFFE8EAEF)),
-                  ),
-                ),
-                child: Text(
-                  'Например: $hint',
-                  style: hintStyle?.copyWith(
-                    color: AiImageGeneratorApp.textPrimary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CreateReferencePhotoCard extends StatelessWidget {
-  const _CreateReferencePhotoCard({
-    required this.photoBytes,
-    required this.isPickingPhoto,
-    required this.isBusy,
-    required this.onPickPhoto,
-    required this.onClearPhoto,
-  });
-
-  static const _accentColor = Color(0xFF5B6CFF);
-
-  final Uint8List? photoBytes;
-  final bool isPickingPhoto;
-  final bool isBusy;
-  final VoidCallback onPickPhoto;
-  final VoidCallback onClearPhoto;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final hasPhoto = photoBytes != null;
-
-    return _SoftCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Фото для образа',
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            hasPhoto
-                ? 'Выбранное фото будет основой для нового изображения.'
-                : 'Нажмите «Добавить фото», чтобы продолжить.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 13,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 14),
-          if (!hasPhoto)
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: OutlinedButton.icon(
-                onPressed: isPickingPhoto || isBusy ? null : onPickPhoto,
-                icon: isPickingPhoto
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2.2),
-                      )
-                    : const Icon(Icons.add_photo_alternate_outlined, size: 20),
-                label: Text(isPickingPhoto ? 'Подождите...' : 'Добавить фото'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _accentColor,
-                  side: BorderSide(color: _accentColor.withValues(alpha: 0.45)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            )
-          else ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 220),
-                child: AspectRatio(
-                  aspectRatio: 4 / 3,
-                  child: Image.memory(
-                    photoBytes!,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: isBusy ? null : onClearPhoto,
-                icon: const Icon(Icons.close, size: 18),
-                label: const Text('Убрать фото'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AiImageGeneratorApp.textSecondary,
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-
 class _SoftCard extends StatelessWidget {
   const _SoftCard({
     required this.child,
@@ -6459,64 +5877,6 @@ class _SoftCard extends StatelessWidget {
   }
 }
 
-class _StatusCard extends StatelessWidget {
-  const _StatusCard({required this.response});
-
-  final GenerateImageResponse? response;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return _SoftCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Статус генераций', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 10),
-          if (response == null)
-            Text('Готово к созданию', style: theme.textTheme.bodyMedium)
-          else if (response!.creditConsumed) ...[
-            Text(
-              'Баланс обновлён',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AiImageGeneratorApp.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Бесплатных осталось: '
-              '${response!.balance?.freeGenerationsRemaining ?? response!.remainingFreeGenerations ?? 0}',
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Изображений в балансе: '
-              '${response!.balance?.paidImageGenerations ?? response!.remainingPaidCredits ?? 0}',
-              style: theme.textTheme.bodyMedium,
-            ),
-            if (response!.paymentType == 'paid' &&
-                (response!.balance?.freeGenerationsRemaining ?? 0) == 0) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Бесплатные генерации закончились — используйте изображения из баланса.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AiImageGeneratorApp.textSecondary,
-                ),
-              ),
-            ],
-          ] else
-            Text(
-              'Демо-режим: генерации не списываются',
-              style: theme.textTheme.bodyMedium,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _GenerationErrorCard extends StatelessWidget {
   const _GenerationErrorCard();
 
@@ -6534,7 +5894,7 @@ class _GenerationErrorCard extends StatelessWidget {
               Icon(Icons.error_outline, size: 20, color: Colors.orange.shade800),
               const SizedBox(width: 8),
               Text(
-                'Изображение не создано',
+                'Фото не создано',
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: const Color(0xFF9A5B00),
                   fontSize: 15,
@@ -6544,124 +5904,13 @@ class _GenerationErrorCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Попробуйте изменить описание или повторить позже.',
+            'Попробуйте другое фото или измените описание.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF9A5B00),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _InputCard extends StatelessWidget {
-  const _InputCard({
-    required this.controller,
-    this.isPhotoMode = false,
-  });
-
-  final TextEditingController controller;
-  final bool isPhotoMode;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SoftCard(
-      child: CreateDescriptionTextField(
-        controller: controller,
-        hintText: isPhotoMode
-            ? 'Например: сделай деловой портрет на светлом фоне'
-            : 'Например: уютный домик в зимнем лесу, вечер, тёплый свет',
-      ),
-    );
-  }
-}
-
-class _GenerateButton extends StatelessWidget {
-  const _GenerateButton({
-    required this.isLoading,
-    required this.onPressed,
-    this.isPhotoMode = false,
-  });
-
-  final bool isLoading;
-  final VoidCallback? onPressed;
-  final bool isPhotoMode;
-
-  static const _gradient = LinearGradient(
-    colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 54,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: onPressed == null ? null : _gradient,
-              color: onPressed == null ? Colors.grey.shade300 : null,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: onPressed == null
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: const Color(0xFF5B6CFF).withValues(alpha: 0.35),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onPressed,
-                borderRadius: BorderRadius.circular(16),
-                child: Center(
-                  child: isLoading
-                      ? const SizedBox(
-                          width: 26,
-                          height: 26,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          isPhotoMode ? 'Создать по фото' : 'Создать фото',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          isLoading
-              ? (isPhotoMode
-                  ? 'Создаём изображение по вашему фото. Обычно это занимает до минуты.'
-                  : 'Создаём изображение. Обычно это занимает до минуты.')
-              : (isPhotoMode
-                  ? 'Обычно создание по фото занимает 20–60 секунд.'
-                  : 'Обычно создание занимает 20–60 секунд.'),
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 13,
-            height: 1.35,
-            color: AiImageGeneratorApp.textSecondary,
-          ),
-        ),
-      ],
     );
   }
 }

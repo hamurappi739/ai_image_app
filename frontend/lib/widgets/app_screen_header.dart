@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_navigation_scope.dart';
+
 class AppScreenHeader extends StatelessWidget {
   const AppScreenHeader({
     super.key,
@@ -22,7 +24,7 @@ class AppScreenHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         IconButton(
-          onPressed: () => Scaffold.of(context).openDrawer(),
+          onPressed: AppNavigationScope.openDrawerOf(context),
           icon: const Icon(Icons.menu, size: 26),
           color: _textPrimary,
           tooltip: 'Меню',
