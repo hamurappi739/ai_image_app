@@ -18,15 +18,23 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final isCompact = screenHeight < 720;
 
     return Scaffold(
       backgroundColor: _scaffoldBackground,
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
+              padding: EdgeInsets.fromLTRB(
+                12,
+                isCompact ? 4 : 8,
+                20,
+                24,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -36,9 +44,9 @@ class HomeScreen extends StatelessWidget {
                         'Начните с простого шаблона, сделайте фотосессию '
                         'или создайте фото по своей идее.',
                   ),
-                  const SizedBox(height: 28),
+                  SizedBox(height: isCompact ? 16 : 20),
                   AspectRatio(
-                    aspectRatio: 4 / 3,
+                    aspectRatio: isCompact ? 16 / 10 : 4 / 3,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
@@ -64,13 +72,13 @@ class HomeScreen extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.photo_outlined,
-                            size: 72,
+                            size: isCompact ? 56 : 72,
                             color: Colors.white.withValues(alpha: 0.55),
                           ),
                           Positioned(
-                            bottom: 20,
-                            left: 20,
-                            right: 20,
+                            bottom: isCompact ? 14 : 20,
+                            left: 16,
+                            right: 16,
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 14,
@@ -96,7 +104,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  SizedBox(height: isCompact ? 16 : 20),
                   SizedBox(
                     height: 54,
                     child: FilledButton(
@@ -116,7 +124,7 @@ class HomeScreen extends StatelessWidget {
                       child: const Text('Начать создавать'),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -135,11 +143,6 @@ class HomeScreen extends StatelessWidget {
                             color: _textSecondary,
                           ),
                         ),
-                      ),
-                      Icon(
-                        Icons.arrow_back,
-                        size: 18,
-                        color: _textSecondary.withValues(alpha: 0.7),
                       ),
                     ],
                   ),
