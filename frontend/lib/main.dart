@@ -487,6 +487,144 @@ class _PackOffering {
 
 enum _PackCatalogMode { withPhotoshoots, imagesOnly }
 
+class _PackCatalogModeToggle extends StatelessWidget {
+  const _PackCatalogModeToggle({
+    required this.mode,
+    required this.isCompact,
+    required this.onChanged,
+  });
+
+  final _PackCatalogMode mode;
+  final bool isCompact;
+  final ValueChanged<_PackCatalogMode> onChanged;
+
+  static const _accent = Color(0xFF5B6CFF);
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isCompact) {
+      return SegmentedButton<_PackCatalogMode>(
+        segments: const [
+          ButtonSegment(
+            value: _PackCatalogMode.withPhotoshoots,
+            label: Text('С фотосессиями'),
+          ),
+          ButtonSegment(
+            value: _PackCatalogMode.imagesOnly,
+            label: Text('Только изображения'),
+          ),
+        ],
+        selected: {mode},
+        onSelectionChanged: (selection) => onChanged(selection.first),
+        style: ButtonStyle(
+          visualDensity: VisualDensity.compact,
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return _accent;
+            }
+            return Colors.white;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return Colors.white;
+            }
+            return AiImageGeneratorApp.textPrimary;
+          }),
+          side: WidgetStateProperty.all(
+            BorderSide(color: _accent.withValues(alpha: 0.35)),
+          ),
+        ),
+      );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _accent.withValues(alpha: 0.35)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _PackModeSegmentButton(
+                  label: 'С фотосессиями',
+                  selected: mode == _PackCatalogMode.withPhotoshoots,
+                  onTap: () => onChanged(_PackCatalogMode.withPhotoshoots),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: _PackModeSegmentButton(
+                  label: 'Только изображения',
+                  selected: mode == _PackCatalogMode.imagesOnly,
+                  onTap: () => onChanged(_PackCatalogMode.imagesOnly),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PackModeSegmentButton extends StatelessWidget {
+  const _PackModeSegmentButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  static const _accent = Color(0xFF5B6CFF);
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = selected ? Colors.white : AiImageGeneratorApp.textPrimary;
+
+    return Material(
+      color: selected ? _accent : Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (selected) ...[
+                Icon(Icons.check, size: 14, color: foreground),
+                const SizedBox(width: 4),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.visible,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1.25,
+                    color: foreground,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 String _packPhotoshootLabel(int count) {
   final mod10 = count % 10;
   final mod100 = count % 100;
@@ -1165,46 +1303,10 @@ class _PacksScreenState extends State<PacksScreen> {
                         style: theme.textTheme.titleMedium,
                       ),
                       const SizedBox(height: 12),
-                      SegmentedButton<_PackCatalogMode>(
-                        segments: const [
-                          ButtonSegment(
-                            value: _PackCatalogMode.withPhotoshoots,
-                            label: Text('С фотосессиями'),
-                          ),
-                          ButtonSegment(
-                            value: _PackCatalogMode.imagesOnly,
-                            label: Text('Только изображения'),
-                          ),
-                        ],
-                        selected: {_catalogMode},
-                        onSelectionChanged: (selection) {
-                          setState(
-                            () => _catalogMode = selection.first,
-                          );
-                        },
-                        style: ButtonStyle(
-                          visualDensity: VisualDensity.compact,
-                          backgroundColor:
-                              WidgetStateProperty.resolveWith((states) {
-                            if (states.contains(WidgetState.selected)) {
-                              return const Color(0xFF5B6CFF);
-                            }
-                            return Colors.white;
-                          }),
-                          foregroundColor:
-                              WidgetStateProperty.resolveWith((states) {
-                            if (states.contains(WidgetState.selected)) {
-                              return Colors.white;
-                            }
-                            return AiImageGeneratorApp.textPrimary;
-                          }),
-                          side: WidgetStateProperty.all(
-                            BorderSide(
-                              color: const Color(0xFF5B6CFF)
-                                  .withValues(alpha: 0.35),
-                            ),
-                          ),
-                        ),
+                      _PackCatalogModeToggle(
+                        mode: _catalogMode,
+                        isCompact: columns == 1,
+                        onChanged: (mode) => setState(() => _catalogMode = mode),
                       ),
                       const SizedBox(height: 8),
                       Text(

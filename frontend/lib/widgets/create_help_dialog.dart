@@ -104,14 +104,33 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenSize = MediaQuery.sizeOf(context);
+    final isCompact = screenSize.height < 720 || screenSize.width < 400;
+    final dialogPadding = isCompact
+        ? const EdgeInsets.fromLTRB(20, 14, 20, 18)
+        : const EdgeInsets.fromLTRB(24, 20, 24, 24);
+    final iconBoxSize = isCompact ? 48.0 : 56.0;
+    final iconSize = isCompact ? 24.0 : 28.0;
+    final titleFontSize = isCompact ? 17.0 : 18.0;
+    final bodyFontSize = isCompact ? 14.0 : 15.0;
+    final iconTitleGap = isCompact ? 14.0 : 20.0;
+    final titleBodyGap = isCompact ? 8.0 : 10.0;
+    final maxDialogHeight = screenSize.height - 48;
+    final pageAreaHeight = (maxDialogHeight * 0.38).clamp(168.0, 240.0);
 
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 16 : 24,
+        vertical: isCompact ? 16 : 24,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
+        constraints: BoxConstraints(
+          maxWidth: 420,
+          maxHeight: maxDialogHeight,
+        ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          padding: dialogPadding,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -131,56 +150,66 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
                     icon: const Icon(Icons.close, size: 22),
                     tooltip: 'Закрыть',
                     color: const Color(0xFF6B7280),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
+                    ),
                   ),
                 ],
               ),
               SizedBox(
-                height: 220,
+                height: pageAreaHeight,
                 child: PageView.builder(
                   controller: _pageController,
                   itemCount: _blocks.length,
                   onPageChanged: (index) => setState(() => _pageIndex = index),
                   itemBuilder: (context, index) {
                     final block = _blocks[index];
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEDE9FF),
-                            borderRadius: BorderRadius.circular(16),
+                    return SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: iconBoxSize,
+                            height: iconBoxSize,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEDE9FF),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              block.icon,
+                              color: _accentColor,
+                              size: iconSize,
+                            ),
                           ),
-                          child: Icon(
-                            block.icon,
-                            color: _accentColor,
-                            size: 28,
+                          SizedBox(height: iconTitleGap),
+                          Text(
+                            block.title,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontSize: titleFontSize,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          block.title,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontSize: 18,
+                          SizedBox(height: titleBodyGap),
+                          Text(
+                            block.body,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontSize: bodyFontSize,
+                              height: 1.4,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          block.body,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 15,
-                            height: 1.45,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     );
                   },
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: isCompact ? 6 : 8),
               Text(
                 '${_pageIndex + 1} из ${_blocks.length}',
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -188,7 +217,7 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
                   color: const Color(0xFF1A1D26),
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: isCompact ? 8 : 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(_blocks.length, (index) {
@@ -207,7 +236,7 @@ class _CreateHelpDialogState extends State<CreateHelpDialog> {
                   );
                 }),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: isCompact ? 14 : 20),
               SizedBox(
                 width: double.infinity,
                 height: 50,
