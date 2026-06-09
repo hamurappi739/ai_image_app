@@ -90,10 +90,12 @@ class InsufficientBalanceHint extends StatelessWidget {
     super.key,
     required this.message,
     required this.onOpenPacks,
+    this.actionLabel = 'Пополнить баланс',
   });
 
   final String message;
   final VoidCallback onOpenPacks;
+  final String actionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +139,7 @@ class InsufficientBalanceHint extends StatelessWidget {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 foregroundColor: const Color(0xFF5B6CFF),
               ),
-              child: const Text('Пополнить баланс'),
+              child: Text(actionLabel),
             ),
           ),
         ],
