@@ -10,7 +10,11 @@ import 'models/gallery_display_item.dart';
 import 'models/generated_image_item.dart';
 import 'models/payment_result.dart';
 import 'models/user_balance.dart';
+import 'navigation/app_section.dart';
+import 'screens/help_hub_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/template_photo_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
 import 'services/payment_service.dart';
@@ -20,6 +24,8 @@ import 'services/photoshoots_help_service.dart';
 import 'utils/create_description_text_field.dart';
 import 'utils/gallery_item_key.dart';
 import 'utils/mock_photoshoot_photo.dart';
+import 'widgets/app_drawer.dart';
+import 'widgets/app_screen_header.dart';
 import 'widgets/create_help_dialog.dart';
 import 'widgets/gallery_viewer.dart';
 import 'widgets/generation_progress_dialog.dart';
@@ -112,14 +118,13 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  static const _accentColor = Color(0xFF5B6CFF);
-
   final _apiService = ApiService();
   late final PaymentService _paymentService =
       PaymentService(apiService: _apiService);
   final _authService = AuthService();
 
-  int _selectedIndex = 0;
+  AppSection _section = AppSection.home;
+  String? _pendingCustomRequestDescription;
   final List<GeneratedImageItem> _generatedImages = [];
   final Set<String> _hiddenGalleryImageKeys = {};
   final Set<String> _hiddenPhotoshootIds = {};
@@ -235,11 +240,40 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
-  void _onTabSelected(int index) {
-    setState(() => _selectedIndex = index);
-    if (index == 0 || index == 3 || index == 4) {
+  void _navigateToSection(AppSection section) {
+    setState(() => _section = section);
+    if (section == AppSection.customRequest ||
+        section == AppSection.buy ||
+        section == AppSection.profile) {
       _loadBalance();
     }
+  }
+
+  void _onTemplateSelected(PhotoTemplate template) {
+    setState(() {
+      _pendingCustomRequestDescription = template.prompt;
+      _section = AppSection.customRequest;
+    });
+    _loadBalance();
+  }
+
+  void _clearPendingCustomRequestDescription() {
+    if (_pendingCustomRequestDescription == null) return;
+    setState(() => _pendingCustomRequestDescription = null);
+  }
+
+  String? _userDisplayName() {
+    final user = _authService.currentUser;
+    if (user == null) return null;
+    final metadata = user.userMetadata;
+    if (metadata == null) return null;
+    for (final key in ['full_name', 'name', 'display_name']) {
+      final value = metadata[key];
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+    return null;
   }
 
   void _updateBalance(UserBalance balance) {
@@ -272,14 +306,14 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
-  void _goToCreateTab() => setState(() => _selectedIndex = 0);
-
-  void _goToGalleryTab() => setState(() => _selectedIndex = 2);
+  void _goToGalleryTab() => _navigateToSection(AppSection.gallery);
 
   void _goToPacksTab() {
-    setState(() => _selectedIndex = 3);
+    _navigateToSection(AppSection.buy);
     _loadBalance();
   }
+
+  void _goToTemplateTab() => _navigateToSection(AppSection.templatePhoto);
 
   void _onImageGenerated(GeneratedImageItem item) {
     setState(() {
@@ -315,18 +349,10 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final screens = <Widget>[
-      CreateScreen(
-        isActive: _selectedIndex == 0,
-        apiService: _apiService,
-        balance: _userBalance,
-        balanceLoading: _balanceLoading,
-        onImageGenerated: _onImageGenerated,
-        onBalanceUpdated: _updateBalance,
-        onOpenGallery: _goToGalleryTab,
-        onOpenPacks: _goToPacksTab,
-      ),
+      HomeScreen(onNavigate: _navigateToSection),
+      TemplatePhotoScreen(onTemplateSelected: _onTemplateSelected),
       PhotoshootsScreen(
-        isActive: _selectedIndex == 1,
+        isActive: _section == AppSection.photoshoots,
         apiService: _apiService,
         balance: _userBalance,
         balanceLoading: _balanceLoading,
@@ -335,13 +361,26 @@ class _MainShellState extends State<MainShell> {
         onOpenGallery: _goToGalleryTab,
         onOpenPacks: _goToPacksTab,
       ),
+      CreateScreen(
+        isActive: _section == AppSection.customRequest,
+        apiService: _apiService,
+        balance: _userBalance,
+        balanceLoading: _balanceLoading,
+        pendingDescription: _pendingCustomRequestDescription,
+        onPendingDescriptionApplied: _clearPendingCustomRequestDescription,
+        onImageGenerated: _onImageGenerated,
+        onBalanceUpdated: _updateBalance,
+        onOpenGallery: _goToGalleryTab,
+        onOpenPacks: _goToPacksTab,
+        onOpenTemplates: _goToTemplateTab,
+      ),
       GalleryScreen(
         images: _generatedImages,
         hiddenImageKeys: _hiddenGalleryImageKeys,
         hiddenPhotoshootIds: _hiddenPhotoshootIds,
         onHideImage: _hideGalleryImage,
         onHidePhotoshoot: _hidePhotoshoot,
-        onCreateFirst: _goToCreateTab,
+        onCreateFirst: _goToTemplateTab,
         onClearGallery: _clearGallery,
         backendHistoryUnavailable: _backendHistoryUnavailable,
       ),
@@ -364,43 +403,19 @@ class _MainShellState extends State<MainShell> {
         onRefreshBalance: _loadBalance,
         showUserBalance: _showUserBalance,
       ),
+      const HelpHubScreen(),
     ];
 
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: screens,
+      drawer: AppDrawer(
+        currentSection: _section,
+        onSectionSelected: _navigateToSection,
+        userEmail: _authService.currentUser?.email,
+        userDisplayName: _userDisplayName(),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _selectedIndex,
-        selectedItemColor: _accentColor,
-        unselectedItemColor: AiImageGeneratorApp.textSecondary,
-        backgroundColor: Colors.white,
-        elevation: 8,
-        onTap: _onTabSelected,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.auto_awesome),
-            label: 'Создать',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.photo_camera),
-            label: 'Фотосессии',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.photo_library),
-            label: 'Галерея',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag),
-            label: 'Пакеты',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Профиль',
-          ),
-        ],
+      body: IndexedStack(
+        index: _section.index,
+        children: screens,
       ),
     );
   }
@@ -1264,31 +1279,14 @@ class _PacksScreenState extends State<PacksScreen> {
                 final columns = _columnCount(constraints.maxWidth);
 
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Пакеты',
-                                  style: theme.textTheme.headlineSmall,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Пополните баланс изображений и фотосессий',
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
-                          ),
-                          SectionHelpButton(onPressed: _showHelp),
-                        ],
+                      AppScreenHeader(
+                        title: 'Купить',
+                        subtitle: 'Купить изображения и фотосессии',
+                        trailing: SectionHelpButton(onPressed: _showHelp),
                       ),
                       const SizedBox(height: 16),
                       _UserBalancePacksBanner(
@@ -2215,7 +2213,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                 final gridAspectRatio = cardWidth / cardHeight;
 
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -2313,30 +2311,14 @@ class _PhotoshootsIntroHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Text(
-                'Фотосессии',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            SectionHelpButton(
-              onPressed: onShowHelp,
-              enabled: helpEnabled,
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Выберите стиль, загрузите фото — приложение создаст '
-          'готовые изображения в выбранном образе.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            height: 1.45,
-            color: AiImageGeneratorApp.textSecondary,
+        AppScreenHeader(
+          title: 'Фотосессии',
+          subtitle:
+              'Выберите стиль, загрузите фото — приложение создаст '
+              'готовые изображения в выбранном образе.',
+          trailing: SectionHelpButton(
+            onPressed: onShowHelp,
+            enabled: helpEnabled,
           ),
         ),
         const SizedBox(height: 14),
@@ -4066,8 +4048,6 @@ class GalleryScreen extends StatelessWidget {
       );
     }
 
-    final theme = Theme.of(context);
-
     return Scaffold(
       backgroundColor: AiImageGeneratorApp.scaffoldBackground,
       body: SafeArea(
@@ -4079,30 +4059,17 @@ class GalleryScreen extends StatelessWidget {
                 final columns = _columnCount(constraints.maxWidth);
 
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Галерея',
-                                  style: theme.textTheme.headlineSmall,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Ваши созданные изображения',
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
-                          ),
-                          TextButton.icon(
+                      const AppScreenHeader(
+                        title: 'Готовые фото',
+                        subtitle: 'Ваши созданные изображения',
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
                             onPressed: () => _onClearPressed(context),
                             icon: const Icon(
                               Icons.delete_outline,
@@ -4121,9 +4088,8 @@ class GalleryScreen extends StatelessWidget {
                               ),
                             ),
                           ),
-                        ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -4176,15 +4142,13 @@ class _GalleryEmptyState extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Галерея', style: theme.textTheme.headlineSmall),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Здесь будут ваши созданные изображения',
-                    style: theme.textTheme.bodyMedium,
+                  const AppScreenHeader(
+                    title: 'Готовые фото',
+                    subtitle: 'Здесь будут ваши созданные изображения',
                   ),
                   const SizedBox(height: 28),
                   _SoftCard(
@@ -4212,7 +4176,7 @@ class _GalleryEmptyState extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          'В Галерее пока пусто',
+                          'Пока нет готовых фото',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontSize: 18,
                           ),
@@ -4220,7 +4184,7 @@ class _GalleryEmptyState extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Создайте изображение или фотосессию — '
+                          'Сделайте фото по шаблону, фотосессию или свой запрос — '
                           'результат появится здесь.',
                           style: theme.textTheme.bodyMedium,
                           textAlign: TextAlign.center,
@@ -4253,7 +4217,7 @@ class _GalleryEmptyState extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(14),
                                 child: const Center(
                                   child: Text(
-                                    'Создать первое изображение',
+                                    'Выбрать шаблон',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
@@ -4683,20 +4647,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildHeader(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Профиль', style: theme.textTheme.headlineSmall),
-        const SizedBox(height: 6),
-        Text(
-          widget.authService.isConfigured
-              ? (widget.authService.isSignedIn
-                  ? 'Ваш аккаунт и баланс'
-                  : 'Войдите, чтобы сохранять баланс и историю')
-              : 'Аккаунт и настройки (режим разработки)',
-          style: theme.textTheme.bodyMedium,
-        ),
-      ],
+    return const AppScreenHeader(
+      title: 'Профиль',
+      subtitle: 'Ваш аккаунт, баланс и настройки',
     );
   }
 
@@ -5122,20 +5075,26 @@ class CreateScreen extends StatefulWidget {
     required this.apiService,
     required this.balance,
     required this.balanceLoading,
+    this.pendingDescription,
+    this.onPendingDescriptionApplied,
     required this.onImageGenerated,
     required this.onBalanceUpdated,
     required this.onOpenGallery,
     required this.onOpenPacks,
+    required this.onOpenTemplates,
   });
 
   final bool isActive;
   final ApiService apiService;
   final UserBalance? balance;
   final bool balanceLoading;
+  final String? pendingDescription;
+  final VoidCallback? onPendingDescriptionApplied;
   final ValueChanged<GeneratedImageItem> onImageGenerated;
   final ValueChanged<UserBalance> onBalanceUpdated;
   final VoidCallback onOpenGallery;
   final VoidCallback onOpenPacks;
+  final VoidCallback onOpenTemplates;
 
   @override
   State<CreateScreen> createState() => _CreateScreenState();
@@ -5297,10 +5256,10 @@ class _CreateQuickIdeasPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Попробуйте идею', style: theme.textTheme.titleMedium),
+        Text('Дополнительные идеи', style: theme.textTheme.titleMedium),
         const SizedBox(height: 6),
         Text(
-          'Выберите режим и категорию — текст подставится в описание',
+          'Необязательно. Можно выбрать пример — текст подставится в описание.',
           style: theme.textTheme.bodyMedium?.copyWith(
             fontSize: 13,
             color: AiImageGeneratorApp.textSecondary,
@@ -5308,10 +5267,13 @@ class _CreateQuickIdeasPanel extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        _CreateModeToggle(
-          mode: mode,
-          onModeChanged: onModeChanged,
-          enabled: !isBusy,
+        Opacity(
+          opacity: 0.88,
+          child: _CreateModeToggle(
+            mode: mode,
+            onModeChanged: onModeChanged,
+            enabled: !isBusy,
+          ),
         ),
         const SizedBox(height: 10),
         _SoftCard(
@@ -5496,6 +5458,13 @@ class _CreateScreenState extends State<CreateScreen> {
   @override
   void didUpdateWidget(CreateScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.pendingDescription != null &&
+        widget.pendingDescription != oldWidget.pendingDescription) {
+      _applyQuickIdea(widget.pendingDescription!);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onPendingDescriptionApplied?.call();
+      });
+    }
     if (widget.isActive && !oldWidget.isActive) {
       _scheduleFirstVisitHelp();
     }
@@ -5700,7 +5669,6 @@ class _CreateScreenState extends State<CreateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final showImagesDepleted = widget.balance != null &&
         !widget.balanceLoading &&
         widget.balance!.showImageDepletedWarning;
@@ -5709,34 +5677,30 @@ class _CreateScreenState extends State<CreateScreen> {
       backgroundColor: AiImageGeneratorApp.scaffoldBackground,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'AI Фотогенератор',
-                          style: theme.textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Создавайте изображения по вашему описанию',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                  SectionHelpButton(
-                    onPressed: _showHelp,
-                    enabled: !_isHelpDialogVisible,
-                  ),
-                ],
+              AppScreenHeader(
+                title: 'Свой запрос',
+                subtitle:
+                    'Этот режим для своей идеи. Если вы не знаете, что написать, '
+                    'начните с раздела «Фото по шаблону».',
+                trailing: SectionHelpButton(
+                  onPressed: _showHelp,
+                  enabled: !_isHelpDialogVisible,
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: _isLoading ? null : widget.onOpenTemplates,
+                icon: const Icon(Icons.dashboard_customize_outlined, size: 18),
+                label: const Text('Открыть фото по шаблону'),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF5B6CFF),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                ),
               ),
               const SizedBox(height: 16),
               _CreateBalanceInfoCard(
@@ -5749,9 +5713,6 @@ class _CreateScreenState extends State<CreateScreen> {
               _CreateModeBanner(
                 isPhotoMode: _isPhotoMode,
                 hasSelectedPhoto: _hasSelectedPhoto,
-                mode: _createMode,
-                onModeChanged: _onCreateModeChanged,
-                isBusy: _isLoading,
               ),
               const SizedBox(height: 16),
               _InputCard(
@@ -6260,23 +6221,16 @@ class _CreateModeBanner extends StatelessWidget {
   const _CreateModeBanner({
     required this.isPhotoMode,
     required this.hasSelectedPhoto,
-    required this.mode,
-    required this.onModeChanged,
-    this.isBusy = false,
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
 
   final bool isPhotoMode;
   final bool hasSelectedPhoto;
-  final _CreateTipsMode mode;
-  final ValueChanged<_CreateTipsMode> onModeChanged;
-  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final label = isPhotoMode ? 'Режим: с фото' : 'Режим: без фото';
     final description = isPhotoMode
         ? (hasSelectedPhoto
             ? 'Мы используем выбранное фото как основу. '
@@ -6289,51 +6243,24 @@ class _CreateModeBanner extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CreateModeToggle(
-            mode: mode,
-            onModeChanged: onModeChanged,
-            enabled: !isBusy,
+          Text(
+            isPhotoMode ? 'Режим с фото' : 'Описание для генерации',
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isPhotoMode
+                  ? _accentColor
+                  : AiImageGeneratorApp.textSecondary,
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: isPhotoMode
-                      ? const Color(0xFFEDE9FF)
-                      : const Color(0xFFF7F8FC),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isPhotoMode
-                        ? _accentColor.withValues(alpha: 0.35)
-                        : const Color(0xFFE8EAEF),
-                  ),
-                ),
-                child: Text(
-                  label,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isPhotoMode
-                        ? _accentColor
-                        : AiImageGeneratorApp.textPrimary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  description,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: 13,
-                    height: 1.4,
-                    color: AiImageGeneratorApp.textSecondary,
-                  ),
-                ),
-              ),
-            ],
+          const SizedBox(height: 8),
+          Text(
+            description,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 13,
+              height: 1.4,
+              color: AiImageGeneratorApp.textSecondary,
+            ),
           ),
         ],
       ),
@@ -7021,7 +6948,7 @@ class _GenerateButton extends StatelessWidget {
                           ),
                         )
                       : Text(
-                          isPhotoMode ? 'Создать по фото' : 'Создать',
+                          isPhotoMode ? 'Создать по фото' : 'Создать фото',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 17,
