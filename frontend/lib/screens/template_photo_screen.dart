@@ -7,7 +7,7 @@ class PhotoTemplate {
     required this.id,
     required this.title,
     required this.description,
-    required this.prompt,
+    required this.requestDescription,
     required this.icon,
     required this.placeholderColors,
     this.previewLabel,
@@ -16,7 +16,7 @@ class PhotoTemplate {
   final String id;
   final String title;
   final String description;
-  final String prompt;
+  final String requestDescription;
   final IconData icon;
   final List<Color> placeholderColors;
   final String? previewLabel;
@@ -37,9 +37,9 @@ class TemplatePhotoScreen extends StatelessWidget {
       id: 'business_portrait',
       title: 'Деловой портрет',
       description: 'Для работы, резюме и деловых профилей.',
-      prompt:
-          'Деловой портрет в светлой студии, аккуратный деловой образ, '
-          'мягкий свет, спокойный фон, реализм',
+      requestDescription:
+          'Сделай деловой портрет на светлом фоне. '
+          'Аккуратный образ, естественная улыбка, мягкий свет.',
       icon: Icons.business_center_outlined,
       placeholderColors: [Color(0xFFD4E0EE), Color(0xFF8EA4BE)],
       previewLabel: 'Деловой образ',
@@ -48,9 +48,9 @@ class TemplatePhotoScreen extends StatelessWidget {
       id: 'social_photo',
       title: 'Фото для соцсетей',
       description: 'Яркий портрет для профиля и постов.',
-      prompt:
-          'Портрет для соцсетей, светлый фон, естественная улыбка, '
-          'современный стиль, мягкий свет',
+      requestDescription:
+          'Сделай красивое фото для социальных сетей. '
+          'Естественный образ, приятный свет, современный стиль.',
       icon: Icons.share_outlined,
       placeholderColors: [Color(0xFFEDE9FF), Color(0xFFB8B0D4)],
       previewLabel: 'Для профиля',
@@ -59,9 +59,9 @@ class TemplatePhotoScreen extends StatelessWidget {
       id: 'winter_portrait',
       title: 'Зимний портрет',
       description: 'Тёплый зимний образ на улице со снегом.',
-      prompt:
-          'Зимний портрет на улице, тёплая одежда, красивый снег, '
-          'мягкий зимний свет, реализм',
+      requestDescription:
+          'Сделай зимний портрет. Тёплая одежда, мягкий снег на фоне, '
+          'уютное настроение.',
       icon: Icons.ac_unit_outlined,
       placeholderColors: [Color(0xFFE8F4FF), Color(0xFFA8C8E8)],
       previewLabel: 'Зимняя прогулка',
@@ -70,9 +70,9 @@ class TemplatePhotoScreen extends StatelessWidget {
       id: 'resume_photo',
       title: 'Фото для резюме',
       description: 'Спокойный профессиональный портрет.',
-      prompt:
-          'Портрет для резюме, нейтральный светлый фон, уверенный вид, '
-          'аккуратный деловой стиль, реализм',
+      requestDescription:
+          'Сделай аккуратное фото для резюме. Нейтральный фон, '
+          'деловой стиль, лицо хорошо видно.',
       icon: Icons.badge_outlined,
       placeholderColors: [Color(0xFFF0F2F8), Color(0xFFD0D6E4)],
       previewLabel: 'Для резюме',
@@ -81,9 +81,9 @@ class TemplatePhotoScreen extends StatelessWidget {
       id: 'beautiful_portrait',
       title: 'Красивый портрет',
       description: 'Мягкий свет для личного профиля.',
-      prompt:
-          'Красивый портрет с мягким светом, приятная атмосфера, '
-          'естественные цвета, реализм',
+      requestDescription:
+          'Сделай красивый портрет. Мягкий свет, аккуратная обработка, '
+          'естественный внешний вид.',
       icon: Icons.face_retouching_natural_outlined,
       placeholderColors: [Color(0xFFF5E8D8), Color(0xFFD4B896)],
       previewLabel: 'Нежный портрет',
@@ -92,9 +92,9 @@ class TemplatePhotoScreen extends StatelessWidget {
       id: 'product_photo',
       title: 'Фото товара',
       description: 'Чистый фон для карточки товара.',
-      prompt:
-          'Рекламное фото товара на светлом фоне, мягкий студийный свет, '
-          'минимализм, аккуратная композиция',
+      requestDescription:
+          'Сделай красивое фото товара для продажи. Чистый фон, '
+          'хороший свет, предмет должен выглядеть аккуратно.',
       icon: Icons.inventory_2_outlined,
       placeholderColors: [Color(0xFFEAF5EE), Color(0xFFB8D4C4)],
       previewLabel: 'Карточка товара',

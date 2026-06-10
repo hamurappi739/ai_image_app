@@ -244,7 +244,12 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _navigateToSection(AppSection section) {
-    setState(() => _section = section);
+    setState(() {
+      _section = section;
+      if (section == AppSection.customRequest) {
+        _pendingCustomRequestDescription = null;
+      }
+    });
     if (section == AppSection.customRequest ||
         section == AppSection.buy ||
         section == AppSection.profile) {
@@ -254,7 +259,7 @@ class _MainShellState extends State<MainShell> {
 
   void _onTemplateSelected(PhotoTemplate template) {
     setState(() {
-      _pendingCustomRequestDescription = template.prompt;
+      _pendingCustomRequestDescription = template.requestDescription;
       _section = AppSection.customRequest;
     });
     _loadBalance();
@@ -4775,7 +4780,7 @@ class _CreateScreenState extends State<CreateScreen> {
     super.didUpdateWidget(oldWidget);
     if (widget.pendingDescription != null &&
         widget.pendingDescription != oldWidget.pendingDescription) {
-      _applyQuickIdea(widget.pendingDescription!);
+      _applyTemplateDescription(widget.pendingDescription!);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         widget.onPendingDescriptionApplied?.call();
       });
@@ -4968,6 +4973,11 @@ class _CreateScreenState extends State<CreateScreen> {
     _descriptionController.selection = TextSelection.fromPosition(
       TextPosition(offset: idea.length),
     );
+  }
+
+  void _applyTemplateDescription(String description) {
+    _applyQuickIdea(description);
+    _showSnackBar('Описание уже добавлено. Осталось выбрать фото.');
   }
 
   @override
