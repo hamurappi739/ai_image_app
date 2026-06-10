@@ -10,11 +10,11 @@ Future<bool?> _confirmHideImage(BuildContext context) {
     builder: (dialogContext) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Text(
-        'Скрыть изображение?',
+        'Скрыть фото?',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
       ),
       content: const Text(
-        'Оно исчезнет из Галереи на этом устройстве. '
+        'Оно исчезнет из готовых фото на этом устройстве. '
         'Файл на сервере не удаляется.',
         style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
       ),
@@ -49,7 +49,7 @@ Future<bool?> _confirmHidePhotoshoot(BuildContext context) {
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
       ),
       content: const Text(
-        'Эта фотосессия исчезнет из Галереи на этом устройстве. '
+        'Фотосессия исчезнет из готовых фото на этом устройстве. '
         'Файлы на сервере не удаляются.',
         style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
       ),
@@ -115,7 +115,7 @@ class GallerySingleImageViewer extends StatelessWidget {
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Изображение скрыто из Галереи'),
+        content: const Text('Фото скрыто из готовых фото'),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -140,6 +140,27 @@ class GallerySingleImageViewer extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Готовое фото',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Закрыть',
+                  ),
+                ],
+              ),
+            ),
             Flexible(
               child: Container(
                 color: const Color(0xFFF0F2F8),
@@ -204,7 +225,7 @@ class GallerySingleImageViewer extends StatelessWidget {
                       OutlinedButton.icon(
                         onPressed: () => _onHidePressed(context),
                         icon: const Icon(Icons.visibility_off_outlined, size: 18),
-                        label: const Text('Скрыть из Галереи'),
+                        label: const Text('Скрыть из готовых фото'),
                       ),
                       FilledButton(
                         onPressed: () => Navigator.of(context).pop(),
@@ -269,7 +290,7 @@ class GalleryPhotoshootViewer extends StatelessWidget {
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Фотосессия скрыта из Галереи'),
+        content: const Text('Фотосессия скрыта из готовых фото'),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -280,10 +301,10 @@ class GalleryPhotoshootViewer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final styleTitle = galleryPhotoshootStyleTitle(item.description);
-    final title = styleTitle != null
-        ? 'Фотосессия · $styleTitle'
-        : 'Фотосессия';
-    final countLabel = galleryPhotoshootPhotoCountLabel(item.imageUrls.length);
+    final title = styleTitle ?? 'Фотосессия';
+    final countLabel = item.imageUrls.length == 3
+        ? '3 фото'
+        : galleryPhotoshootPhotoCountLabel(item.imageUrls.length);
     final maxHeight = MediaQuery.sizeOf(context).height * 0.9;
 
     return Dialog(
@@ -389,7 +410,7 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: () => _onHidePressed(context),
                     icon: const Icon(Icons.visibility_off_outlined, size: 18),
-                    label: const Text('Скрыть фотосессию из Галереи'),
+                    label: const Text('Скрыть фотосессию'),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.of(context).pop(),

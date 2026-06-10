@@ -76,18 +76,3 @@ List<GalleryDisplayItem> groupGalleryItems(List<GeneratedImageItem> items) {
 
   return displayItems;
 }
-
-String galleryImageCountLabel(int count) {
-  if (count <= 1) {
-    return '';
-  }
-  final mod10 = count % 10;
-  final mod100 = count % 100;
-  if (mod10 == 1 && mod100 != 11) {
-    return '$count изображение';
-  }
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return '$count изображения';
-  }
-  return '$count изображений';
-}
