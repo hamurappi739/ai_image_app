@@ -142,7 +142,7 @@ class HelpFreeStartPreview extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '3 изображения',
+                  '3 бесплатных фото',
                   style: TextStyle(
                     fontSize: compact ? 16 : 18,
                     fontWeight: FontWeight.w700,

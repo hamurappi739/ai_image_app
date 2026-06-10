@@ -23,7 +23,7 @@ Future<void> downloadGalleryImage(
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Изображение открыто в новой вкладке.'),
+        content: const Text('Фото открыто в новой вкладке.'),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

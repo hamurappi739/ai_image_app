@@ -3114,9 +3114,9 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
   }
 
   static const _outcomes = [
-    '3 готовых изображения',
+    '3 готовых фото',
     'единый стиль',
-    'результат появится в Галерее',
+    'результат появится в «Готовые фото»',
   ];
 
   void _clearPhoto() {
@@ -5360,7 +5360,7 @@ class _CreateScreenState extends State<CreateScreen> {
     try {
       final response = await GenerationProgressDialog.run<GenerateImageResponse>(
         context: context,
-        title: 'Создаём фото по вашему изображению…',
+        title: 'Создаём фото…',
         subtitle: 'Обычно это занимает до минуты.',
         totalSeconds: 60,
         task: () => _runGeneration(text),
@@ -5399,10 +5399,10 @@ class _CreateScreenState extends State<CreateScreen> {
   void _handleError(String message) {
     if (message == 'Prompt cannot be empty') {
       _showSnackBar('Напишите, что нужно сделать с фото.');
-    } else {
-      setState(() => _showGenerationErrorState = true);
-      _showSnackBar('Не удалось создать изображение. Попробуйте ещё раз позже.');
+      return;
     }
+    setState(() => _showGenerationErrorState = true);
+    _showSnackBar('Не удалось создать фото. Попробуйте ещё раз.');
   }
 
   void _showSnackBar(String text) {
@@ -5484,7 +5484,7 @@ class _CreateScreenState extends State<CreateScreen> {
               if (showImagesDepleted) ...[
                 InsufficientBalanceHint(
                   message:
-                      'Изображения закончились. Пополните баланс, '
+                      'Фото на балансе закончились. Пополните баланс, '
                       'чтобы продолжить.',
                   onOpenPacks: widget.onOpenPacks,
                 ),
@@ -5984,21 +5984,19 @@ class _CreateBalanceInfoCard extends StatelessWidget {
     String subtitle;
     if (isLoading && balance == null) {
       title = 'Загружаем баланс…';
-      subtitle = 'Скоро покажем доступные генерации.';
+      subtitle = 'Скоро покажем, сколько фото можно создать.';
     } else if (isDemoMode) {
       title = 'Демо-режим';
-      subtitle = 'Создание изображений без списания с баланса.';
+      subtitle = 'Сейчас приложение работает в демо-режиме.';
     } else if (freeRemaining > 0) {
-      title =
-          'Бесплатные генерации: $freeRemaining из $freeLimit';
-      subtitle = 'Используйте их, чтобы попробовать создание изображений.';
+      title = 'Бесплатные фото: $freeRemaining из $freeLimit';
+      subtitle = 'Используйте их, чтобы попробовать создание фото.';
     } else if (paidImages > 0) {
-      title = 'Бесплатные генерации закончились';
-      subtitle =
-          'Используйте изображения из баланса. Доступно: $paidImages.';
+      title = 'Бесплатные фото закончились';
+      subtitle = 'Используйте фото из баланса. Доступно: $paidImages.';
     } else {
-      title = 'Нет доступных генераций';
-      subtitle = 'Пополните баланс, чтобы создавать изображения.';
+      title = 'Недостаточно фото на балансе';
+      subtitle = 'Пополните баланс, чтобы создавать фото.';
     }
 
     return Container(
@@ -6160,7 +6158,7 @@ class _GenerationResultPreviewFallback extends StatelessWidget {
               ),
               SizedBox(height: compact ? 8 : 16),
               Text(
-                'Изображение создано',
+                'Фото готово',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: Colors.white,
@@ -6170,7 +6168,7 @@ class _GenerationResultPreviewFallback extends StatelessWidget {
               ),
               SizedBox(height: compact ? 4 : 8),
               Text(
-                'Превью появится после подключения реальной генерации',
+                'Здесь появится ваше фото',
                 textAlign: TextAlign.center,
                 maxLines: compact ? 2 : null,
                 overflow: compact ? TextOverflow.ellipsis : null,
@@ -6243,7 +6241,7 @@ class _ResultSection extends StatelessWidget {
             onPressed: onOpenGallery,
             icon: const Icon(Icons.photo_library_outlined, size: 22),
             label: const Text(
-              'Открыть в Галерее',
+              'Открыть готовые фото',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
             ),
             style: OutlinedButton.styleFrom(

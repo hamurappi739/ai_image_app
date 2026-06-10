@@ -14,8 +14,7 @@ Future<bool?> _confirmHideImage(BuildContext context) {
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
       ),
       content: const Text(
-        'Оно исчезнет из готовых фото на этом устройстве. '
-        'Файл на сервере не удаляется.',
+        'Оно исчезнет из готовых фото только на этом устройстве.',
         style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
       ),
       actions: [
@@ -49,8 +48,7 @@ Future<bool?> _confirmHidePhotoshoot(BuildContext context) {
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
       ),
       content: const Text(
-        'Фотосессия исчезнет из готовых фото на этом устройстве. '
-        'Файлы на сервере не удаляются.',
+        'Фотосессия исчезнет из готовых фото только на этом устройстве.',
         style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
       ),
       actions: [

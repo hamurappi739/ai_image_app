@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Понятные сообщения при 402 / нулевом балансе с переходом во вкладку «Пакеты».
+/// Понятные сообщения при 402 / нулевом балансе с переходом в раздел «Купить».
 class InsufficientBalanceDialog {
   InsufficientBalanceDialog._();
 
@@ -12,9 +12,9 @@ class InsufficientBalanceDialog {
   }) {
     return _show(
       context,
-      title: 'Изображения закончились',
+      title: 'Недостаточно фото на балансе',
       message:
-          'У вас закончились доступные изображения. '
+          'У вас закончились фото на балансе. '
           'Пополните баланс, чтобы продолжить.',
       onOpenPacks: onOpenPacks,
     );
@@ -84,7 +84,7 @@ class InsufficientBalanceDialog {
   }
 }
 
-/// Мягкое предупреждение над кнопкой генерации.
+/// Мягкое предупреждение над кнопкой создания фото.
 class InsufficientBalanceHint extends StatelessWidget {
   const InsufficientBalanceHint({
     super.key,

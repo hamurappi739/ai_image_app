@@ -34,7 +34,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: 'Добро пожаловать',
       body:
           'Здесь можно создавать красивые фото, '
-          'фотосессии и изображения по своей идее.',
+          'фотосессии и фото по своей идее.',
       previewBuilder: ({required compact}) =>
           HelpWelcomePreview(compact: compact),
     ),
@@ -64,7 +64,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: 'Меню всегда слева сверху',
       body:
           'Нажмите значок меню, чтобы открыть все разделы: '
-          'готовые фото, покупку, профиль и помощь.',
+          'готовые фото, раздел «Купить», профиль и помощь.',
       previewBuilder: ({required compact}) =>
           HelpDrawerMenuPreview(compact: compact),
     ),

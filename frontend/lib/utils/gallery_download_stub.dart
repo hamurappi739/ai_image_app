@@ -9,7 +9,7 @@ Future<void> downloadGalleryImage(
     SnackBar(
       content: const Text(
         'Скачивание недоступно на этой платформе. '
-        'Откройте изображение и сохраните его вручную.',
+        'Откройте фото и сохраните его вручную.',
       ),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

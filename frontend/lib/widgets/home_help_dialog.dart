@@ -22,7 +22,7 @@ class HomeHelpDialog extends StatelessWidget {
           body:
               'Все разделы приложения — в меню слева сверху: '
               'шаблоны, фотосессии, свой запрос, готовые фото, '
-              'покупка и профиль.',
+              'раздел «Купить» и профиль.',
           previewBuilder: ({required compact}) =>
               HelpDrawerMenuPreview(compact: compact),
         ),
