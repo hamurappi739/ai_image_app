@@ -139,6 +139,8 @@ class _MainShellState extends State<MainShell> {
   bool _balanceLoading = false;
   bool _balanceLoadFailed = false;
   StreamSubscription<AuthState>? _authSubscription;
+  GallerySuccessKind? _gallerySuccessKind;
+  String? _galleryHighlightKey;
 
   bool get _canLoadUserBackendData {
     if (!_authService.isConfigured) {
@@ -251,6 +253,10 @@ class _MainShellState extends State<MainShell> {
 
   void _navigateToSection(AppSection section) {
     setState(() {
+      if (section != AppSection.gallery) {
+        _gallerySuccessKind = null;
+        _galleryHighlightKey = null;
+      }
       _section = section;
       _scrollPhotoshootsToTrending = false;
     });
@@ -371,13 +377,28 @@ class _MainShellState extends State<MainShell> {
         _generatedImages.removeWhere((existing) => existing.id == item.id);
       }
       _generatedImages.insert(0, item);
+      _gallerySuccessKind = GallerySuccessKind.photo;
+      _galleryHighlightKey = galleryImageHideKey(item);
     });
   }
 
   void _onPhotoshootGenerated(List<GeneratedImageItem> items) {
+    final photoshootId = items.isNotEmpty
+        ? items.first.photoshootId?.trim()
+        : null;
     setState(() {
       _generatedImages.insertAll(0, items);
+      _gallerySuccessKind = GallerySuccessKind.photoshoot;
+      _galleryHighlightKey =
+          (photoshootId != null && photoshootId.isNotEmpty)
+              ? photoshootId
+              : null;
     });
+  }
+
+  void _dismissGallerySuccessBanner() {
+    if (_gallerySuccessKind == null) return;
+    setState(() => _gallerySuccessKind = null);
   }
 
   void _clearGallery() {
@@ -437,10 +458,14 @@ class _MainShellState extends State<MainShell> {
         onHidePhotoshoot: _hidePhotoshoot,
         onOpenTemplates: _goToTemplateTab,
         onOpenPhotoshoots: _goToPhotoshootsTab,
+        onOpenBuy: _goToPacksTab,
         onClearGallery: _clearGallery,
         isLoading: _galleryLoading,
         loadFailed: _backendHistoryUnavailable,
         onRetry: _loadGenerationsFromBackend,
+        successKind: _gallerySuccessKind,
+        highlightItemKey: _galleryHighlightKey,
+        onDismissSuccess: _dismissGallerySuccessBanner,
       ),
       PacksScreen(
         paymentService: _paymentService,
@@ -3595,6 +3620,8 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
   }
 }
 
+enum GallerySuccessKind { photo, photoshoot }
+
 class GalleryScreen extends StatelessWidget {
   const GalleryScreen({
     super.key,
@@ -3605,10 +3632,14 @@ class GalleryScreen extends StatelessWidget {
     required this.onHidePhotoshoot,
     required this.onOpenTemplates,
     required this.onOpenPhotoshoots,
+    required this.onOpenBuy,
     required this.onClearGallery,
     required this.onRetry,
     this.isLoading = false,
     this.loadFailed = false,
+    this.successKind,
+    this.highlightItemKey,
+    this.onDismissSuccess,
   });
 
   final List<GeneratedImageItem> images;
@@ -3618,10 +3649,25 @@ class GalleryScreen extends StatelessWidget {
   final ValueChanged<String> onHidePhotoshoot;
   final VoidCallback onOpenTemplates;
   final VoidCallback onOpenPhotoshoots;
+  final VoidCallback onOpenBuy;
   final VoidCallback onClearGallery;
   final VoidCallback onRetry;
   final bool isLoading;
   final bool loadFailed;
+  final GallerySuccessKind? successKind;
+  final String? highlightItemKey;
+  final VoidCallback? onDismissSuccess;
+
+  static bool _isHighlightedItem(
+    GalleryDisplayItem item,
+    String? highlightItemKey,
+  ) {
+    if (highlightItemKey == null || highlightItemKey.isEmpty) return false;
+    if (item.isPhotoshootGroup) {
+      return item.photoshootId == highlightItemKey;
+    }
+    return item.hideKey == highlightItemKey;
+  }
 
   void _onClearPressed(BuildContext context) {
     onClearGallery();
@@ -3650,7 +3696,7 @@ class GalleryScreen extends StatelessWidget {
       case 2:
         return 0.68;
       default:
-        return 0.82;
+        return 0.76;
     }
   }
 
@@ -3675,6 +3721,7 @@ class GalleryScreen extends StatelessWidget {
       return _GalleryEmptyState(
         onOpenTemplates: onOpenTemplates,
         onOpenPhotoshoots: onOpenPhotoshoots,
+        onOpenBuy: onOpenBuy,
       );
     }
 
@@ -3697,7 +3744,20 @@ class GalleryScreen extends StatelessWidget {
                       const AppScreenHeader(
                         title: 'Готовые фото',
                         subtitle:
-                            'Здесь будут храниться фото, которые вы создали.',
+                            'Здесь хранятся фото и фотосессии, которые вы создали.',
+                      ),
+                      if (successKind != null) ...[
+                        const SizedBox(height: 12),
+                        _GallerySuccessBanner(
+                          kind: successKind!,
+                          onDismiss: onDismissSuccess,
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      _GalleryQuickActions(
+                        onOpenTemplates: onOpenTemplates,
+                        onOpenPhotoshoots: onOpenPhotoshoots,
+                        onOpenBuy: onOpenBuy,
                       ),
                       Align(
                         alignment: Alignment.centerRight,
@@ -3721,7 +3781,7 @@ class GalleryScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -3733,8 +3793,13 @@ class GalleryScreen extends StatelessWidget {
                         ),
                         itemCount: displayItems.length,
                         itemBuilder: (context, index) {
+                          final item = displayItems[index];
                           return _GalleryImageCard(
-                            item: displayItems[index],
+                            item: item,
+                            isNew: _isHighlightedItem(
+                              item,
+                              highlightItemKey,
+                            ),
                             onHideImage: onHideImage,
                             onHidePhotoshoot: onHidePhotoshoot,
                           );
@@ -3890,14 +3955,234 @@ class _GalleryErrorState extends StatelessWidget {
   }
 }
 
-class _GalleryEmptyState extends StatelessWidget {
-  const _GalleryEmptyState({
+class _GallerySuccessBanner extends StatelessWidget {
+  const _GallerySuccessBanner({
+    required this.kind,
+    this.onDismiss,
+  });
+
+  final GallerySuccessKind kind;
+  final VoidCallback? onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final (title, subtitle) = switch (kind) {
+      GallerySuccessKind.photo => (
+          'Фото готово',
+          'Ваш результат сохранён в готовых фото.',
+        ),
+      GallerySuccessKind.photoshoot => (
+          'Фотосессия готова',
+          'Серия фото сохранена в готовых фото.',
+        ),
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF0FDF4), Color(0xFFE8F5EE)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFB8E6CF)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.85),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check_circle_outline,
+              size: 22,
+              color: Colors.green.shade700,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1A5C38),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 13,
+                    height: 1.35,
+                    color: const Color(0xFF3D6B52),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onDismiss != null)
+            IconButton(
+              onPressed: onDismiss,
+              icon: const Icon(Icons.close, size: 20),
+              color: const Color(0xFF6B7280),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GalleryQuickActions extends StatelessWidget {
+  const _GalleryQuickActions({
     required this.onOpenTemplates,
     required this.onOpenPhotoshoots,
+    required this.onOpenBuy,
+    this.compactLabels = false,
   });
 
   final VoidCallback onOpenTemplates;
   final VoidCallback onOpenPhotoshoots;
+  final VoidCallback onOpenBuy;
+  final bool compactLabels;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final actions = [
+      _GalleryQuickActionChip(
+        icon: Icons.dashboard_customize_outlined,
+        label: compactLabels ? 'Фото по шаблону' : 'Создать ещё фото',
+        onTap: onOpenTemplates,
+      ),
+      _GalleryQuickActionChip(
+        icon: Icons.photo_camera_outlined,
+        label: compactLabels ? 'Фотосессии' : 'Сделать фотосессию',
+        onTap: onOpenPhotoshoots,
+      ),
+      _GalleryQuickActionChip(
+        icon: Icons.shopping_bag_outlined,
+        label: compactLabels ? 'Купить' : 'Купить ещё',
+        onTap: onOpenBuy,
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Что сделать дальше?',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 10),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < 520) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < actions.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 8),
+                    actions[i],
+                  ],
+                ],
+              );
+            }
+            return Row(
+              children: [
+                for (var i = 0; i < actions.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  Expanded(child: actions[i]),
+                ],
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _GalleryQuickActionChip extends StatelessWidget {
+  const _GalleryQuickActionChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE8EAEF)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: _accentColor),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1D26),
+                    height: 1.25,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GalleryEmptyState extends StatelessWidget {
+  const _GalleryEmptyState({
+    required this.onOpenTemplates,
+    required this.onOpenPhotoshoots,
+    required this.onOpenBuy,
+  });
+
+  final VoidCallback onOpenTemplates;
+  final VoidCallback onOpenPhotoshoots;
+  final VoidCallback onOpenBuy;
 
   static const _accentColor = Color(0xFF5B6CFF);
 
@@ -3920,15 +4205,15 @@ class _GalleryEmptyState extends StatelessWidget {
                   const AppScreenHeader(
                     title: 'Готовые фото',
                     subtitle:
-                        'Здесь будут храниться фото, которые вы создали.',
+                        'Здесь хранятся фото и фотосессии, которые вы создали.',
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
                   _SoftCard(
                     child: Column(
                       children: [
                         Container(
-                          width: 96,
-                          height: 96,
+                          width: 80,
+                          height: 80,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
@@ -3938,15 +4223,15 @@ class _GalleryEmptyState extends StatelessWidget {
                                 _accentColor.withValues(alpha: 0.25),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(28),
+                            borderRadius: BorderRadius.circular(24),
                           ),
                           child: const Icon(
                             Icons.photo_library_outlined,
-                            size: 48,
+                            size: 40,
                             color: _accentColor,
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 18),
                         Text(
                           'Пока здесь пусто',
                           style: theme.textTheme.titleMedium?.copyWith(
@@ -3955,64 +4240,25 @@ class _GalleryEmptyState extends StatelessWidget {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         Text(
                           'Создайте первое фото по шаблону '
                           'или сделайте фотосессию.',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 15,
+                            fontSize: 14,
                             height: 1.45,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 28),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: FilledButton(
-                            onPressed: onOpenTemplates,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: _accentColor,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            child: const Text(
-                              'Фото по шаблону',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: OutlinedButton(
-                            onPressed: onOpenPhotoshoots,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: _accentColor,
-                              side: BorderSide(
-                                color: _accentColor.withValues(alpha: 0.45),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            child: const Text(
-                              'Фотосессии',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  _GalleryQuickActions(
+                    onOpenTemplates: onOpenTemplates,
+                    onOpenPhotoshoots: onOpenPhotoshoots,
+                    onOpenBuy: onOpenBuy,
+                    compactLabels: true,
                   ),
                 ],
               ),
@@ -4024,9 +4270,54 @@ class _GalleryEmptyState extends StatelessWidget {
   }
 }
 
+class _GalleryTypeBadge extends StatelessWidget {
+  const _GalleryTypeBadge({
+    required this.label,
+    this.emphasized = false,
+    this.isNewBadge = false,
+  });
+
+  final String label;
+  final bool emphasized;
+  final bool isNewBadge;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color backgroundColor;
+    final Color textColor;
+    if (isNewBadge) {
+      backgroundColor = const Color(0xFF5B6CFF);
+      textColor = Colors.white;
+    } else if (emphasized) {
+      backgroundColor = const Color(0xFFF0F2FF);
+      textColor = const Color(0xFF5B6CFF);
+    } else {
+      backgroundColor = const Color(0xFFF7F8FC);
+      textColor = AiImageGeneratorApp.textSecondary;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+}
+
 class _GalleryImageCard extends StatelessWidget {
   const _GalleryImageCard({
     required this.item,
+    this.isNew = false,
     required this.onHideImage,
     required this.onHidePhotoshoot,
   });
@@ -4034,6 +4325,7 @@ class _GalleryImageCard extends StatelessWidget {
   static const _accentColor = Color(0xFF5B6CFF);
 
   final GalleryDisplayItem item;
+  final bool isNew;
   final ValueChanged<String> onHideImage;
   final ValueChanged<String> onHidePhotoshoot;
 
@@ -4074,10 +4366,15 @@ class _GalleryImageCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: isNew
+            ? Border.all(color: _accentColor.withValues(alpha: 0.35), width: 1.5)
+            : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
+            color: isNew
+                ? _accentColor.withValues(alpha: 0.12)
+                : Colors.black.withValues(alpha: 0.05),
+            blurRadius: isNew ? 22 : 20,
             offset: const Offset(0, 8),
           ),
         ],
@@ -4100,70 +4397,52 @@ class _GalleryImageCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (isPhotoshoot) ...[
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _GalleryTypeBadge(
+                      label: isPhotoshoot ? 'Фотосессия' : 'Фото',
+                      emphasized: isPhotoshoot,
+                    ),
+                    if (isPhotoshoot)
+                      _GalleryTypeBadge(
+                        label: photoCountBadge,
+                        emphasized: true,
+                      ),
+                    if (isNew)
+                      const _GalleryTypeBadge(
+                        label: 'Новое',
+                        isNewBadge: true,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (isPhotoshoot)
                   Text(
                     photoshootTitle,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: AiImageGeneratorApp.textPrimary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      height: 1.35,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  )
+                else if (singleDescription != null)
+                  Text(
+                    singleDescription,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AiImageGeneratorApp.textPrimary,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      height: 1.35,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0F2FF),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      photoCountBadge,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _accentColor,
-                      ),
-                    ),
-                  ),
-                ] else ...[
-                  if (singleDescription != null) ...[
-                    Text(
-                      singleDescription,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AiImageGeneratorApp.textPrimary,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 13,
-                        height: 1.35,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF7F8FC),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Фото',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AiImageGeneratorApp.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
