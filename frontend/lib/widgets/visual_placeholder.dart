@@ -100,6 +100,7 @@ class VisualPlaceholderPalette {
       'summer_photoshoot' => VisualPlaceholderMood.summer,
       'home_portrait' || 'tender_photoshoot' => VisualPlaceholderMood.portrait,
       'travel_portrait' => VisualPlaceholderMood.summer,
+      'custom_photoshoot' => VisualPlaceholderMood.photoshoot,
       _ => VisualPlaceholderMood.photoshoot,
     };
   }

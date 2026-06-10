@@ -2417,32 +2417,21 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     );
   }
 
-  void _openCustomPhotoshootDialog(BuildContext context) {
-    showDialog<void>(
+  void _openCustomPhotoshootSheet(BuildContext context) {
+    showModalBottomSheet<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Скоро',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-        ),
-        content: const Text(
-          'Скоро здесь можно будет описать свою фотосессию.',
-          style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF5B6CFF),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text('Понятно'),
-          ),
-        ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _CustomPhotoshootSheet(
+        apiService: widget.apiService,
+        balance: widget.balance,
+        balanceLoading: widget.balanceLoading,
+        onShowMessage: (message) => _showSnackBar(context, message),
+        onPhotoshootGenerated: widget.onPhotoshootGenerated,
+        onBalanceUpdated: widget.onBalanceUpdated,
+        onRefreshBalance: widget.onRefreshBalance,
+        onOpenGallery: widget.onOpenGallery,
+        onOpenPacks: widget.onOpenPacks,
       ),
     );
   }
@@ -2607,7 +2596,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                       ),
                       const SizedBox(height: 16),
                       _CustomPhotoshootPromoBanner(
-                        onAction: () => _openCustomPhotoshootDialog(context),
+                        onAction: () => _openCustomPhotoshootSheet(context),
                       ),
                       for (var i = 0; i < collections.length; i++) ...[
                         SizedBox(height: i == 0 ? 24 : 28),
@@ -3655,6 +3644,543 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                           ),
                         ),
                       ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CustomPhotoshootIdea {
+  const _CustomPhotoshootIdea({required this.label, required this.text});
+
+  final String label;
+  final String text;
+}
+
+/// UI id for «Своя фотосессия»; API uses [apiStyleId] until backend adds catalog entry.
+class _CustomPhotoshootFlow {
+  _CustomPhotoshootFlow._();
+
+  static const uiStyleId = 'custom_photoshoot';
+  static const apiStyleId = 'studio_portrait';
+  static const baseTitle = 'Своя фотосессия';
+  static const minDescriptionLength = 10;
+  static const maxApiTitleLength = 80;
+
+  static const ideas = <_CustomPhotoshootIdea>[
+    _CustomPhotoshootIdea(
+      label: 'Деловой образ',
+      text:
+          'Деловая фотосессия в аккуратном образе, светлый фон, уверенный стиль.',
+    ),
+    _CustomPhotoshootIdea(
+      label: 'Нежный портрет',
+      text:
+          'Нежная фотосессия с мягким светом, спокойный фон, естественная улыбка.',
+    ),
+    _CustomPhotoshootIdea(
+      label: 'Городская прогулка',
+      text:
+          'Фотосессия на прогулке в городе, красивый фон, современный образ.',
+    ),
+    _CustomPhotoshootIdea(
+      label: 'Вечерний образ',
+      text:
+          'Вечерняя фотосессия, красивый свет, нарядный образ, премиальное настроение.',
+    ),
+    _CustomPhotoshootIdea(
+      label: 'Фото для соцсетей',
+      text:
+          'Современная фотосессия для социальных сетей, приятный свет, стильный образ.',
+    ),
+  ];
+
+  static String apiStyleTitle(String description) {
+    final trimmed = description.trim();
+    final prefix = '$baseTitle: ';
+    final maxBody = maxApiTitleLength - prefix.length;
+    if (maxBody <= 0) return baseTitle;
+    if (trimmed.length <= maxBody) return '$prefix$trimmed';
+    return '$prefix${trimmed.substring(0, maxBody).trim()}…';
+  }
+
+  static String galleryDescription(String description) {
+    final trimmed = description.trim();
+    const prefix = 'Фотосессия: $baseTitle: ';
+    const maxLen = 160;
+    final maxBody = maxLen - prefix.length;
+    if (trimmed.length <= maxBody) return '$prefix$trimmed';
+    return '$prefix${trimmed.substring(0, maxBody).trim()}…';
+  }
+}
+
+class _CustomPhotoshootSheet extends StatefulWidget {
+  const _CustomPhotoshootSheet({
+    required this.apiService,
+    required this.balance,
+    required this.balanceLoading,
+    required this.onShowMessage,
+    required this.onPhotoshootGenerated,
+    required this.onBalanceUpdated,
+    required this.onRefreshBalance,
+    required this.onOpenGallery,
+    required this.onOpenPacks,
+  });
+
+  final ApiService apiService;
+  final UserBalance? balance;
+  final bool balanceLoading;
+  final void Function(String message) onShowMessage;
+  final void Function(List<GeneratedImageItem> items) onPhotoshootGenerated;
+  final ValueChanged<UserBalance> onBalanceUpdated;
+  final VoidCallback onRefreshBalance;
+  final VoidCallback onOpenGallery;
+  final VoidCallback onOpenPacks;
+
+  @override
+  State<_CustomPhotoshootSheet> createState() => _CustomPhotoshootSheetState();
+}
+
+class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  final _imagePicker = ImagePicker();
+  final _descriptionController = TextEditingController();
+
+  XFile? _selectedPhotoFile;
+  Uint8List? _selectedPhotoBytes;
+  bool _isPickingPhoto = false;
+  bool _isPreparingPhotoshoot = false;
+  bool _usingMockPhoto = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (MockPhotoshootPhoto.shouldAutoUseOnPlatform) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _applyMockPhoto();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  void _applyMockPhoto() {
+    setState(() {
+      _selectedPhotoFile = MockPhotoshootPhoto.asXFile();
+      _selectedPhotoBytes = MockPhotoshootPhoto.bytes;
+      _usingMockPhoto = true;
+    });
+  }
+
+  void _clearPhoto() {
+    setState(() {
+      _selectedPhotoFile = null;
+      _selectedPhotoBytes = null;
+      _usingMockPhoto = false;
+    });
+  }
+
+  void _applyIdea(String text) {
+    _descriptionController.text = text;
+    _descriptionController.selection = TextSelection.fromPosition(
+      TextPosition(offset: text.length),
+    );
+  }
+
+  Future<void> _pickPhoto() async {
+    if (_isPickingPhoto) return;
+    setState(() => _isPickingPhoto = true);
+    try {
+      final file = await _imagePicker.pickImage(source: ImageSource.gallery);
+      if (file == null || !mounted) return;
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _selectedPhotoFile = file;
+        _selectedPhotoBytes = bytes;
+        _usingMockPhoto = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      widget.onShowMessage('Не удалось выбрать фото. Попробуйте ещё раз.');
+    } finally {
+      if (mounted) setState(() => _isPickingPhoto = false);
+    }
+  }
+
+  bool get _photoshootsBalanceDepleted {
+    final balance = widget.balance;
+    return balance != null &&
+        !widget.balanceLoading &&
+        !balance.isPhotoshootBalanceAvailable;
+  }
+
+  Future<void> _onCreatePressed() async {
+    if (_isPreparingPhotoshoot) return;
+
+    final selectedPhotoFile = _selectedPhotoFile;
+    if (selectedPhotoFile == null) {
+      widget.onShowMessage('Сначала добавьте фото.');
+      return;
+    }
+
+    final description = _descriptionController.text.trim();
+    if (description.isEmpty) {
+      widget.onShowMessage('Опишите, какой образ хотите получить.');
+      return;
+    }
+    if (description.length < _CustomPhotoshootFlow.minDescriptionLength) {
+      widget.onShowMessage('Добавьте немного больше деталей.');
+      return;
+    }
+
+    if (_photoshootsBalanceDepleted) {
+      await InsufficientBalanceDialog.showInsufficientPhotoshoots(
+        context,
+        onOpenPacks: widget.onOpenPacks,
+      );
+      return;
+    }
+
+    final apiStyleTitle = _CustomPhotoshootFlow.apiStyleTitle(description);
+    setState(() => _isPreparingPhotoshoot = true);
+
+    try {
+      final result = await GenerationProgressDialog.run<PhotoshootGenerateResponse>(
+        context: context,
+        title: 'Создаём фотосессию…',
+        subtitle: 'Обычно это занимает около 1–2 минут.',
+        totalSeconds: 120,
+        task: () => widget.apiService.generatePhotoshoot(
+          styleId: _CustomPhotoshootFlow.apiStyleId,
+          styleTitle: apiStyleTitle,
+          photoFile: selectedPhotoFile,
+        ),
+      );
+      if (!mounted) return;
+      if (result.imageUrls.isEmpty) {
+        widget.onShowMessage(
+          'Не удалось подготовить фотосессию. Попробуйте позже.',
+        );
+        return;
+      }
+
+      final updatedBalance = result.balance;
+      if (updatedBalance != null) {
+        widget.onBalanceUpdated(updatedBalance);
+      } else {
+        widget.onRefreshBalance();
+      }
+
+      final galleryDescription =
+          _CustomPhotoshootFlow.galleryDescription(description);
+      final createdAt = DateTime.now();
+      final photoshootId = result.photoshootId.trim();
+      final galleryItems = result.imageUrls
+          .map(
+            (url) => GeneratedImageItem(
+              description: galleryDescription,
+              imageUrl: url,
+              createdAt: createdAt,
+              photoshootId: photoshootId.isEmpty ? null : photoshootId,
+            ),
+          )
+          .toList();
+
+      Navigator.of(context).pop();
+      widget.onPhotoshootGenerated(galleryItems);
+      widget.onShowMessage(
+        'Фотосессия готова и сохранена в готовых фото.',
+      );
+      widget.onOpenGallery();
+    } on PhotoshootPlaceholderException {
+      if (!mounted) return;
+      widget.onShowMessage('Обработка фото будет добавлена позже');
+    } on PhotoshootInvalidPhotoException {
+      if (!mounted) return;
+      widget.onShowMessage('Выберите фото JPEG, PNG или WebP до 10 МБ');
+    } on InsufficientPhotoshootsException {
+      if (!mounted) return;
+      await InsufficientBalanceDialog.showInsufficientPhotoshoots(
+        context,
+        onOpenPacks: widget.onOpenPacks,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      widget.onShowMessage('Не удалось подготовить фотосессию. Попробуйте позже.');
+    } finally {
+      if (mounted) setState(() => _isPreparingPhotoshoot = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasPhoto = _selectedPhotoBytes != null;
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+          maxWidth: 520,
+        ),
+        child: Material(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          clipBehavior: Clip.antiAlias,
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                16 + MediaQuery.viewPaddingOf(context).bottom,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _CustomPhotoshootFlow.baseTitle,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Опишите, какой образ хотите получить. '
+                    'Мы создадим серию из 3 фото.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      height: 1.4,
+                      color: AiImageGeneratorApp.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Ваш образ',
+                    style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _descriptionController,
+                    minLines: 3,
+                    maxLines: 5,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      hintText:
+                          'Например: деловая фотосессия в светлом костюме '
+                          'на фоне города',
+                      hintStyle: TextStyle(
+                        color: AiImageGeneratorApp.textSecondary
+                            .withValues(alpha: 0.85),
+                        fontSize: 14,
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF7F8FC),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE8EAEF)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE8EAEF)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: _accentColor.withValues(alpha: 0.55),
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.all(14),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Идеи для вдохновения',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AiImageGeneratorApp.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final idea in _CustomPhotoshootFlow.ideas)
+                        ActionChip(
+                          label: Text(
+                            idea.label,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          onPressed: _isPreparingPhotoshoot
+                              ? null
+                              : () => _applyIdea(idea.text),
+                          backgroundColor: const Color(0xFFF0F2FF),
+                          side: BorderSide(
+                            color: _accentColor.withValues(alpha: 0.2),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Ваше фото',
+                    style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+                  ),
+                  const SizedBox(height: 8),
+                  if (!hasPhoto)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: _isPickingPhoto ? null : _pickPhoto,
+                        icon: _isPickingPhoto
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.add_photo_alternate_outlined),
+                        label: const Text('Выбрать фото'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _accentColor,
+                          side: BorderSide(
+                            color: _accentColor.withValues(alpha: 0.45),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    )
+                  else ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 160),
+                        child: Image.memory(
+                          _selectedPhotoBytes!,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: _isPickingPhoto ? null : _clearPhoto,
+                        icon: const Icon(Icons.close, size: 18),
+                        label: const Text('Убрать фото'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AiImageGeneratorApp.textSecondary,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (_usingMockPhoto) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Для проверки на эмуляторе используется тестовое фото.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AiImageGeneratorApp.textSecondary,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  _SoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Что получится',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        VisualPlaceholderSeries(
+                          mood: VisualPlaceholderPalette.moodForPhotoshootId(
+                            _CustomPhotoshootFlow.uiStyleId,
+                          ),
+                          height: 88,
+                          showPhotoLabels: false,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Фотосессия создаст 3 фото в одном стиле.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 13,
+                            height: 1.4,
+                            color: AiImageGeneratorApp.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: FilledButton(
+                      onPressed:
+                          _isPreparingPhotoshoot ? null : _onCreatePressed,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _accentColor,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor:
+                            _accentColor.withValues(alpha: 0.45),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: _isPreparingPhotoshoot
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Создать фотосессию',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
                     ),
                   ),
                 ],
