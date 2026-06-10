@@ -22,6 +22,14 @@ class GalleryDisplayItem {
 }
 
 String? galleryPhotoshootStyleTitle(String description) {
+  const customPrefix = 'Своя фотосессия: ';
+  if (description.startsWith(customPrefix)) {
+    final body = description.substring(customPrefix.length).trim();
+    if (body.isEmpty) return 'Своя фотосессия';
+    const maxBody = 80;
+    if (body.length <= maxBody) return 'Своя фотосессия: $body';
+    return 'Своя фотосессия: ${body.substring(0, maxBody).trim()}…';
+  }
   const prefix = 'Фотосессия: ';
   if (description.startsWith(prefix)) {
     final title = description.substring(prefix.length).trim();

@@ -39,6 +39,7 @@ class PhotoshootGenerateResponse(BaseModel):
     output_count: int
     photoshoot_id: str
     balance: BalanceResponse | None = None
+    description: str | None = None
 
 
 class GenerateResponse(BaseModel):

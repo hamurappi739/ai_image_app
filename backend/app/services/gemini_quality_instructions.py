@@ -64,6 +64,35 @@ def build_photo_edit_instruction(user_description: str) -> str:
     )
 
 
+def build_custom_photoshoot_frame_instruction(
+    user_description: str,
+    *,
+    variation_index: int = 1,
+    variation_total: int = 1,
+) -> str:
+    description = user_description.strip()
+    variation_note = ""
+    if variation_total > 1:
+        variation_note = (
+            f"\nThis is photo {variation_index} of {variation_total} in the same custom "
+            "photoshoot set. Other photos are generated in separate calls — output only "
+            "this one frame. Match the overall style and mood from the user description "
+            "but vary pose, angle, or composition slightly."
+        )
+    return (
+        f"Custom photoshoot — user description: {description}\n\n"
+        "Create a polished photoshoot image that follows the user description. "
+        "Keep one consistent visual style across the set.\n\n"
+        f"{PHOTO_REFERENCE_RULES}\n"
+        f"{PHOTOSHOOT_SESSION_RULES}\n"
+        f"{STANDALONE_SINGLE_IMAGE_RULES}\n"
+        f"{TEXT_ON_IMAGE_RULES}\n"
+        f"{REALISM_AND_COMPOSITION_RULES}"
+        f"{variation_note}\n\n"
+        "Do not create NSFW content. Return an image only."
+    )
+
+
 def build_photoshoot_frame_instruction(
     style_instruction: str,
     style_title: str,

@@ -128,6 +128,20 @@ def _resolve_user_for_image_storage(
     return get_current_user(authorization=authorization)
 
 
+_MAX_PHOTOSHOOT_DESCRIPTION_LEN = 1000
+
+
+def _normalize_photoshoot_description(description: str | None) -> str | None:
+    if description is None:
+        return None
+    trimmed = description.strip()
+    if not trimmed:
+        return None
+    if len(trimmed) > _MAX_PHOTOSHOOT_DESCRIPTION_LEN:
+        return trimmed[:_MAX_PHOTOSHOOT_DESCRIPTION_LEN]
+    return trimmed
+
+
 def _validate_upload_photo(photo: UploadFile | None) -> tuple[bytes, str]:
     if photo is None:
         raise HTTPException(status_code=400, detail="Photo is required")
@@ -614,6 +628,7 @@ def generate_with_photo(
 def generate_photoshoot(
     style_id: str = Form(...),
     style_title: str | None = Form(default=None),
+    description: str | None = Form(default=None),
     photo: UploadFile | None = File(default=None),
     user: CurrentUser = Depends(get_current_user),
 ):
@@ -621,6 +636,7 @@ def generate_photoshoot(
 
     style = get_photoshoot_style(style_id)
     _ = style_title  # client hint; backend title from catalog is source of truth
+    user_description = _normalize_photoshoot_description(description)
 
     if not style.is_free:
         raise HTTPException(
@@ -654,6 +670,7 @@ def generate_photoshoot(
         style=style,
         photo_bytes=file_bytes,
         photo_content_type=photo_content_type,
+        user_description=user_description,
     )
 
     balance = None
@@ -675,4 +692,5 @@ def generate_photoshoot(
         output_count=len(photoshoot_result.image_urls),
         photoshoot_id=photoshoot_result.photoshoot_id,
         balance=balance,
+        description=user_description,
     )

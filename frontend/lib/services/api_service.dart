@@ -215,6 +215,7 @@ class PhotoshootGenerateResponse {
     required this.outputCount,
     required this.photoshootId,
     this.balance,
+    this.description,
   });
 
   final String styleId;
@@ -223,6 +224,7 @@ class PhotoshootGenerateResponse {
   final int outputCount;
   final String photoshootId;
   final UserBalance? balance;
+  final String? description;
 
   factory PhotoshootGenerateResponse.fromJson(Map<String, dynamic> json) {
     final rawUrls = json['image_urls'] as List<dynamic>? ?? [];
@@ -236,6 +238,7 @@ class PhotoshootGenerateResponse {
       balance: rawBalance is Map<String, dynamic>
           ? UserBalance.fromJson(rawBalance)
           : null,
+      description: json['description'] as String?,
     );
   }
 }
@@ -526,6 +529,7 @@ class ApiService {
     required String styleId,
     required String styleTitle,
     required XFile photoFile,
+    String? description,
   }) async {
     final request = http.MultipartRequest(
       'POST',
@@ -534,6 +538,10 @@ class ApiService {
     request.headers.addAll(_requestHeaders());
     request.fields['style_id'] = styleId;
     request.fields['style_title'] = styleTitle;
+    final trimmedDescription = description?.trim();
+    if (trimmedDescription != null && trimmedDescription.isNotEmpty) {
+      request.fields['description'] = trimmedDescription;
+    }
 
     final photoBytes = await photoFile.readAsBytes();
     final mimeType = _resolveMultipartMimeType(photoFile);

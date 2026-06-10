@@ -184,7 +184,7 @@
 - Служебные dev-записи с текстом вроде `debug test prompt` **фильтруются на клиенте** (не показываются пользователю).
 - Ошибки загрузки (backend выключен, 500) **не** показываются техническим SnackBar; галерея остаётся usable (empty state или только локально добавленные кадры).
 - Новые результаты после **`POST /generate`**, **`POST /generate-with-photo`** или успешной **`POST /photoshoots/generate`** добавляются в список **сразу сверху**, без повторного `GET`.
-- Записи фотосессий из **`GET /generations`** имеют `prompt`: **`Фотосессия: <style.title>`** (например `Фотосессия: Студийный портрет`).
+- Записи фотосессий из **`GET /generations`** имеют `prompt`: **`Фотосессия: <style.title>`** (например `Фотосессия: Студийный портрет`) или **`Своя фотосессия: <описание пользователя>`** для custom flow.
 - Записи одной фотосессии из нескольких изображений имеют **одинаковый** `photoshoot_id`; обычные генерации — **`photoshoot_id: null`** (поле можно игнорировать в текущем Flutter).
 
 **Response `200`:**
@@ -313,6 +313,7 @@
 |------|-----|----------|
 | `style_id` | string | Идентификатор выбранного стиля (обязательно); backend проверяет по **catalog** |
 | `style_title` | string \| null | Человекочитаемое название стиля (опционально; **источник правды — catalog на backend**) |
+| `description` | string \| null | Опционально: пользовательское описание образа для **«Своя фотосессия»** (`style_id=custom_photoshoot`). Trim; пустая строка игнорируется; максимум **1000** символов. Готовые стили могут не отправлять это поле |
 | `photo` | file | Фото пользователя (обязательно) |
 
 **Поддерживаемые `style_id` (backend catalog):**
@@ -327,7 +328,9 @@
 | `city_portrait` | Городской портрет | нет (100 ₽) |
 | `evening_look` | Вечерний образ | нет (100 ₽) |
 | `travel_portrait` | Портрет в путешествии | нет (100 ₽) |
+| `custom_photoshoot` | Своя фотосессия | да |
 
+- **«Своя фотосессия»:** Flutter отправляет `style_id=custom_photoshoot`, `style_title=Своя фотосессия`, `photo` и непустой `description`. Готовые стили отправляют только `style_id`, `style_title`, `photo` (без `description`) — поведение как раньше
 - Неизвестный `style_id` → **`400`** `Unknown photoshoot style`
 - Платный стиль (`is_free=false`) без подтверждённой оплаты → **`402`** `Payment is required for this photoshoot style` — **до** валидации фото и **без** вызова Gemini / Storage / `generations`
 - Alias: Flutter может отправлять `urban_portrait` — backend принимает как `city_portrait`
@@ -362,7 +365,7 @@
 Runtime limit: **`PHOTOSHOOT_OUTPUT_COUNT`** (env, default **3**, диапазон **1–3**). Для controlled dev-теста можно временно **`PHOTOSHOOT_OUTPUT_COUNT=1`**. **Product:** одна фотосессия = **3 изображения** в одном стиле.
 
 При успехе (**`ENABLE_PHOTOSHOOT_GENERATION=true`**) для каждого `image_url` создаётся запись в **`generations`**:
-- `prompt`: **`Фотосессия: <style.title>`** (из catalog)
+- `prompt`: **`Фотосессия: <style.title>`** (из catalog) или **`Своя фотосессия: <description>`**, если `description` передан в запросе
 - `image_url`: Storage **`public_url`**
 - `payment_type`: **`free`** для бесплатных стилей (платные стили сейчас отклоняются **`402`** до генерации)
 - `photoshoot_id`: **один общий uuid** на всю фотосессию (все результаты одного запроса делят одно значение)
@@ -421,6 +424,7 @@ Flutter обрабатывает **`501`** мягко: «Обработка фо
 | `output_count` | int | Фактическое число сгенерированных изображений (≤ `PHOTOSHOOT_OUTPUT_COUNT`; product default **3**) |
 | `photoshoot_id` | string (uuid) | Общий id сессии для всех записей в **`generations`** и группировки в **Галерее** |
 | `balance` | object \| null | Актуальный баланс после списания **1** `paid_photoshoots`; `null` если `ENABLE_CREDIT_CONSUMPTION=false` |
+| `description` | string \| null | Нормализованное описание из запроса (после trim и обрезки); `null`, если не передано или пустое |
 
 ### Ошибки генерации
 

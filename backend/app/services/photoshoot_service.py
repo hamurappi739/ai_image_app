@@ -13,7 +13,10 @@ from google import genai
 from google.genai import types
 
 from app.config import settings
-from app.services.gemini_quality_instructions import build_photoshoot_frame_instruction
+from app.services.gemini_quality_instructions import (
+    build_custom_photoshoot_frame_instruction,
+    build_photoshoot_frame_instruction,
+)
 from app.services.image_service import (
     _blob_to_data_url,
     _extract_gemini_error_status,
@@ -31,9 +34,16 @@ _MAX_PHOTOSHOOT_DIAGNOSTIC_TEXT_LEN = 200
 def _build_photoshoot_instruction(
     style: PhotoshootStyle,
     *,
+    user_description: str | None = None,
     variation_index: int = 1,
     variation_total: int = 1,
 ) -> str:
+    if user_description:
+        return build_custom_photoshoot_frame_instruction(
+            user_description,
+            variation_index=variation_index,
+            variation_total=variation_total,
+        )
     return build_photoshoot_frame_instruction(
         style.instruction,
         style.title,
@@ -134,7 +144,12 @@ def _extract_photoshoot_image_data_url(response) -> str:
     )
 
 
-def _photoshoot_history_prompt(style: PhotoshootStyle) -> str:
+def _photoshoot_history_prompt(
+    style: PhotoshootStyle,
+    user_description: str | None = None,
+) -> str:
+    if user_description:
+        return f"Своя фотосессия: {user_description}"
     return f"Фотосессия: {style.title}"
 
 
@@ -152,8 +167,10 @@ def _save_photoshoot_results_to_history(
     user_id: str,
     style: PhotoshootStyle,
     image_urls: list[str],
+    *,
+    user_description: str | None = None,
 ) -> str:
-    prompt = _photoshoot_history_prompt(style)
+    prompt = _photoshoot_history_prompt(style, user_description)
     payment_type = _photoshoot_payment_type(style)
     photoshoot_id = str(uuid4())
     for image_url in image_urls:
@@ -217,6 +234,8 @@ class GeminiPhotoshootProvider:
         style: PhotoshootStyle,
         photo_bytes: bytes,
         photo_content_type: str,
+        *,
+        user_description: str | None = None,
     ) -> list[str]:
         api_key = settings.gemini_api_key
         if not api_key or not api_key.strip():
@@ -231,6 +250,7 @@ class GeminiPhotoshootProvider:
         for index in range(self._output_count):
             instruction = _build_photoshoot_instruction(
                 style,
+                user_description=user_description,
                 variation_index=index + 1,
                 variation_total=self._output_count,
             )
@@ -289,6 +309,8 @@ class PhotoshootService:
         style: PhotoshootStyle,
         photo_bytes: bytes,
         photo_content_type: str,
+        *,
+        user_description: str | None = None,
     ) -> PhotoshootGenerateResult:
         provider = self._get_provider()
         if isinstance(provider, MockPhotoshootProvider):
@@ -302,6 +324,7 @@ class PhotoshootService:
                 style=style,
                 photo_bytes=photo_bytes,
                 photo_content_type=photo_content_type,
+                user_description=user_description,
             )
             image_urls = []
             for data_url in data_urls:
@@ -316,6 +339,7 @@ class PhotoshootService:
             user_id=user_id,
             style=style,
             image_urls=image_urls,
+            user_description=user_description,
         )
         return PhotoshootGenerateResult(
             image_urls=image_urls,

@@ -137,6 +137,19 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
             "Do not change the person's identity. No NSFW content."
         ),
     ),
+    "custom_photoshoot": PhotoshootStyle(
+        id="custom_photoshoot",
+        title="Своя фотосессия",
+        price_rub=0,
+        is_free=True,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
+        instruction=(
+            "Create one standalone portrait photo based on the uploaded person. "
+            "Preserve the person's face, identity, and key facial features. "
+            "Use a cohesive polished photoshoot look with natural lighting and clean composition. "
+            "Do not change the person's identity. No NSFW content."
+        ),
+    ),
 }
 
 

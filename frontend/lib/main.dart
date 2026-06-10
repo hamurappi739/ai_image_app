@@ -3663,15 +3663,13 @@ class _CustomPhotoshootIdea {
   final String text;
 }
 
-/// UI id for «Своя фотосессия»; API uses [apiStyleId] until backend adds catalog entry.
 class _CustomPhotoshootFlow {
   _CustomPhotoshootFlow._();
 
-  static const uiStyleId = 'custom_photoshoot';
-  static const apiStyleId = 'studio_portrait';
+  static const styleId = 'custom_photoshoot';
   static const baseTitle = 'Своя фотосессия';
   static const minDescriptionLength = 10;
-  static const maxApiTitleLength = 80;
+  static const maxHistoryDescriptionLength = 1000;
 
   static const ideas = <_CustomPhotoshootIdea>[
     _CustomPhotoshootIdea(
@@ -3701,22 +3699,13 @@ class _CustomPhotoshootFlow {
     ),
   ];
 
-  static String apiStyleTitle(String description) {
-    final trimmed = description.trim();
-    final prefix = '$baseTitle: ';
-    final maxBody = maxApiTitleLength - prefix.length;
-    if (maxBody <= 0) return baseTitle;
-    if (trimmed.length <= maxBody) return '$prefix$trimmed';
-    return '$prefix${trimmed.substring(0, maxBody).trim()}…';
-  }
-
   static String galleryDescription(String description) {
     final trimmed = description.trim();
-    const prefix = 'Фотосессия: $baseTitle: ';
-    const maxLen = 160;
-    final maxBody = maxLen - prefix.length;
+    final prefix = '$baseTitle: ';
+    final maxBody = maxHistoryDescriptionLength - prefix.length;
+    if (maxBody <= 0) return baseTitle;
     if (trimmed.length <= maxBody) return '$prefix$trimmed';
-    return '$prefix${trimmed.substring(0, maxBody).trim()}…';
+    return '$prefix${trimmed.substring(0, maxBody)}';
   }
 }
 
@@ -3853,7 +3842,6 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
       return;
     }
 
-    final apiStyleTitle = _CustomPhotoshootFlow.apiStyleTitle(description);
     setState(() => _isPreparingPhotoshoot = true);
 
     try {
@@ -3863,9 +3851,10 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
         subtitle: 'Обычно это занимает около 1–2 минут.',
         totalSeconds: 120,
         task: () => widget.apiService.generatePhotoshoot(
-          styleId: _CustomPhotoshootFlow.apiStyleId,
-          styleTitle: apiStyleTitle,
+          styleId: _CustomPhotoshootFlow.styleId,
+          styleTitle: _CustomPhotoshootFlow.baseTitle,
           photoFile: selectedPhotoFile,
+          description: description,
         ),
       );
       if (!mounted) return;
@@ -4131,7 +4120,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                         const SizedBox(height: 10),
                         VisualPlaceholderSeries(
                           mood: VisualPlaceholderPalette.moodForPhotoshootId(
-                            _CustomPhotoshootFlow.uiStyleId,
+                            _CustomPhotoshootFlow.styleId,
                           ),
                           height: 88,
                           showPhotoLabels: false,
