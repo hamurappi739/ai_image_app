@@ -245,9 +245,12 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
+  bool _scrollPhotoshootsToTrending = false;
+
   void _navigateToSection(AppSection section) {
     setState(() {
       _section = section;
+      _scrollPhotoshootsToTrending = false;
       if (section == AppSection.customRequest) {
         _pendingCustomRequestDescription = null;
       }
@@ -328,6 +331,18 @@ class _MainShellState extends State<MainShell> {
 
   void _goToPhotoshootsTab() => _navigateToSection(AppSection.photoshoots);
 
+  void _goToTrendingPhotoshoots() {
+    setState(() {
+      _section = AppSection.photoshoots;
+      _scrollPhotoshootsToTrending = true;
+    });
+  }
+
+  void _onTrendingPhotoshootsScrollHandled() {
+    if (!_scrollPhotoshootsToTrending) return;
+    setState(() => _scrollPhotoshootsToTrending = false);
+  }
+
   void _goToGalleryTab() => _navigateToSection(AppSection.gallery);
 
   void _goToPacksTab() {
@@ -375,6 +390,8 @@ class _MainShellState extends State<MainShell> {
       TemplatePhotoScreen(onTemplateSelected: _onTemplateSelected),
       PhotoshootsScreen(
         isActive: _section == AppSection.photoshoots,
+        scrollToTrending: _scrollPhotoshootsToTrending,
+        onTrendingScrollHandled: _onTrendingPhotoshootsScrollHandled,
         apiService: _apiService,
         balance: _userBalance,
         balanceLoading: _balanceLoading,
@@ -436,6 +453,7 @@ class _MainShellState extends State<MainShell> {
       drawer: AppDrawer(
         currentSection: _section,
         onSectionSelected: _navigateToSection,
+        onTrendingPhotoshootsTap: _goToTrendingPhotoshoots,
         userEmail: _authService.currentUser?.email,
         userDisplayName: _userDisplayName(),
       ),
@@ -1919,10 +1937,30 @@ class _PhotoshootStyle {
   String get priceLabel => isFree ? 'Бесплатно' : '100 ₽';
 }
 
+class _PhotoshootCollection {
+  const _PhotoshootCollection({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.styleIds,
+    this.highlighted = false,
+    this.omitDuplicates = false,
+  });
+
+  final String id;
+  final String title;
+  final String subtitle;
+  final List<String> styleIds;
+  final bool highlighted;
+  final bool omitDuplicates;
+}
+
 class PhotoshootsScreen extends StatefulWidget {
   const PhotoshootsScreen({
     super.key,
     required this.isActive,
+    this.scrollToTrending = false,
+    this.onTrendingScrollHandled,
     required this.apiService,
     required this.balance,
     required this.balanceLoading,
@@ -1933,6 +1971,8 @@ class PhotoshootsScreen extends StatefulWidget {
   });
 
   final bool isActive;
+  final bool scrollToTrending;
+  final VoidCallback? onTrendingScrollHandled;
   final ApiService apiService;
   final UserBalance? balance;
   final bool balanceLoading;
@@ -1947,14 +1987,43 @@ class PhotoshootsScreen extends StatefulWidget {
 
 class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
   bool _isHelpDialogVisible = false;
+  final _scrollController = ScrollController();
+  final _trendingSectionKey = GlobalKey();
 
   static const _gridBreakpoint = 560.0;
 
-  static const _popularStyleIds = [
-    'business_portrait',
-    'studio_portrait',
-    'urban_portrait',
-    'evening_look',
+  static const _collections = [
+    _PhotoshootCollection(
+      id: 'trending',
+      title: 'Популярное сейчас',
+      subtitle: 'Стили, которые чаще всего выбирают для красивых фото.',
+      styleIds: [
+        'business_portrait',
+        'studio_portrait',
+        'urban_portrait',
+        'evening_look',
+      ],
+      highlighted: true,
+    ),
+    _PhotoshootCollection(
+      id: 'work',
+      title: 'Для работы',
+      subtitle: 'Фото для делового образа, резюме и профиля.',
+      styleIds: ['business_portrait', 'studio_portrait'],
+      omitDuplicates: true,
+    ),
+    _PhotoshootCollection(
+      id: 'beautiful',
+      title: 'Для красивого образа',
+      subtitle: 'Мягкие и атмосферные варианты для себя.',
+      styleIds: [
+        'home_portrait',
+        'winter_photoshoot',
+        'travel_portrait',
+        'premium_portrait',
+      ],
+      omitDuplicates: true,
+    ),
   ];
 
   static const _photoshoots = <_PhotoshootStyle>[
@@ -1964,7 +2033,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       description:
           'Получится аккуратный портрет на чистом фоне с мягким светом. '
           'Подходит для аватара, профиля и первого знакомства с сервисом.',
-      recommendation: 'Для аватара',
+      recommendation: 'Популярно',
       initials: 'СП',
       icon: Icons.portrait_outlined,
       gradientColors: [Color(0xFFE8E4F4), Color(0xFFB8B0D4)],
@@ -1990,7 +2059,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       description:
           'Тёплый естественный образ с мягким светом и уютной атмосферой. '
           'Подходит для личного профиля и социальных сетей.',
-      recommendation: 'Для личного профиля',
+      recommendation: 'Для себя',
       initials: 'ДМ',
       icon: Icons.home_outlined,
       gradientColors: [Color(0xFFF5E8D8), Color(0xFFD4B896)],
@@ -2003,7 +2072,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       description:
           'Более выразительная подача: дорогой свет, контраст '
           'и ощущение профессиональной съёмки.',
-      recommendation: 'Премиум',
+      recommendation: 'Для себя',
       initials: 'ПР',
       icon: Icons.diamond_outlined,
       gradientColors: [Color(0xFFD8C8F8), Color(0xFF9070D8)],
@@ -2015,7 +2084,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       title: 'Зимняя фотосессия',
       description:
           'Зимняя атмосфера, мягкий свет, уютный образ и сезонное настроение.',
-      recommendation: 'Для сезона',
+      recommendation: 'Для себя',
       initials: 'ЗМ',
       icon: Icons.ac_unit,
       gradientColors: [Color(0xFFD0ECFA), Color(0xFF6CB8E8)],
@@ -2041,7 +2110,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       description:
           'Элегантный свет, вечернее настроение '
           'и более выразительный визуальный стиль.',
-      recommendation: 'Для образа',
+      recommendation: 'Для себя',
       initials: 'ВЧ',
       icon: Icons.nightlife_outlined,
       gradientColors: [Color(0xFF7A5898), Color(0xFF3A2868)],
@@ -2054,7 +2123,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       description:
           'Атмосфера поездки, красивый фон '
           'и ощущение живой фотографии из путешествия.',
-      recommendation: 'Для истории',
+      recommendation: 'Для себя',
       initials: 'ПТ',
       icon: Icons.flight_outlined,
       gradientColors: [Color(0xFFC0ECE0), Color(0xFF58B8A8)],
@@ -2067,6 +2136,15 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
   void initState() {
     super.initState();
     _scheduleFirstVisitHelp();
+    if (widget.scrollToTrending && widget.isActive) {
+      _scheduleScrollToTrending();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -2075,6 +2153,27 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     if (widget.isActive && !oldWidget.isActive) {
       _scheduleFirstVisitHelp();
     }
+    if (widget.isActive &&
+        widget.scrollToTrending &&
+        (!oldWidget.scrollToTrending || !oldWidget.isActive)) {
+      _scheduleScrollToTrending();
+    }
+  }
+
+  void _scheduleScrollToTrending() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.isActive) return;
+      final targetContext = _trendingSectionKey.currentContext;
+      if (targetContext != null) {
+        Scrollable.ensureVisible(
+          targetContext,
+          alignment: 0.02,
+          duration: const Duration(milliseconds: 420),
+          curve: Curves.easeOutCubic,
+        );
+      }
+      widget.onTrendingScrollHandled?.call();
+    });
   }
 
   void _scheduleFirstVisitHelp() {
@@ -2186,18 +2285,33 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     );
   }
 
-  List<_PhotoshootStyle> _stylesForIds(List<String> ids) {
+  List<_PhotoshootStyle> _stylesForIds(
+    List<String> ids, {
+    Set<String>? excludeIds,
+  }) {
     return [
       for (final id in ids)
-        _photoshoots.firstWhere((style) => style.id == id),
+        if (excludeIds == null || !excludeIds.contains(id))
+          _photoshoots.firstWhere((style) => style.id == id),
     ];
   }
 
-  List<_PhotoshootStyle> get _popularStyles => _stylesForIds(_popularStyleIds);
+  List<({ _PhotoshootCollection collection, List<_PhotoshootStyle> styles })>
+      _visibleCollections() {
+    final shownIds = <String>{};
+    final result =
+        <({ _PhotoshootCollection collection, List<_PhotoshootStyle> styles })>[];
 
-  List<_PhotoshootStyle> get _otherStyles => _photoshoots
-      .where((style) => !_popularStyleIds.contains(style.id))
-      .toList();
+    for (final collection in _collections) {
+      final exclude = collection.omitDuplicates ? shownIds : null;
+      final styles = _stylesForIds(collection.styleIds, excludeIds: exclude);
+      if (styles.isEmpty) continue;
+      shownIds.addAll(styles.map((s) => s.id));
+      result.add((collection: collection, styles: styles));
+    }
+
+    return result;
+  }
 
   Widget _buildStyleGrid({
     required BuildContext context,
@@ -2282,7 +2396,10 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                 final cardHeight = columns == 2 ? 400.0 : 440.0;
                 final gridAspectRatio = cardWidth / cardHeight;
 
+                final collections = _visibleCollections();
+
                 return SingleChildScrollView(
+                  controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -2299,28 +2416,27 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                       _CustomPhotoshootPromoBanner(
                         onAction: () => _openCustomPhotoshootDialog(context),
                       ),
-                      const SizedBox(height: 28),
-                      const _PhotoshootSectionTitle(
-                        title: 'Популярные фотосессии',
-                      ),
-                      const SizedBox(height: 14),
-                      _buildStyleGrid(
-                        context: context,
-                        styles: _popularStyles,
-                        columns: columns,
-                        previewHeight: previewHeight,
-                        gridAspectRatio: gridAspectRatio,
-                      ),
-                      const SizedBox(height: 28),
-                      const _PhotoshootSectionTitle(title: 'Другие стили'),
-                      const SizedBox(height: 14),
-                      _buildStyleGrid(
-                        context: context,
-                        styles: _otherStyles,
-                        columns: columns,
-                        previewHeight: previewHeight,
-                        gridAspectRatio: gridAspectRatio,
-                      ),
+                      for (var i = 0; i < collections.length; i++) ...[
+                        SizedBox(height: i == 0 ? 24 : 28),
+                        KeyedSubtree(
+                          key: collections[i].collection.id == 'trending'
+                              ? _trendingSectionKey
+                              : null,
+                          child: _PhotoshootCollectionHeader(
+                            title: collections[i].collection.title,
+                            subtitle: collections[i].collection.subtitle,
+                            highlighted: collections[i].collection.highlighted,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _buildStyleGrid(
+                          context: context,
+                          styles: collections[i].styles,
+                          columns: columns,
+                          previewHeight: previewHeight,
+                          gridAspectRatio: gridAspectRatio,
+                        ),
+                      ],
                     ],
                   ),
                 );
@@ -2440,20 +2556,64 @@ class _PhotoshootsIntroHeader extends StatelessWidget {
   }
 }
 
-class _PhotoshootSectionTitle extends StatelessWidget {
-  const _PhotoshootSectionTitle({required this.title});
+class _PhotoshootCollectionHeader extends StatelessWidget {
+  const _PhotoshootCollectionHeader({
+    required this.title,
+    required this.subtitle,
+    this.highlighted = false,
+  });
+
+  static const _accentColor = Color(0xFF5B6CFF);
 
   final String title;
+  final String subtitle;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontSize: 18,
+    final theme = Theme.of(context);
+
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontSize: 20,
             fontWeight: FontWeight.w700,
             color: AiImageGeneratorApp.textPrimary,
           ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 14,
+            height: 1.4,
+            color: AiImageGeneratorApp.textSecondary,
+          ),
+        ),
+      ],
+    );
+
+    if (!highlighted) return content;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFF5F7FF),
+            _accentColor.withValues(alpha: 0.08),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.14)),
+      ),
+      child: content,
     );
   }
 }
@@ -2473,22 +2633,19 @@ class _CustomPhotoshootPromoBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFEEF1FF),
-            _accentColor.withValues(alpha: 0.12),
-          ],
+          colors: [Color(0xFFFFF8F5), Color(0xFFEEF1FF)],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: _accentColor.withValues(alpha: 0.35),
+          color: const Color(0xFFE8B4A0).withValues(alpha: 0.45),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: _accentColor.withValues(alpha: 0.1),
+            color: _accentColor.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -2501,14 +2658,22 @@ class _CustomPhotoshootPromoBanner extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.9),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white,
+                      _accentColor.withValues(alpha: 0.12),
+                    ],
+                  ),
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _accentColor.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: const Icon(
-                  Icons.edit_note_outlined,
+                  Icons.auto_awesome_outlined,
                   size: 24,
                   color: _accentColor,
                 ),
@@ -2682,15 +2847,16 @@ class _PhotoshootCard extends StatelessWidget {
                           textColor: _accentColor,
                         ),
                         _PhotoshootMetaChip(
-                          label: style.priceLabel,
+                          label: style.isFree ? 'Бесплатно' : '100 ₽',
                           backgroundColor: priceBg,
                           textColor: priceFg,
                         ),
-                        _PhotoshootMetaChip(
-                          label: style.recommendation,
-                          backgroundColor: const Color(0xFFF7F8FC),
-                          textColor: AiImageGeneratorApp.textPrimary,
-                        ),
+                        if (style.recommendation.isNotEmpty)
+                          _PhotoshootMetaChip(
+                            label: style.recommendation,
+                            backgroundColor: const Color(0xFFF7F8FC),
+                            textColor: AiImageGeneratorApp.textPrimary,
+                          ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -2732,7 +2898,7 @@ class _PhotoshootCard extends StatelessWidget {
                                 padding: EdgeInsets.zero,
                               ),
                               child: const Text(
-                                'Скоро · 100 ₽',
+                                '100 ₽',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,

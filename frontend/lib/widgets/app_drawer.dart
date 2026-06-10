@@ -7,6 +7,7 @@ class AppDrawer extends StatelessWidget {
     super.key,
     required this.currentSection,
     required this.onSectionSelected,
+    this.onTrendingPhotoshootsTap,
     this.userEmail,
     this.userDisplayName,
   });
@@ -17,6 +18,7 @@ class AppDrawer extends StatelessWidget {
 
   final AppSection currentSection;
   final ValueChanged<AppSection> onSectionSelected;
+  final VoidCallback? onTrendingPhotoshootsTap;
   final String? userEmail;
   final String? userDisplayName;
 
@@ -177,7 +179,14 @@ class AppDrawer extends StatelessWidget {
                     ),
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 20),
-                    onTap: () => _goTo(context, AppSection.photoshoots),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      if (onTrendingPhotoshootsTap != null) {
+                        onTrendingPhotoshootsTap!();
+                      } else {
+                        onSectionSelected(AppSection.photoshoots);
+                      }
+                    },
                   ),
                   _menuTile(
                     context,
