@@ -128,16 +128,26 @@
 | **Frontend balance refresh after generation** | ✅ | **Профиль** / **Пакеты** / **Создать** обновляются из `balance` в response |
 | **Mock photoshoot debit flow (Flutter emulator)** | ✅ | Debug: тестовое фото без галереи; progress dialog; Gallery + balance refresh |
 | **Russian text input on Create tab** | ✅ | Кириллица в поле описания; Chrome + Android emulator |
-| **Min custom amount 10 ₽** | ✅ | `_customAmountMin = 10` во вкладке **«Пакеты»** |
+| **Min custom amount 10 ₽** | ✅ | `_customAmountMin = 10` в разделе **«Купить»** |
+| **UX-redesign: drawer navigation** | ✅ | Burger menu; нижние вкладки убраны; см. [navigation_redesign_plan.md](navigation_redesign_plan.md) |
+| **UX-redesign: Главная welcome + Фото по шаблону** | ✅ | «Начать создавать» → шаблоны; автозаполнение **Свой запрос** |
+| **UX-redesign: переименования UI** | ✅ | Свой запрос, Готовые фото, Купить |
+| **UX-redesign: Фотосессии** | ✅ | Промо «Своя фотосессия» сверху; популярные / другие стили |
+| **UX-redesign: Купить** | ✅ | Человеческие тексты; 1 фото = 10 ₽; 1 фотосессия = 100 ₽ |
+| **UX-redesign: Готовые фото** | ✅ | Empty/loading/error; новая терминология в модалках |
+| **UX-redesign: onboarding + help** | ✅ | 5 слайдов; `PagedHelpDialog`; help hub по разделам |
+| **UX-redesign: debug APK на физическом Android-телефоне** | ✅ | `API_BASE_URL=http://192.168.31.242:8000`; demo mock backend; drawer, шаблоны, **Свой запрос** + фото, все разделы; помощь без overflow — [demo_release_checklist.md](demo_release_checklist.md) § D |
 
 ### Flutter UI MVP (детали)
 
-- **Onboarding:** 5 экранов при первом запуске; после «Начать» / «Пропустить» — основное приложение
-- **Создать:** режим по **тумблеру** «Без фото» / «С фото» (синхронизирован); кнопка **«Создать»** / **«Создать по фото»**; **`POST /generate`** / **`POST /generate-with-photo`** по режиму; modal, идеи, «Открыть в Галерее»
-- **Фотосессии:** **каталог** (8 стилей + **«Своя фотосессия»** UI-каркас), рекомендации и примеры-заглушки в sheet; готовые стили: bottom sheet → multipart upload (бесплатно); **«Своя фотосессия»** — только dialog, SnackBar «будет добавлена позже»
-- **Галерея:** `GET /generations` + локальные новые; **группировка фотосессий** по `photoshoot_id`; **просмотр** (крупно), **Скачать**, **«Скрыть из Галереи»** (локально); **Очистить** (только на устройстве); empty state
-- **Пакеты:** demo-ready UI — hero **«Ваш баланс»** (изображения / фотосессии / бесплатные), переключатель **«С фотосессиями»** / **«Только изображения»** с пояснением, карточки **199 / 499 / 999 ₽** (**«Популярно»** на 499), **«Своя сумма»** (мин. **10 ₽**); development: **`PaymentService`** → mock-verify через backend; **RuStore SDK / реальная оплата — не подключены**
+- **Onboarding:** 5 экранов при первом запуске; путь **шаблон → фотосессия → свой запрос → меню**
+- **Фото по шаблону:** 6 карточек; «Выбрать» → **Свой запрос** с готовым описанием
+- **Свой запрос:** режим **«Без фото»** / **«С фото»**; **`POST /generate`** / **`POST /generate-with-photo`**
+- **Фотосессии:** популярные / другие стили; промо «Создать свой образ»; multipart upload → **Готовые фото**
+- **Готовые фото:** `GET /generations`; группировка; просмотр, **Скачать**, скрытие; empty state с кнопками в шаблоны и фотосессии
+- **Купить:** hero-баланс, 199/499/999 ₽, **«Своя сумма»**; dev mock-verify; RuStore — future
 - **Профиль:** вход / регистрация / выход (при Supabase dart-define)
+- **Навигация:** drawer (burger menu); см. [navigation_redesign_plan.md](navigation_redesign_plan.md)
 
 **UX (следующие задачи):** **RuStore** после покупки — см. [app_design_strategy.md](app_design_strategy.md) и § **«Ближайший порядок работ»** ниже.
 
@@ -262,17 +272,15 @@ Demo-сборка и чеклист: [demo_release_checklist.md](demo_release_ch
 | **Edge cases ошибок Gemini** (502, пустой ответ, Storage failure) | план |
 | **Production deploy** — CORS, убрать `TEST_USER_ID` fallback | план |
 
-### Ближайший UX (генерация и каталог)
+### Ближайший UX (после redesign)
 
 1. **Replace placeholders with real curated example images** — на карточках каталога и в блоке «Пример результата» вместо gradient-заглушек.
 2. **Improve visual branding and final art direction** — единый визуальный язык каталога фотосессий.
-3. ~~**Backend endpoint for photo + description single-image generation**~~ — **`POST /generate-with-photo`** ✅
-4. ~~**Connect Create photo input to backend**~~ — Flutter multipart ✅
-5. ~~**Save photo-based generation results to Gallery/history**~~ — через `consume_generation` / локальная Галерея ✅
-6. **Backend endpoint for custom photoshoot** — API для **«Своей фотосессии»** (фото + текст пользователя).
-7. **Connect custom photoshoot to Gemini** — генерация набора изображений по пользовательскому описанию.
-8. **Payment logic for custom photoshoot if needed** — монетизация (если потребуется).
-9. **Save custom photoshoot results to Gallery/history** — результаты в **Галерею** / `generations` с **`photoshoot_id`**.
+3. **Backend endpoint for custom photoshoot** — полноценная **«Своя фотосессия»** (сейчас dialog «Скоро…»).
+4. **Connect custom photoshoot to Gemini** — генерация набора изображений по пользовательскому описанию.
+5. ~~**Финальная проверка на реальном телефоне**~~ — **один физический Android-телефон** ✅ (LAN debug APK, redesigned UX); **проверка на нескольких устройствах** — план.
+6. **Production backend deploy** + **публичный HTTPS `API_BASE_URL`** — см. [backend_deploy_plan.md](backend_deploy_plan.md).
+7. **RuStore real payment integration** + **release signing**.
 
 ### Далее (после UX-блока)
 
@@ -304,6 +312,7 @@ Demo-сборка и чеклист: [demo_release_checklist.md](demo_release_ch
 
 ## Связанные документы
 
-- [app_design_strategy.md](app_design_strategy.md) — вкладки и UX
+- [app_design_strategy.md](app_design_strategy.md) — UX-стратегия и терминология
+- [navigation_redesign_plan.md](navigation_redesign_plan.md) — drawer, разделы, UX-redesign статус
 - [api_contract.md](api_contract.md) — `POST /generate`, `GET /generations`
 - [product_strategy.md](product_strategy.md) — монетизация

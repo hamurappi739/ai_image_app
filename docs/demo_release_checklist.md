@@ -31,7 +31,9 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 | `PHOTOSHOOT_OUTPUT_COUNT` | `3` | Три кадра на фотосессию |
 | `--host 0.0.0.0` | — | Backend доступен с других устройств в сети (не только localhost) |
 
-Перед демо: `backend/.env` с Supabase-ключами; `ENVIRONMENT=development` для mock-пополнения в **Пакеты**.
+Перед демо: `backend/.env` с Supabase-ключами; `ENVIRONMENT=development` для mock-пополнения в **Купить**.
+
+Этот же режим использовался при **ручной проверке redesigned debug APK на физическом Android-телефоне** (см. раздел **D**).
 
 ---
 
@@ -122,25 +124,69 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 
 **Smoke test на Android emulator (✅):**
 
-| Вкладка / действие | Результат |
-|--------------------|-----------|
+| Раздел / действие | Результат |
+|-------------------|-----------|
 | **Профиль** | Баланс отображается |
-| **Создать** | Генерация работает |
-| **Пакеты** | Demo-пополнение (mock-verify) работает |
+| **Свой запрос** | Генерация работает |
+| **Купить** | Demo-пополнение (mock-verify) работает |
 | **Фотосессии** | Экран открывается |
-| **Галерея** | Экран открывается |
+| **Готовые фото** | Экран открывается |
 
-**Русский ввод на «Создать»:** в **Chrome** кириллица вводится нормально. На **Android emulator** ввод русского зависит от **настроек клавиатуры** эмулятора / физической клавиатуры (раскладка RU). На уровне приложения **отдельной блокировки кириллицы не обнаружено**. На **физическом телефоне** ввод нужно проверить отдельно.
+**Русский ввод на «Свой запрос»:** в **Chrome** кириллица вводится нормально. На **Android emulator** и **физическом телефоне** ввод зависит от раскладки клавиатуры; на уровне приложения **отдельной блокировки кириллицы не обнаружено**.
 
-**Для физического телефона:** `10.0.2.2` **не работает** — LAN IP или HTTPS:
+**Для физического телефона:** `10.0.2.2` **не работает** — LAN IP ПК в Wi‑Fi или HTTPS:
 
 ```powershell
-flutter build apk --debug --dart-define=API_BASE_URL=https://your-backend.example.com
+flutter build apk --debug --dart-define=API_BASE_URL=http://192.168.31.242:8000
 ```
 
-Или IP в Wi‑Fi: `--dart-define=API_BASE_URL=http://192.168.1.10:8000`
+Замените IP на адрес вашего ПК в локальной сети (`ipconfig` в PowerShell). Альтернатива для production-like теста: `--dart-define=API_BASE_URL=https://your-backend.example.com`.
 
-Убедитесь, что firewall не блокирует порт **8000**, если тестируете по сети.
+Убедитесь, что firewall не блокирует порт **8000**, телефон и ПК в **одной Wi‑Fi-сети**.
+
+### Физический Android-телефон — redesigned APK (✅ проверено)
+
+**Сборка и установка:**
+
+```powershell
+cd C:\Users\shuly\Desktop\ai_image_app\frontend
+flutter build apk --debug --dart-define=API_BASE_URL=http://192.168.31.242:8000
+adb install -r build/app/outputs/flutter-apk/app-debug.apk
+```
+
+**Backend на ПК (раздел A):**
+
+```powershell
+cd C:\Users\shuly\Desktop\ai_image_app\backend
+$env:ENABLE_CREDIT_CONSUMPTION='true'
+$env:IMAGE_PROVIDER='mock'
+$env:ENABLE_PHOTOSHOOT_GENERATION='true'
+$env:PHOTOSHOOT_OUTPUT_COUNT='3'
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+| Параметр | Значение при проверке |
+|----------|------------------------|
+| `API_BASE_URL` в APK | `http://192.168.31.242:8000` |
+| Backend | `--host 0.0.0.0 --port 8000` на ПК в LAN |
+| Режим | Demo mock + списание баланса (раздел A) |
+
+**Smoke test нового UX на реальном телефоне (✅):**
+
+| Раздел / действие | Результат |
+|-------------------|-----------|
+| **Главная** | Открывается |
+| **«Начать создавать»** | Ведёт в **Фото по шаблону** |
+| **Burger / drawer** | Открывается |
+| Пункты меню (все разделы) | Открываются |
+| **Фото по шаблону** → шаблон | Описание подставляется в **Свой запрос** |
+| **Свой запрос** + фото | Добавление фото и генерация работают |
+| **Фотосессии** | Экран открывается |
+| **Купить** | Экран открывается |
+| **Готовые фото** | Экран открывается |
+| **Помощь** | Диалоги не выходят за границы экрана |
+
+**Не проверялось в этом прогоне как цель релиза:** production HTTPS backend, release signing, RuStore, массовая установка на разные модели Android.
 
 ---
 
@@ -188,32 +234,34 @@ flutter run -d chrome --dart-define=API_BASE_URL=https://your-backend.example.co
 
 ## G. Not production yet
 
-Следующее **ещё не готово** к публичному релизу:
+Redesigned debug APK **проверен на одном физическом Android-телефоне** в LAN + demo mock-режиме (раздел **D**). Для **реального распространения** всё ещё нужно:
 
 | Область | Статус |
 |---------|--------|
-| RuStore real payment | Не подключён (`PaymentService` — demo mock-verify) |
-| Release signing | Не настроен (debug keys в `app/build.gradle.kts`) |
-| Production backend deploy | Не выполнен |
+| **Production backend deploy** | Не выполнен |
+| **Публичный HTTPS `API_BASE_URL`** | Не настроен (сейчас LAN IP или localhost) |
+| **Release signing** | Не настроен (debug keys в `app/build.gradle.kts`) |
+| **RuStore real payment** | Не подключён (`PaymentService` — demo mock-verify) |
+| **Проверка на нескольких Android-устройствах** | Не выполнена (проверен один телефон) |
 | Debug endpoints (`/debug/*`, mock-verify) | **404** в production (`ENVIRONMENT` ≠ development) — см. [production_safety_checklist.md](production_safety_checklist.md) |
 | Real package purchase verification (RuStore API) | Не подключена |
 | Supabase RLS / policies | Нужен финальный production review |
 | App icon / name / store metadata | Могут потребовать доработки |
-| Release signing + production API deploy | Не выполнены (dart-define `API_BASE_URL` для APK — ✅) |
 
 ---
 
 ## H. Demo scenario (короткий сценарий)
 
-Режим backend: **раздел A** (demo mock + списание баланса).
+Режим backend: **раздел A** (demo mock + списание баланса). Проверен на **Chrome**, **Android emulator** и **физическом телефоне** (LAN APK).
 
-1. **Профиль** — посмотреть баланс (изображения / фотосессии / бесплатные).
-2. **Пакеты** — demo-пополнение: готовый пакет или **Своя сумма** → «Баланс пополнен».
-3. **Создать** — генерация **без фото** → результат → **Галерея**.
-4. **Создать** — генерация **с фото** → результат в **Галерее**.
-5. **Галерея** — история сверху, группировка фотосессий.
-6. **Фотосессии** — бесплатный стиль → 3 фото → **Галерея**.
-7. Исчерпать баланс → предупреждение → переход в **Пакеты**.
+1. **Главная** → **«Начать создавать»** → **Фото по шаблону**.
+2. Выбрать шаблон → **Свой запрос** (описание уже заполнено) → добавить фото → **«Создать фото»**.
+3. **Готовые фото** — результат в истории.
+4. **Профиль** — баланс (фото / фотосессии / бесплатные).
+5. **Купить** — demo-пополнение: готовый набор или **Своя сумма** → «Баланс пополнен».
+6. **Фотосессии** — бесплатный стиль → 3 фото → **Готовые фото**.
+7. Drawer — переход между разделами; **Помощь** — без overflow.
+8. Исчерпать баланс → предупреждение → переход в **Купить**.
 
 Подробный текст для презентации: [demo_script.md](demo_script.md).
 
@@ -224,8 +272,9 @@ flutter run -d chrome --dart-define=API_BASE_URL=https://your-backend.example.co
 | Задача | Команда / путь |
 |--------|----------------|
 | Demo backend | `uvicorn` + env из раздела A |
-| Debug APK | `flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000` |
-| Backend для emulator/APK | `uvicorn … --host 0.0.0.0 --port 8000` |
+| Debug APK (emulator) | `flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000` |
+| Debug APK (физ. телефон, LAN) | `flutter build apk --debug --dart-define=API_BASE_URL=http://<LAN-IP-ПК>:8000` (проверено: `192.168.31.242`) |
+| Backend для emulator/APK/телефона | `uvicorn … --host 0.0.0.0 --port 8000` |
 | APK файл | `frontend/build/app/outputs/flutter-apk/app-debug.apk` |
 | Установка | `adb install -r build/app/outputs/flutter-apk/app-debug.apk` |
 | Chrome | `flutter run -d chrome` |
