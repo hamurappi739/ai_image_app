@@ -438,6 +438,7 @@ class _MainShellState extends State<MainShell> {
         authService: _authService,
         apiService: _apiService,
         onAuthChanged: _onProfileAuthChanged,
+        onNavigate: _navigateToSection,
         onResetOnboarding: widget.onResetOnboarding,
         balance: _userBalance,
         balanceLoading: _balanceLoading,
@@ -4503,6 +4504,7 @@ class ProfileScreen extends StatefulWidget {
     required this.authService,
     required this.apiService,
     required this.onAuthChanged,
+    required this.onNavigate,
     required this.balance,
     required this.balanceLoading,
     required this.balanceLoadFailed,
@@ -4514,6 +4516,7 @@ class ProfileScreen extends StatefulWidget {
   final AuthService authService;
   final ApiService apiService;
   final VoidCallback onAuthChanged;
+  final ValueChanged<AppSection> onNavigate;
   final UserBalance? balance;
   final bool balanceLoading;
   final bool balanceLoadFailed;
@@ -4527,13 +4530,6 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   static const _accentColor = Color(0xFF5B6CFF);
-
-  static const _comingFeatures = [
-    (icon: Icons.image_outlined, label: 'Ваши созданные изображения'),
-    (icon: Icons.photo_camera_outlined, label: 'История фотосессий'),
-    (icon: Icons.shopping_bag_outlined, label: 'Купленные пакеты генераций'),
-    (icon: Icons.settings_outlined, label: 'Настройки приложения'),
-  ];
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -4632,63 +4628,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Widget _buildHeader(ThemeData theme) {
-    return const AppScreenHeader(
-      title: 'Профиль',
-      subtitle: 'Ваш аккаунт, баланс и настройки',
-    );
-  }
-
-  Widget _buildNotConfiguredCard(ThemeData theme) {
-    return _SoftCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.person_outline,
-                  color: Colors.white,
-                  size: 26,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Вход недоступен в этом запуске',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Запустите приложение с Supabase config, чтобы включить авторизацию.',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Без входа генерация и галерея работают в режиме разработки.',
-                      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  Widget _buildHeader() {
+    return const AppScreenHeader(title: 'Профиль');
   }
 
   Widget _buildSignInForm(ThemeData theme) {
@@ -4696,11 +4637,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Вход в аккаунт', style: theme.textTheme.titleMedium),
+          Text('Войти', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(
-            'Войдите, чтобы сохранять баланс и историю в Галерее',
-            style: theme.textTheme.bodyMedium,
+            'Введите email и пароль от вашего аккаунта.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AiImageGeneratorApp.textSecondary,
+            ),
           ),
           const SizedBox(height: 20),
           TextField(
@@ -4709,7 +4652,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             keyboardType: TextInputType.emailAddress,
             autocorrect: false,
             decoration: InputDecoration(
-              labelText: 'Email',
+              labelText: 'Электронная почта',
               filled: true,
               fillColor: const Color(0xFFF7F8FC),
               border: OutlineInputBorder(
@@ -4813,52 +4756,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSignedInCard(ThemeData theme) {
-    final email = widget.authService.currentUser?.email ?? '—';
-
-    return _SoftCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Вы вошли', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 10),
-          Text(
-            email,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AiImageGeneratorApp.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
+  Widget _buildSignOutButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton(
+        onPressed: _isAuthLoading ? null : _onSignOut,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _accentColor,
+          side: BorderSide(color: _accentColor.withValues(alpha: 0.45)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
-          const SizedBox(height: 12),
-          Text(
-            'Баланс и готовые фото привязаны к этому аккаунту.',
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: OutlinedButton(
-              onPressed: _isAuthLoading ? null : _onSignOut,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _accentColor,
-                side: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
+        ),
+        child: _isSigningOut
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.2),
+              )
+            : const Text(
+                'Выйти',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
               ),
-              child: _isSigningOut
-                  ? const Text(
-                      'Выходим...',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    )
-                  : const Text(
-                      'Выйти',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -4867,19 +4787,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final auth = widget.authService;
+    final isSignedIn = auth.isConfigured && auth.isSignedIn;
+    final email = auth.currentUser?.email?.trim();
 
     return Scaffold(
       backgroundColor: AiImageGeneratorApp.scaffoldBackground,
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildHeader(theme),
+                  _buildHeader(),
+                  const SizedBox(height: 16),
+                  _ProfileAccountCard(
+                    isSignedIn: isSignedIn,
+                    isAuthAvailable: auth.isConfigured,
+                    email: email,
+                  ),
                   const SizedBox(height: 20),
                   if (widget.showUserBalance) ...[
                     _UserBalanceProfileCard(
@@ -4888,76 +4817,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       hasError: widget.balanceLoadFailed,
                       onRefresh: widget.onRefreshBalance,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                   ],
+                  _ProfileQuickActions(onNavigate: widget.onNavigate),
                   if (!auth.isConfigured) ...[
-                    _buildNotConfiguredCard(theme),
                     const SizedBox(height: 20),
-                    _SoftCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Что появится здесь',
-                            style: theme.textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 16),
-                          ..._comingFeatures.map(
-                            (item) => Padding(
-                              padding: const EdgeInsets.only(bottom: 14),
-                              child: _ProfileListRow(
-                                icon: item.icon,
-                                label: item.label,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ] else if (auth.isSignedIn) ...[
-                    _buildSignedInCard(theme),
+                    const _ProfileDemoModeCard(),
+                  ] else if (isSignedIn) ...[
+                    const SizedBox(height: 20),
+                    _buildSignOutButton(),
                   ] else ...[
-                    _buildSignInForm(theme),
-                  ],
-                  if (auth.isConfigured) ...[
                     const SizedBox(height: 20),
-                    _SoftCard(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEDE9FF),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.shield_outlined,
-                              color: _accentColor,
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Безопасность',
-                                  style: theme.textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Платежные данные не хранятся в приложении. Важные операции выполняются на сервере.',
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    _buildSignInForm(theme),
                   ],
                   if (!auth.isConfigured) ...[
                     const SizedBox(height: 28),
@@ -5013,14 +4884,228 @@ enum _AuthAction {
   signOut,
 }
 
-class _ProfileListRow extends StatelessWidget {
-  const _ProfileListRow({
+class _ProfileAccountCard extends StatelessWidget {
+  const _ProfileAccountCard({
+    required this.isSignedIn,
+    required this.isAuthAvailable,
+    this.email,
+  });
+
+  static const _accentColor = Color(0xFF5B6CFF);
+
+  final bool isSignedIn;
+  final bool isAuthAvailable;
+  final String? email;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    String subtitle;
+    if (isSignedIn && email != null && email!.isNotEmpty) {
+      subtitle = email!;
+    } else if (isAuthAvailable) {
+      subtitle = 'Войдите, чтобы сохранить свои фото и баланс.';
+    } else {
+      subtitle =
+          'Вход недоступен в этом запуске. '
+          'Сейчас приложение работает в демо-режиме.';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF5F7FF), Color(0xFFEDE9FF), Color(0xFFE8EEFC)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.14)),
+        boxShadow: [
+          BoxShadow(
+            color: _accentColor.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.92),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: _accentColor.withValues(alpha: 0.18),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _accentColor.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(
+              isSignedIn ? Icons.person : Icons.person_outline,
+              size: 30,
+              color: _accentColor.withValues(alpha: 0.9),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Здравствуйте',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AiImageGeneratorApp.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    height: 1.45,
+                    color: AiImageGeneratorApp.textSecondary,
+                    fontWeight: isSignedIn ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+                if (isSignedIn) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Ваши фото и баланс сохраняются в этом аккаунте.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 13,
+                      height: 1.4,
+                      color: AiImageGeneratorApp.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileQuickActions extends StatelessWidget {
+  const _ProfileQuickActions({required this.onNavigate});
+
+  final ValueChanged<AppSection> onNavigate;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Быстрые действия',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AiImageGeneratorApp.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _ProfileQuickActionTile(
+          icon: Icons.shopping_bag_outlined,
+          label: 'Купить',
+          onTap: () => onNavigate(AppSection.buy),
+        ),
+        const SizedBox(height: 10),
+        _ProfileQuickActionTile(
+          icon: Icons.photo_library_outlined,
+          label: 'Готовые фото',
+          onTap: () => onNavigate(AppSection.gallery),
+        ),
+        const SizedBox(height: 10),
+        _ProfileQuickActionTile(
+          icon: Icons.dashboard_customize_outlined,
+          label: 'Фото по шаблону',
+          onTap: () => onNavigate(AppSection.templatePhoto),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileQuickActionTile extends StatelessWidget {
+  const _ProfileQuickActionTile({
     required this.icon,
     required this.label,
+    required this.onTap,
   });
+
+  static const _accentColor = Color(0xFF5B6CFF);
 
   final IconData icon;
   final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE8EAEF)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: _accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, size: 22, color: _accentColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AiImageGeneratorApp.textPrimary,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: AiImageGeneratorApp.textSecondary.withValues(alpha: 0.7),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileDemoModeCard extends StatelessWidget {
+  const _ProfileDemoModeCard();
 
   static const _accentColor = Color(0xFF5B6CFF);
 
@@ -5028,28 +5113,58 @@ class _ProfileListRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Row(
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEDE9FF),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, size: 20, color: _accentColor),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF9F0),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFE8D4B8).withValues(alpha: 0.65),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AiImageGeneratorApp.textPrimary,
-              fontWeight: FontWeight.w500,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.info_outline,
+              size: 22,
+              color: _accentColor.withValues(alpha: 0.85),
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Демо-режим',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'В этом запуске можно проверить создание фото, '
+                  'фотосессии и покупку без настоящей оплаты.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    height: 1.45,
+                    color: AiImageGeneratorApp.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -5394,6 +5509,34 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 }
 
+class _ProfileBalanceLine extends StatelessWidget {
+  const _ProfileBalanceLine({
+    required this.label,
+    required this.value,
+    required this.rowStyle,
+  });
+
+  final String label;
+  final String value;
+  final TextStyle? rowStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(label, style: rowStyle),
+        ),
+        Text(
+          value,
+          style: rowStyle?.copyWith(fontWeight: FontWeight.w700),
+        ),
+      ],
+    );
+  }
+}
+
 class _UserBalanceProfileCard extends StatelessWidget {
   const _UserBalanceProfileCard({
     required this.balance,
@@ -5439,25 +5582,22 @@ class _UserBalanceProfileCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text('Баланс', style: theme.textTheme.titleMedium),
-              ),
-              if (!isLoading && hasError)
-                TextButton(
-                  onPressed: onRefresh,
-                  child: const Text('Обновить'),
+                child: Text(
+                  'Ваш баланс',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
           if (isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Center(
-                child: SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: CircularProgressIndicator(strokeWidth: 2.5),
-                ),
+            Text(
+              'Загружаем баланс…',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 15,
+                color: AiImageGeneratorApp.textSecondary,
               ),
             )
           else if (hasError)
@@ -5465,7 +5605,7 @@ class _UserBalanceProfileCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Не удалось загрузить баланс',
+                  'Не удалось загрузить баланс.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: AiImageGeneratorApp.textSecondary,
                   ),
@@ -5473,36 +5613,49 @@ class _UserBalanceProfileCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed: onRefresh,
-                  child: const Text('Обновить'),
+                  child: const Text('Повторить'),
                 ),
               ],
             )
           else if (balance != null) ...[
+            _ProfileBalanceLine(
+              label: 'Фото',
+              value: '${balance!.paidImageGenerations}',
+              rowStyle: rowStyle,
+            ),
+            const SizedBox(height: 10),
+            _ProfileBalanceLine(
+              label: 'Фотосессии',
+              value: '${balance!.paidPhotoshoots}',
+              rowStyle: rowStyle,
+            ),
+            const SizedBox(height: 10),
+            _ProfileBalanceLine(
+              label: 'Бесплатные фото',
+              value:
+                  '${balance!.freeGenerationsRemaining} '
+                  'из ${balance!.freeGenerationsLimit}',
+              rowStyle: rowStyle,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Бесплатные фото используются первыми.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 13,
+                height: 1.4,
+                color: AiImageGeneratorApp.textSecondary,
+              ),
+            ),
             if (!balance!.consumptionEnabled) ...[
+              const SizedBox(height: 8),
               Text(
-                'Демо-режим: списание с баланса отключено',
+                'Сейчас включён демо-режим — списание отключено.',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  fontSize: 14,
+                  fontSize: 13,
                   color: AiImageGeneratorApp.textSecondary,
                 ),
               ),
-              const SizedBox(height: 10),
             ],
-            Text(
-              'Бесплатные генерации: ${balance!.freeGenerationsRemaining} '
-              'из ${balance!.freeGenerationsLimit}',
-              style: rowStyle,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Изображения: ${balance!.paidImageGenerations}',
-              style: rowStyle,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Фотосессии: ${balance!.paidPhotoshoots}',
-              style: rowStyle,
-            ),
           ],
         ],
       ),
