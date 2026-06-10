@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'visual_placeholder.dart';
+
 /// Shared visual placeholders for help slides and tips (no real images).
 class UiPreviewPlaceholders {
   UiPreviewPlaceholders._();
@@ -8,72 +10,57 @@ class UiPreviewPlaceholders {
   static const textPrimary = Color(0xFF1A1D26);
   static const textSecondary = Color(0xFF6B7280);
 
+  static VisualPlaceholderMood _moodForIcon(IconData icon) {
+    if (icon == Icons.business_center_outlined ||
+        icon == Icons.badge_outlined ||
+        icon == Icons.school_outlined) {
+      return VisualPlaceholderMood.business;
+    }
+    if (icon == Icons.inventory_2_outlined ||
+        icon == Icons.checkroom_outlined) {
+      return VisualPlaceholderMood.product;
+    }
+    if (icon == Icons.family_restroom_outlined ||
+        icon == Icons.child_care_outlined) {
+      return VisualPlaceholderMood.family;
+    }
+    if (icon == Icons.photo_camera_outlined) {
+      return VisualPlaceholderMood.photoshoot;
+    }
+    return VisualPlaceholderMood.portrait;
+  }
+
   static Widget framedPreview({
     required List<Color> gradientColors,
     required IconData icon,
     String? badge,
     bool dimmed = false,
     double height = 96,
+    VisualPlaceholderMood? mood,
   }) {
-    return Stack(
-      children: [
-        Container(
-          width: double.infinity,
-          height: height,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: gradientColors,
-            ),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.65)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+    final resolvedMood = mood ?? _moodForIcon(icon);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          child: Center(
-            child: Icon(
-              icon,
-              size: height * 0.38,
-              color: accent.withValues(alpha: dimmed ? 0.35 : 0.72),
-            ),
-          ),
-        ),
-        if (badge != null)
-          Positioned(
-            top: 8,
-            left: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.92),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                badge,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: textSecondary,
-                ),
-              ),
-            ),
-          ),
-        if (dimmed)
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-      ],
+        ],
+      ),
+      child: VisualPlaceholder(
+        mood: resolvedMood,
+        height: height,
+        gradientColors: gradientColors,
+        icon: icon,
+        caption: badge,
+        showExampleBadge: badge == null,
+        borderRadius: BorderRadius.circular(14),
+        compact: height < 84,
+        dimmed: dimmed,
+      ),
     );
   }
 
@@ -184,7 +171,8 @@ class HelpTemplatePreview extends StatelessWidget {
               height: compact ? 72 : 80,
               gradientColors: const [Color(0xFFD4E0EE), Color(0xFF8EA4BE)],
               icon: Icons.business_center_outlined,
-              badge: 'Пример',
+              mood: VisualPlaceholderMood.business,
+              badge: 'Деловой образ',
             ),
           ),
           const SizedBox(width: 10),
@@ -374,32 +362,12 @@ class HelpPhotoshootTripletPreview extends StatelessWidget {
     return UiPreviewPlaceholders.helpShell(
       compact: compact,
       label: 'Фотосессия · 3 фото',
-      child: Row(
-        children: [
-          Expanded(
-            child: UiPreviewPlaceholders.framedPreview(
-              height: compact ? 64 : 72,
-              gradientColors: const [Color(0xFFD4E0EE), Color(0xFF8EA4BE)],
-              icon: Icons.photo_outlined,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: UiPreviewPlaceholders.framedPreview(
-              height: compact ? 64 : 72,
-              gradientColors: const [Color(0xFFEDE9FF), Color(0xFFB8B0D4)],
-              icon: Icons.photo_outlined,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: UiPreviewPlaceholders.framedPreview(
-              height: compact ? 64 : 72,
-              gradientColors: const [Color(0xFFF5E8D8), Color(0xFFD4B896)],
-              icon: Icons.photo_outlined,
-            ),
-          ),
-        ],
+      child: VisualPlaceholderSeries(
+        mood: VisualPlaceholderMood.photoshoot,
+        height: compact ? 88 : 96,
+        gradientColors: const [Color(0xFFEDE9FF), Color(0xFFB8B0D4)],
+        icon: Icons.photo_camera_outlined,
+        borderRadius: BorderRadius.circular(14),
       ),
     );
   }
@@ -660,32 +628,12 @@ class HelpGalleryPreview extends StatelessWidget {
     return UiPreviewPlaceholders.helpShell(
       compact: compact,
       label: 'Раздел «Готовые фото»',
-      child: Row(
-        children: [
-          Expanded(
-            child: UiPreviewPlaceholders.framedPreview(
-              height: compact ? 64 : 72,
-              gradientColors: const [Color(0xFFEDE9FF), Color(0xFFB8B0D4)],
-              icon: Icons.photo_outlined,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: UiPreviewPlaceholders.framedPreview(
-              height: compact ? 64 : 72,
-              gradientColors: const [Color(0xFFE8F0FF), Color(0xFFC5D8FF)],
-              icon: Icons.photo_outlined,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: UiPreviewPlaceholders.framedPreview(
-              height: compact ? 64 : 72,
-              gradientColors: const [Color(0xFFF5E8D8), Color(0xFFD4B896)],
-              icon: Icons.photo_outlined,
-            ),
-          ),
-        ],
+      child: VisualPlaceholderSeries(
+        mood: VisualPlaceholderMood.portrait,
+        height: compact ? 88 : 96,
+        gradientColors: const [Color(0xFFF8EEF5), Color(0xFFC5D8FF)],
+        icon: Icons.photo_library_outlined,
+        borderRadius: BorderRadius.circular(14),
       ),
     );
   }

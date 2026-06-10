@@ -35,6 +35,7 @@ import 'widgets/insufficient_balance_dialog.dart';
 import 'widgets/packs_help_dialog.dart';
 import 'widgets/photoshoots_help_dialog.dart';
 import 'widgets/section_help_button.dart';
+import 'widgets/visual_placeholder.dart';
 
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
@@ -2862,8 +2863,6 @@ class _PhotoshootCard extends StatelessWidget {
         style.isFree ? const Color(0xFFE8F5E9) : const Color(0xFFEDE9FF);
     final priceFg =
         style.isFree ? const Color(0xFF2E7D32) : _accentColor;
-    final onDarkPreview = style.gradientColors.first.computeLuminance() < 0.45;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -2908,16 +2907,15 @@ class _PhotoshootCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              _PhotoshootPreview(
-                initials: style.initials,
-                icon: style.icon,
+              VisualPlaceholderSeries(
+                mood: VisualPlaceholderPalette.moodForPhotoshootId(style.id),
                 gradientColors: style.gradientColors,
-                onDark: onDarkPreview,
-                isFree: style.isFree,
-                previewVariant: style.previewVariant,
+                icon: style.icon,
+                variant: style.previewVariant,
+                height: previewHeight,
                 showCatalogBadges: true,
                 recommendation: style.recommendation,
-                fixedHeight: previewHeight,
+                showPremiumStar: !style.isFree,
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -3057,11 +3055,17 @@ class _PhotoshootMetaChip extends StatelessWidget {
 }
 
 class _PhotoshootResultExamplesSection extends StatelessWidget {
-  const _PhotoshootResultExamplesSection({required this.gradientColors});
+  const _PhotoshootResultExamplesSection({
+    required this.styleId,
+    required this.gradientColors,
+    required this.icon,
+    required this.previewVariant,
+  });
 
+  final String styleId;
   final List<Color> gradientColors;
-
-  static const _labels = ['Фото 1', 'Фото 2', 'Фото 3'];
+  final IconData icon;
+  final int previewVariant;
 
   @override
   Widget build(BuildContext context) {
@@ -3075,91 +3079,14 @@ class _PhotoshootResultExamplesSection extends StatelessWidget {
           style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
         ),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            for (var i = 0; i < _labels.length; i++) ...[
-              if (i > 0) const SizedBox(width: 8),
-              Expanded(
-                child: _PhotoshootResultPlaceholder(
-                  label: _labels[i],
-                  gradientColors: gradientColors,
-                  variant: i,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _PhotoshootResultPlaceholder extends StatelessWidget {
-  const _PhotoshootResultPlaceholder({
-    required this.label,
-    required this.gradientColors,
-    required this.variant,
-  });
-
-  final String label;
-  final List<Color> gradientColors;
-  final int variant;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final accent = gradientColors.length > 1
-        ? gradientColors.last
-        : const Color(0xFF5B6CFF);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        AspectRatio(
-          aspectRatio: 3 / 4,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  gradientColors.first.withValues(alpha: 0.85),
-                  gradientColors.last.withValues(alpha: 0.95),
-                ],
-              ),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Positioned(
-                  right: -6,
-                  bottom: -8,
-                  child: Icon(
-                    Icons.photo_outlined,
-                    size: 36,
-                    color: accent.withValues(alpha: 0.18),
-                  ),
-                ),
-                Icon(
-                  Icons.person_outline,
-                  size: 22 + variant * 2.0,
-                  color: Colors.white.withValues(alpha: 0.75),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: AiImageGeneratorApp.textSecondary,
-          ),
+        VisualPlaceholderSeries(
+          mood: VisualPlaceholderPalette.moodForPhotoshootId(styleId),
+          gradientColors: gradientColors,
+          icon: icon,
+          variant: previewVariant,
+          height: 132,
+          showPhotoLabels: true,
+          borderRadius: BorderRadius.circular(14),
         ),
       ],
     );
@@ -3489,7 +3416,10 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                   ),
                   const SizedBox(height: 16),
                   _PhotoshootResultExamplesSection(
+                    styleId: style.id,
                     gradientColors: style.gradientColors,
+                    icon: style.icon,
+                    previewVariant: style.previewVariant,
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -3640,269 +3570,6 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
         ),
       ),
     );
-  }
-}
-
-class _PhotoshootPreview extends StatelessWidget {
-  const _PhotoshootPreview({
-    required this.initials,
-    required this.icon,
-    required this.gradientColors,
-    required this.onDark,
-    required this.isFree,
-    this.previewVariant = 0,
-    this.showCatalogBadges = false,
-    this.recommendation,
-    this.fixedHeight,
-  });
-
-  final String initials;
-  final IconData icon;
-  final List<Color> gradientColors;
-  final bool onDark;
-  final bool isFree;
-  final int previewVariant;
-  final bool showCatalogBadges;
-  final String? recommendation;
-  final double? fixedHeight;
-
-  @override
-  Widget build(BuildContext context) {
-    final iconColor = onDark ? Colors.white.withValues(alpha: 0.9) : Colors.white;
-    final initialsBg = onDark
-        ? Colors.white.withValues(alpha: 0.2)
-        : Colors.white.withValues(alpha: 0.35);
-    final compact = fixedHeight != null;
-    final bgIconSize = compact ? 72.0 : 88.0;
-    final centerIconSize = compact ? 46.0 : 56.0;
-    final centerGlyphSize = compact ? 24.0 : 28.0;
-
-    final preview = DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradientColors,
-        ),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ..._buildVariantDecorations(onDark),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: onDark ? 0.06 : 0.18),
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: onDark ? 0.12 : 0.04),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            right: -12,
-            bottom: -16,
-            child: Icon(
-              icon,
-              size: bgIconSize,
-              color: (onDark ? Colors.white : Colors.black)
-                  .withValues(alpha: 0.1),
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: centerIconSize,
-                  height: centerIconSize,
-                  decoration: BoxDecoration(
-                    color: initialsBg,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Icon(icon, size: centerGlyphSize, color: iconColor),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (showCatalogBadges && recommendation != null)
-            Positioned(
-              left: 10,
-              bottom: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: onDark ? 0.92 : 0.9),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  recommendation!,
-                  style: TextStyle(
-                    color: AiImageGeneratorApp.textPrimary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          if (showCatalogBadges)
-            Positioned(
-              right: 10,
-              top: 10,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!isFree)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: Icon(
-                        Icons.star_rounded,
-                        size: 16,
-                        color: onDark
-                            ? Colors.white.withValues(alpha: 0.85)
-                            : const Color(0xFF5B6CFF),
-                      ),
-                    ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.88),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '3 фото',
-                      style: TextStyle(
-                        color: AiImageGeneratorApp.textPrimary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-
-    if (fixedHeight != null) {
-      return SizedBox(height: fixedHeight, child: preview);
-    }
-
-    return AspectRatio(aspectRatio: 16 / 9, child: preview);
-  }
-
-  List<Widget> _buildVariantDecorations(bool onDark) {
-    final accent = onDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : Colors.white.withValues(alpha: 0.28);
-
-    switch (previewVariant % 4) {
-      case 1:
-        return [
-          Positioned(
-            left: -24,
-            top: -24,
-            child: Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: accent,
-              ),
-            ),
-          ),
-          Positioned(
-            right: 24,
-            bottom: 18,
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: accent, width: 2),
-              ),
-            ),
-          ),
-        ];
-      case 2:
-        return [
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _DiagonalStripePainter(
-                color: accent.withValues(alpha: 0.65),
-              ),
-            ),
-          ),
-        ];
-      case 3:
-        return [
-          Positioned(
-            left: 12,
-            top: 12,
-            right: 12,
-            bottom: 12,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: accent, width: 1.5),
-              ),
-            ),
-          ),
-        ];
-      default:
-        return [];
-    }
-  }
-}
-
-class _DiagonalStripePainter extends CustomPainter {
-  _DiagonalStripePainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
-    const stripeWidth = 18.0;
-    const gap = 28.0;
-    var x = -size.height;
-
-    while (x < size.width + size.height) {
-      final path = Path()
-        ..moveTo(x, size.height)
-        ..lineTo(x + stripeWidth, size.height)
-        ..lineTo(x + stripeWidth + size.height, 0)
-        ..lineTo(x + size.height, 0)
-        ..close();
-      canvas.drawPath(path, paint);
-      x += stripeWidth + gap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DiagonalStripePainter oldDelegate) {
-    return oldDelegate.color != color;
   }
 }
 

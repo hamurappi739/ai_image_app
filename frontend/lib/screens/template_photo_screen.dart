@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/app_screen_header.dart';
 import '../widgets/section_help_button.dart';
 import '../widgets/template_help_dialog.dart';
+import '../widgets/visual_placeholder.dart';
 
 enum TemplateVisualKind {
   portrait,
@@ -22,6 +23,32 @@ enum TemplateVisualKind {
   clothing,
   jewelry,
   interior,
+}
+
+extension TemplateVisualKindPlaceholder on TemplateVisualKind {
+  VisualPlaceholderMood get placeholderMood => switch (this) {
+        TemplateVisualKind.portrait ||
+        TemplateVisualKind.tender ||
+        TemplateVisualKind.vibrant ||
+        TemplateVisualKind.social =>
+          VisualPlaceholderMood.portrait,
+        TemplateVisualKind.business ||
+        TemplateVisualKind.resume ||
+        TemplateVisualKind.profile ||
+        TemplateVisualKind.expert =>
+          VisualPlaceholderMood.business,
+        TemplateVisualKind.winter => VisualPlaceholderMood.winter,
+        TemplateVisualKind.summer => VisualPlaceholderMood.summer,
+        TemplateVisualKind.family ||
+        TemplateVisualKind.child ||
+        TemplateVisualKind.festive =>
+          VisualPlaceholderMood.family,
+        TemplateVisualKind.product ||
+        TemplateVisualKind.clothing ||
+        TemplateVisualKind.jewelry =>
+          VisualPlaceholderMood.product,
+        TemplateVisualKind.interior => VisualPlaceholderMood.interior,
+      };
 }
 
 class PhotoTemplate {
@@ -579,7 +606,15 @@ class _TemplateCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _TemplatePreview(template: template),
+          VisualPlaceholder(
+            mood: template.visualKind.placeholderMood,
+            gradientColors: template.placeholderColors,
+            caption: VisualPlaceholderPalette.theme(
+              template.visualKind.placeholderMood,
+            ).caption,
+            variant: template.id.hashCode.abs() % 4,
+            height: 120,
+          ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
@@ -659,375 +694,6 @@ class _TemplateCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _TemplatePreview extends StatelessWidget {
-  const _TemplatePreview({required this.template});
-
-  static const _accentColor = Color(0xFF5B6CFF);
-  static const _textSecondary = Color(0xFF6B7280);
-
-  final PhotoTemplate template;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 132,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: template.placeholderColors,
-              ),
-            ),
-          ),
-          ..._decorativeElements(template.visualKind),
-          Positioned(
-            top: 10,
-            left: 10,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.92),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'Пример результата',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: _textSecondary,
-                ),
-              ),
-            ),
-          ),
-          Center(child: _mainVisual(template)),
-          if (template.previewLabel != null)
-            Positioned(
-              bottom: 10,
-              left: 10,
-              right: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.28),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  template.previewLabel!,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _decorativeElements(TemplateVisualKind kind) {
-    switch (kind) {
-      case TemplateVisualKind.winter:
-        return [
-          Positioned(
-            top: 18,
-            right: 22,
-            child: Icon(
-              Icons.ac_unit,
-              size: 18,
-              color: Colors.white.withValues(alpha: 0.55),
-            ),
-          ),
-          Positioned(
-            bottom: 36,
-            left: 28,
-            child: Icon(
-              Icons.ac_unit_outlined,
-              size: 14,
-              color: Colors.white.withValues(alpha: 0.4),
-            ),
-          ),
-        ];
-      case TemplateVisualKind.product:
-        return [
-          Positioned(
-            bottom: 28,
-            right: 24,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.22),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.45),
-                ),
-              ),
-            ),
-          ),
-        ];
-      case TemplateVisualKind.social:
-        return [
-          Positioned(
-            top: 20,
-            right: 24,
-            child: Icon(
-              Icons.auto_awesome,
-              size: 16,
-              color: Colors.white.withValues(alpha: 0.65),
-            ),
-          ),
-        ];
-      case TemplateVisualKind.summer:
-        return [
-          Positioned(
-            top: 16,
-            right: 20,
-            child: Icon(
-              Icons.wb_sunny_outlined,
-              size: 20,
-              color: Colors.white.withValues(alpha: 0.7),
-            ),
-          ),
-        ];
-      case TemplateVisualKind.festive:
-        return [
-          Positioned(
-            top: 14,
-            right: 18,
-            child: Icon(
-              Icons.celebration_outlined,
-              size: 18,
-              color: Colors.white.withValues(alpha: 0.65),
-            ),
-          ),
-        ];
-      case TemplateVisualKind.jewelry:
-        return [
-          Positioned(
-            top: 18,
-            right: 22,
-            child: Icon(
-              Icons.diamond_outlined,
-              size: 16,
-              color: Colors.white.withValues(alpha: 0.6),
-            ),
-          ),
-        ];
-      default:
-        return const [];
-    }
-  }
-
-  Widget _mainVisual(PhotoTemplate template) {
-    switch (template.visualKind) {
-      case TemplateVisualKind.product:
-        return Container(
-          width: 76,
-          height: 76,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.38),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.75),
-              width: 2,
-            ),
-          ),
-          child: Icon(
-            Icons.inventory_2_outlined,
-            size: 38,
-            color: _accentColor.withValues(alpha: 0.88),
-          ),
-        );
-      case TemplateVisualKind.winter:
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.35),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  width: 2,
-                ),
-              ),
-              child: Icon(
-                Icons.ac_unit_outlined,
-                size: 34,
-                color: const Color(0xFF5B8FD4).withValues(alpha: 0.95),
-              ),
-            ),
-          ],
-        );
-      case TemplateVisualKind.business:
-        return _portraitFrame(
-          icon: Icons.business_center_outlined,
-          iconColor: const Color(0xFF5A7A9E),
-        );
-      case TemplateVisualKind.resume:
-        return _portraitFrame(
-          icon: Icons.badge_outlined,
-          iconColor: const Color(0xFF7A8494),
-        );
-      case TemplateVisualKind.social:
-        return _portraitFrame(
-          icon: Icons.person_outline,
-          iconColor: _accentColor.withValues(alpha: 0.9),
-          secondaryIcon: Icons.photo_camera_outlined,
-        );
-      case TemplateVisualKind.portrait:
-        return _portraitFrame(
-          icon: Icons.face_retouching_natural_outlined,
-          iconColor: const Color(0xFFB8885A),
-        );
-      case TemplateVisualKind.summer:
-        return _portraitFrame(
-          icon: Icons.wb_sunny_outlined,
-          iconColor: const Color(0xFFD89830),
-        );
-      case TemplateVisualKind.tender:
-        return _portraitFrame(
-          icon: Icons.spa_outlined,
-          iconColor: const Color(0xFFC878A8),
-        );
-      case TemplateVisualKind.vibrant:
-        return _portraitFrame(
-          icon: Icons.palette_outlined,
-          iconColor: const Color(0xFFE05838),
-        );
-      case TemplateVisualKind.profile:
-        return _portraitFrame(
-          icon: Icons.account_circle_outlined,
-          iconColor: const Color(0xFF5A7A9E),
-        );
-      case TemplateVisualKind.expert:
-        return _portraitFrame(
-          icon: Icons.school_outlined,
-          iconColor: const Color(0xFF4A6888),
-        );
-      case TemplateVisualKind.family:
-        return _portraitFrame(
-          icon: Icons.family_restroom_outlined,
-          iconColor: const Color(0xFFB8885A),
-        );
-      case TemplateVisualKind.child:
-        return _portraitFrame(
-          icon: Icons.child_care_outlined,
-          iconColor: const Color(0xFFD89858),
-        );
-      case TemplateVisualKind.festive:
-        return _portraitFrame(
-          icon: Icons.celebration_outlined,
-          iconColor: const Color(0xFFC84878),
-        );
-      case TemplateVisualKind.clothing:
-        return Container(
-          width: 76,
-          height: 76,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.38),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.75),
-              width: 2,
-            ),
-          ),
-          child: Icon(
-            Icons.checkroom_outlined,
-            size: 38,
-            color: _accentColor.withValues(alpha: 0.88),
-          ),
-        );
-      case TemplateVisualKind.jewelry:
-        return Container(
-          width: 76,
-          height: 76,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.38),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.75),
-              width: 2,
-            ),
-          ),
-          child: Icon(
-            Icons.diamond_outlined,
-            size: 38,
-            color: const Color(0xFFD8A848).withValues(alpha: 0.95),
-          ),
-        );
-      case TemplateVisualKind.interior:
-        return Container(
-          width: 76,
-          height: 76,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.38),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.75),
-              width: 2,
-            ),
-          ),
-          child: Icon(
-            Icons.weekend_outlined,
-            size: 38,
-            color: const Color(0xFF9A8878).withValues(alpha: 0.95),
-          ),
-        );
-    }
-  }
-
-  Widget _portraitFrame({
-    required IconData icon,
-    required Color iconColor,
-    IconData? secondaryIcon,
-  }) {
-    return Stack(
-      alignment: Alignment.center,
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: 80,
-          height: 96,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.28),
-            borderRadius: BorderRadius.circular(40),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.65),
-              width: 2,
-            ),
-          ),
-          child: Icon(icon, size: 36, color: iconColor),
-        ),
-        if (secondaryIcon != null)
-          Positioned(
-            bottom: -4,
-            right: -4,
-            child: Container(
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(secondaryIcon, size: 14, color: _accentColor),
-            ),
-          ),
-      ],
     );
   }
 }
