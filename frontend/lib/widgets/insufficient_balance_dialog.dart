@@ -12,10 +12,9 @@ class InsufficientBalanceDialog {
   }) {
     return _show(
       context,
-      title: 'Недостаточно фото на балансе',
-      message:
-          'У вас закончились фото на балансе. '
-          'Пополните баланс, чтобы продолжить.',
+      title: 'Фото закончились',
+      message: 'Чтобы создать новое фото, пополните баланс.',
+      buyButtonLabel: 'Купить фото',
       onOpenPacks: onOpenPacks,
     );
   }
@@ -27,9 +26,8 @@ class InsufficientBalanceDialog {
     return _show(
       context,
       title: 'Фотосессии закончились',
-      message:
-          'У вас закончились доступные фотосессии. '
-          'Пополните баланс, чтобы создать новую.',
+      message: 'Чтобы сделать новую фотосессию, пополните баланс.',
+      buyButtonLabel: 'Купить фотосессии',
       onOpenPacks: onOpenPacks,
     );
   }
@@ -38,6 +36,7 @@ class InsufficientBalanceDialog {
     BuildContext context, {
     required String title,
     required String message,
+    required String buyButtonLabel,
     required VoidCallback onOpenPacks,
   }) {
     return showDialog<void>(
@@ -76,7 +75,7 @@ class InsufficientBalanceDialog {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Пополнить баланс'),
+            child: Text(buyButtonLabel),
           ),
         ],
       ),
@@ -84,13 +83,45 @@ class InsufficientBalanceDialog {
   }
 }
 
-/// Мягкое предупреждение над кнопкой создания фото.
+/// Распознаёт технические тексты ошибок баланса для замены на понятные сообщения.
+class InsufficientBalanceMessages {
+  InsufficientBalanceMessages._();
+
+  static bool looksLikeInsufficientImages(String message) {
+    final normalized = message.trim().toLowerCase();
+    if (normalized.isEmpty) return false;
+    return normalized.contains('insufficient_images') ||
+        normalized.contains('insufficient images') ||
+        normalized == '402' ||
+        normalized.contains('payment required') ||
+        (normalized.contains('insufficient') &&
+            normalized.contains('image') &&
+            !normalized.contains('photoshoot'));
+  }
+
+  static bool looksLikeInsufficientPhotoshoots(String message) {
+    final normalized = message.trim().toLowerCase();
+    if (normalized.isEmpty) return false;
+    return normalized.contains('insufficient_photoshoots') ||
+        normalized.contains('insufficient photoshoots') ||
+        (normalized.contains('insufficient') && normalized.contains('photoshoot'));
+  }
+
+  static bool looksLikePaymentRequired(String message) {
+    final normalized = message.trim().toLowerCase();
+    return normalized.contains('payment required') ||
+        normalized.contains('credits') ||
+        normalized == '402';
+  }
+}
+
+/// Мягкое предупреждение при нулевом балансе.
 class InsufficientBalanceHint extends StatelessWidget {
   const InsufficientBalanceHint({
     super.key,
     required this.message,
     required this.onOpenPacks,
-    this.actionLabel = 'Пополнить баланс',
+    this.actionLabel = 'Купить',
   });
 
   final String message;
@@ -139,7 +170,10 @@ class InsufficientBalanceHint extends StatelessWidget {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 foregroundColor: const Color(0xFF5B6CFF),
               ),
-              child: Text(actionLabel),
+              child: Text(
+                actionLabel,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
           ),
         ],

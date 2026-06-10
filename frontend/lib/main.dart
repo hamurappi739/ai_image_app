@@ -141,6 +141,7 @@ class _MainShellState extends State<MainShell> {
   StreamSubscription<AuthState>? _authSubscription;
   GallerySuccessKind? _gallerySuccessKind;
   String? _galleryHighlightKey;
+  PackCatalogMode? _buyCatalogPreference;
 
   bool get _canLoadUserBackendData {
     if (!_authService.isConfigured) {
@@ -364,10 +365,22 @@ class _MainShellState extends State<MainShell> {
 
   void _goToGalleryTab() => _navigateToSection(AppSection.gallery);
 
-  void _goToPacksTab() {
-    _navigateToSection(AppSection.buy);
+  void _goToPacksTab({PackCatalogMode? catalogMode}) {
+    setState(() {
+      if (catalogMode != null) {
+        _buyCatalogPreference = catalogMode;
+      }
+      _section = AppSection.buy;
+      _scrollPhotoshootsToTrending = false;
+    });
     _loadBalance();
   }
+
+  void _goToBuyImages() =>
+      _goToPacksTab(catalogMode: PackCatalogMode.imagesOnly);
+
+  void _goToBuyPhotoshoots() =>
+      _goToPacksTab(catalogMode: PackCatalogMode.withPhotoshoots);
 
   void _goToTemplateTab() => _navigateToSection(AppSection.templatePhoto);
 
@@ -433,7 +446,7 @@ class _MainShellState extends State<MainShell> {
         onBalanceUpdated: _updateBalance,
         onRefreshBalance: _loadBalance,
         onOpenGallery: _goToGalleryTab,
-        onOpenPacks: _goToPacksTab,
+        onOpenPacks: _goToBuyPhotoshoots,
       ),
       CreateScreen(
         key: const ValueKey('create_screen'),
@@ -449,7 +462,7 @@ class _MainShellState extends State<MainShell> {
         onBalanceUpdated: _updateBalance,
         onRefreshBalance: _loadBalance,
         onOpenGallery: _goToGalleryTab,
-        onOpenPacks: _goToPacksTab,
+        onOpenPacks: _goToBuyImages,
         onOpenTemplates: _goToTemplateTab,
       ),
       GalleryScreen(
@@ -474,6 +487,7 @@ class _MainShellState extends State<MainShell> {
         balance: _userBalance,
         balanceLoading: _balanceLoading,
         balanceLoadFailed: _balanceLoadFailed,
+        catalogModePreference: _buyCatalogPreference,
         onRefreshBalance: _loadBalance,
         onBalanceUpdated: _updateBalance,
       ),
@@ -602,7 +616,7 @@ class _PackOffering {
   String get priceLabel => '$priceRub ₽';
 }
 
-enum _PackCatalogMode { withPhotoshoots, imagesOnly }
+enum PackCatalogMode { withPhotoshoots, imagesOnly }
 
 class _PackCatalogModeToggle extends StatelessWidget {
   const _PackCatalogModeToggle({
@@ -610,8 +624,8 @@ class _PackCatalogModeToggle extends StatelessWidget {
     required this.onChanged,
   });
 
-  final _PackCatalogMode mode;
-  final ValueChanged<_PackCatalogMode> onChanged;
+  final PackCatalogMode mode;
+  final ValueChanged<PackCatalogMode> onChanged;
 
   static const _accent = Color(0xFF5B6CFF);
 
@@ -631,16 +645,16 @@ class _PackCatalogModeToggle extends StatelessWidget {
               Expanded(
                 child: _PackModeSegmentButton(
                   label: 'Фото + фотосессии',
-                  selected: mode == _PackCatalogMode.withPhotoshoots,
-                  onTap: () => onChanged(_PackCatalogMode.withPhotoshoots),
+                  selected: mode == PackCatalogMode.withPhotoshoots,
+                  onTap: () => onChanged(PackCatalogMode.withPhotoshoots),
                 ),
               ),
               const SizedBox(width: 4),
               Expanded(
                 child: _PackModeSegmentButton(
                   label: 'Только фото',
-                  selected: mode == _PackCatalogMode.imagesOnly,
-                  onTap: () => onChanged(_PackCatalogMode.imagesOnly),
+                  selected: mode == PackCatalogMode.imagesOnly,
+                  onTap: () => onChanged(PackCatalogMode.imagesOnly),
                 ),
               ),
             ],
@@ -786,6 +800,7 @@ class PacksScreen extends StatefulWidget {
     required this.balance,
     required this.balanceLoading,
     required this.balanceLoadFailed,
+    this.catalogModePreference,
     required this.onRefreshBalance,
     required this.onBalanceUpdated,
   });
@@ -794,6 +809,7 @@ class PacksScreen extends StatefulWidget {
   final UserBalance? balance;
   final bool balanceLoading;
   final bool balanceLoadFailed;
+  final PackCatalogMode? catalogModePreference;
   final VoidCallback onRefreshBalance;
   final ValueChanged<UserBalance> onBalanceUpdated;
 
@@ -866,7 +882,7 @@ class _PacksScreenState extends State<PacksScreen> {
 
   String? _processingPackageId;
 
-  _PackCatalogMode _catalogMode = _PackCatalogMode.withPhotoshoots;
+  PackCatalogMode _catalogMode = PackCatalogMode.withPhotoshoots;
   int _customPhotoshootCount = 8;
   late final TextEditingController _customAmountController;
 
@@ -874,6 +890,20 @@ class _PacksScreenState extends State<PacksScreen> {
   void initState() {
     super.initState();
     _customAmountController = TextEditingController(text: '1000');
+    _applyCatalogModePreference(widget.catalogModePreference);
+  }
+
+  @override
+  void didUpdateWidget(PacksScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.catalogModePreference != oldWidget.catalogModePreference) {
+      _applyCatalogModePreference(widget.catalogModePreference);
+    }
+  }
+
+  void _applyCatalogModePreference(PackCatalogMode? mode) {
+    if (mode == null || _catalogMode == mode) return;
+    setState(() => _catalogMode = mode);
   }
 
   @override
@@ -882,7 +912,7 @@ class _PacksScreenState extends State<PacksScreen> {
     super.dispose();
   }
 
-  List<_PackOffering> get _activePackages => _catalogMode == _PackCatalogMode.withPhotoshoots
+  List<_PackOffering> get _activePackages => _catalogMode == PackCatalogMode.withPhotoshoots
       ? _mixedPackages
       : _imagesOnlyPackages;
 
@@ -1334,7 +1364,7 @@ class _PacksScreenState extends State<PacksScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final showPhotoshoots = _catalogMode == _PackCatalogMode.withPhotoshoots;
+    final showPhotoshoots = _catalogMode == PackCatalogMode.withPhotoshoots;
 
     return Scaffold(
       backgroundColor: AiImageGeneratorApp.scaffoldBackground,
@@ -2708,8 +2738,7 @@ class _PhotoshootsIntroHeader extends StatelessWidget {
         if (showDepletedWarning) ...[
           const SizedBox(height: 12),
           InsufficientBalanceHint(
-            message:
-                'Чтобы сделать фотосессию, нужно пополнить баланс.',
+            message: 'Фотосессии на балансе закончились.',
             actionLabel: 'Купить фотосессии',
             onOpenPacks: onOpenPacks,
           ),
@@ -5533,6 +5562,15 @@ class _CreateScreenState extends State<CreateScreen> {
       _showSnackBar('Напишите, что нужно сделать с фото.');
       return;
     }
+    if (InsufficientBalanceMessages.looksLikeInsufficientImages(message)) {
+      _showInsufficientImagesDialog();
+      return;
+    }
+    if (InsufficientBalanceMessages.looksLikeInsufficientPhotoshoots(message) ||
+        InsufficientBalanceMessages.looksLikePaymentRequired(message)) {
+      _showSnackBar('Пополните баланс, чтобы продолжить.');
+      return;
+    }
     setState(() => _showGenerationErrorState = true);
     _showSnackBar('Не удалось создать фото. Попробуйте ещё раз.');
   }
@@ -5594,6 +5632,14 @@ class _CreateScreenState extends State<CreateScreen> {
                 isLoading: widget.balanceLoading,
               ),
               const SizedBox(height: 20),
+              if (showImagesDepleted) ...[
+                InsufficientBalanceHint(
+                  message: 'Фото на балансе закончились.',
+                  actionLabel: 'Купить фото',
+                  onOpenPacks: widget.onOpenPacks,
+                ),
+                const SizedBox(height: 12),
+              ],
               CustomRequestFlow(
                 descriptionController: _descriptionController,
                 photoBytes: _selectedPhotoBytes,
@@ -5608,15 +5654,6 @@ class _CreateScreenState extends State<CreateScreen> {
               const SizedBox(height: 24),
               const CreateResultTipsCard(),
               const SizedBox(height: 24),
-              if (showImagesDepleted) ...[
-                InsufficientBalanceHint(
-                  message:
-                      'Фото на балансе закончились. Пополните баланс, '
-                      'чтобы продолжить.',
-                  onOpenPacks: widget.onOpenPacks,
-                ),
-                const SizedBox(height: 12),
-              ],
               if (_showGenerationErrorState) ...[
                 const _GenerationErrorCard(),
                 const SizedBox(height: 20),
@@ -6122,8 +6159,8 @@ class _CreateBalanceInfoCard extends StatelessWidget {
       title = 'Бесплатные фото закончились';
       subtitle = 'Используйте фото из баланса. Доступно: $paidImages.';
     } else {
-      title = 'Недостаточно фото на балансе';
-      subtitle = 'Пополните баланс, чтобы создавать фото.';
+      title = 'Фото закончились';
+      subtitle = 'Пополните баланс, чтобы продолжить.';
     }
 
     return Container(
