@@ -137,16 +137,22 @@
 | **UX-redesign: Готовые фото** | ✅ | Empty/loading/error; новая терминология в модалках |
 | **UX-redesign: onboarding + help** | ✅ | 5 слайдов; `PagedHelpDialog`; help hub по разделам |
 | **UX-redesign: debug APK на физическом Android-телефоне** | ✅ | `API_BASE_URL=http://192.168.31.242:8000`; demo mock backend; drawer, шаблоны, **Свой запрос** + фото, все разделы; помощь без overflow — [demo_release_checklist.md](demo_release_checklist.md) § D |
+| **UX-redesign: шаблоны по категориям + расширенный каталог** | ✅ | **Фото по шаблону** — категории; больше шаблонов и подборок фотосессий |
+| **UX-redesign: визуальные placeholder** | ✅ | Rich preview на карточках шаблонов, фотосессий, помощи |
+| **UX-redesign: «Готовые фото» — success + быстрые действия** | ✅ | Баннер после генерации; «Что сделать дальше?»; бейдж «Новое» |
+| **UX-redesign: баланс в drawer и шапке** | ✅ | «Ваш баланс» в меню; **Фото: N** в header |
+| **UX-redesign: мягкие подсказки при нулевом балансе** | ✅ | Диалоги и info-блоки → **Купить** (с режимом каталога) |
+| **UX-redesign: профиль как личный кабинет** | ✅ | Фото, Фотосессии, Бесплатные фото |
 
 ### Flutter UI MVP (детали)
 
-- **Onboarding:** 5 экранов при первом запуске; путь **шаблон → фотосессия → свой запрос → меню**
-- **Фото по шаблону:** 6 карточек; «Выбрать» → **Свой запрос** с готовым описанием
-- **Свой запрос:** режим **«Без фото»** / **«С фото»**; **`POST /generate`** / **`POST /generate-with-photo`**
-- **Фотосессии:** популярные / другие стили; промо «Создать свой образ»; multipart upload → **Готовые фото**
-- **Готовые фото:** `GET /generations`; группировка; просмотр, **Скачать**, скрытие; empty state с кнопками в шаблоны и фотосессии
-- **Купить:** hero-баланс, 199/499/999 ₽, **«Своя сумма»**; dev mock-verify; RuStore — future
-- **Профиль:** вход / регистрация / выход (при Supabase dart-define)
+- **Onboarding:** 5 экранов; путь **шаблон → фотосессия → свой запрос → меню**
+- **Фото по шаблону:** шаблоны **по категориям**; «Выбрать» → **Свой запрос** с готовым описанием
+- **Свой запрос:** фото → описание → **«Создать фото»**; после успеха → **Готовые фото**
+- **Фотосессии:** подборки стилей; «Своя фотосессия» сверху; multipart → **Готовые фото**
+- **Готовые фото:** success-блок, быстрые действия, группировка фотосессий, бейдж «Новое»
+- **Купить:** 1 фото = 10 ₽, 1 фотосессия = 100 ₽; mock-verify в dev; RuStore — future
+- **Баланс:** drawer + header + **Профиль**; мягкие подсказки при нуле
 - **Навигация:** drawer (burger menu); см. [navigation_redesign_plan.md](navigation_redesign_plan.md)
 
 **UX (следующие задачи):** **RuStore** после покупки — см. [app_design_strategy.md](app_design_strategy.md) и § **«Ближайший порядок работ»** ниже.
@@ -274,13 +280,19 @@ Demo-сборка и чеклист: [demo_release_checklist.md](demo_release_ch
 
 ### Ближайший UX (после redesign)
 
-1. **Replace placeholders with real curated example images** — на карточках каталога и в блоке «Пример результата» вместо gradient-заглушек.
-2. **Improve visual branding and final art direction** — единый визуальный язык каталога фотосессий.
-3. **Backend endpoint for custom photoshoot** — полноценная **«Своя фотосессия»** (сейчас dialog «Скоро…»).
-4. **Connect custom photoshoot to Gemini** — генерация набора изображений по пользовательскому описанию.
-5. ~~**Финальная проверка на реальном телефоне**~~ — **один физический Android-телефон** ✅ (LAN debug APK, redesigned UX); **проверка на нескольких устройствах** — план.
-6. **Production backend deploy** + **публичный HTTPS `API_BASE_URL`** — см. [backend_deploy_plan.md](backend_deploy_plan.md).
-7. **RuStore real payment integration** + **release signing**.
+| Задача | Статус |
+|--------|--------|
+| Burger navigation, home, templates, custom request, photoshoot collections, purchase UI | ✅ |
+| Ready photos: success state + next actions | ✅ |
+| Balance in navigation (drawer + header) | ✅ |
+| Empty balance guidance (dialogs + info blocks) | ✅ |
+| **Реальные маркетинговые изображения** вместо placeholder | план |
+| **Полноценная «Своя фотосессия»** (backend + Gemini) | план |
+| ~~Проверка redesigned APK на одном телефоне~~ | ✅ |
+| **Проверка на нескольких Android-устройствах** | план |
+| **Production backend deploy** + **публичный HTTPS `API_BASE_URL`** | план |
+| **RuStore real payment integration** | план |
+| **Release signing** | план |
 
 ### Далее (после UX-блока)
 

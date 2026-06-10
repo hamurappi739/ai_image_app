@@ -4,7 +4,7 @@
 
 Сейчас проект в **MVP / demo-mode**: committed `.env` — **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`ENABLE_CREDIT_CONSUMPTION=false`**. **Проверены оба режима:** **mock mode** (ежедневная разработка) и **реальный Gemini в safe mode** (`IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false`) — все три flow (`/generate`, `/generate-with-photo`, `/photoshoots/generate`) работают, результаты в **Готовых фото**, баланс не списывается. **Списание баланса** (mock) **проверено вручную** при временном `ENABLE_CREDIT_CONSUMPTION=true`. **Оплата:** реальный **RuStore не подключён**; **backend foundation** + dev **mock-verify** (готовые наборы и **«Своя сумма»**); раздел **«Купить»** в development пополняет баланс через backend (frontend не начисляет сам). Подробнее: [project_status.md](docs/project_status.md).
 
-**Навигация (UX-redesign):** **burger/drawer** слева сверху; главная — welcome-экран; путь **от простого к сложному**: **1) Фото по шаблону → 2) Фотосессии → 3) Свой запрос**. См. [navigation_redesign_plan.md](docs/navigation_redesign_plan.md).
+**Навигация (UX-redesign):** **burger/drawer** + **баланс в меню и шапке**; welcome-**Главная**; главный вход — **Фото по шаблону**; после генерации — **Готовые фото**; при нулевом балансе — мягкие подсказки → **Купить**. См. [navigation_redesign_plan.md](docs/navigation_redesign_plan.md).
 
 **Свой запрос:** free-generation notice, **categorized clickable ideas** (режимы **«Без фото»** / **«С фото»**), подсказки в **«Как получить хороший результат»**, **generation countdown modal** (~60 s). **С фото:** **`POST /generate-with-photo`** (multipart); **без фото:** **`POST /generate`** (JSON). Шаблоны из **Фото по шаблону** автоматически заполняют поле описания.
 
@@ -12,38 +12,37 @@
 
 **Ближайшее (руководство):** **RuStore Pay SDK** в **`PaymentService`** ([roadmap.md](docs/roadmap.md), [rustore_integration_plan.md](docs/rustore_integration_plan.md)). Backend verification foundation **готов**; Android readiness audit **выполнен** (`applicationId` `com.aiimagegenerator.ai_image_generator`, SDK 24/36); release signing и финальный package name — перед публикацией в RuStore. **BillingClient (deprecated) не использовать.**
 
-**Статус авторизации:** Supabase Auth во вкладке **Профиль** (вход / регистрация / выход). Bearer token передаётся в **`/balance`**, **`/generations`**, **`/generate`**, **`/generate-with-photo`**, **`/photoshoots/generate`**. После выхода Галерея и баланс в UI очищаются; данные разных пользователей не смешиваются. В **production** без `Authorization` backend возвращает **`401`**. Dev fallback **`TEST_USER_ID`** — только `ENVIRONMENT=development` без токена. **RuStore** не подключён. Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
+**Статус авторизации:** Supabase Auth в **Профиле** (вход / регистрация / выход). Bearer token → **`/balance`**, **`/generations`**, генерация. После выхода **Готовые фото** и баланс в UI очищаются. В **production** без `Authorization` backend возвращает **`401`**. Dev fallback **`TEST_USER_ID`** — только `ENVIRONMENT=development` без токена. **RuStore** не подключён. Подробнее: [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md), [docs/project_status.md](docs/project_status.md).
 
 **Фотосессии:** одна фотосессия = **3 фото**; backend возвращает **`image_urls`** (3), **`photoshoot_id`**, списание **1** `paid_photoshoots`; **Готовые фото** группируют по `photoshoot_id`. По умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`** (safe mode); **`PHOTOSHOOT_OUTPUT_COUNT=3`** по умолчанию в коде.
 
-**Backend / Supabase:** **полный Gemini smoke test в safe mode пройден** — `POST /generate`, `POST /generate-with-photo`, `POST /photoshoots/generate` (3 кадра) → Storage → **`public_url`** → **Галерея**; баланс не списывается. Для ежедневной разработки — **`IMAGE_PROVIDER=mock`**; **`ENABLE_PHOTOSHOOT_GENERATION=false`** по умолчанию.
+**Backend / Supabase:** **полный Gemini smoke test в safe mode пройден** — три flow → Storage → **`public_url`** → **Готовые фото**; баланс не списывается. Для ежедневной разработки — **`IMAGE_PROVIDER=mock`**; **`ENABLE_PHOTOSHOOT_GENERATION=false`** по умолчанию.
 
 ---
 
 ## Что уже готово
 
 - Flutter **web** UI на **русском** языке
-- **UX-redesign навигации:** burger/drawer, welcome-главная, разделы **Фото по шаблону**, **Свой запрос**, **Готовые фото**, **Купить**
-- **First-run onboarding** (5 экранов) + **контекстная помощь** по разделам (кнопка **«Помощь»**; help hub)
-- **Фото по шаблону** — 6 шаблонов; выбор → автозаполнение **Свой запрос**
-- **Фотосессии** — популярные / другие стили; промо «Создать свой образ» сверху; catalog cards + modal
-- **Свой запрос** — free-generation notice; categorized ideas; photo picker + **`POST /generate-with-photo`**
+- **UX-redesign:** burger/drawer, **баланс в меню/шапке**, welcome-**Главная**, **Готовые фото** с success и быстрыми действиями
+- **First-run onboarding** (5 экранов) + **контекстная помощь**; help hub
+- **Фото по шаблону** — шаблоны **по категориям**, визуальные placeholder; → **Свой запрос**
+- **Фотосессии** — подборки стилей; **«Своя фотосессия»** сверху; после успеха → **Готовые фото**
+- **Свой запрос** — фото → описание → **«Создать фото»** → **Готовые фото**; мягкие подсказки при нулевом балансе
 - Генерация через backend **`POST /generate`** (demo-mode)
 - Результат на экране + **fallback-preview** при ошибке загрузки картинки
-- Кнопка **«Открыть в готовых фото»**
-- **Готовые фото** загружает историю через **`GET /generations`** и **группирует фотосессии** по `photoshoot_id`
+- **Готовые фото** — **`GET /generations`**, группировка фотосессий, success-блок, **«Что сделать дальше?»**
 - Новые изображения добавляются **сверху**
 - Локальная кнопка **«Очистить»** (без удаления данных в Supabase)
 - **Профиль** — вход / регистрация через Supabase Auth (при dart-define)
 - **Купить** — mixed UI (**199/499/999 ₽**), **«Фото + фотосессии»** / **«Только фото»**, **«Своя сумма»** (min **10 ₽**), баннер баланса; dev **mock top-up** через backend; **реальный RuStore — не подключён**
 - Supabase: таблицы **`profiles`**, **`generations`**, **`credit_transactions`**
-- Backend + Flutter: **списание баланса проверено вручную** — free → `paid_image_generations`; mock photoshoot → −1 `paid_photoshoots`; `balance` в response; UI refresh в **Профиль** / **Пакеты** / **Создать**
+- Backend + Flutter: **списание баланса проверено вручную**; UI refresh в **drawer**, **шапке**, **Профиль**, **Купить**, **Свой запрос**
 - **Русский ввод** на **«Свой запрос»** в Chrome; на Android emulator и **физическом телефоне** — от раскладки клавиатуры (блокировки в приложении нет)
 - **Redesigned debug APK на физическом Android-телефоне (✅):** LAN `API_BASE_URL=http://192.168.31.242:8000`, demo mock backend; новый UX (drawer, шаблоны, все разделы)
-- Backend: **mock mode** и **Gemini safe mode** — все три generation flow **проверены вручную**; результаты в **Галерее**
+- Backend: **mock mode** и **Gemini safe mode** — все три generation flow **проверены вручную**; результаты в **Готовых фото**
 - Backend: **Gemini photoshoot** (3 кадра) + Flutter **Gallery grouping** + **`photoshoot_id`**; по умолчанию **`ENABLE_PHOTOSHOOT_GENERATION=false`**
 - Backend: **payment foundation** — `payment_transactions`, package catalog, dev **`POST /payments/rustore/mock-verify`** и **`POST /payments/rustore/mock-verify-custom`**
-- **Пакеты (dev):** **`PaymentService`** → mock-verify → обновление баланса из response; custom amount считает backend; RuStore SDK — **не подключён**
+- **Купить (dev):** **`PaymentService`** → mock-verify → баланс в drawer и на экранах; RuStore SDK — **не подключён**
 - **Реальный RuStore Pay SDK** — **не подключён**; Android readiness audit — [rustore_integration_plan.md](docs/rustore_integration_plan.md)
 - Backend: **Gemini quality instructions** (`gemini_quality_instructions.py`) — anti-collage/grid, identity preservation, 3 separate photoshoot frames; **mock unchanged**
 
@@ -81,13 +80,16 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 
 **Для распространения всё ещё нужны:** production backend deploy, публичный HTTPS `API_BASE_URL`, release signing, RuStore, тест на нескольких Android-устройствах.
 
-### Demo flow (ручная проверка)
+### Demo user flow (ручная проверка)
 
 1. Открыть приложение → **Главная**
 2. Нажать **«Начать создавать»** → **Фото по шаблону**
-3. Выбрать шаблон (например, «Деловой портрет») → **Свой запрос** с готовым описанием
+3. Выбрать шаблон → **Свой запрос** (описание уже заполнено)
 4. Добавить своё фото → **«Создать фото»**
-5. Посмотреть результат в **Готовые фото**
+5. Откроется **Готовые фото** — success-блок и результат
+6. Drawer: проверить **баланс**; при необходимости — **Купить**
+
+Полный UX checklist для APK: [demo_release_checklist.md](docs/demo_release_checklist.md) § **I**.
 
 ### Production safety
 
@@ -219,7 +221,9 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 
 **Использовать:** **фото**, **фотосессия**, **готовые фото**, **купить**, **баланс**, **описание**, **идея**.
 
-**Навигация:** burger menu слева сверху; путь **Фото по шаблону → Фотосессии → Свой запрос**. [app_design_strategy.md](docs/app_design_strategy.md), [navigation_redesign_plan.md](docs/navigation_redesign_plan.md), [roadmap.md](docs/roadmap.md).
+**Разделы (drawer):** Главная, Фото по шаблону, Фотосессии, Трендовые фотосессии, Свой запрос, Готовые фото, Купить, Профиль, Помощь.
+
+**Навигация:** burger menu; баланс в меню; путь **шаблон → Свой запрос → Готовые фото**. [app_design_strategy.md](docs/app_design_strategy.md), [navigation_redesign_plan.md](docs/navigation_redesign_plan.md), [roadmap.md](docs/roadmap.md).
 
 ---
 
