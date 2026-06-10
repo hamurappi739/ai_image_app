@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/user_balance.dart';
 import '../navigation/app_section.dart';
+import 'app_balance_summary.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({
@@ -10,6 +12,11 @@ class AppDrawer extends StatelessWidget {
     this.onTrendingPhotoshootsTap,
     this.userEmail,
     this.userDisplayName,
+    this.showUserBalance = false,
+    this.balance,
+    this.balanceLoading = false,
+    this.balanceLoadFailed = false,
+    this.onBuyTap,
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
@@ -21,6 +28,11 @@ class AppDrawer extends StatelessWidget {
   final VoidCallback? onTrendingPhotoshootsTap;
   final String? userEmail;
   final String? userDisplayName;
+  final bool showUserBalance;
+  final UserBalance? balance;
+  final bool balanceLoading;
+  final bool balanceLoadFailed;
+  final VoidCallback? onBuyTap;
 
   String _greetingLine() {
     final name = userDisplayName?.trim();
@@ -33,6 +45,15 @@ class AppDrawer extends StatelessWidget {
   void _goTo(BuildContext context, AppSection section) {
     Navigator.of(context).pop();
     onSectionSelected(section);
+  }
+
+  void _goToBuy(BuildContext context) {
+    Navigator.of(context).pop();
+    if (onBuyTap != null) {
+      onBuyTap!();
+      return;
+    }
+    onSectionSelected(AppSection.buy);
   }
 
   IconData _iconFor(AppSection section) => switch (section) {
@@ -138,8 +159,19 @@ class AppDrawer extends StatelessWidget {
                           fontSize: 13,
                           color: _textSecondary,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
+                    if (showUserBalance)
+                      AppDrawerBalanceBlock(
+                        balance: balance,
+                        isLoading: balanceLoading,
+                        loadFailed: balanceLoadFailed,
+                        onBuyTap: onBuyTap != null
+                            ? () => _goToBuy(context)
+                            : null,
+                      ),
                   ],
                 ),
               ),

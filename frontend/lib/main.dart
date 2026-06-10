@@ -431,6 +431,7 @@ class _MainShellState extends State<MainShell> {
         balanceLoading: _balanceLoading,
         onPhotoshootGenerated: _onPhotoshootGenerated,
         onBalanceUpdated: _updateBalance,
+        onRefreshBalance: _loadBalance,
         onOpenGallery: _goToGalleryTab,
         onOpenPacks: _goToPacksTab,
       ),
@@ -446,6 +447,7 @@ class _MainShellState extends State<MainShell> {
         onShowMessage: _showShellSnackBar,
         onImageGenerated: _onImageGenerated,
         onBalanceUpdated: _updateBalance,
+        onRefreshBalance: _loadBalance,
         onOpenGallery: _goToGalleryTab,
         onOpenPacks: _goToPacksTab,
         onOpenTemplates: _goToTemplateTab,
@@ -498,9 +500,18 @@ class _MainShellState extends State<MainShell> {
         onTrendingPhotoshootsTap: _goToTrendingPhotoshoots,
         userEmail: _authService.currentUser?.email,
         userDisplayName: _userDisplayName(),
+        showUserBalance: _showUserBalance,
+        balance: _userBalance,
+        balanceLoading: _balanceLoading,
+        balanceLoadFailed: _balanceLoadFailed,
+        onBuyTap: _goToPacksTab,
       ),
       body: AppNavigationScope(
         openDrawer: () => _scaffoldKey.currentState?.openDrawer(),
+        showUserBalance: _showUserBalance,
+        userBalance: _userBalance,
+        balanceLoading: _balanceLoading,
+        balanceLoadFailed: _balanceLoadFailed,
         child: IndexedStack(
           index: _section.index,
           children: screens,
@@ -2008,6 +2019,7 @@ class PhotoshootsScreen extends StatefulWidget {
     required this.balanceLoading,
     required this.onPhotoshootGenerated,
     required this.onBalanceUpdated,
+    required this.onRefreshBalance,
     required this.onOpenGallery,
     required this.onOpenPacks,
   });
@@ -2020,6 +2032,7 @@ class PhotoshootsScreen extends StatefulWidget {
   final bool balanceLoading;
   final void Function(List<GeneratedImageItem> items) onPhotoshootGenerated;
   final ValueChanged<UserBalance> onBalanceUpdated;
+  final VoidCallback onRefreshBalance;
   final VoidCallback onOpenGallery;
   final VoidCallback onOpenPacks;
 
@@ -2516,6 +2529,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
         onShowMessage: (message) => _showSnackBar(context, message),
         onPhotoshootGenerated: widget.onPhotoshootGenerated,
         onBalanceUpdated: widget.onBalanceUpdated,
+        onRefreshBalance: widget.onRefreshBalance,
         onOpenGallery: widget.onOpenGallery,
         onOpenPacks: widget.onOpenPacks,
       ),
@@ -3142,6 +3156,7 @@ class _PhotoshootDetailSheet extends StatefulWidget {
     required this.onShowMessage,
     required this.onPhotoshootGenerated,
     required this.onBalanceUpdated,
+    required this.onRefreshBalance,
     required this.onOpenGallery,
     required this.onOpenPacks,
   });
@@ -3153,6 +3168,7 @@ class _PhotoshootDetailSheet extends StatefulWidget {
   final void Function(String message) onShowMessage;
   final void Function(List<GeneratedImageItem> items) onPhotoshootGenerated;
   final ValueChanged<UserBalance> onBalanceUpdated;
+  final VoidCallback onRefreshBalance;
   final VoidCallback onOpenGallery;
   final VoidCallback onOpenPacks;
 
@@ -3279,6 +3295,8 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
       final updatedBalance = result.balance;
       if (updatedBalance != null) {
         widget.onBalanceUpdated(updatedBalance);
+      } else {
+        widget.onRefreshBalance();
       }
       final description = 'Фотосессия: ${result.styleTitle}';
       final createdAt = DateTime.now();
@@ -4704,7 +4722,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildHeader() {
-    return const AppScreenHeader(title: 'Профиль');
+    return const AppScreenHeader(
+      title: 'Профиль',
+      showBalanceIndicator: false,
+    );
   }
 
   Widget _buildSignInForm(ThemeData theme) {
@@ -5257,6 +5278,7 @@ class CreateScreen extends StatefulWidget {
     this.onShowMessage,
     required this.onImageGenerated,
     required this.onBalanceUpdated,
+    required this.onRefreshBalance,
     required this.onOpenGallery,
     required this.onOpenPacks,
     required this.onOpenTemplates,
@@ -5272,6 +5294,7 @@ class CreateScreen extends StatefulWidget {
   final ValueChanged<String>? onShowMessage;
   final ValueChanged<GeneratedImageItem> onImageGenerated;
   final ValueChanged<UserBalance> onBalanceUpdated;
+  final VoidCallback onRefreshBalance;
   final VoidCallback onOpenGallery;
   final VoidCallback onOpenPacks;
   final VoidCallback onOpenTemplates;
@@ -5472,6 +5495,8 @@ class _CreateScreenState extends State<CreateScreen> {
       final updatedBalance = response.balance;
       if (updatedBalance != null) {
         widget.onBalanceUpdated(updatedBalance);
+      } else {
+        widget.onRefreshBalance();
       }
       widget.onImageGenerated(
         GeneratedImageItem(
