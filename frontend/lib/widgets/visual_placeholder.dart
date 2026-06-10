@@ -290,25 +290,45 @@ class VisualPlaceholderSeries extends StatelessWidget {
               variant: variant,
               onDark: onDark,
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 28, 14, 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  for (var i = 0; i < 3; i++) ...[
-                    if (i > 0) const SizedBox(width: 8),
-                    Expanded(
-                      child: _SeriesMiniCard(
-                        index: i,
-                        colors: colors,
-                        icon: centerIcon,
-                        onDark: onDark,
-                        label: showPhotoLabels ? 'Фото ${i + 1}' : null,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = height < 110;
+                final topInset = compact ? 22.0 : 28.0;
+                final bottomInset = compact ? 8.0 : 12.0;
+                final labelSpace = showPhotoLabels ? 14.0 : 0.0;
+                final miniHeight = (constraints.maxHeight -
+                        topInset -
+                        bottomInset -
+                        labelSpace)
+                    .clamp(36.0, 120.0);
+
+                return Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    compact ? 10 : 14,
+                    topInset,
+                    compact ? 10 : 14,
+                    bottomInset,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (var i = 0; i < 3; i++) ...[
+                        if (i > 0) SizedBox(width: compact ? 6 : 8),
+                        Expanded(
+                          child: _SeriesMiniCard(
+                            index: i,
+                            colors: colors,
+                            icon: centerIcon,
+                            onDark: onDark,
+                            label: showPhotoLabels ? 'Фото ${i + 1}' : null,
+                            cardHeight: miniHeight,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
             ),
             if (showCatalogBadges) ...[
               if (recommendation != null && recommendation!.isNotEmpty)
@@ -370,6 +390,7 @@ class _SeriesMiniCard extends StatelessWidget {
     required this.colors,
     required this.icon,
     required this.onDark,
+    required this.cardHeight,
     this.label,
   });
 
@@ -377,12 +398,13 @@ class _SeriesMiniCard extends StatelessWidget {
   final List<Color> colors;
   final IconData icon;
   final bool onDark;
+  final double cardHeight;
   final String? label;
 
   @override
   Widget build(BuildContext context) {
     final tilt = (index - 1) * 0.04;
-    final dy = index == 1 ? -4.0 : 0.0;
+    final dy = index == 1 ? -3.0 : 0.0;
 
     return Transform.translate(
       offset: Offset(0, dy),
@@ -391,8 +413,8 @@ class _SeriesMiniCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AspectRatio(
-              aspectRatio: 3 / 4,
+            SizedBox(
+              height: cardHeight,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),

@@ -337,7 +337,7 @@ class TemplatePhotoScreen extends StatelessWidget {
   }
 
   static double _gridAspectRatio(int columns) {
-    return columns == 1 ? 0.80 : 0.74;
+    return columns == 1 ? 0.92 : 0.82;
   }
 
   @override
@@ -605,6 +605,7 @@ class _TemplateCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
           VisualPlaceholder(
             mood: template.visualKind.placeholderMood,
@@ -613,83 +614,82 @@ class _TemplateCard extends StatelessWidget {
               template.visualKind.placeholderMood,
             ).caption,
             variant: template.id.hashCode.abs() % 4,
-            height: 120,
+            height: 100,
+            compact: true,
           ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    template.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: _textPrimary,
-                      height: 1.25,
-                    ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  template.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: _textPrimary,
+                    height: 1.25,
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    template.description,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontSize: 14,
-                      height: 1.4,
-                      color: _textSecondary,
-                    ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  template.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 13,
+                    height: 1.35,
+                    color: _textSecondary,
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.auto_fix_high_outlined,
-                        size: 15,
-                        color: _accentColor.withValues(alpha: 0.85),
-                      ),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: Text(
-                          'Описание подставится автоматически',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            height: 1.3,
-                            fontWeight: FontWeight.w500,
-                            color: _accentColor.withValues(alpha: 0.9),
-                          ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.auto_fix_high_outlined,
+                      size: 14,
+                      color: _accentColor.withValues(alpha: 0.85),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Описание подставится автоматически',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          height: 1.3,
+                          fontWeight: FontWeight.w500,
+                          color: _accentColor.withValues(alpha: 0.9),
                         ),
                       ),
-                    ],
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 46,
-                    child: FilledButton(
-                      onPressed: onSelect,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _accentColor,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      child: const Text('Выбрать'),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: FilledButton(
+                    onPressed: onSelect,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _accentColor,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: const Text('Выбрать'),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

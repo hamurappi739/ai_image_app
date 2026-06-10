@@ -129,6 +129,7 @@ class _MainShellState extends State<MainShell> {
 
   AppSection _section = AppSection.home;
   String? _pendingCustomRequestDescription;
+  int _pendingCustomRequestToken = 0;
   final List<GeneratedImageItem> _generatedImages = [];
   final Set<String> _hiddenGalleryImageKeys = {};
   final Set<String> _hiddenPhotoshootIds = {};
@@ -252,9 +253,6 @@ class _MainShellState extends State<MainShell> {
     setState(() {
       _section = section;
       _scrollPhotoshootsToTrending = false;
-      if (section == AppSection.customRequest) {
-        _pendingCustomRequestDescription = null;
-      }
     });
     if (section == AppSection.customRequest ||
         section == AppSection.buy ||
@@ -266,6 +264,7 @@ class _MainShellState extends State<MainShell> {
   void _onTemplateSelected(PhotoTemplate template) {
     setState(() {
       _pendingCustomRequestDescription = template.requestDescription;
+      _pendingCustomRequestToken++;
       _section = AppSection.customRequest;
     });
     _loadBalance();
@@ -273,7 +272,20 @@ class _MainShellState extends State<MainShell> {
 
   void _clearPendingCustomRequestDescription() {
     if (_pendingCustomRequestDescription == null) return;
-    setState(() => _pendingCustomRequestDescription = null);
+    setState(() {
+      _pendingCustomRequestDescription = null;
+    });
+  }
+
+  void _showShellSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   String? _userDisplayName() {
@@ -402,12 +414,15 @@ class _MainShellState extends State<MainShell> {
         onOpenPacks: _goToPacksTab,
       ),
       CreateScreen(
+        key: const ValueKey('create_screen'),
         isActive: _section == AppSection.customRequest,
         apiService: _apiService,
         balance: _userBalance,
         balanceLoading: _balanceLoading,
         pendingDescription: _pendingCustomRequestDescription,
+        pendingDescriptionToken: _pendingCustomRequestToken,
         onPendingDescriptionApplied: _clearPendingCustomRequestDescription,
+        onShowMessage: _showShellSnackBar,
         onImageGenerated: _onImageGenerated,
         onBalanceUpdated: _updateBalance,
         onOpenGallery: _goToGalleryTab,
@@ -3084,8 +3099,8 @@ class _PhotoshootResultExamplesSection extends StatelessWidget {
           gradientColors: gradientColors,
           icon: icon,
           variant: previewVariant,
-          height: 132,
-          showPhotoLabels: true,
+          height: 88,
+          showPhotoLabels: false,
           borderRadius: BorderRadius.circular(14),
         ),
       ],
@@ -3301,7 +3316,12 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
           child: SafeArea(
             top: false,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                16 + MediaQuery.viewPaddingOf(context).bottom,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -3316,7 +3336,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -3374,16 +3394,18 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 14),
                   _SoftCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Что получится',
-                          style: theme.textTheme.titleMedium,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontSize: 15,
+                          ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
                         ..._outcomes.map(
                           (line) => Padding(
                             padding: const EdgeInsets.only(bottom: 8),
@@ -3414,14 +3436,14 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   _PhotoshootResultExamplesSection(
                     styleId: style.id,
                     gradientColors: style.gradientColors,
                     icon: style.icon,
                     previewVariant: style.previewVariant,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   Text(
                     'Добавьте фото',
                     style: theme.textTheme.titleMedium,
@@ -3515,10 +3537,10 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
-                    height: 52,
+                    height: 50,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
@@ -4951,7 +4973,9 @@ class CreateScreen extends StatefulWidget {
     required this.balance,
     required this.balanceLoading,
     this.pendingDescription,
+    this.pendingDescriptionToken = 0,
     this.onPendingDescriptionApplied,
+    this.onShowMessage,
     required this.onImageGenerated,
     required this.onBalanceUpdated,
     required this.onOpenGallery,
@@ -4964,7 +4988,9 @@ class CreateScreen extends StatefulWidget {
   final UserBalance? balance;
   final bool balanceLoading;
   final String? pendingDescription;
+  final int pendingDescriptionToken;
   final VoidCallback? onPendingDescriptionApplied;
+  final ValueChanged<String>? onShowMessage;
   final ValueChanged<GeneratedImageItem> onImageGenerated;
   final ValueChanged<UserBalance> onBalanceUpdated;
   final VoidCallback onOpenGallery;
@@ -4987,6 +5013,7 @@ class _CreateScreenState extends State<CreateScreen> {
   Uint8List? _selectedPhotoBytes;
   XFile? _selectedPhotoFile;
   GenerateImageResponse? _lastResponse;
+  int _lastAppliedPendingToken = 0;
 
   bool get _hasSelectedPhoto => _selectedPhotoBytes != null;
 
@@ -4994,21 +5021,44 @@ class _CreateScreenState extends State<CreateScreen> {
   void initState() {
     super.initState();
     _scheduleFirstVisitHelp();
+    _scheduleApplyPendingDescription();
   }
 
   @override
   void didUpdateWidget(CreateScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.pendingDescription != null &&
-        widget.pendingDescription != oldWidget.pendingDescription) {
-      _applyTemplateDescription(widget.pendingDescription!);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onPendingDescriptionApplied?.call();
-      });
+    if (widget.pendingDescriptionToken != oldWidget.pendingDescriptionToken ||
+        (widget.isActive &&
+            !oldWidget.isActive &&
+            widget.pendingDescription != null)) {
+      _scheduleApplyPendingDescription();
     }
     if (widget.isActive && !oldWidget.isActive) {
       _scheduleFirstVisitHelp();
     }
+  }
+
+  void _scheduleApplyPendingDescription() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _applyPendingDescription());
+  }
+
+  void _applyPendingDescription() {
+    if (!mounted || !widget.isActive) return;
+
+    final pending = widget.pendingDescription?.trim();
+    if (pending == null || pending.isEmpty) return;
+    if (_lastAppliedPendingToken == widget.pendingDescriptionToken) return;
+
+    _lastAppliedPendingToken = widget.pendingDescriptionToken;
+    _descriptionController.text = pending;
+    _descriptionController.selection = TextSelection.collapsed(
+      offset: pending.length,
+    );
+
+    widget.onPendingDescriptionApplied?.call();
+    widget.onShowMessage?.call(
+      'Описание добавлено. Осталось выбрать фото.',
+    );
   }
 
   void _scheduleFirstVisitHelp() {
@@ -5155,6 +5205,10 @@ class _CreateScreenState extends State<CreateScreen> {
         _lastResponse = response;
         _isLoading = false;
       });
+      widget.onOpenGallery();
+      widget.onShowMessage?.call(
+        'Фото готово и сохранено в готовых фото.',
+      );
     } on InsufficientImagesException {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -5194,11 +5248,6 @@ class _CreateScreenState extends State<CreateScreen> {
     _descriptionController.selection = TextSelection.fromPosition(
       TextPosition(offset: idea.length),
     );
-  }
-
-  void _applyTemplateDescription(String description) {
-    _applyQuickIdea(description);
-    _showSnackBar('Описание уже добавлено. Осталось выбрать фото.');
   }
 
   @override
