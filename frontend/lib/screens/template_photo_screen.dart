@@ -8,9 +8,20 @@ enum TemplateVisualKind {
   portrait,
   social,
   winter,
+  summer,
+  tender,
+  vibrant,
   business,
   resume,
+  profile,
+  expert,
+  family,
+  child,
+  festive,
   product,
+  clothing,
+  jewelry,
+  interior,
 }
 
 class PhotoTemplate {
@@ -36,10 +47,12 @@ class PhotoTemplate {
 class _TemplateCategoryGroup {
   const _TemplateCategoryGroup({
     required this.title,
+    required this.subtitle,
     required this.templateIds,
   });
 
   final String title;
+  final String subtitle;
   final List<String> templateIds;
 }
 
@@ -120,24 +133,170 @@ class TemplatePhotoScreen extends StatelessWidget {
       placeholderColors: [Color(0xFFEAF5EE), Color(0xFFB8D4C4)],
       previewLabel: 'Карточка товара',
     ),
+    PhotoTemplate(
+      id: 'summer_portrait',
+      title: 'Летний портрет',
+      description: 'Солнечный свет, лёгкий образ и приятное настроение.',
+      requestDescription:
+          'Сделай летний портрет. Мягкий солнечный свет, лёгкий образ, '
+          'приятный фон.',
+      visualKind: TemplateVisualKind.summer,
+      placeholderColors: [Color(0xFFFFF0D0), Color(0xFFE8C878)],
+      previewLabel: 'Летний день',
+    ),
+    PhotoTemplate(
+      id: 'tender_portrait',
+      title: 'Нежный портрет',
+      description: 'Мягкий свет, спокойный фон и естественная улыбка.',
+      requestDescription:
+          'Сделай нежный портрет. Мягкий свет, спокойный фон, '
+          'естественная улыбка.',
+      visualKind: TemplateVisualKind.tender,
+      placeholderColors: [Color(0xFFFCE8F0), Color(0xFFE0B8D0)],
+      previewLabel: 'Нежный образ',
+    ),
+    PhotoTemplate(
+      id: 'vibrant_look',
+      title: 'Яркий образ',
+      description: 'Выразительные цвета и современная стильная подача.',
+      requestDescription:
+          'Сделай яркий стильный образ. Выразительные цвета, '
+          'аккуратная обработка, современный вид.',
+      visualKind: TemplateVisualKind.vibrant,
+      placeholderColors: [Color(0xFFFFE0B8), Color(0xFFE87858)],
+      previewLabel: 'Яркий стиль',
+    ),
+    PhotoTemplate(
+      id: 'profile_photo',
+      title: 'Фото для профиля',
+      description: 'Аккуратное фото для сайта, блога или мессенджера.',
+      requestDescription:
+          'Сделай аккуратное фото для профиля. Лицо хорошо видно, '
+          'приятный свет, уверенный образ.',
+      visualKind: TemplateVisualKind.profile,
+      placeholderColors: [Color(0xFFE8EEF8), Color(0xFFB0C0D8)],
+      previewLabel: 'Для профиля',
+    ),
+    PhotoTemplate(
+      id: 'expert_look',
+      title: 'Экспертный образ',
+      description: 'Уверенный деловой стиль для экспертного профиля.',
+      requestDescription:
+          'Сделай образ эксперта. Деловой стиль, спокойный фон, '
+          'уверенное выражение лица.',
+      visualKind: TemplateVisualKind.expert,
+      placeholderColors: [Color(0xFFD8E4F0), Color(0xFF88A0B8)],
+      previewLabel: 'Эксперт',
+    ),
+    PhotoTemplate(
+      id: 'family_photo',
+      title: 'Семейное фото',
+      description: 'Тёплая атмосфера и естественный свет для семьи.',
+      requestDescription:
+          'Сделай тёплое семейное фото. Естественный свет, уютная '
+          'атмосфера, аккуратная обработка.',
+      visualKind: TemplateVisualKind.family,
+      placeholderColors: [Color(0xFFF5E8DC), Color(0xFFD4B8A0)],
+      previewLabel: 'Семья',
+    ),
+    PhotoTemplate(
+      id: 'photo_with_child',
+      title: 'Фото с ребёнком',
+      description: 'Нежные эмоции, мягкий свет и тёплое настроение.',
+      requestDescription:
+          'Сделай нежное фото с ребёнком. Тёплая атмосфера, мягкий свет, '
+          'естественные эмоции.',
+      visualKind: TemplateVisualKind.child,
+      placeholderColors: [Color(0xFFFFF5E8), Color(0xFFE8D0B0)],
+      previewLabel: 'С ребёнком',
+    ),
+    PhotoTemplate(
+      id: 'festive_look',
+      title: 'Праздничный образ',
+      description: 'Нарядный стиль, красивый свет и радостное настроение.',
+      requestDescription:
+          'Сделай праздничный образ. Красивый свет, нарядный стиль, '
+          'радостное настроение.',
+      visualKind: TemplateVisualKind.festive,
+      placeholderColors: [Color(0xFFFFE8F0), Color(0xFFD87898)],
+      previewLabel: 'Праздник',
+    ),
+    PhotoTemplate(
+      id: 'clothing_photo',
+      title: 'Фото одежды',
+      description: 'Аккуратная подача вещи на чистом фоне для продажи.',
+      requestDescription:
+          'Сделай красивое фото одежды для продажи. Чистый фон, '
+          'хороший свет, вещь выглядит аккуратно.',
+      visualKind: TemplateVisualKind.clothing,
+      placeholderColors: [Color(0xFFF0F0F8), Color(0xFFC0C0D8)],
+      previewLabel: 'Одежда',
+    ),
+    PhotoTemplate(
+      id: 'jewelry_photo',
+      title: 'Фото украшений',
+      description: 'Мягкий свет и чистый фон — украшение хорошо видно.',
+      requestDescription:
+          'Сделай красивое фото украшения для продажи. Чистый фон, '
+          'мягкий свет, украшение хорошо видно.',
+      visualKind: TemplateVisualKind.jewelry,
+      placeholderColors: [Color(0xFFFFF8F0), Color(0xFFE8D8C0)],
+      previewLabel: 'Украшение',
+    ),
+    PhotoTemplate(
+      id: 'interior_photo',
+      title: 'Фото интерьера',
+      description: 'Светлая комната, уютная обстановка и аккуратный кадр.',
+      requestDescription:
+          'Сделай красивое фото интерьера. Светлая комната, аккуратная '
+          'обстановка, уютная атмосфера.',
+      visualKind: TemplateVisualKind.interior,
+      placeholderColors: [Color(0xFFF5F0E8), Color(0xFFC8B8A0)],
+      previewLabel: 'Интерьер',
+    ),
   ];
 
   static const _categoryGroups = [
     _TemplateCategoryGroup(
       title: 'Для себя',
+      subtitle: 'Красивые портреты и образы для себя и соцсетей.',
       templateIds: [
         'beautiful_portrait',
         'social_photo',
         'winter_portrait',
+        'summer_portrait',
+        'tender_portrait',
+        'vibrant_look',
       ],
     ),
     _TemplateCategoryGroup(
       title: 'Для работы',
-      templateIds: ['business_portrait', 'resume_photo'],
+      subtitle: 'Деловой стиль для резюме, профиля и экспертного образа.',
+      templateIds: [
+        'business_portrait',
+        'resume_photo',
+        'profile_photo',
+        'expert_look',
+      ],
+    ),
+    _TemplateCategoryGroup(
+      title: 'Для семьи',
+      subtitle: 'Тёплые фото для семьи и особых моментов.',
+      templateIds: [
+        'family_photo',
+        'photo_with_child',
+        'festive_look',
+      ],
     ),
     _TemplateCategoryGroup(
       title: 'Для продажи',
-      templateIds: ['product_photo'],
+      subtitle: 'Аккуратные фото для товаров, одежды и интерьера.',
+      templateIds: [
+        'product_photo',
+        'clothing_photo',
+        'jewelry_photo',
+        'interior_photo',
+      ],
     ),
   ];
 
@@ -151,7 +310,7 @@ class TemplatePhotoScreen extends StatelessWidget {
   }
 
   static double _gridAspectRatio(int columns) {
-    return columns == 1 ? 0.84 : 0.78;
+    return columns == 1 ? 0.80 : 0.74;
   }
 
   @override
@@ -187,6 +346,7 @@ class TemplatePhotoScreen extends StatelessWidget {
                         if (i > 0) const SizedBox(height: 28),
                         _TemplateCategorySection(
                           title: _categoryGroups[i].title,
+                          subtitle: _categoryGroups[i].subtitle,
                           templates: [
                             for (final id in _categoryGroups[i].templateIds)
                               if (_templatesById.containsKey(id))
@@ -328,6 +488,7 @@ class _HowItWorksStep extends StatelessWidget {
 class _TemplateCategorySection extends StatelessWidget {
   const _TemplateCategorySection({
     required this.title,
+    required this.subtitle,
     required this.templates,
     required this.columns,
     required this.aspectRatio,
@@ -335,8 +496,10 @@ class _TemplateCategorySection extends StatelessWidget {
   });
 
   static const _textPrimary = Color(0xFF1A1D26);
+  static const _textSecondary = Color(0xFF6B7280);
 
   final String title;
+  final String subtitle;
   final List<PhotoTemplate> templates;
   final int columns;
   final double aspectRatio;
@@ -353,6 +516,15 @@ class _TemplateCategorySection extends StatelessWidget {
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: _textPrimary,
+              ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: 14,
+                height: 1.4,
+                color: _textSecondary,
               ),
         ),
         const SizedBox(height: 14),
@@ -618,6 +790,42 @@ class _TemplatePreview extends StatelessWidget {
             ),
           ),
         ];
+      case TemplateVisualKind.summer:
+        return [
+          Positioned(
+            top: 16,
+            right: 20,
+            child: Icon(
+              Icons.wb_sunny_outlined,
+              size: 20,
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
+          ),
+        ];
+      case TemplateVisualKind.festive:
+        return [
+          Positioned(
+            top: 14,
+            right: 18,
+            child: Icon(
+              Icons.celebration_outlined,
+              size: 18,
+              color: Colors.white.withValues(alpha: 0.65),
+            ),
+          ),
+        ];
+      case TemplateVisualKind.jewelry:
+        return [
+          Positioned(
+            top: 18,
+            right: 22,
+            child: Icon(
+              Icons.diamond_outlined,
+              size: 16,
+              color: Colors.white.withValues(alpha: 0.6),
+            ),
+          ),
+        ];
       default:
         return const [];
     }
@@ -686,6 +894,100 @@ class _TemplatePreview extends StatelessWidget {
         return _portraitFrame(
           icon: Icons.face_retouching_natural_outlined,
           iconColor: const Color(0xFFB8885A),
+        );
+      case TemplateVisualKind.summer:
+        return _portraitFrame(
+          icon: Icons.wb_sunny_outlined,
+          iconColor: const Color(0xFFD89830),
+        );
+      case TemplateVisualKind.tender:
+        return _portraitFrame(
+          icon: Icons.spa_outlined,
+          iconColor: const Color(0xFFC878A8),
+        );
+      case TemplateVisualKind.vibrant:
+        return _portraitFrame(
+          icon: Icons.palette_outlined,
+          iconColor: const Color(0xFFE05838),
+        );
+      case TemplateVisualKind.profile:
+        return _portraitFrame(
+          icon: Icons.account_circle_outlined,
+          iconColor: const Color(0xFF5A7A9E),
+        );
+      case TemplateVisualKind.expert:
+        return _portraitFrame(
+          icon: Icons.school_outlined,
+          iconColor: const Color(0xFF4A6888),
+        );
+      case TemplateVisualKind.family:
+        return _portraitFrame(
+          icon: Icons.family_restroom_outlined,
+          iconColor: const Color(0xFFB8885A),
+        );
+      case TemplateVisualKind.child:
+        return _portraitFrame(
+          icon: Icons.child_care_outlined,
+          iconColor: const Color(0xFFD89858),
+        );
+      case TemplateVisualKind.festive:
+        return _portraitFrame(
+          icon: Icons.celebration_outlined,
+          iconColor: const Color(0xFFC84878),
+        );
+      case TemplateVisualKind.clothing:
+        return Container(
+          width: 76,
+          height: 76,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.38),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.75),
+              width: 2,
+            ),
+          ),
+          child: Icon(
+            Icons.checkroom_outlined,
+            size: 38,
+            color: _accentColor.withValues(alpha: 0.88),
+          ),
+        );
+      case TemplateVisualKind.jewelry:
+        return Container(
+          width: 76,
+          height: 76,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.38),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.75),
+              width: 2,
+            ),
+          ),
+          child: Icon(
+            Icons.diamond_outlined,
+            size: 38,
+            color: const Color(0xFFD8A848).withValues(alpha: 0.95),
+          ),
+        );
+      case TemplateVisualKind.interior:
+        return Container(
+          width: 76,
+          height: 76,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.38),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.75),
+              width: 2,
+            ),
+          ),
+          child: Icon(
+            Icons.weekend_outlined,
+            size: 38,
+            color: const Color(0xFF9A8878).withValues(alpha: 0.95),
+          ),
         );
     }
   }

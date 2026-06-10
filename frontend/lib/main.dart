@@ -2007,20 +2007,36 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       highlighted: true,
     ),
     _PhotoshootCollection(
-      id: 'work',
-      title: 'Для работы',
-      subtitle: 'Фото для делового образа, резюме и профиля.',
-      styleIds: ['business_portrait', 'studio_portrait'],
+      id: 'for_self',
+      title: 'Для себя',
+      subtitle: 'Нежные и сезонные варианты для личного профиля.',
+      styleIds: [
+        'tender_photoshoot',
+        'summer_photoshoot',
+        'winter_photoshoot',
+        'home_portrait',
+      ],
       omitDuplicates: true,
     ),
     _PhotoshootCollection(
-      id: 'beautiful',
-      title: 'Для красивого образа',
-      subtitle: 'Мягкие и атмосферные варианты для себя.',
+      id: 'work',
+      title: 'Для работы',
+      subtitle: 'Образы для карьеры, блога и делового профиля.',
       styleIds: [
-        'home_portrait',
-        'winter_photoshoot',
+        'expert_photoshoot',
+        'business_brand',
+        'personal_brand',
+      ],
+      omitDuplicates: true,
+    ),
+    _PhotoshootCollection(
+      id: 'atmospheric',
+      title: 'Атмосферные',
+      subtitle: 'Живые фоны и выразительная подача.',
+      styleIds: [
         'travel_portrait',
+        'cafe_city',
+        'park_walk',
         'premium_portrait',
       ],
       omitDuplicates: true,
@@ -2124,10 +2140,101 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       description:
           'Атмосфера поездки, красивый фон '
           'и ощущение живой фотографии из путешествия.',
-      recommendation: 'Для себя',
+      recommendation: 'Атмосфера',
       initials: 'ПТ',
       icon: Icons.flight_outlined,
       gradientColors: [Color(0xFFC0ECE0), Color(0xFF58B8A8)],
+      isFree: false,
+      previewVariant: 3,
+    ),
+    _PhotoshootStyle(
+      id: 'tender_photoshoot',
+      title: 'Нежная фотосессия',
+      description:
+          'Мягкий свет, спокойные тона и естественная улыбка. '
+          'Подходит для личного профиля.',
+      recommendation: 'Для себя',
+      initials: 'НФ',
+      icon: Icons.spa_outlined,
+      gradientColors: [Color(0xFFF8E8F0), Color(0xFFD8A8C8)],
+      isFree: false,
+      previewVariant: 2,
+    ),
+    _PhotoshootStyle(
+      id: 'summer_photoshoot',
+      title: 'Летняя фотосессия',
+      description:
+          'Солнечный свет, лёгкий образ и тёплое летнее настроение '
+          'в серии из трёх фото.',
+      recommendation: 'Для себя',
+      initials: 'ЛФ',
+      icon: Icons.wb_sunny_outlined,
+      gradientColors: [Color(0xFFFFF0C8), Color(0xFFE8C060)],
+      isFree: false,
+      previewVariant: 1,
+    ),
+    _PhotoshootStyle(
+      id: 'expert_photoshoot',
+      title: 'Экспертная фотосессия',
+      description:
+          'Уверенный деловой образ для экспертного профиля, '
+          'блога и публичных выступлений.',
+      recommendation: 'Для работы',
+      initials: 'ЭФ',
+      icon: Icons.school_outlined,
+      gradientColors: [Color(0xFFD0DCE8), Color(0xFF7898B8)],
+      isFree: false,
+      previewVariant: 0,
+    ),
+    _PhotoshootStyle(
+      id: 'business_brand',
+      title: 'Бизнес-портрет',
+      description:
+          'Строгий деловой стиль для карьеры, сайта '
+          'и деловых социальных сетей.',
+      recommendation: 'Для работы',
+      initials: 'БП',
+      icon: Icons.work_outline,
+      gradientColors: [Color(0xFFC8D8E8), Color(0xFF6888A8)],
+      isFree: false,
+      previewVariant: 1,
+    ),
+    _PhotoshootStyle(
+      id: 'personal_brand',
+      title: 'Фото для личного бренда',
+      description:
+          'Выразительный образ для блога, соцсетей '
+          'и личного продвижения.',
+      recommendation: 'Для работы',
+      initials: 'ЛБ',
+      icon: Icons.campaign_outlined,
+      gradientColors: [Color(0xFFE0E8F8), Color(0xFF90A8D8)],
+      isFree: false,
+      previewVariant: 2,
+    ),
+    _PhotoshootStyle(
+      id: 'cafe_city',
+      title: 'Кафе и город',
+      description:
+          'Уютная городская атмосфера, кафе и прогулка '
+          'по современному городу.',
+      recommendation: 'Атмосфера',
+      initials: 'КГ',
+      icon: Icons.local_cafe_outlined,
+      gradientColors: [Color(0xFFE8D8C8), Color(0xFFA88868)],
+      isFree: false,
+      previewVariant: 0,
+    ),
+    _PhotoshootStyle(
+      id: 'park_walk',
+      title: 'Прогулка в парке',
+      description:
+          'Свежий воздух, зелень и естественный свет '
+          'для живых портретов на природе.',
+      recommendation: 'Атмосфера',
+      initials: 'ПП',
+      icon: Icons.park_outlined,
+      gradientColors: [Color(0xFFD8F0D8), Color(0xFF68B878)],
       isFree: false,
       previewVariant: 3,
     ),
