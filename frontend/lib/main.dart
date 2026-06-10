@@ -4665,7 +4665,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Баланс и Галерея привязаны к этому аккаунту.',
+            'Баланс и готовые фото привязаны к этому аккаунту.',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 20),

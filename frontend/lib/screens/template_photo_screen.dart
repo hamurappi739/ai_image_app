@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/app_screen_header.dart';
+import '../widgets/section_help_button.dart';
+import '../widgets/template_help_dialog.dart';
 
 class PhotoTemplate {
   const PhotoTemplate({
@@ -124,11 +126,14 @@ class TemplatePhotoScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const AppScreenHeader(
+                      AppScreenHeader(
                         title: 'Фото по шаблону',
                         subtitle:
                             'Выберите готовый вариант. Так проще, '
                             'чем писать описание с нуля.',
+                        trailing: SectionHelpButton(
+                          onPressed: () => TemplateHelpDialog.show(context),
+                        ),
                       ),
                       const SizedBox(height: 24),
                       GridView.builder(

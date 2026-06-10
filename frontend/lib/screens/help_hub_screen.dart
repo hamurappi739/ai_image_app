@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../widgets/app_screen_header.dart';
 import '../widgets/create_help_dialog.dart';
+import '../widgets/home_help_dialog.dart';
 import '../widgets/packs_help_dialog.dart';
 import '../widgets/photoshoots_help_dialog.dart';
+import '../widgets/template_help_dialog.dart';
 
 class HelpHubScreen extends StatelessWidget {
   const HelpHubScreen({super.key});
@@ -22,7 +24,8 @@ class HelpHubScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: _scaffoldBackground,
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: SingleChildScrollView(
@@ -36,38 +39,46 @@ class HelpHubScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   _HelpTopicTile(
+                    icon: Icons.home_outlined,
+                    title: 'Главная',
+                    subtitle: 'Меню и кнопка «Начать создавать».',
+                    onTap: () => _openDialog(context, const HomeHelpDialog()),
+                  ),
+                  const SizedBox(height: 12),
+                  _HelpTopicTile(
                     icon: Icons.dashboard_customize_outlined,
-                    title: 'Фото по шаблону и свой запрос',
-                    subtitle: 'Как начать и что писать в описании.',
-                    onTap: () => _openDialog(
-                      context,
-                      const CreateHelpDialog(),
-                    ),
+                    title: 'Фото по шаблону',
+                    subtitle: 'Как выбрать шаблон и создать фото.',
+                    onTap: () =>
+                        _openDialog(context, const TemplateHelpDialog()),
                   ),
                   const SizedBox(height: 12),
                   _HelpTopicTile(
                     icon: Icons.photo_camera_outlined,
                     title: 'Фотосессии',
-                    subtitle: 'Как выбрать стиль и загрузить фото.',
-                    onTap: () => _openDialog(
-                      context,
-                      const PhotoshootsHelpDialog(),
-                    ),
+                    subtitle: 'Как выбрать стиль и получить 3 фото.',
+                    onTap: () =>
+                        _openDialog(context, const PhotoshootsHelpDialog()),
+                  ),
+                  const SizedBox(height: 12),
+                  _HelpTopicTile(
+                    icon: Icons.edit_outlined,
+                    title: 'Свой запрос',
+                    subtitle: 'Как описать свою идею и добавить фото.',
+                    onTap: () =>
+                        _openDialog(context, const CreateHelpDialog()),
                   ),
                   const SizedBox(height: 12),
                   _HelpTopicTile(
                     icon: Icons.shopping_bag_outlined,
                     title: 'Купить',
-                    subtitle: 'Как пополнить баланс изображений.',
-                    onTap: () => _openDialog(
-                      context,
-                      const PacksHelpDialog(),
-                    ),
+                    subtitle: 'Как пополнить баланс фото и фотосессий.',
+                    onTap: () => _openDialog(context, const PacksHelpDialog()),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Совет: если не знаете, с чего начать — откройте '
-                    '«Главная» и выберите «Фото по шаблону».',
+                    'Совет: если не знаете, с чего начать — на главной '
+                    'нажмите «Начать создавать».',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: 13,
                       height: 1.4,

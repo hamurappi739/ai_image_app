@@ -277,15 +277,20 @@ class HelpDescriptionPreview extends StatelessWidget {
 }
 
 class HelpPhotoUploadPreview extends StatelessWidget {
-  const HelpPhotoUploadPreview({super.key, this.compact = false});
+  const HelpPhotoUploadPreview({
+    super.key,
+    this.compact = false,
+    this.shellLabel = 'Добавьте фото',
+  });
 
   final bool compact;
+  final String shellLabel;
 
   @override
   Widget build(BuildContext context) {
     return UiPreviewPlaceholders.helpShell(
       compact: compact,
-      label: 'Добавить фото (по желанию)',
+      label: shellLabel,
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(vertical: compact ? 14 : 18),
@@ -348,6 +353,292 @@ class HelpCreateButtonPreview extends StatelessWidget {
         ),
         child: const Text(
           'Создать фото',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class HelpPhotoshootTripletPreview extends StatelessWidget {
+  const HelpPhotoshootTripletPreview({super.key, this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return UiPreviewPlaceholders.helpShell(
+      compact: compact,
+      label: 'Фотосессия · 3 фото',
+      child: Row(
+        children: [
+          Expanded(
+            child: UiPreviewPlaceholders.framedPreview(
+              height: compact ? 64 : 72,
+              gradientColors: const [Color(0xFFD4E0EE), Color(0xFF8EA4BE)],
+              icon: Icons.photo_outlined,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: UiPreviewPlaceholders.framedPreview(
+              height: compact ? 64 : 72,
+              gradientColors: const [Color(0xFFEDE9FF), Color(0xFFB8B0D4)],
+              icon: Icons.photo_outlined,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: UiPreviewPlaceholders.framedPreview(
+              height: compact ? 64 : 72,
+              gradientColors: const [Color(0xFFF5E8D8), Color(0xFFD4B896)],
+              icon: Icons.photo_outlined,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HelpCustomRequestFlowPreview extends StatelessWidget {
+  const HelpCustomRequestFlowPreview({super.key, this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        HelpDescriptionPreview(compact: compact),
+        SizedBox(height: compact ? 10 : 12),
+        HelpCreateButtonPreview(compact: compact),
+      ],
+    );
+  }
+}
+
+class HelpDrawerMenuPreview extends StatelessWidget {
+  const HelpDrawerMenuPreview({super.key, this.compact = false});
+
+  final bool compact;
+
+  static const _menuItems = [
+    'Главная',
+    'Фото по шаблону',
+    'Фотосессии',
+    'Свой запрос',
+    'Готовые фото',
+    'Купить',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return UiPreviewPlaceholders.helpShell(
+      compact: compact,
+      label: 'Меню слева сверху',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: compact ? 40 : 44,
+            height: compact ? 40 : 44,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE8EAEF)),
+            ),
+            child: Icon(
+              Icons.menu,
+              size: compact ? 22 : 24,
+              color: UiPreviewPlaceholders.accent,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final item in _menuItems)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: compact ? 4 : 6),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: compact ? 5 : 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE8EAEF)),
+                      ),
+                      child: Text(
+                        item,
+                        style: TextStyle(
+                          fontSize: compact ? 11 : 12,
+                          fontWeight: FontWeight.w500,
+                          color: UiPreviewPlaceholders.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HelpWelcomePreview extends StatelessWidget {
+  const HelpWelcomePreview({super.key, this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return UiPreviewPlaceholders.helpShell(
+      compact: compact,
+      label: 'От простого к сложному',
+      child: Row(
+        children: [
+          Expanded(
+            child: _WelcomeStepChip(
+              compact: compact,
+              icon: Icons.dashboard_customize_outlined,
+              label: 'Шаблон',
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _WelcomeStepChip(
+              compact: compact,
+              icon: Icons.photo_camera_outlined,
+              label: 'Фотосессия',
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _WelcomeStepChip(
+              compact: compact,
+              icon: Icons.edit_outlined,
+              label: 'Свой запрос',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WelcomeStepChip extends StatelessWidget {
+  const _WelcomeStepChip({
+    required this.compact,
+    required this.icon,
+    required this.label,
+  });
+
+  final bool compact;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: compact ? 10 : 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8EAEF)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: compact ? 22 : 24, color: UiPreviewPlaceholders.accent),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: compact ? 10 : 11,
+              fontWeight: FontWeight.w600,
+              color: UiPreviewPlaceholders.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HelpCustomStyleBannerPreview extends StatelessWidget {
+  const HelpCustomStyleBannerPreview({super.key, this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return UiPreviewPlaceholders.helpShell(
+      compact: compact,
+      label: 'Не нашли стиль?',
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(compact ? 10 : 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFFEEF1FF),
+              UiPreviewPlaceholders.accent.withValues(alpha: 0.12),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: UiPreviewPlaceholders.accent.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Создать свой образ',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: compact ? 13 : 14,
+                fontWeight: FontWeight.w700,
+                color: UiPreviewPlaceholders.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HelpStartCreatingPreview extends StatelessWidget {
+  const HelpStartCreatingPreview({super.key, this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return UiPreviewPlaceholders.helpShell(
+      compact: compact,
+      label: 'Кнопка на главной',
+      child: Container(
+        width: double.infinity,
+        height: compact ? 44 : 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: UiPreviewPlaceholders.accent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Text(
+          'Начать создавать',
           style: TextStyle(
             color: Colors.white,
             fontSize: 15,

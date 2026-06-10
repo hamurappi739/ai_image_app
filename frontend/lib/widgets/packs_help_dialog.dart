@@ -13,8 +13,11 @@ class PacksHelpDialog extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
+        constraints: BoxConstraints(
+          maxWidth: 420,
+          maxHeight: MediaQuery.sizeOf(context).height - 48,
+        ),
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -46,22 +49,19 @@ class PacksHelpDialog extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Пакеты помогают создавать больше изображений и фотосессий.',
+                'Здесь можно пополнить баланс для фото и фотосессий.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15, height: 1.45),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: 15,
+                  height: 1.45,
+                ),
               ),
               const SizedBox(height: 20),
               ...const [
-                _HelpLine(
-                  'Изображения используются в разделе «Создать».',
-                ),
-                _HelpLine(
-                  'Фотосессия создаёт несколько готовых фото в выбранном стиле.',
-                ),
-                _HelpLine(
-                  'Можно выбрать готовый пакет или позже пополнить на свою сумму.',
-                ),
-                _HelpLine('Оплата будет добавлена позже.'),
+                _HelpLine('1 фото = 10 ₽'),
+                _HelpLine('1 фотосессия = 100 ₽'),
+                _HelpLine('Фотосессия создаёт 3 фото'),
+                _HelpLine('В демо-режиме деньги не списываются'),
               ],
               const SizedBox(height: 24),
               SizedBox(

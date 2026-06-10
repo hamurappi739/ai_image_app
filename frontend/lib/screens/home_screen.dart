@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../navigation/app_section.dart';
 import '../widgets/app_screen_header.dart';
+import '../widgets/home_help_dialog.dart';
+import '../widgets/section_help_button.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -38,11 +40,14 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const AppScreenHeader(
+                  AppScreenHeader(
                     title: 'Создавайте красивые фото',
                     subtitle:
                         'Начните с простого шаблона, сделайте фотосессию '
                         'или создайте фото по своей идее.',
+                    trailing: SectionHelpButton(
+                      onPressed: () => HomeHelpDialog.show(context),
+                    ),
                   ),
                   SizedBox(height: isCompact ? 16 : 20),
                   AspectRatio(
