@@ -31,7 +31,7 @@ class TemplateHelpDialog extends StatelessWidget {
         ),
         PagedHelpBlock(
           title: 'Потом добавьте своё фото',
-          body: 'Выберите фото из галереи телефона. Лицо должно быть хорошо видно.',
+          body: 'Выберите фото на устройстве. Лицо должно быть хорошо видно.',
           previewBuilder: _photoPreview,
         ),
         PagedHelpBlock(

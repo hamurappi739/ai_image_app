@@ -261,7 +261,8 @@ class _MainShellState extends State<MainShell> {
       _section = section;
       _scrollPhotoshootsToTrending = false;
     });
-    if (section == AppSection.customRequest ||
+    if (section == AppSection.photoshoots ||
+        section == AppSection.customRequest ||
         section == AppSection.buy ||
         section == AppSection.profile) {
       _loadBalance();
@@ -3363,50 +3364,52 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
         style.isFree ? const Color(0xFF2E7D32) : _accentColor;
     final hasPhoto = _selectedPhotoBytes != null;
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.92,
-          maxWidth: 520,
-        ),
-        child: Material(
-          color: Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          clipBehavior: Clip.antiAlias,
-          child: SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                12,
-                20,
-                16 + MediaQuery.viewPaddingOf(context).bottom,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+            maxWidth: 520,
+          ),
+          child: Material(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            clipBehavior: Clip.antiAlias,
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  12,
+                  20,
+                  16 + MediaQuery.viewPaddingOf(context).bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              style.title,
+                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                style.title,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w700,
@@ -3652,6 +3655,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -3706,6 +3710,17 @@ class _CustomPhotoshootFlow {
     if (maxBody <= 0) return baseTitle;
     if (trimmed.length <= maxBody) return '$prefix$trimmed';
     return '$prefix${trimmed.substring(0, maxBody)}';
+  }
+
+  static String galleryDescriptionFromResponse({
+    required String userDescription,
+    String? serverDescription,
+  }) {
+    final normalized = serverDescription?.trim();
+    if (normalized != null && normalized.isNotEmpty) {
+      return galleryDescription(normalized);
+    }
+    return galleryDescription(userDescription);
   }
 }
 
@@ -3781,10 +3796,12 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
   }
 
   void _applyIdea(String text) {
-    _descriptionController.text = text;
-    _descriptionController.selection = TextSelection.fromPosition(
-      TextPosition(offset: text.length),
-    );
+    setState(() {
+      _descriptionController.text = text;
+      _descriptionController.selection = TextSelection.fromPosition(
+        TextPosition(offset: text.length),
+      );
+    });
   }
 
   Future<void> _pickPhoto() async {
@@ -3873,7 +3890,10 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
       }
 
       final galleryDescription =
-          _CustomPhotoshootFlow.galleryDescription(description);
+          _CustomPhotoshootFlow.galleryDescriptionFromResponse(
+        userDescription: description,
+        serverDescription: result.description,
+      );
       final createdAt = DateTime.now();
       final photoshootId = result.photoshootId.trim();
       final galleryItems = result.imageUrls
@@ -3918,42 +3938,45 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
     final theme = Theme.of(context);
     final hasPhoto = _selectedPhotoBytes != null;
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.92,
-          maxWidth: 520,
-        ),
-        child: Material(
-          color: Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          clipBehavior: Clip.antiAlias,
-          child: SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                12,
-                20,
-                16 + MediaQuery.viewPaddingOf(context).bottom,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+            maxWidth: 520,
+          ),
+          child: Material(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            clipBehavior: Clip.antiAlias,
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  12,
+                  20,
+                  16 + MediaQuery.viewPaddingOf(context).bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _CustomPhotoshootFlow.baseTitle,
+                    const SizedBox(height: 16),
+                    Text(
+                      _CustomPhotoshootFlow.baseTitle,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
@@ -4178,6 +4201,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -6065,6 +6089,10 @@ class _CreateScreenState extends State<CreateScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       _showSnackBar('Выберите фото JPEG, PNG или WebP до 10 МБ');
+    } on PhotoGenerationDescriptionException {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showSnackBar('Напишите, что нужно сделать с фото.');
     } on Exception catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);

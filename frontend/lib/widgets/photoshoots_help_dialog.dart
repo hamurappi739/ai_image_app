@@ -28,7 +28,7 @@ class PhotoshootsHelpDialog extends StatelessWidget {
         ),
         PagedHelpBlock(
           title: 'Загрузите своё фото',
-          body: 'Добавьте фото из галереи телефона. Лицо должно быть хорошо видно.',
+          body: 'Добавьте фото на устройстве. Лицо должно быть хорошо видно.',
           previewBuilder: _photoPreview,
         ),
         PagedHelpBlock(
