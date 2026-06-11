@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../assets/preview_asset_paths.dart';
+import 'preview_asset_image.dart';
+
 /// Настроение визуальной заглушки (без реальных фото).
 enum VisualPlaceholderMood {
   portrait,
@@ -182,9 +185,16 @@ class VisualPlaceholderPalette {
 
 /// Hero-блок главной в едином стиле с карточками.
 class VisualPlaceholderHero extends StatelessWidget {
-  const VisualPlaceholderHero({super.key, this.isCompact = false});
+  const VisualPlaceholderHero({
+    super.key,
+    this.isCompact = false,
+    this.previewAssetPath,
+  });
 
   final bool isCompact;
+
+  /// Defaults to [PreviewAssetPaths.homeHero] when not overridden.
+  final String? previewAssetPath;
 
   static const _heroColors = [
     Color(0xFFFFF5FA),
@@ -195,99 +205,16 @@ class VisualPlaceholderHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final height = isCompact ? 188.0 : 220.0;
+    final resolvedAsset = previewAssetPath ?? PreviewAssetPaths.homeHero;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ClipRRect(
+        PreviewAssetImage(
+          assetPath: resolvedAsset,
+          height: height,
           borderRadius: BorderRadius.circular(24),
-          child: SizedBox(
-            height: height,
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: VisualPlaceholderPalette.gradientFor(_heroColors),
-                  ),
-                ),
-                ..._PlaceholderDecorations.build(
-                  mood: VisualPlaceholderMood.portrait,
-                  variant: 0,
-                  onDark: false,
-                  rich: true,
-                ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.white.withValues(alpha: 0.28),
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.03),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _PlaceholderCenterVisual(
-                        mood: VisualPlaceholderMood.portrait,
-                        icon: Icons.face_retouching_natural_outlined,
-                        onDark: false,
-                        compact: isCompact,
-                      ),
-                      SizedBox(height: isCompact ? 10 : 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.95),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: VisualPlaceholderPalette.accent
-                                  .withValues(alpha: 0.1),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Text(
-                          'Ваш новый образ',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: VisualPlaceholderPalette.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  top: 12,
-                  right: 14,
-                  child: Icon(
-                    Icons.auto_awesome_outlined,
-                    size: 20,
-                    color: Colors.white.withValues(alpha: 0.65),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          placeholder: _HeroPlaceholderCanvas(isCompact: isCompact),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -310,6 +237,107 @@ class VisualPlaceholderHero extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _HeroPlaceholderCanvas extends StatelessWidget {
+  const _HeroPlaceholderCanvas({required this.isCompact});
+
+  final bool isCompact;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: SizedBox(
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: VisualPlaceholderPalette.gradientFor(
+                  VisualPlaceholderHero._heroColors,
+                ),
+              ),
+            ),
+            ..._PlaceholderDecorations.build(
+              mood: VisualPlaceholderMood.portrait,
+              variant: 0,
+              onDark: false,
+              rich: true,
+            ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.28),
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.03),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _PlaceholderCenterVisual(
+                    mood: VisualPlaceholderMood.portrait,
+                    icon: Icons.face_retouching_natural_outlined,
+                    onDark: false,
+                    compact: isCompact,
+                  ),
+                  SizedBox(height: isCompact ? 10 : 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.95),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: VisualPlaceholderPalette.accent
+                              .withValues(alpha: 0.1),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      'Ваш новый образ',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: VisualPlaceholderPalette.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              top: 12,
+              right: 14,
+              child: Icon(
+                Icons.auto_awesome_outlined,
+                size: 20,
+                color: Colors.white.withValues(alpha: 0.65),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

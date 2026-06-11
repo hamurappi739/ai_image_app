@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'assets/preview_asset_paths.dart';
 import 'models/gallery_display_item.dart';
 import 'models/generated_image_item.dart';
 import 'models/payment_result.dart';
@@ -34,6 +35,7 @@ import 'widgets/generation_progress_dialog.dart';
 import 'widgets/insufficient_balance_dialog.dart';
 import 'widgets/packs_help_dialog.dart';
 import 'widgets/photoshoots_help_dialog.dart';
+import 'widgets/preview_asset_image.dart';
 import 'widgets/section_help_button.dart';
 import 'widgets/visual_placeholder.dart';
 
@@ -2006,6 +2008,7 @@ class _PhotoshootStyle {
     required this.gradientColors,
     required this.isFree,
     this.previewVariant = 0,
+    this.previewAssetPath,
   });
 
   final String id;
@@ -2017,6 +2020,12 @@ class _PhotoshootStyle {
   final List<Color> gradientColors;
   final bool isFree;
   final int previewVariant;
+
+  /// Optional explicit override; otherwise resolved from [PreviewAssetPaths].
+  final String? previewAssetPath;
+
+  String? get effectivePreviewAssetPath =>
+      previewAssetPath ?? PreviewAssetPaths.photoshootPathForId(id);
 
   String get priceLabel => isFree ? 'Бесплатно' : '100 ₽';
 }
@@ -2141,6 +2150,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFFE8E4F4), Color(0xFFB8B0D4)],
       isFree: true,
       previewVariant: 0,
+      previewAssetPath: PreviewAssetPaths.photoshootsStudioPortrait,
     ),
     _PhotoshootStyle(
       id: 'business_portrait',
@@ -2154,6 +2164,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFFD4E0EE), Color(0xFF8EA4BE)],
       isFree: true,
       previewVariant: 1,
+      previewAssetPath: PreviewAssetPaths.photoshootsBusinessPortrait,
     ),
     _PhotoshootStyle(
       id: 'home_portrait',
@@ -2167,6 +2178,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFFF5E8D8), Color(0xFFD4B896)],
       isFree: true,
       previewVariant: 2,
+      previewAssetPath: PreviewAssetPaths.photoshootsHomePortrait,
     ),
     _PhotoshootStyle(
       id: 'premium_portrait',
@@ -2180,6 +2192,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFFD8C8F8), Color(0xFF9070D8)],
       isFree: false,
       previewVariant: 3,
+      previewAssetPath: PreviewAssetPaths.photoshootsPremiumPortrait,
     ),
     _PhotoshootStyle(
       id: 'winter_photoshoot',
@@ -2192,6 +2205,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFFD0ECFA), Color(0xFF6CB8E8)],
       isFree: false,
       previewVariant: 1,
+      previewAssetPath: PreviewAssetPaths.photoshootsWinterPhotoshoot,
     ),
     _PhotoshootStyle(
       id: 'urban_portrait',
@@ -2205,6 +2219,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFFC8D4F8), Color(0xFF6878D0)],
       isFree: false,
       previewVariant: 0,
+      previewAssetPath: PreviewAssetPaths.photoshootsCityPortrait,
     ),
     _PhotoshootStyle(
       id: 'evening_look',
@@ -2218,6 +2233,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFF7A5898), Color(0xFF3A2868)],
       isFree: false,
       previewVariant: 2,
+      previewAssetPath: PreviewAssetPaths.photoshootsEveningStyle,
     ),
     _PhotoshootStyle(
       id: 'travel_portrait',
@@ -2231,6 +2247,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFFC0ECE0), Color(0xFF58B8A8)],
       isFree: false,
       previewVariant: 3,
+      previewAssetPath: PreviewAssetPaths.photoshootsTravelPortrait,
     ),
     _PhotoshootStyle(
       id: 'tender_photoshoot',
@@ -2980,15 +2997,19 @@ class _PhotoshootCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              VisualPlaceholderSeries(
-                mood: VisualPlaceholderPalette.moodForPhotoshootId(style.id),
-                gradientColors: style.gradientColors,
-                icon: style.icon,
-                variant: style.previewVariant,
+              PreviewAssetImage(
+                assetPath: style.effectivePreviewAssetPath,
                 height: previewHeight,
-                showCatalogBadges: true,
-                recommendation: style.recommendation,
-                showPremiumStar: !style.isFree,
+                placeholder: VisualPlaceholderSeries(
+                  mood: VisualPlaceholderPalette.moodForPhotoshootId(style.id),
+                  gradientColors: style.gradientColors,
+                  icon: style.icon,
+                  variant: style.previewVariant,
+                  height: previewHeight,
+                  showCatalogBadges: true,
+                  recommendation: style.recommendation,
+                  showPremiumStar: !style.isFree,
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -3152,14 +3173,19 @@ class _PhotoshootResultExamplesSection extends StatelessWidget {
           style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
         ),
         const SizedBox(height: 10),
-        VisualPlaceholderSeries(
-          mood: VisualPlaceholderPalette.moodForPhotoshootId(styleId),
-          gradientColors: gradientColors,
-          icon: icon,
-          variant: previewVariant,
+        PreviewAssetImage(
+          assetPath: PreviewAssetPaths.photoshootPathForId(styleId),
           height: 88,
-          showPhotoLabels: false,
           borderRadius: BorderRadius.circular(14),
+          placeholder: VisualPlaceholderSeries(
+            mood: VisualPlaceholderPalette.moodForPhotoshootId(styleId),
+            gradientColors: gradientColors,
+            icon: icon,
+            variant: previewVariant,
+            height: 88,
+            showPhotoLabels: false,
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
       ],
     );
@@ -4141,13 +4167,20 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        VisualPlaceholderSeries(
-                          mood: VisualPlaceholderPalette.moodForPhotoshootId(
+                        PreviewAssetImage(
+                          assetPath: PreviewAssetPaths.photoshootPathForId(
                             _CustomPhotoshootFlow.styleId,
                           ),
                           height: 88,
-                          showPhotoLabels: false,
                           borderRadius: BorderRadius.circular(14),
+                          placeholder: VisualPlaceholderSeries(
+                            mood: VisualPlaceholderPalette.moodForPhotoshootId(
+                              _CustomPhotoshootFlow.styleId,
+                            ),
+                            height: 88,
+                            showPhotoLabels: false,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                         const SizedBox(height: 10),
                         Text(

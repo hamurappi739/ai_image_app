@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../assets/preview_asset_paths.dart';
 import '../navigation/app_section.dart';
 import '../widgets/app_screen_header.dart';
 import '../widgets/home_help_dialog.dart';
@@ -51,7 +52,10 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: isCompact ? 16 : 20),
-                  VisualPlaceholderHero(isCompact: isCompact),
+                  VisualPlaceholderHero(
+                    isCompact: isCompact,
+                    previewAssetPath: PreviewAssetPaths.homeHero,
+                  ),
                   SizedBox(height: isCompact ? 18 : 22),
                   SizedBox(
                     height: 54,

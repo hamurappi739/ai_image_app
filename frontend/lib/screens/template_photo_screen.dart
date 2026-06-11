@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../assets/preview_asset_paths.dart';
+import '../assets/preview_asset_registry.dart';
 import '../widgets/app_screen_header.dart';
+import '../widgets/preview_asset_image.dart';
 import '../widgets/section_help_button.dart';
 import '../widgets/template_help_dialog.dart';
 import '../widgets/visual_placeholder.dart';
@@ -60,6 +63,7 @@ class PhotoTemplate {
     required this.visualKind,
     required this.placeholderColors,
     this.previewLabel,
+    this.previewAssetPath,
   });
 
   final String id;
@@ -69,6 +73,12 @@ class PhotoTemplate {
   final TemplateVisualKind visualKind;
   final List<Color> placeholderColors;
   final String? previewLabel;
+
+  /// Planned local preview; used only when registered in [PreviewAssetRegistry].
+  final String? previewAssetPath;
+
+  String? get effectivePreviewAssetPath =>
+      previewAssetPath ?? PreviewAssetPaths.templatePathForId(id);
 }
 
 class _TemplateCategoryGroup {
@@ -607,15 +617,19 @@ class _TemplateCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          VisualPlaceholder(
-            mood: template.visualKind.placeholderMood,
-            gradientColors: template.placeholderColors,
-            caption: VisualPlaceholderPalette.theme(
-              template.visualKind.placeholderMood,
-            ).caption,
-            variant: template.id.hashCode.abs() % 4,
+          PreviewAssetImage(
+            assetPath: template.effectivePreviewAssetPath,
             height: 88,
-            compact: true,
+            placeholder: VisualPlaceholder(
+              mood: template.visualKind.placeholderMood,
+              gradientColors: template.placeholderColors,
+              caption: VisualPlaceholderPalette.theme(
+                template.visualKind.placeholderMood,
+              ).caption,
+              variant: template.id.hashCode.abs() % 4,
+              height: 88,
+              compact: true,
+            ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
