@@ -8,10 +8,14 @@ from google.genai import types
 
 from app.config import settings
 from app.services.gemini_quality_instructions import build_text_to_image_instruction
+from app.services.mock_placeholder_urls import (
+    DEFAULT_MOCK_IMAGE_URL,
+    build_mock_text_image_url,
+)
 
 logger = logging.getLogger(__name__)
 
-MOCK_IMAGE_URL = "https://placehold.co/1024x1024?text=Generated+Image"
+MOCK_IMAGE_URL = DEFAULT_MOCK_IMAGE_URL
 _MAX_GEMINI_ERROR_MESSAGE_LEN = 300
 _SENSITIVE_GEMINI_MESSAGE_TOKENS = (
     "api key",
@@ -26,7 +30,7 @@ _SENSITIVE_GEMINI_MESSAGE_TOKENS = (
 
 class MockImageProvider:
     def generate(self, prompt: str) -> str:
-        return MOCK_IMAGE_URL
+        return build_mock_text_image_url(prompt)
 
 
 class GeminiImageProvider:

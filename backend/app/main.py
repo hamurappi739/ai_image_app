@@ -31,6 +31,7 @@ from app.services.balance_service import (
     determine_photoshoot_payment,
 )
 from app.services.image_service import generate_image
+from app.services.mock_placeholder_urls import DEFAULT_MOCK_IMAGE_URL
 from app.services.credits_service import (
     add_paid_credits,
     consume_generation,
@@ -371,7 +372,7 @@ def debug_history():
 
 
 _DEBUG_MOCK_PROMPT = "debug test prompt"
-_DEBUG_MOCK_IMAGE_URL = "https://placehold.co/1024x1024?text=Generated+Image"
+_DEBUG_MOCK_IMAGE_URL = DEFAULT_MOCK_IMAGE_URL
 _DEBUG_TINY_PNG_DATA_URL = (
     "data:image/png;base64,"
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="

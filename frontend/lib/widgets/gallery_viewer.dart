@@ -1,5 +1,6 @@
 import 'package:ai_image_generator/models/gallery_display_item.dart';
 import 'package:ai_image_generator/utils/gallery_download.dart';
+import 'package:ai_image_generator/widgets/gallery_result_image.dart';
 import 'package:flutter/material.dart';
 
 const _accentColor = Color(0xFF5B6CFF);
@@ -166,24 +167,10 @@ class GallerySingleImageViewer extends StatelessWidget {
                   minScale: 0.8,
                   maxScale: 3,
                   child: Center(
-                    child: Image.network(
-                      imageUrl,
+                    child: GalleryResultImage(
+                      url: imageUrl,
+                      description: description,
                       fit: BoxFit.contain,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return const Padding(
-                          padding: EdgeInsets.all(48),
-                          child: CircularProgressIndicator(strokeWidth: 2.5),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) => const Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Icon(
-                          Icons.broken_image_outlined,
-                          size: 48,
-                          color: Color(0xFF9CA3AF),
-                        ),
-                      ),
                     ),
                   ),
                 ),
@@ -377,6 +364,8 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                               child: _PhotoshootPhotoTile(
                                 imageUrl: item.imageUrls[i],
                                 label: 'Фото ${i + 1}',
+                                description: item.description,
+                                seriesIndex: i,
                               ),
                             ),
                           ],
@@ -390,6 +379,8 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                           _PhotoshootPhotoTile(
                             imageUrl: item.imageUrls[i],
                             label: 'Фото ${i + 1}',
+                            description: item.description,
+                            seriesIndex: i,
                           ),
                         ],
                       ],
@@ -435,10 +426,14 @@ class _PhotoshootPhotoTile extends StatelessWidget {
   const _PhotoshootPhotoTile({
     required this.imageUrl,
     required this.label,
+    required this.description,
+    required this.seriesIndex,
   });
 
   final String imageUrl;
   final String label;
+  final String description;
+  final int seriesIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -451,22 +446,11 @@ class _PhotoshootPhotoTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: AspectRatio(
             aspectRatio: 3 / 4,
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) return child;
-                return Container(
-                  color: const Color(0xFFF0F2F8),
-                  alignment: Alignment.center,
-                  child: const CircularProgressIndicator(strokeWidth: 2.5),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) => Container(
-                color: const Color(0xFFF0F2F8),
-                alignment: Alignment.center,
-                child: const Icon(Icons.broken_image_outlined),
-              ),
+            child: GalleryResultImage(
+              url: imageUrl,
+              description: description,
+              seriesIndex: seriesIndex,
+              photoshootSeries: true,
             ),
           ),
         ),

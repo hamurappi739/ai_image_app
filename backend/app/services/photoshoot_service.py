@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
-from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -23,6 +22,7 @@ from app.services.image_service import (
     _extract_gemini_safe_message,
     _iter_response_parts,
 )
+from app.services.mock_placeholder_urls import build_mock_photoshoot_image_urls
 from app.services.photoshoot_styles import PhotoshootStyle
 from app.services.storage_service import storage_service
 from app.services.supabase_service import create_generation_record
@@ -191,11 +191,6 @@ def _save_photoshoot_results_to_history(
     return photoshoot_id
 
 
-def _mock_photoshoot_image_url(style: PhotoshootStyle, index: int) -> str:
-    label = quote(f"Photoshoot {style.id} #{index + 1}", safe="")
-    return f"https://placehold.co/1024x1024?text={label}"
-
-
 class MockPhotoshootProvider:
     """Development mock: placeholder URLs without Gemini or Storage upload."""
 
@@ -211,12 +206,16 @@ class MockPhotoshootProvider:
         style: PhotoshootStyle,
         photo_bytes: bytes,
         photo_content_type: str,
+        *,
+        user_description: str | None = None,
     ) -> list[str]:
         _ = photo_bytes, photo_content_type
-        return [
-            _mock_photoshoot_image_url(style, index)
-            for index in range(self._output_count)
-        ]
+        return build_mock_photoshoot_image_urls(
+            style_id=style.id,
+            style_title=style.title,
+            output_count=self._output_count,
+            user_description=user_description,
+        )
 
 
 class GeminiPhotoshootProvider:
@@ -318,6 +317,7 @@ class PhotoshootService:
                 style=style,
                 photo_bytes=photo_bytes,
                 photo_content_type=photo_content_type,
+                user_description=user_description,
             )
         else:
             data_urls = provider.generate(

@@ -31,6 +31,8 @@ import 'widgets/app_screen_header.dart';
 import 'widgets/custom_request_flow.dart';
 import 'widgets/create_help_dialog.dart';
 import 'widgets/create_result_tips_card.dart';
+import 'utils/mock_image_url.dart';
+import 'widgets/gallery_result_image.dart';
 import 'widgets/gallery_viewer.dart';
 import 'widgets/generation_progress_dialog.dart';
 import 'widgets/insufficient_balance_dialog.dart';
@@ -5055,7 +5057,11 @@ class _GalleryImageCard extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 onTap: () => _openViewer(context),
-                child: _GalleryImagePreview(imageUrls: item.imageUrls),
+                child: _GalleryImagePreview(
+                  imageUrls: item.imageUrls,
+                  description: item.description,
+                  isPhotoshoot: isPhotoshoot,
+                ),
               ),
             ),
           ),
@@ -5165,21 +5171,59 @@ class _GalleryImageCard extends StatelessWidget {
 }
 
 class _GalleryImagePreview extends StatelessWidget {
-  const _GalleryImagePreview({required this.imageUrls});
+  const _GalleryImagePreview({
+    required this.imageUrls,
+    required this.description,
+    required this.isPhotoshoot,
+  });
 
   final List<String> imageUrls;
+  final String description;
+  final bool isPhotoshoot;
+
+  bool get _allMock =>
+      imageUrls.isNotEmpty && imageUrls.every(isMockPlaceholderImageUrl);
 
   @override
   Widget build(BuildContext context) {
+    if (isPhotoshoot &&
+        imageUrls.length >= 2 &&
+        _allMock) {
+      return GalleryPhotoshootSeriesPreview(
+        imageUrls: imageUrls,
+        description: description,
+      );
+    }
+
     if (imageUrls.length == 1) {
-      return _GalleryNetworkImage(url: imageUrls.first);
+      return GalleryResultImage(
+        url: imageUrls.first,
+        description: description,
+        compact: true,
+      );
     }
     if (imageUrls.length == 2) {
       return Row(
         children: [
-          Expanded(child: _GalleryNetworkImage(url: imageUrls[0])),
+          Expanded(
+            child: GalleryResultImage(
+              url: imageUrls[0],
+              description: description,
+              seriesIndex: 0,
+              compact: true,
+              photoshootSeries: true,
+            ),
+          ),
           const SizedBox(width: 2),
-          Expanded(child: _GalleryNetworkImage(url: imageUrls[1])),
+          Expanded(
+            child: GalleryResultImage(
+              url: imageUrls[1],
+              description: description,
+              seriesIndex: 1,
+              compact: true,
+              photoshootSeries: true,
+            ),
+          ),
         ],
       );
     }
@@ -5188,54 +5232,44 @@ class _GalleryImagePreview extends StatelessWidget {
       children: [
         Expanded(
           flex: 3,
-          child: _GalleryNetworkImage(url: imageUrls.first),
+          child: GalleryResultImage(
+            url: imageUrls.first,
+            description: description,
+            seriesIndex: 0,
+            compact: true,
+            photoshootSeries: isPhotoshoot,
+          ),
         ),
         const SizedBox(height: 2),
         Expanded(
           flex: 2,
           child: Row(
             children: [
-              Expanded(child: _GalleryNetworkImage(url: imageUrls[1])),
+              Expanded(
+                child: GalleryResultImage(
+                  url: imageUrls[1],
+                  description: description,
+                  seriesIndex: 1,
+                  compact: true,
+                  photoshootSeries: isPhotoshoot,
+                ),
+              ),
               const SizedBox(width: 2),
               Expanded(
                 child: imageUrls.length >= 3
-                    ? _GalleryNetworkImage(url: imageUrls[2])
+                    ? GalleryResultImage(
+                        url: imageUrls[2],
+                        description: description,
+                        seriesIndex: 2,
+                        compact: true,
+                        photoshootSeries: isPhotoshoot,
+                      )
                     : const SizedBox.shrink(),
               ),
             ],
           ),
         ),
       ],
-    );
-  }
-}
-
-class _GalleryNetworkImage extends StatelessWidget {
-  const _GalleryNetworkImage({required this.url});
-
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      height: double.infinity,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return Container(
-          color: const Color(0xFFF0F2F8),
-          alignment: Alignment.center,
-          child: const SizedBox(
-            width: 28,
-            height: 28,
-            child: CircularProgressIndicator(strokeWidth: 2.5),
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) =>
-          const _GenerationResultPreviewFallback(compact: true),
     );
   }
 }
@@ -6945,64 +6979,6 @@ class _GenerationErrorCard extends StatelessWidget {
   }
 }
 
-class _GenerationResultPreviewFallback extends StatelessWidget {
-  const _GenerationResultPreviewFallback({this.compact = false});
-
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFEDE9FF), Color(0xFFB8C4FF), Color(0xFF7C8CFF)],
-        ),
-      ),
-      child: Center(
-        child: Padding(
-          padding: EdgeInsets.all(compact ? 12 : 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.auto_awesome,
-                size: compact ? 32 : 56,
-                color: Colors.white.withValues(alpha: 0.95),
-              ),
-              SizedBox(height: compact ? 8 : 16),
-              Text(
-                'Фото готово',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontSize: compact ? 13 : 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: compact ? 4 : 8),
-              Text(
-                'Здесь появится ваше фото',
-                textAlign: TextAlign.center,
-                maxLines: compact ? 2 : null,
-                overflow: compact ? TextOverflow.ellipsis : null,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.88),
-                  fontSize: compact ? 10 : 13,
-                  height: 1.35,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _ResultSection extends StatelessWidget {
   const _ResultSection({
     required this.response,
@@ -7026,19 +7002,9 @@ class _ResultSection extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             child: AspectRatio(
               aspectRatio: 1,
-              child: Image.network(
-                response.imageUrl,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return Container(
-                    color: const Color(0xFFF0F2F8),
-                    alignment: Alignment.center,
-                    child: const CircularProgressIndicator(),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) =>
-                    const _GenerationResultPreviewFallback(),
+              child: GalleryResultImage(
+                url: response.imageUrl,
+                description: response.prompt,
               ),
             ),
           ),

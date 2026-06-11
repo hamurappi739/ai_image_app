@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import logging
-from urllib.parse import quote
-
 from fastapi import HTTPException
 from google import genai
 from google.genai import types
@@ -16,6 +14,7 @@ from app.services.image_service import (
     _extract_gemini_safe_message,
     _extract_image_data_url,
 )
+from app.services.mock_placeholder_urls import build_mock_photo_image_url
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +39,7 @@ class MockPhotoGenerationProvider:
         photo_content_type: str,
     ) -> str:
         _ = photo_bytes, photo_content_type
-        label = quote("Photo generation", safe="")
-        return f"https://placehold.co/1024x1024?text={label}"
+        return build_mock_photo_image_url(description)
 
 
 class GeminiPhotoGenerationProvider:
