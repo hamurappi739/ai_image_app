@@ -701,6 +701,7 @@ flutter run -d chrome --dart-define=SUPABASE_URL=YOUR_SUPABASE_URL --dart-define
 | [api_contract.md](api_contract.md) | HTTP API |
 | [app_design_strategy.md](app_design_strategy.md) | UX, вкладки |
 | [app_prompts.md](app_prompts.md) | Тексты шаблонов, фотосессий и чипов «Своя фотосессия» |
+| [current_project_snapshot.md](current_project_snapshot.md) | Краткий snapshot «как есть сейчас» |
 | [roadmap.md](roadmap.md) | Этапы |
 | [demo_script.md](demo_script.md) | Сценарий демо |
 | [demo_release_checklist.md](demo_release_checklist.md) | Debug APK, backend modes, install, not-production |

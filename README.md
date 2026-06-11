@@ -211,6 +211,8 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 | [docs/navigation_redesign_plan.md](docs/navigation_redesign_plan.md) | UX-redesign: drawer, разделы, статус |
 | [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md) | Запуск Flutter с Supabase Auth |
 | [docs/app_prompts.md](docs/app_prompts.md) | Тексты шаблонов, фотосессий и чипов «Своя фотосессия» |
+| [docs/preview_assets_checklist.md](docs/preview_assets_checklist.md) | План локальных preview-картинок (имена, папки, MVP pack) |
+| [docs/current_project_snapshot.md](docs/current_project_snapshot.md) | Итоговый snapshot состояния проекта (MVP / demo) |
 
 ---
 
