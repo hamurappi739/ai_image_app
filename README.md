@@ -6,7 +6,7 @@
 
 **Навигация (UX-redesign + mobile polish):** **burger/drawer**; баланс в **меню**, **Профиле**, **Купить** и info-блоках (**не** в верхней панели); welcome-**Главная**; главный вход — **Фото по шаблону**; после генерации — **Готовые фото**; при нулевом балансе — мягкие подсказки → **Купить**. См. [navigation_redesign_plan.md](docs/navigation_redesign_plan.md).
 
-**Свой запрос:** free-generation notice, **categorized clickable ideas** (режимы **«Без фото»** / **«С фото»**), подсказки в **«Как получить хороший результат»**, **generation countdown modal** (~60 s). **С фото:** **`POST /generate-with-photo`** (multipart); **без фото:** **`POST /generate`** (JSON). Шаблоны из **Фото по шаблону** автоматически заполняют поле описания.
+**Свой запрос:** free-generation notice, **categorized clickable ideas** (режимы **«Без фото»** / **«С фото»**), подсказки в **«Как получить хороший результат»**, **generation countdown modal** (~60 s). **С фото:** **`POST /generate-with-photo`** (multipart); **без фото:** **`POST /generate`** (JSON). Шаблоны из **Фото по шаблону** автоматически заполняют поле описания **расширенными текстами** из [docs/app_prompts.md](docs/app_prompts.md) (сохранение лица, без искажений, товарные правила).
 
 **Generation UX (Фотосессии):** blocking progress dialog (~120 s) when a real backend request runs; *«Почти готово, ждём результат...»* if the timer ends first.
 
@@ -25,8 +25,8 @@
 - Flutter **web** UI на **русском** языке
 - **UX-redesign + mobile polish:** burger/drawer, баланс в **drawer/Профиль/Купить** (не в шапке), компактные карточки, welcome-**Главная**, **Готовые фото** с success и быстрыми действиями
 - **First-run onboarding** (5 экранов) + **контекстная помощь**; help hub
-- **Фото по шаблону** — шаблоны **по категориям**, визуальные placeholder; → **Свой запрос**
-- **Фотосессии** — подборки стилей; **«Своя фотосессия»** сверху; после успеха → **Готовые фото**
+- **Фото по шаблону** — **17** шаблонов **по категориям**, короткое описание + **расширенный промпт** ([app_prompts.md](docs/app_prompts.md)); → **Свой запрос**
+- **Фотосессии** — **15** стилей с расширенными style prompt; **`description`** в `/photoshoots/generate`; **«Своя фотосессия»** с длинными чипами; после успеха → **Готовые фото**
 - **Свой запрос** — фото → описание → **«Создать фото»** → **Готовые фото**; мягкие подсказки при нулевом балансе
 - Генерация через backend **`POST /generate`** (demo-mode)
 - Результат на экране + **fallback-preview** при ошибке загрузки картинки
@@ -210,6 +210,7 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 | [docs/gemini_test_checklist.md](docs/gemini_test_checklist.md) | Чек-лист безопасного ручного теста Gemini |
 | [docs/navigation_redesign_plan.md](docs/navigation_redesign_plan.md) | UX-redesign: drawer, разделы, статус |
 | [docs/flutter_auth_setup.md](docs/flutter_auth_setup.md) | Запуск Flutter с Supabase Auth |
+| [docs/app_prompts.md](docs/app_prompts.md) | Тексты шаблонов, фотосессий и чипов «Своя фотосессия» |
 
 ---
 
@@ -232,8 +233,8 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 - **Постоянная** Gemini-генерация в dev (по умолчанию **mock**; Gemini — только контролируемые ручные тесты)
 - **Купить** — mixed UI + balance banner; **оплата / RuStore не подключены**
 - **Balance debit** — проверено вручную (images + **photo generation** + mock photoshoot); **real purchase top-up** — в плане
-- **Generation quality** prompts, **curated examples** — в плане
-- **Backend** для **«Своей фотосессии»** (UI-каркас готов), **реальные curated-примеры**
+- **Расширенные промпты** шаблонов / фотосессий / чипов — ✅ ([app_prompts.md](docs/app_prompts.md))
+- **Curated preview-изображения** на карточках (вместо gradient placeholders) — в плане
 - Подтверждение email, восстановление пароля, production без `TEST_USER_ID`
 - **Production security** (debug routes, CORS, RLS)
 

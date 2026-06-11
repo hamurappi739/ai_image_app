@@ -313,7 +313,7 @@
 |------|-----|----------|
 | `style_id` | string | Идентификатор выбранного стиля (обязательно); backend проверяет по **catalog** |
 | `style_title` | string \| null | Человекочитаемое название стиля (опционально; **источник правды — catalog на backend**) |
-| `description` | string \| null | Опционально: пользовательское описание образа для **«Своя фотосессия»** (`style_id=custom_photoshoot`). Trim; пустая строка игнорируется; максимум **1000** символов. Готовые стили могут не отправлять это поле |
+| `description` | string \| null | Опционально: **расширенный style prompt** для готовых стилей (тексты из [app_prompts.md](app_prompts.md)) или пользовательское описание для **`custom_photoshoot`**. Trim; пустая строка игнорируется; максимум **1000** символов. Если передано — backend использует его как основу инструкции Gemini вместо короткого `style.instruction` |
 | `photo` | file | Фото пользователя (обязательно) |
 
 **Поддерживаемые `style_id` (backend catalog):**
@@ -328,9 +328,17 @@
 | `city_portrait` | Городской портрет | нет (100 ₽) |
 | `evening_look` | Вечерний образ | нет (100 ₽) |
 | `travel_portrait` | Портрет в путешествии | нет (100 ₽) |
+| `tender_photoshoot` | Нежная фотосессия | нет (100 ₽) |
+| `summer_photoshoot` | Летняя фотосессия | нет (100 ₽) |
+| `expert_photoshoot` | Экспертная фотосессия | нет (100 ₽) |
+| `business_brand` | Бизнес-портрет | нет (100 ₽) |
+| `personal_brand` | Фото для личного бренда | нет (100 ₽) |
+| `cafe_city` | Кафе и город | нет (100 ₽) |
+| `park_walk` | Прогулка в парке | нет (100 ₽) |
 | `custom_photoshoot` | Своя фотосессия | да |
 
-- **«Своя фотосессия»:** Flutter отправляет `style_id=custom_photoshoot`, `style_title=Своя фотосессия`, `photo` и непустой `description`. Готовые стили отправляют только `style_id`, `style_title`, `photo` (без `description`) — поведение как раньше
+- **Готовые стили:** Flutter отправляет `style_id`, `style_title`, `photo` и **`description`** = расширенный style prompt из каталога приложения (см. [app_prompts.md](app_prompts.md))
+- **«Своя фотосессия»:** `style_id=custom_photoshoot`, `style_title=Своя фотосессия`, `photo` и непустой `description` (текст пользователя или чипа)
 - Неизвестный `style_id` → **`400`** `Unknown photoshoot style`
 - Платный стиль (`is_free=false`) без подтверждённой оплаты → **`402`** `Payment is required for this photoshoot style` — **до** валидации фото и **без** вызова Gemini / Storage / `generations`
 - Alias: Flutter может отправлять `urban_portrait` — backend принимает как `city_portrait`

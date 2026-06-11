@@ -46,7 +46,8 @@
 | **Manual Gemini API test passed** | ✅ | Контролируемый ручной тест: `IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false` |
 | **Gemini result stored in Supabase Storage** | ✅ | Generated image загружен в bucket `generated-images`, response содержит `public_url` |
 | **Generated image public_url displayed in Gallery** | ✅ | Галерея показала реальную картинку по Storage URL |
-| **Backend photoshoot style catalog** | ✅ | `photoshoot_styles.py`: 8 стилей, `instruction`, `get_photoshoot_style`; `/photoshoots/generate` валидирует `style_id` |
+| **Backend photoshoot style catalog** | ✅ | `photoshoot_styles.py`: стили + `instruction`, `get_photoshoot_style`; `/photoshoots/generate` валидирует `style_id` (каталог расширен под 15 UI-стилей) |
+| **Extended app prompts (templates + photoshoots + custom chips)** | ✅ | [app_prompts.md](app_prompts.md) → `frontend/lib/data/app_prompts.dart`; шаблоны → **Свой запрос**; фотосессии → `description` в API |
 | **PhotoshootService** | ✅ | `photoshoot_service.py`: Gemini → Storage → `image_urls` + **`generations`** history |
 | **Save photoshoot results to generation history** | ✅ | `create_generation_record`; `prompt`: `Фотосессия: …`; без списаний |
 | **GeminiPhotoshootProvider** | ✅ | Реальный вызов `google-genai`: photo + `style.instruction` → data URLs |
@@ -221,6 +222,7 @@ Demo-сборка и чеклист: [demo_release_checklist.md](demo_release_ch
 | **Backend photo + description generation endpoint** | ✅ |
 | **Connect Create photo input to backend** | ✅ |
 | **Improve prompts for face quality** | ✅ | `gemini_quality_instructions.py` |
+| **Extended user-facing descriptions** (17 templates, 15 photoshoots, 5 custom chips) | ✅ | [app_prompts.md](app_prompts.md) |
 | **Replace placeholder/gradient examples with curated visuals** | план |
 | **Gallery selective hide/delete** | ✅ (hide) | **«Скрыть из Галереи»** — локально на устройстве; backend/Storage не трогаются; удаление на сервере — план |
 | **Gallery 2.0 viewer** | ✅ | Просмотр изображения/фотосессии, **Скачать**, локальное скрытие, empty state |
@@ -272,7 +274,7 @@ Demo-сборка и чеклист: [demo_release_checklist.md](demo_release_ch
 
 ## Следующие крупные этапы
 
-После блока **«Ближайший порядок работ»** (см. выше): curated-примеры, backend **«Своя фотосессия»**, production cleanup.
+После блока **«Ближайший порядок работ»** (см. выше): curated preview-изображения, production cleanup.
 
 ### После backend payment foundation (план)
 

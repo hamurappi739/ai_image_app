@@ -123,8 +123,23 @@ curl -X POST http://127.0.0.1:8000/debug/add-credits \
 
 ---
 
+## 7. Тексты шаблонов и фотосессий
+
+Расширенные описания для UI и генерации — в **[app_prompts.md](app_prompts.md)**:
+
+| Раздел | Количество | Короткий текст | Длинный текст |
+|--------|------------|----------------|---------------|
+| Фото по шаблону | 17 | Карточка | Поле **Свой запрос** |
+| Фотосессии | 15 | Карточка | `description` в `/photoshoots/generate` |
+| Своя фотосессия | 5 чипов | Подпись чипа | Поле описания в модалке |
+
+В коде: `frontend/lib/data/app_prompts.dart`. После правки **app_prompts.md** синхронизировать Dart-файл. Backend quality rules — `gemini_quality_instructions.py`; fallback стилей — `photoshoot_styles.py`.
+
+---
+
 ## Связанные документы
 
+- [app_prompts.md](app_prompts.md) — тексты шаблонов, фотосессий и чипов
 - [database_schema.md](database_schema.md) — схема БД
 - [product_strategy.md](product_strategy.md) — продукт и генерации
 - [roadmap.md](roadmap.md) — этапы проекта
