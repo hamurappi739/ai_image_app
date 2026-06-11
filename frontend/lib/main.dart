@@ -2573,10 +2573,10 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
               builder: (context, constraints) {
                 final columns =
                     constraints.maxWidth >= _gridBreakpoint ? 2 : 1;
-                final previewHeight = columns == 2 ? 168.0 : 156.0;
+                final previewHeight = columns == 2 ? 152.0 : 142.0;
                 final cardWidth =
                     (constraints.maxWidth - (columns - 1) * 16) / columns;
-                final cardHeight = columns == 2 ? 400.0 : 440.0;
+                final cardHeight = columns == 2 ? 388.0 : 420.0;
                 final gridAspectRatio = cardWidth / cardHeight;
 
                 final collections = _visibleCollections();

@@ -56,7 +56,7 @@ class UiPreviewPlaceholders {
         gradientColors: gradientColors,
         icon: icon,
         caption: badge,
-        showExampleBadge: badge == null,
+        showBadges: true,
         borderRadius: BorderRadius.circular(14),
         compact: height < 84,
         dimmed: dimmed,

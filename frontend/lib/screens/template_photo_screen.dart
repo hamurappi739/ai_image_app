@@ -29,9 +29,9 @@ extension TemplateVisualKindPlaceholder on TemplateVisualKind {
   VisualPlaceholderMood get placeholderMood => switch (this) {
         TemplateVisualKind.portrait ||
         TemplateVisualKind.tender ||
-        TemplateVisualKind.vibrant ||
-        TemplateVisualKind.social =>
+        TemplateVisualKind.vibrant =>
           VisualPlaceholderMood.portrait,
+        TemplateVisualKind.social => VisualPlaceholderMood.social,
         TemplateVisualKind.business ||
         TemplateVisualKind.resume ||
         TemplateVisualKind.profile ||
@@ -337,7 +337,7 @@ class TemplatePhotoScreen extends StatelessWidget {
   }
 
   static double _gridAspectRatio(int columns) {
-    return columns == 1 ? 0.92 : 0.82;
+    return columns == 1 ? 1.02 : 0.9;
   }
 
   @override
@@ -614,11 +614,11 @@ class _TemplateCard extends StatelessWidget {
               template.visualKind.placeholderMood,
             ).caption,
             variant: template.id.hashCode.abs() % 4,
-            height: 100,
+            height: 88,
             compact: true,
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -627,51 +627,27 @@ class _TemplateCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: _textPrimary,
-                    height: 1.25,
+                    height: 1.22,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   template.description,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: 13,
-                    height: 1.35,
+                    fontSize: 12,
+                    height: 1.32,
                     color: _textSecondary,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.auto_fix_high_outlined,
-                      size: 14,
-                      color: _accentColor.withValues(alpha: 0.85),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        'Описание подставится автоматически',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          height: 1.3,
-                          fontWeight: FontWeight.w500,
-                          color: _accentColor.withValues(alpha: 0.9),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
-                  height: 44,
+                  height: 42,
                   child: FilledButton(
                     onPressed: onSelect,
                     style: FilledButton.styleFrom(
