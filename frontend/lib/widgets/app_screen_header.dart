@@ -9,7 +9,7 @@ class AppScreenHeader extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.trailing,
-    this.showBalanceIndicator = true,
+    this.showBalanceIndicator = false,
   });
 
   final String title;
@@ -86,8 +86,6 @@ class AppScreenHeader extends StatelessWidget {
                   Text(
                     subtitleText,
                     style: theme.textTheme.bodyMedium,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               },

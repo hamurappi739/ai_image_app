@@ -68,7 +68,7 @@ class CustomRequestFlow extends StatelessWidget {
             children: [
               if (!hasPhoto)
                 SizedBox(
-                  height: 48,
+                  height: 44,
                   child: FilledButton.icon(
                     onPressed: isPickingPhoto || isBusy ? null : onPickPhoto,
                     icon: isPickingPhoto
@@ -95,59 +95,89 @@ class CustomRequestFlow extends StatelessWidget {
                 )
               else ...[
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: AspectRatio(
-                    aspectRatio: 4 / 3,
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    height: 132,
+                    width: double.infinity,
                     child: Image.memory(
                       photoBytes!,
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: isBusy ? null : onClearPhoto,
-                    icon: const Icon(Icons.close, size: 18),
-                    label: const Text('Убрать фото'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: _textSecondary,
-                      padding: EdgeInsets.zero,
-                      visualDensity: VisualDensity.compact,
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 0,
+                  children: [
+                    TextButton.icon(
+                      onPressed: isBusy || isPickingPhoto ? null : onPickPhoto,
+                      icon: const Icon(Icons.edit_outlined, size: 17),
+                      label: const Text('Изменить фото'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: _accentColor,
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
-                  ),
+                    TextButton.icon(
+                      onPressed: isBusy ? null : onClearPhoto,
+                      icon: const Icon(Icons.close, size: 17),
+                      label: const Text('Убрать фото'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: _textSecondary,
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
         _StepSection(
           stepNumber: 2,
           title: 'Опишите результат',
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF7F8FC),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE8EAEF)),
-            ),
-            child: CreateDescriptionTextField(
-              controller: descriptionController,
-              hintText:
-                  'Например: сделай деловой портрет на светлом фоне',
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Вы можете изменить описание.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 12,
+                  color: _textSecondary,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFD1D5DB)),
+                ),
+                child: CreateDescriptionTextField(
+                  controller: descriptionController,
+                  hintText:
+                      'Например: сделай деловой портрет на светлом фоне',
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
+        const _WhatYouGetBlock(),
+        const SizedBox(height: 14),
         _StepSection(
           stepNumber: 3,
           title: 'Создайте фото',
           child: SizedBox(
             width: double.infinity,
-            height: 54,
+            height: 50,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: onCreate == null
@@ -196,17 +226,7 @@ class CustomRequestFlow extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Обычно создание занимает 20–60 секунд.',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontSize: 13,
-            height: 1.35,
-            color: _textSecondary,
-          ),
-        ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         Text(
           'Примеры описания',
           style: theme.textTheme.titleMedium?.copyWith(
@@ -250,6 +270,86 @@ class CustomRequestFlow extends StatelessWidget {
   }
 }
 
+class _WhatYouGetBlock extends StatelessWidget {
+  const _WhatYouGetBlock();
+
+  static const _textPrimary = Color(0xFF1A1D26);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F8FC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE8EAEF)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Что получится',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary,
+                ),
+          ),
+          const SizedBox(height: 8),
+          const _WhatYouGetLine(
+            icon: Icons.photo_outlined,
+            text: '1 готовое фото',
+          ),
+          const SizedBox(height: 4),
+          const _WhatYouGetLine(
+            icon: Icons.collections_outlined,
+            text: 'Сохранится в готовых фото',
+          ),
+          const SizedBox(height: 4),
+          const _WhatYouGetLine(
+            icon: Icons.schedule_outlined,
+            text: 'Обычно 20–60 секунд',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WhatYouGetLine extends StatelessWidget {
+  const _WhatYouGetLine({
+    required this.icon,
+    required this.text,
+  });
+
+  static const _accentColor = Color(0xFF5B6CFF);
+  static const _textSecondary = Color(0xFF6B7280);
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: _accentColor.withValues(alpha: 0.85)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.35,
+              color: _textSecondary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _StepSection extends StatelessWidget {
   const _StepSection({
     required this.stepNumber,
@@ -270,15 +370,15 @@ class _StepSection extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -288,8 +388,8 @@ class _StepSection extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 24,
+                height: 24,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: const Color(0xFFEDE9FF),
@@ -298,18 +398,18 @@ class _StepSection extends StatelessWidget {
                 child: Text(
                   '$stepNumber',
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: _accentColor,
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    fontSize: 17,
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: _textPrimary,
                   ),
@@ -317,7 +417,7 @@ class _StepSection extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           child,
         ],
       ),

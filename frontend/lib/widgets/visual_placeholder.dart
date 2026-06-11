@@ -214,7 +214,10 @@ class VisualPlaceholderHero extends StatelessWidget {
           assetPath: resolvedAsset,
           height: height,
           borderRadius: BorderRadius.circular(24),
-          placeholder: _HeroPlaceholderCanvas(isCompact: isCompact),
+          placeholder: _HeroPlaceholderCanvas(
+            isCompact: isCompact,
+            height: height,
+          ),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -242,18 +245,21 @@ class VisualPlaceholderHero extends StatelessWidget {
 }
 
 class _HeroPlaceholderCanvas extends StatelessWidget {
-  const _HeroPlaceholderCanvas({required this.isCompact});
+  const _HeroPlaceholderCanvas({
+    required this.isCompact,
+    required this.height,
+  });
 
   final bool isCompact;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: SizedBox(
-        width: double.infinity,
-        child: Stack(
-          fit: StackFit.expand,
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
           children: [
             DecoratedBox(
               decoration: BoxDecoration(
@@ -337,7 +343,6 @@ class _HeroPlaceholderCanvas extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -578,67 +583,63 @@ class VisualPlaceholderSeries extends StatelessWidget {
             ),
             LayoutBuilder(
               builder: (context, constraints) {
-                final compact = height < 110;
-                final topInset = compact ? 20.0 : 26.0;
-                final bottomInset = compact ? 8.0 : 10.0;
-                final labelSpace = showPhotoLabels ? 14.0 : 0.0;
-                final baseMiniHeight = (constraints.maxHeight -
-                        topInset -
-                        bottomInset -
-                        labelSpace)
-                    .clamp(40.0, 120.0);
+                final w = constraints.maxWidth;
+                final h = constraints.maxHeight;
+                final cardW = w * 0.26;
+                final sideH = h * 0.62;
+                final centerH = h * 0.72;
+                final bottomPad = h * 0.1;
 
-                return Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    compact ? 10 : 12,
-                    topInset,
-                    compact ? 10 : 12,
-                    bottomInset,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        flex: 4,
-                        child: _SeriesMiniCard(
-                          index: 0,
-                          colors: colors,
-                          icon: centerIcon,
-                          mood: mood,
-                          onDark: onDark,
-                          label: showPhotoLabels ? 'Фото 1' : null,
-                          cardHeight: baseMiniHeight * 0.92,
-                        ),
-                      ),
-                      SizedBox(width: compact ? 5 : 7),
-                      Expanded(
-                        flex: 5,
-                        child: _SeriesMiniCard(
-                          index: 1,
-                          colors: colors,
-                          icon: centerIcon,
-                          mood: mood,
-                          onDark: onDark,
-                          label: showPhotoLabels ? 'Фото 2' : null,
-                          cardHeight: baseMiniHeight * 1.08,
-                          emphasized: true,
-                        ),
-                      ),
-                      SizedBox(width: compact ? 5 : 7),
-                      Expanded(
-                        flex: 4,
-                        child: _SeriesMiniCard(
-                          index: 2,
-                          colors: colors,
-                          icon: centerIcon,
-                          mood: mood,
-                          onDark: onDark,
-                          label: showPhotoLabels ? 'Фото 3' : null,
-                          cardHeight: baseMiniHeight * 0.92,
-                        ),
-                      ),
-                    ],
-                  ),
+                Widget overlapCard({
+                  required int index,
+                  required double width,
+                  required double cardHeight,
+                  required double left,
+                  required double bottom,
+                  bool emphasized = false,
+                }) {
+                  return Positioned(
+                    left: left,
+                    bottom: bottom,
+                    width: width,
+                    height: cardHeight,
+                    child: _SeriesOverlapCard(
+                      index: index,
+                      colors: colors,
+                      icon: centerIcon,
+                      mood: mood,
+                      onDark: onDark,
+                      emphasized: emphasized,
+                    ),
+                  );
+                }
+
+                return Stack(
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    overlapCard(
+                      index: 0,
+                      width: cardW,
+                      cardHeight: sideH,
+                      left: w * 0.1,
+                      bottom: bottomPad,
+                    ),
+                    overlapCard(
+                      index: 1,
+                      width: cardW * 1.12,
+                      cardHeight: centerH,
+                      left: (w - cardW * 1.12) / 2,
+                      bottom: bottomPad + h * 0.04,
+                      emphasized: true,
+                    ),
+                    overlapCard(
+                      index: 2,
+                      width: cardW,
+                      cardHeight: sideH,
+                      left: w - w * 0.1 - cardW,
+                      bottom: bottomPad,
+                    ),
+                  ],
                 );
               },
             ),
@@ -693,15 +694,13 @@ class VisualPlaceholderSeries extends StatelessWidget {
   }
 }
 
-class _SeriesMiniCard extends StatelessWidget {
-  const _SeriesMiniCard({
+class _SeriesOverlapCard extends StatelessWidget {
+  const _SeriesOverlapCard({
     required this.index,
     required this.colors,
     required this.icon,
     required this.mood,
     required this.onDark,
-    required this.cardHeight,
-    this.label,
     this.emphasized = false,
   });
 
@@ -710,94 +709,64 @@ class _SeriesMiniCard extends StatelessWidget {
   final IconData icon;
   final VisualPlaceholderMood mood;
   final bool onDark;
-  final double cardHeight;
-  final String? label;
   final bool emphasized;
 
   @override
   Widget build(BuildContext context) {
-    final tilt = (index - 1) * 0.035;
-    final dy = emphasized ? -5.0 : (index == 0 ? 1.0 : 2.0);
+    final tilt = (index - 1) * 0.04;
 
-    return Transform.translate(
-      offset: Offset(0, dy),
-      child: Transform.rotate(
-        angle: tilt,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    return Transform.rotate(
+      angle: tilt,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(emphasized ? 12 : 10),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.lerp(
+                colors.first,
+                Colors.white,
+                emphasized ? 0.18 : 0.1 + index * 0.04,
+              )!,
+              Color.lerp(
+                colors.last,
+                Colors.white,
+                emphasized ? 0.08 : index * 0.03,
+              )!,
+            ],
+          ),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: emphasized ? 0.82 : 0.68),
+            width: emphasized ? 2 : 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: emphasized ? 0.14 : 0.09,
+              ),
+              blurRadius: emphasized ? 12 : 8,
+              offset: Offset(0, emphasized ? 5 : 3),
+            ),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            SizedBox(
-              height: cardHeight,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(emphasized ? 12 : 10),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color.lerp(
-                        colors.first,
-                        Colors.white,
-                        emphasized ? 0.18 : 0.1 + index * 0.04,
-                      )!,
-                      Color.lerp(
-                        colors.last,
-                        Colors.white,
-                        emphasized ? 0.08 : index * 0.03,
-                      )!,
-                    ],
-                  ),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: emphasized ? 0.82 : 0.68),
-                    width: emphasized ? 2 : 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: emphasized ? 0.14 : 0.09,
-                      ),
-                      blurRadius: emphasized ? 12 : 8,
-                      offset: Offset(0, emphasized ? 5 : 3),
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Positioned(
-                      right: -2,
-                      bottom: -4,
-                      child: Icon(
-                        icon,
-                        size: emphasized ? 30 : 24,
-                        color: colors.last.withValues(alpha: 0.18),
-                      ),
-                    ),
-                    _MiniSilhouette(
-                      mood: mood,
-                      emphasized: emphasized,
-                      onDark: onDark,
-                    ),
-                  ],
-                ),
+            Positioned(
+              right: -2,
+              bottom: -4,
+              child: Icon(
+                icon,
+                size: emphasized ? 28 : 22,
+                color: colors.last.withValues(alpha: 0.18),
               ),
             ),
-            if (label != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                label!,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: onDark
-                      ? Colors.white.withValues(alpha: 0.88)
-                      : VisualPlaceholderPalette.textSecondary,
-                ),
-              ),
-            ],
+            _MiniSilhouette(
+              mood: mood,
+              emphasized: emphasized,
+              onDark: onDark,
+            ),
           ],
         ),
       ),

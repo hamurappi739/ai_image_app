@@ -24,6 +24,7 @@ import 'services/onboarding_service.dart';
 import 'services/photoshoots_help_service.dart';
 import 'utils/gallery_item_key.dart';
 import 'utils/mock_photoshoot_photo.dart';
+import 'widgets/app_balance_summary.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/app_navigation_scope.dart';
 import 'widgets/app_screen_header.dart';
@@ -2083,7 +2084,13 @@ class PhotoshootsScreen extends StatefulWidget {
 class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
   bool _isHelpDialogVisible = false;
   final _scrollController = ScrollController();
-  final _trendingSectionKey = GlobalKey();
+  final _customPhotoshootKey = GlobalKey();
+  final _sectionKeys = <String, GlobalKey>{
+    'trending': GlobalKey(),
+    'for_self': GlobalKey(),
+    'work': GlobalKey(),
+    'atmospheric': GlobalKey(),
+  };
 
   static const _gridBreakpoint = 560.0;
 
@@ -2373,7 +2380,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
   void _scheduleScrollToTrending() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !widget.isActive) return;
-      final targetContext = _trendingSectionKey.currentContext;
+      final targetContext = _sectionKeys['trending']?.currentContext;
       if (targetContext != null) {
         Scrollable.ensureVisible(
           targetContext,
@@ -2495,6 +2502,30 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     ];
   }
 
+  void _scrollToPhotoshootSection(String sectionId) {
+    if (sectionId == 'custom') {
+      final context = _customPhotoshootKey.currentContext;
+      if (context != null) {
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOut,
+          alignment: 0.05,
+        );
+      }
+      return;
+    }
+
+    final context = _sectionKeys[sectionId]?.currentContext;
+    if (context == null) return;
+    Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
+      alignment: 0.05,
+    );
+  }
+
   List<({ _PhotoshootCollection collection, List<_PhotoshootStyle> styles })>
       _visibleCollections() {
     final shownIds = <String>{};
@@ -2590,10 +2621,10 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
               builder: (context, constraints) {
                 final columns =
                     constraints.maxWidth >= _gridBreakpoint ? 2 : 1;
-                final previewHeight = columns == 2 ? 152.0 : 142.0;
+                final previewHeight = columns == 2 ? 118.0 : 112.0;
                 final cardWidth =
                     (constraints.maxWidth - (columns - 1) * 16) / columns;
-                final cardHeight = columns == 2 ? 388.0 : 420.0;
+                final cardHeight = columns == 2 ? 300.0 : 318.0;
                 final gridAspectRatio = cardWidth / cardHeight;
 
                 final collections = _visibleCollections();
@@ -2612,16 +2643,21 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                         helpEnabled: !_isHelpDialogVisible,
                         onOpenPacks: widget.onOpenPacks,
                       ),
+                      const SizedBox(height: 12),
+                      _PhotoshootCategoryChips(
+                        onSelected: _scrollToPhotoshootSection,
+                      ),
                       const SizedBox(height: 16),
-                      _CustomPhotoshootPromoBanner(
-                        onAction: () => _openCustomPhotoshootSheet(context),
+                      KeyedSubtree(
+                        key: _customPhotoshootKey,
+                        child: _CustomPhotoshootPromoBanner(
+                          onAction: () => _openCustomPhotoshootSheet(context),
+                        ),
                       ),
                       for (var i = 0; i < collections.length; i++) ...[
                         SizedBox(height: i == 0 ? 24 : 28),
                         KeyedSubtree(
-                          key: collections[i].collection.id == 'trending'
-                              ? _trendingSectionKey
-                              : null,
+                          key: _sectionKeys[collections[i].collection.id],
                           child: _PhotoshootCollectionHeader(
                             title: collections[i].collection.title,
                             subtitle: collections[i].collection.subtitle,
@@ -2649,6 +2685,49 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
   }
 }
 
+class _PhotoshootCategoryChips extends StatelessWidget {
+  const _PhotoshootCategoryChips({required this.onSelected});
+
+  final ValueChanged<String> onSelected;
+
+  static const _chips = [
+    (id: 'trending', label: 'Популярное'),
+    (id: 'for_self', label: 'Для себя'),
+    (id: 'work', label: 'Для работы'),
+    (id: 'atmospheric', label: 'Атмосферные'),
+    (id: 'custom', label: 'Своя фотосессия'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var i = 0; i < _chips.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            ActionChip(
+              label: Text(_chips[i].label),
+              onPressed: () => onSelected(_chips[i].id),
+              backgroundColor: Colors.white,
+              side: const BorderSide(color: Color(0xFFE8EAEF)),
+              labelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AiImageGeneratorApp.textPrimary,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _PhotoshootsIntroHeader extends StatelessWidget {
   const _PhotoshootsIntroHeader({
     required this.balance,
@@ -2670,21 +2749,7 @@ class _PhotoshootsIntroHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isDemoMode = balance != null && !balance!.consumptionEnabled;
-    final photoshootCount = balance?.paidPhotoshoots;
-
-    String balanceLine;
-    if (balanceLoading && balance == null) {
-      balanceLine = 'Загружаем баланс…';
-    } else if (balance == null) {
-      balanceLine = 'Доступно фотосессий: —';
-    } else if (isDemoMode) {
-      balanceLine =
-          'Доступно фотосессий: ${photoshootCount ?? 0} · демо-режим';
-    } else {
-      balanceLine = 'Доступно фотосессий: ${photoshootCount ?? 0}';
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2699,49 +2764,32 @@ class _PhotoshootsIntroHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE8EAEF)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
+        if (isDemoMode && balance != null)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 0),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0F2FF),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: _accentColor.withValues(alpha: 0.2),
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              if (balanceLoading && balance == null)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                Icon(
-                  Icons.photo_camera_outlined,
-                  size: 18,
-                  color: _accentColor.withValues(alpha: 0.85),
-                ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  balanceLine,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AiImageGeneratorApp.textPrimary,
+            ),
+            child: Text(
+              'Демо-режим — фотосессии доступны без списания.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: 13,
+                    color: AiImageGeneratorApp.textSecondary,
                   ),
-                ),
-              ),
-            ],
+            ),
+          )
+        else
+          AppScreenBalanceCard(
+            balance: balance,
+            isLoading: balanceLoading,
+            showPhotoshoots: true,
           ),
-        ),
         if (showDepletedWarning) ...[
           const SizedBox(height: 12),
           InsufficientBalanceHint(
@@ -3012,31 +3060,31 @@ class _PhotoshootCard extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       style.title,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       style.description,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 13,
-                        height: 1.3,
+                        fontSize: 12,
+                        height: 1.28,
                         color: AiImageGeneratorApp.textSecondary,
                       ),
-                      maxLines: 3,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
@@ -3059,10 +3107,10 @@ class _PhotoshootCard extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     SizedBox(
                       width: double.infinity,
-                      height: 38,
+                      height: 34,
                       child: style.isFree
                           ? DecoratedBox(
                               decoration: BoxDecoration(
@@ -6719,83 +6767,112 @@ class _CreateBalanceInfoCard extends StatelessWidget {
     final freeRemaining = balance?.freeGenerationsRemaining ?? 0;
     final freeLimit = balance?.freeGenerationsLimit ?? 3;
     final paidImages = balance?.paidImageGenerations ?? 0;
+    final isDepleted = balance != null && balance!.showImageDepletedWarning;
 
-    String title;
-    String subtitle;
     if (isLoading && balance == null) {
-      title = 'Загружаем баланс…';
-      subtitle = 'Скоро покажем, сколько фото можно создать.';
-    } else if (isDemoMode) {
-      title = 'Демо-режим';
-      subtitle = 'Сейчас приложение работает в демо-режиме.';
-    } else if (freeRemaining > 0) {
-      title = 'Бесплатные фото: $freeRemaining из $freeLimit';
-      subtitle = 'Используйте их, чтобы попробовать создание фото.';
-    } else if (paidImages > 0) {
-      title = 'Бесплатные фото закончились';
-      subtitle = 'Используйте фото из баланса. Доступно: $paidImages.';
-    } else {
-      title = 'Фото закончились';
-      subtitle = 'Пополните баланс, чтобы продолжить.';
+      return AppScreenBalanceCard(balance: balance, isLoading: true);
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0F2FF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _accentColor.withValues(alpha: 0.22),
+    if (isDemoMode) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0F2FF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _accentColor.withValues(alpha: 0.22)),
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEDE9FF),
-              borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Демо-режим',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AiImageGeneratorApp.textPrimary,
+              ),
             ),
-            child: Icon(
-              isDemoMode
-                  ? Icons.science_outlined
-                  : Icons.auto_awesome_outlined,
-              color: _accentColor,
-              size: 24,
+            const SizedBox(height: 4),
+            Text(
+              'Сейчас приложение работает в демо-режиме.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 13,
+                color: AiImageGeneratorApp.textSecondary,
+              ),
             ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: AiImageGeneratorApp.textPrimary,
-                    height: 1.25,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: 14,
-                    height: 1.35,
-                    color: AiImageGeneratorApp.textSecondary,
-                  ),
-                ),
-              ],
+          ],
+        ),
+      );
+    }
+
+    if (isDepleted) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF8E6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFFE082)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Фото закончились',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AiImageGeneratorApp.textPrimary,
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+            const SizedBox(height: 4),
+            Text(
+              'Пополните баланс, чтобы продолжить.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 13,
+                color: AiImageGeneratorApp.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (freeRemaining > 0 && paidImages == 0) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE8EAEF)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Бесплатные фото: $freeRemaining из $freeLimit',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AiImageGeneratorApp.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Используйте их, чтобы попробовать создание фото.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 13,
+                color: AiImageGeneratorApp.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return AppScreenBalanceCard(balance: balance, isLoading: isLoading);
   }
 }
 

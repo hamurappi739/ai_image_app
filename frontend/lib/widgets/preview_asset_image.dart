@@ -26,21 +26,33 @@ class PreviewAssetImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Widget content;
     if (!PreviewAssetRegistry.isAvailable(assetPath)) {
-      return placeholder;
+      content = placeholder;
+    } else {
+      content = Image.asset(
+        assetPath!,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => placeholder,
+      );
+    }
+
+    Widget sized = content;
+    if (height != null || width != null) {
+      sized = SizedBox(
+        height: height,
+        width: width ?? double.infinity,
+        child: content,
+      );
+    }
+
+    if (borderRadius == BorderRadius.zero) {
+      return sized;
     }
 
     return ClipRRect(
       borderRadius: borderRadius,
-      child: SizedBox(
-        height: height,
-        width: width ?? double.infinity,
-        child: Image.asset(
-          assetPath!,
-          fit: fit,
-          errorBuilder: (context, error, stackTrace) => placeholder,
-        ),
-      ),
+      child: sized,
     );
   }
 }

@@ -347,7 +347,7 @@ class TemplatePhotoScreen extends StatelessWidget {
   }
 
   static double _gridAspectRatio(int columns) {
-    return columns == 1 ? 1.02 : 0.9;
+    return columns == 1 ? 1.38 : 1.15;
   }
 
   @override
@@ -368,7 +368,7 @@ class TemplatePhotoScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AppScreenHeader(
-                        title: 'Фото по шаблону',
+                        title: 'Шаблоны фото',
                         subtitle:
                             'Выберите готовый вариант. Описание подставится '
                             'само — вам останется только добавить фото.',
@@ -544,28 +544,36 @@ class _TemplateCategorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: _textPrimary,
-              ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontSize: 14,
-                height: 1.4,
-                color: _textSecondary,
-              ),
-        ),
-        const SizedBox(height: 14),
-        GridView.builder(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F8FC),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE8EAEF)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: _textSecondary,
+                ),
+          ),
+          const SizedBox(height: 12),
+          GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -583,7 +591,8 @@ class _TemplateCategorySection extends StatelessWidget {
             );
           },
         ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -619,7 +628,7 @@ class _TemplateCard extends StatelessWidget {
         children: [
           PreviewAssetImage(
             assetPath: template.effectivePreviewAssetPath,
-            height: 88,
+            height: 108,
             placeholder: VisualPlaceholder(
               mood: template.visualKind.placeholderMood,
               gradientColors: template.placeholderColors,
@@ -627,12 +636,12 @@ class _TemplateCard extends StatelessWidget {
                 template.visualKind.placeholderMood,
               ).caption,
               variant: template.id.hashCode.abs() % 4,
-              height: 88,
+              height: 108,
               compact: true,
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+            padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -658,10 +667,10 @@ class _TemplateCard extends StatelessWidget {
                     color: _textSecondary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 SizedBox(
                   width: double.infinity,
-                  height: 42,
+                  height: 36,
                   child: FilledButton(
                     onPressed: onSelect,
                     style: FilledButton.styleFrom(

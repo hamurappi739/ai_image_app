@@ -150,6 +150,121 @@ class _DrawerBalanceLine extends StatelessWidget {
   }
 }
 
+/// Calm balance block for section screens (not header).
+class AppScreenBalanceCard extends StatelessWidget {
+  const AppScreenBalanceCard({
+    super.key,
+    required this.balance,
+    required this.isLoading,
+    this.showPhotoshoots = false,
+  });
+
+  final UserBalance? balance;
+  final bool isLoading;
+  final bool showPhotoshoots;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE8EAEF)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Ваш баланс',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppBalanceSummary.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (isLoading && balance == null)
+            Text(
+              'Загружаем баланс…',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 13,
+                color: AppBalanceSummary.textSecondary,
+              ),
+            )
+          else if (balance != null) ...[
+            _ScreenBalanceLine(
+              label: 'Фото',
+              value: '${AppBalanceSummary.photoCount(balance!)}',
+            ),
+            if (showPhotoshoots) ...[
+              const SizedBox(height: 4),
+              _ScreenBalanceLine(
+                label: 'Фотосессии',
+                value: '${AppBalanceSummary.photoshootCount(balance!)}',
+              ),
+            ],
+            if (AppBalanceSummary.showFreePhotos(balance!)) ...[
+              const SizedBox(height: 4),
+              _ScreenBalanceLine(
+                label: 'Бесплатные',
+                value: '${AppBalanceSummary.freePhotoCount(balance!)}',
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ScreenBalanceLine extends StatelessWidget {
+  const _ScreenBalanceLine({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            '$label:',
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.35,
+              color: AppBalanceSummary.textSecondary,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            height: 1.35,
+            fontWeight: FontWeight.w600,
+            color: AppBalanceSummary.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class AppHeaderBalanceIndicator extends StatelessWidget {
   const AppHeaderBalanceIndicator({
     super.key,
