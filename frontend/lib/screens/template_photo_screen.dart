@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/app_prompts.dart';
 import '../assets/preview_asset_paths.dart';
 import '../assets/preview_asset_registry.dart';
 import '../widgets/app_screen_header.dart';
@@ -103,190 +104,142 @@ class TemplatePhotoScreen extends StatelessWidget {
 
   final ValueChanged<PhotoTemplate> onTemplateSelected;
 
-  static const templates = [
-    PhotoTemplate(
+  static PhotoTemplate _template({
+    required String id,
+    required String title,
+    required TemplateVisualKind visualKind,
+    required List<Color> placeholderColors,
+    String? previewLabel,
+    String? previewAssetPath,
+  }) {
+    return PhotoTemplate(
+      id: id,
+      title: title,
+      description: AppPrompts.templateShort(id),
+      requestDescription: AppPrompts.templateFull(id),
+      visualKind: visualKind,
+      placeholderColors: placeholderColors,
+      previewLabel: previewLabel,
+      previewAssetPath: previewAssetPath,
+    );
+  }
+
+  static final templates = [
+    _template(
       id: 'beautiful_portrait',
       title: 'Красивый портрет',
-      description: 'Мягкий свет и аккуратный образ для красивого фото.',
-      requestDescription:
-          'Сделай красивый портрет. Мягкий свет, аккуратная обработка, '
-          'естественный внешний вид.',
       visualKind: TemplateVisualKind.portrait,
       placeholderColors: [Color(0xFFF5E8D8), Color(0xFFD4B896)],
       previewLabel: 'Нежный портрет',
     ),
-    PhotoTemplate(
+    _template(
       id: 'social_photo',
       title: 'Фото для соцсетей',
-      description: 'Современное фото для профиля или публикации.',
-      requestDescription:
-          'Сделай красивое фото для социальных сетей. '
-          'Естественный образ, приятный свет, современный стиль.',
       visualKind: TemplateVisualKind.social,
       placeholderColors: [Color(0xFFEDE9FF), Color(0xFFB8B0D4)],
       previewLabel: 'Для профиля',
     ),
-    PhotoTemplate(
+    _template(
       id: 'winter_portrait',
       title: 'Зимний портрет',
-      description: 'Уютный зимний образ со снегом и мягким светом.',
-      requestDescription:
-          'Сделай зимний портрет. Тёплая одежда, мягкий снег на фоне, '
-          'уютное настроение.',
       visualKind: TemplateVisualKind.winter,
       placeholderColors: [Color(0xFFE8F4FF), Color(0xFFA8C8E8)],
       previewLabel: 'Зимняя прогулка',
     ),
-    PhotoTemplate(
+    _template(
       id: 'business_portrait',
       title: 'Деловой портрет',
-      description: 'Аккуратное фото для работы и делового образа.',
-      requestDescription:
-          'Сделай деловой портрет на светлом фоне. '
-          'Аккуратный образ, естественная улыбка, мягкий свет.',
       visualKind: TemplateVisualKind.business,
       placeholderColors: [Color(0xFFD4E0EE), Color(0xFF8EA4BE)],
       previewLabel: 'Деловой образ',
     ),
-    PhotoTemplate(
+    _template(
       id: 'resume_photo',
       title: 'Фото для резюме',
-      description: 'Нейтральный фон, лицо хорошо видно, спокойный стиль.',
-      requestDescription:
-          'Сделай аккуратное фото для резюме. Нейтральный фон, '
-          'деловой стиль, лицо хорошо видно.',
       visualKind: TemplateVisualKind.resume,
       placeholderColors: [Color(0xFFF0F2F8), Color(0xFFD0D6E4)],
       previewLabel: 'Для резюме',
     ),
-    PhotoTemplate(
+    _template(
       id: 'product_photo',
       title: 'Фото товара',
-      description: 'Чистый фон и хороший свет для продажи товара.',
-      requestDescription:
-          'Сделай красивое фото товара для продажи. Чистый фон, '
-          'хороший свет, предмет должен выглядеть аккуратно.',
       visualKind: TemplateVisualKind.product,
       placeholderColors: [Color(0xFFEAF5EE), Color(0xFFB8D4C4)],
       previewLabel: 'Карточка товара',
     ),
-    PhotoTemplate(
+    _template(
       id: 'summer_portrait',
       title: 'Летний портрет',
-      description: 'Солнечный свет, лёгкий образ и приятное настроение.',
-      requestDescription:
-          'Сделай летний портрет. Мягкий солнечный свет, лёгкий образ, '
-          'приятный фон.',
       visualKind: TemplateVisualKind.summer,
       placeholderColors: [Color(0xFFFFF0D0), Color(0xFFE8C878)],
       previewLabel: 'Летний день',
     ),
-    PhotoTemplate(
+    _template(
       id: 'tender_portrait',
       title: 'Нежный портрет',
-      description: 'Мягкий свет, спокойный фон и естественная улыбка.',
-      requestDescription:
-          'Сделай нежный портрет. Мягкий свет, спокойный фон, '
-          'естественная улыбка.',
       visualKind: TemplateVisualKind.tender,
       placeholderColors: [Color(0xFFFCE8F0), Color(0xFFE0B8D0)],
       previewLabel: 'Нежный образ',
     ),
-    PhotoTemplate(
+    _template(
       id: 'vibrant_look',
       title: 'Яркий образ',
-      description: 'Выразительные цвета и современная стильная подача.',
-      requestDescription:
-          'Сделай яркий стильный образ. Выразительные цвета, '
-          'аккуратная обработка, современный вид.',
       visualKind: TemplateVisualKind.vibrant,
       placeholderColors: [Color(0xFFFFE0B8), Color(0xFFE87858)],
       previewLabel: 'Яркий стиль',
     ),
-    PhotoTemplate(
+    _template(
       id: 'profile_photo',
       title: 'Фото для профиля',
-      description: 'Аккуратное фото для сайта, блога или мессенджера.',
-      requestDescription:
-          'Сделай аккуратное фото для профиля. Лицо хорошо видно, '
-          'приятный свет, уверенный образ.',
       visualKind: TemplateVisualKind.profile,
       placeholderColors: [Color(0xFFE8EEF8), Color(0xFFB0C0D8)],
       previewLabel: 'Для профиля',
     ),
-    PhotoTemplate(
+    _template(
       id: 'expert_look',
       title: 'Экспертный образ',
-      description: 'Уверенный деловой стиль для экспертного профиля.',
-      requestDescription:
-          'Сделай образ эксперта. Деловой стиль, спокойный фон, '
-          'уверенное выражение лица.',
       visualKind: TemplateVisualKind.expert,
       placeholderColors: [Color(0xFFD8E4F0), Color(0xFF88A0B8)],
       previewLabel: 'Эксперт',
     ),
-    PhotoTemplate(
+    _template(
       id: 'family_photo',
       title: 'Семейное фото',
-      description: 'Тёплая атмосфера и естественный свет для семьи.',
-      requestDescription:
-          'Сделай тёплое семейное фото. Естественный свет, уютная '
-          'атмосфера, аккуратная обработка.',
       visualKind: TemplateVisualKind.family,
       placeholderColors: [Color(0xFFF5E8DC), Color(0xFFD4B8A0)],
       previewLabel: 'Семья',
     ),
-    PhotoTemplate(
+    _template(
       id: 'photo_with_child',
       title: 'Фото с ребёнком',
-      description: 'Нежные эмоции, мягкий свет и тёплое настроение.',
-      requestDescription:
-          'Сделай нежное фото с ребёнком. Тёплая атмосфера, мягкий свет, '
-          'естественные эмоции.',
       visualKind: TemplateVisualKind.child,
       placeholderColors: [Color(0xFFFFF5E8), Color(0xFFE8D0B0)],
       previewLabel: 'С ребёнком',
     ),
-    PhotoTemplate(
+    _template(
       id: 'festive_look',
       title: 'Праздничный образ',
-      description: 'Нарядный стиль, красивый свет и радостное настроение.',
-      requestDescription:
-          'Сделай праздничный образ. Красивый свет, нарядный стиль, '
-          'радостное настроение.',
       visualKind: TemplateVisualKind.festive,
       placeholderColors: [Color(0xFFFFE8F0), Color(0xFFD87898)],
       previewLabel: 'Праздник',
     ),
-    PhotoTemplate(
+    _template(
       id: 'clothing_photo',
       title: 'Фото одежды',
-      description: 'Аккуратная подача вещи на чистом фоне для продажи.',
-      requestDescription:
-          'Сделай красивое фото одежды для продажи. Чистый фон, '
-          'хороший свет, вещь выглядит аккуратно.',
       visualKind: TemplateVisualKind.clothing,
       placeholderColors: [Color(0xFFF0F0F8), Color(0xFFC0C0D8)],
       previewLabel: 'Одежда',
     ),
-    PhotoTemplate(
+    _template(
       id: 'jewelry_photo',
       title: 'Фото украшений',
-      description: 'Мягкий свет и чистый фон — украшение хорошо видно.',
-      requestDescription:
-          'Сделай красивое фото украшения для продажи. Чистый фон, '
-          'мягкий свет, украшение хорошо видно.',
       visualKind: TemplateVisualKind.jewelry,
       placeholderColors: [Color(0xFFFFF8F0), Color(0xFFE8D8C0)],
       previewLabel: 'Украшение',
     ),
-    PhotoTemplate(
+    _template(
       id: 'interior_photo',
       title: 'Фото интерьера',
-      description: 'Светлая комната, уютная обстановка и аккуратный кадр.',
-      requestDescription:
-          'Сделай красивое фото интерьера. Светлая комната, аккуратная '
-          'обстановка, уютная атмосфера.',
       visualKind: TemplateVisualKind.interior,
       placeholderColors: [Color(0xFFF5F0E8), Color(0xFFC8B8A0)],
       previewLabel: 'Интерьер',

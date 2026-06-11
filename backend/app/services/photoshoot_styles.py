@@ -130,11 +130,101 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
         is_free=False,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
-            "Create one standalone travel portrait photo based on the uploaded person. "
-            "Preserve the person's face, identity, and key facial features. "
-            "Use beautiful vacation locations, natural travel lighting, and scenic backgrounds. "
-            "Improve atmosphere, color, background, and composition. "
-            "Do not change the person's identity. No NSFW content."
+            "Создай реалистичный портрет в путешествии по исходному фото. "
+            "Сохрани лицо, возраст, черты, цвет глаз и узнаваемость человека. "
+            "Красивый атмосферный фон, мягкий естественный свет, лёгкий стильный образ. "
+            "Без искажений лица, рук, пальцев и фона."
+        ),
+    ),
+    "tender_photoshoot": PhotoshootStyle(
+        id="tender_photoshoot",
+        title="Нежная фотосессия",
+        price_rub=100,
+        is_free=False,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
+        instruction=(
+            "Создай нежный реалистичный портрет по загруженному фото. "
+            "Сохрани лицо, возраст, черты, цвет глаз и естественную мимику человека. "
+            "Мягкий рассеянный свет, спокойный светлый фон, тёплая атмосфера. "
+            "Без искажений лица, рук, пальцев и пропорций."
+        ),
+    ),
+    "summer_photoshoot": PhotoshootStyle(
+        id="summer_photoshoot",
+        title="Летняя фотосессия",
+        price_rub=100,
+        is_free=False,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
+        instruction=(
+            "Создай летнее реалистичное фото по исходному снимку. "
+            "Сохрани лицо, возраст, основные черты, цвет глаз и узнаваемость человека. "
+            "Мягкий солнечный свет, лёгкий образ, приятный природный или городской фон. "
+            "Без искажений лица, рук, пальцев и тела."
+        ),
+    ),
+    "expert_photoshoot": PhotoshootStyle(
+        id="expert_photoshoot",
+        title="Экспертная фотосессия",
+        price_rub=100,
+        is_free=False,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
+        instruction=(
+            "Создай экспертное фото по загруженному снимку. "
+            "Сохрани лицо, возраст, черты, цвет глаз и узнаваемость человека. "
+            "Образ специалиста: спокойный фон, мягкий деловой свет, уверенный взгляд. "
+            "Без искажений лица, рук, пальцев и пропорций."
+        ),
+    ),
+    "business_brand": PhotoshootStyle(
+        id="business_brand",
+        title="Бизнес-портрет",
+        price_rub=100,
+        is_free=False,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
+        instruction=(
+            "Создай бизнес-портрет по исходному фото. "
+            "Сохрани лицо, возраст, форму лица, цвет глаз и узнаваемость человека. "
+            "Современный деловой стиль, нейтральный фон, мягкий профессиональный свет. "
+            "Без искажений лица, рук, пальцев и тела."
+        ),
+    ),
+    "personal_brand": PhotoshootStyle(
+        id="personal_brand",
+        title="Фото для личного бренда",
+        price_rub=100,
+        is_free=False,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
+        instruction=(
+            "Создай фото для личного бренда по загруженному изображению. "
+            "Сохрани лицо, возраст, черты, цвет глаз и узнаваемость человека. "
+            "Современный уверенный образ, приятный фон, мягкий свет, естественные позы. "
+            "Без искажений лица, рук и пальцев."
+        ),
+    ),
+    "cafe_city": PhotoshootStyle(
+        id="cafe_city",
+        title="Кафе и город",
+        price_rub=100,
+        is_free=False,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
+        instruction=(
+            "Создай фото в стиле кафе и города по загруженному снимку. "
+            "Сохрани лицо, возраст, черты, цвет глаз и узнаваемость человека. "
+            "Уютное кафе или городская улица, мягкий свет, стильный повседневный образ. "
+            "Без искажений лица, рук, пальцев и перспективы."
+        ),
+    ),
+    "park_walk": PhotoshootStyle(
+        id="park_walk",
+        title="Прогулка в парке",
+        price_rub=100,
+        is_free=False,
+        output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
+        instruction=(
+            "Создай реалистичное фото на прогулке в парке по исходному фото. "
+            "Сохрани лицо, возраст, форму лица, цвет глаз и узнаваемость человека. "
+            "Природный фон, мягкий дневной свет, спокойный образ, естественные позы. "
+            "Без искажений лица, рук, пальцев и тела."
         ),
     ),
     "custom_photoshoot": PhotoshootStyle(

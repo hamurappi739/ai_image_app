@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'assets/preview_asset_paths.dart';
+import 'data/app_prompts.dart';
 import 'models/gallery_display_item.dart';
 import 'models/generated_image_item.dart';
 import 'models/payment_result.dart';
@@ -2005,6 +2006,7 @@ class _PhotoshootStyle {
     required this.id,
     required this.title,
     required this.description,
+    required this.stylePrompt,
     required this.recommendation,
     required this.initials,
     required this.icon,
@@ -2017,6 +2019,7 @@ class _PhotoshootStyle {
   final String id;
   final String title;
   final String description;
+  final String stylePrompt;
   final String recommendation;
   final String initials;
   final IconData icon;
@@ -2146,13 +2149,36 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     ),
   ];
 
-  static const _photoshoots = <_PhotoshootStyle>[
-    _PhotoshootStyle(
+  static _PhotoshootStyle _photoshootStyle({
+    required String id,
+    required String title,
+    required String recommendation,
+    required String initials,
+    required IconData icon,
+    required List<Color> gradientColors,
+    required bool isFree,
+    int previewVariant = 0,
+    String? previewAssetPath,
+  }) {
+    return _PhotoshootStyle(
+      id: id,
+      title: title,
+      description: AppPrompts.photoshootShort(id),
+      stylePrompt: AppPrompts.photoshootStylePrompt(id),
+      recommendation: recommendation,
+      initials: initials,
+      icon: icon,
+      gradientColors: gradientColors,
+      isFree: isFree,
+      previewVariant: previewVariant,
+      previewAssetPath: previewAssetPath,
+    );
+  }
+
+  static final _photoshoots = <_PhotoshootStyle>[
+    _photoshootStyle(
       id: 'studio_portrait',
       title: 'Студийный портрет',
-      description:
-          'Получится аккуратный портрет на чистом фоне с мягким светом. '
-          'Подходит для аватара, профиля и первого знакомства с сервисом.',
       recommendation: 'Популярно',
       initials: 'СП',
       icon: Icons.portrait_outlined,
@@ -2161,12 +2187,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       previewVariant: 0,
       previewAssetPath: PreviewAssetPaths.photoshootsStudioPortrait,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'business_portrait',
       title: 'Деловой портрет',
-      description:
-          'Создаёт образ для резюме, сайта, мессенджеров и рабочих профилей. '
-          'Визуально — аккуратно, спокойно и профессионально.',
       recommendation: 'Для работы',
       initials: 'ДП',
       icon: Icons.business_center_outlined,
@@ -2175,12 +2198,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       previewVariant: 1,
       previewAssetPath: PreviewAssetPaths.photoshootsBusinessPortrait,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'home_portrait',
       title: 'Домашний портрет',
-      description:
-          'Тёплый естественный образ с мягким светом и уютной атмосферой. '
-          'Подходит для личного профиля и социальных сетей.',
       recommendation: 'Для себя',
       initials: 'ДМ',
       icon: Icons.home_outlined,
@@ -2189,12 +2209,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       previewVariant: 2,
       previewAssetPath: PreviewAssetPaths.photoshootsHomePortrait,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'premium_portrait',
       title: 'Премиум-портрет',
-      description:
-          'Более выразительная подача: дорогой свет, контраст '
-          'и ощущение профессиональной съёмки.',
       recommendation: 'Для себя',
       initials: 'ПР',
       icon: Icons.diamond_outlined,
@@ -2203,11 +2220,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       previewVariant: 3,
       previewAssetPath: PreviewAssetPaths.photoshootsPremiumPortrait,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'winter_photoshoot',
       title: 'Зимняя фотосессия',
-      description:
-          'Зимняя атмосфера, мягкий свет, уютный образ и сезонное настроение.',
       recommendation: 'Для себя',
       initials: 'ЗМ',
       icon: Icons.ac_unit,
@@ -2216,12 +2231,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       previewVariant: 1,
       previewAssetPath: PreviewAssetPaths.photoshootsWinterPhotoshoot,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'urban_portrait',
       title: 'Городской портрет',
-      description:
-          'Современный городской фон, стильная подача '
-          'и кадр для социальных сетей.',
       recommendation: 'Для соцсетей',
       initials: 'ГР',
       icon: Icons.location_city_outlined,
@@ -2230,12 +2242,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       previewVariant: 0,
       previewAssetPath: PreviewAssetPaths.photoshootsCityPortrait,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'evening_look',
       title: 'Вечерний образ',
-      description:
-          'Элегантный свет, вечернее настроение '
-          'и более выразительный визуальный стиль.',
       recommendation: 'Для себя',
       initials: 'ВЧ',
       icon: Icons.nightlife_outlined,
@@ -2244,12 +2253,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       previewVariant: 2,
       previewAssetPath: PreviewAssetPaths.photoshootsEveningStyle,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'travel_portrait',
       title: 'Портрет в путешествии',
-      description:
-          'Атмосфера поездки, красивый фон '
-          'и ощущение живой фотографии из путешествия.',
       recommendation: 'Атмосфера',
       initials: 'ПТ',
       icon: Icons.flight_outlined,
@@ -2258,12 +2264,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       previewVariant: 3,
       previewAssetPath: PreviewAssetPaths.photoshootsTravelPortrait,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'tender_photoshoot',
       title: 'Нежная фотосессия',
-      description:
-          'Мягкий свет, спокойные тона и естественная улыбка. '
-          'Подходит для личного профиля.',
       recommendation: 'Для себя',
       initials: 'НФ',
       icon: Icons.spa_outlined,
@@ -2271,12 +2274,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       isFree: false,
       previewVariant: 2,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'summer_photoshoot',
       title: 'Летняя фотосессия',
-      description:
-          'Солнечный свет, лёгкий образ и тёплое летнее настроение '
-          'в серии из трёх фото.',
       recommendation: 'Для себя',
       initials: 'ЛФ',
       icon: Icons.wb_sunny_outlined,
@@ -2284,12 +2284,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       isFree: false,
       previewVariant: 1,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'expert_photoshoot',
       title: 'Экспертная фотосессия',
-      description:
-          'Уверенный деловой образ для экспертного профиля, '
-          'блога и публичных выступлений.',
       recommendation: 'Для работы',
       initials: 'ЭФ',
       icon: Icons.school_outlined,
@@ -2297,12 +2294,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       isFree: false,
       previewVariant: 0,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'business_brand',
       title: 'Бизнес-портрет',
-      description:
-          'Строгий деловой стиль для карьеры, сайта '
-          'и деловых социальных сетей.',
       recommendation: 'Для работы',
       initials: 'БП',
       icon: Icons.work_outline,
@@ -2310,12 +2304,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       isFree: false,
       previewVariant: 1,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'personal_brand',
       title: 'Фото для личного бренда',
-      description:
-          'Выразительный образ для блога, соцсетей '
-          'и личного продвижения.',
       recommendation: 'Для работы',
       initials: 'ЛБ',
       icon: Icons.campaign_outlined,
@@ -2323,12 +2314,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       isFree: false,
       previewVariant: 2,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'cafe_city',
       title: 'Кафе и город',
-      description:
-          'Уютная городская атмосфера, кафе и прогулка '
-          'по современному городу.',
       recommendation: 'Атмосфера',
       initials: 'КГ',
       icon: Icons.local_cafe_outlined,
@@ -2336,12 +2324,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       isFree: false,
       previewVariant: 0,
     ),
-    _PhotoshootStyle(
+    _photoshootStyle(
       id: 'park_walk',
       title: 'Прогулка в парке',
-      description:
-          'Свежий воздух, зелень и естественный свет '
-          'для живых портретов на природе.',
       recommendation: 'Атмосфера',
       initials: 'ПП',
       icon: Icons.park_outlined,
@@ -3377,6 +3362,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
         task: () => widget.apiService.generatePhotoshoot(
           styleId: widget.style.id,
           styleTitle: widget.style.title,
+          description: widget.style.stylePrompt,
           photoFile: selectedPhotoFile,
         ),
       );
@@ -3751,33 +3737,11 @@ class _CustomPhotoshootFlow {
   static const minDescriptionLength = 10;
   static const maxHistoryDescriptionLength = 1000;
 
-  static const ideas = <_CustomPhotoshootIdea>[
-    _CustomPhotoshootIdea(
-      label: 'Деловой образ',
-      text:
-          'Деловая фотосессия в аккуратном образе, светлый фон, уверенный стиль.',
-    ),
-    _CustomPhotoshootIdea(
-      label: 'Нежный портрет',
-      text:
-          'Нежная фотосессия с мягким светом, спокойный фон, естественная улыбка.',
-    ),
-    _CustomPhotoshootIdea(
-      label: 'Городская прогулка',
-      text:
-          'Фотосессия на прогулке в городе, красивый фон, современный образ.',
-    ),
-    _CustomPhotoshootIdea(
-      label: 'Вечерний образ',
-      text:
-          'Вечерняя фотосессия, красивый свет, нарядный образ, премиальное настроение.',
-    ),
-    _CustomPhotoshootIdea(
-      label: 'Фото для соцсетей',
-      text:
-          'Современная фотосессия для социальных сетей, приятный свет, стильный образ.',
-    ),
-  ];
+  static final ideas = AppPrompts.customPhotoshootChips
+      .map(
+        (chip) => _CustomPhotoshootIdea(label: chip.label, text: chip.text),
+      )
+      .toList();
 
   static String galleryDescription(String description) {
     final trimmed = description.trim();
