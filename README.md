@@ -4,7 +4,7 @@
 
 Сейчас проект в **MVP / demo-mode**: committed `.env` — **`IMAGE_PROVIDER=mock`**, **`ENABLE_PHOTOSHOOT_GENERATION=false`**, **`ENABLE_CREDIT_CONSUMPTION=false`**. **Проверены оба режима:** **mock mode** (ежедневная разработка) и **реальный Gemini в safe mode** (`IMAGE_PROVIDER=gemini`, `ENABLE_CREDIT_CONSUMPTION=false`) — все три flow (`/generate`, `/generate-with-photo`, `/photoshoots/generate`) работают, результаты в **Готовых фото**, баланс не списывается. **Списание баланса** (mock) **проверено вручную** при временном `ENABLE_CREDIT_CONSUMPTION=true`. **Оплата:** реальный **RuStore не подключён**; **backend foundation** + dev **mock-verify** (готовые наборы и **«Своя сумма»**); раздел **«Купить»** в development пополняет баланс через backend (frontend не начисляет сам). Подробнее: [project_status.md](docs/project_status.md).
 
-**Навигация (UX-redesign):** **burger/drawer** + **баланс в меню и шапке**; welcome-**Главная**; главный вход — **Фото по шаблону**; после генерации — **Готовые фото**; при нулевом балансе — мягкие подсказки → **Купить**. См. [navigation_redesign_plan.md](docs/navigation_redesign_plan.md).
+**Навигация (UX-redesign + mobile polish):** **burger/drawer**; баланс в **меню**, **Профиле**, **Купить** и info-блоках (**не** в верхней панели); welcome-**Главная**; главный вход — **Фото по шаблону**; после генерации — **Готовые фото**; при нулевом балансе — мягкие подсказки → **Купить**. См. [navigation_redesign_plan.md](docs/navigation_redesign_plan.md).
 
 **Свой запрос:** free-generation notice, **categorized clickable ideas** (режимы **«Без фото»** / **«С фото»**), подсказки в **«Как получить хороший результат»**, **generation countdown modal** (~60 s). **С фото:** **`POST /generate-with-photo`** (multipart); **без фото:** **`POST /generate`** (JSON). Шаблоны из **Фото по шаблону** автоматически заполняют поле описания.
 
@@ -23,7 +23,7 @@
 ## Что уже готово
 
 - Flutter **web** UI на **русском** языке
-- **UX-redesign:** burger/drawer, **баланс в меню/шапке**, welcome-**Главная**, **Готовые фото** с success и быстрыми действиями
+- **UX-redesign + mobile polish:** burger/drawer, баланс в **drawer/Профиль/Купить** (не в шапке), компактные карточки, welcome-**Главная**, **Готовые фото** с success и быстрыми действиями
 - **First-run onboarding** (5 экранов) + **контекстная помощь**; help hub
 - **Фото по шаблону** — шаблоны **по категориям**, визуальные placeholder; → **Свой запрос**
 - **Фотосессии** — подборки стилей; **«Своя фотосессия»** сверху; после успеха → **Готовые фото**
@@ -36,7 +36,7 @@
 - **Профиль** — вход / регистрация через Supabase Auth (при dart-define)
 - **Купить** — mixed UI (**199/499/999 ₽**), **«Фото + фотосессии»** / **«Только фото»**, **«Своя сумма»** (min **10 ₽**), баннер баланса; dev **mock top-up** через backend; **реальный RuStore — не подключён**
 - Supabase: таблицы **`profiles`**, **`generations`**, **`credit_transactions`**
-- Backend + Flutter: **списание баланса проверено вручную**; UI refresh в **drawer**, **шапке**, **Профиль**, **Купить**, **Свой запрос**
+- Backend + Flutter: **списание баланса проверено вручную**; UI refresh в **drawer**, **Профиль**, **Купить**, info-блоках на экранах
 - **Русский ввод** на **«Свой запрос»** в Chrome; на Android emulator и **физическом телефоне** — от раскладки клавиатуры (блокировки в приложении нет)
 - **Redesigned debug APK на физическом Android-телефоне (✅):** LAN `API_BASE_URL=http://192.168.31.242:8000`, demo mock backend; новый UX (drawer, шаблоны, все разделы)
 - Backend: **mock mode** и **Gemini safe mode** — все три generation flow **проверены вручную**; результаты в **Готовых фото**
@@ -223,7 +223,7 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 
 **Разделы (drawer):** Главная, Фото по шаблону, Фотосессии, Трендовые фотосессии, Свой запрос, Готовые фото, Купить, Профиль, Помощь.
 
-**Навигация:** burger menu; баланс в меню; путь **шаблон → Свой запрос → Готовые фото**. [app_design_strategy.md](docs/app_design_strategy.md), [navigation_redesign_plan.md](docs/navigation_redesign_plan.md), [roadmap.md](docs/roadmap.md).
+**Навигация:** burger menu; баланс в drawer и на экранах покупки/профиля (не в шапке); путь **шаблон → Свой запрос → Готовые фото**. [app_design_strategy.md](docs/app_design_strategy.md), [navigation_redesign_plan.md](docs/navigation_redesign_plan.md), [roadmap.md](docs/roadmap.md).
 
 ---
 

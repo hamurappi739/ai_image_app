@@ -140,7 +140,16 @@
 | **UX-redesign: шаблоны по категориям + расширенный каталог** | ✅ | **Фото по шаблону** — категории; больше шаблонов и подборок фотосессий |
 | **UX-redesign: визуальные placeholder** | ✅ | Rich preview на карточках шаблонов, фотосессий, помощи |
 | **UX-redesign: «Готовые фото» — success + быстрые действия** | ✅ | Баннер после генерации; «Что сделать дальше?»; бейдж «Новое» |
-| **UX-redesign: баланс в drawer и шапке** | ✅ | «Ваш баланс» в меню; **Фото: N** в header |
+| **UX-redesign: баланс в drawer** | ✅ | «Ваш баланс» в меню; **Профиль**, **Купить**, info-блоки на экранах |
+| **Mobile UX-polish: remove balance chip from app headers** | ✅ | Шапка: burger + title + optional help; баланс не конкурирует с заголовком |
+| **Mobile UX-polish: compact template cards** | ✅ | Меньше пустоты, крупнее preview, компактнее кнопка «Выбрать» |
+| **Mobile UX-polish: separate template categories** | ✅ | Категории в отдельных контейнерах с фоном |
+| **Mobile UX-polish: improve custom request layout** | ✅ | Компактные шаги, preview фото, поле описания, блок «Что получится», спокойный баланс |
+| **Mobile UX-polish: improve photoshoot card previews** | ✅ | Серия из 3 мини-карточек; компактные карточки каталога |
+| **Mobile UX-polish: fix photoshoot overflow** | ✅ | Yellow/black overflow убран на preview фотосессий |
+| **Mobile UX-polish: improve mobile screen subtitles** | ✅ | Подзаголовки на полную ширину, без обрезки из-за balance chip |
+| **Mobile UX-polish: photoshoot category chips** | ✅ | Chips сверху (Популярное, Для себя, …) со scroll-to-section |
+| **Mobile UX-polish: phone verification** | ✅ | Основные экраны проверены на физическом телефоне; `flutter analyze` clean |
 | **UX-redesign: мягкие подсказки при нулевом балансе** | ✅ | Диалоги и info-блоки → **Купить** (с режимом каталога) |
 | **UX-redesign: профиль как личный кабинет** | ✅ | Фото, Фотосессии, Бесплатные фото |
 
@@ -152,7 +161,7 @@
 - **Фотосессии:** подборки стилей; «Своя фотосессия» сверху; multipart → **Готовые фото**
 - **Готовые фото:** success-блок, быстрые действия, группировка фотосессий, бейдж «Новое»
 - **Купить:** 1 фото = 10 ₽, 1 фотосессия = 100 ₽; mock-verify в dev; RuStore — future
-- **Баланс:** drawer + header + **Профиль**; мягкие подсказки при нуле
+- **Баланс:** drawer + **Профиль** + **Купить** + info-блоки (не в шапке); мягкие подсказки при нуле
 - **Навигация:** drawer (burger menu); см. [navigation_redesign_plan.md](navigation_redesign_plan.md)
 
 **UX (следующие задачи):** **RuStore** после покупки — см. [app_design_strategy.md](app_design_strategy.md) и § **«Ближайший порядок работ»** ниже.
@@ -284,11 +293,12 @@ Demo-сборка и чеклист: [demo_release_checklist.md](demo_release_ch
 |--------|--------|
 | Burger navigation, home, templates, custom request, photoshoot collections, purchase UI | ✅ |
 | Ready photos: success state + next actions | ✅ |
-| Balance in navigation (drawer + header) | ✅ |
+| Balance in navigation (drawer, profile, purchase, screen blocks — not header) | ✅ |
 | Empty balance guidance (dialogs + info blocks) | ✅ |
-| **Реальные маркетинговые изображения** вместо placeholder | план |
-| **Полноценная «Своя фотосессия»** (backend + Gemini) | план |
+| Mobile UX-polish (headers, subtitles, compact cards, overflow fixes) | ✅ |
 | ~~Проверка redesigned APK на одном телефоне~~ | ✅ |
+| **Реальные маркетинговые preview images/assets** вместо placeholder | план |
+| **Полноценная «Своя фотосессия»** (backend + Gemini) | план |
 | **Проверка на нескольких Android-устройствах** | план |
 | **Production backend deploy** + **публичный HTTPS `API_BASE_URL`** | план |
 | **RuStore real payment integration** | план |
