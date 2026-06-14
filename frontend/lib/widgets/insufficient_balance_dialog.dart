@@ -12,9 +12,9 @@ class InsufficientBalanceDialog {
   }) {
     return _show(
       context,
-      title: 'Фото закончились',
+      title: 'Изображения закончились',
       message: 'Чтобы создать новое фото, пополните баланс.',
-      buyButtonLabel: 'Купить фото',
+      buyButtonLabel: 'Купить изображения',
       onOpenPacks: onOpenPacks,
     );
   }
@@ -25,9 +25,11 @@ class InsufficientBalanceDialog {
   }) {
     return _show(
       context,
-      title: 'Фотосессии закончились',
-      message: 'Чтобы сделать новую фотосессию, пополните баланс.',
-      buyButtonLabel: 'Купить фотосессии',
+      title: 'Нужно 3 изображения',
+      message:
+          'Фотосессия создаёт 3 фото, поэтому для неё нужно 3 изображения '
+          'на балансе.',
+      buyButtonLabel: 'Купить изображения',
       onOpenPacks: onOpenPacks,
     );
   }
@@ -95,7 +97,6 @@ class InsufficientBalanceMessages {
         normalized == '402' ||
         normalized.contains('payment required') ||
         (normalized.contains('insufficient') &&
-            normalized.contains('image') &&
             !normalized.contains('photoshoot'));
   }
 
@@ -121,7 +122,7 @@ class InsufficientBalanceHint extends StatelessWidget {
     super.key,
     required this.message,
     required this.onOpenPacks,
-    this.actionLabel = 'Купить',
+    this.actionLabel = 'Купить изображения',
   });
 
   final String message;

@@ -404,7 +404,7 @@ def debug_consume_generation():
     try:
         result = consume_generation(
             profile,
-            decision["payment_type"],
+            settings.free_generations_limit,
             _DEBUG_MOCK_PROMPT,
             _DEBUG_MOCK_IMAGE_URL,
         )
@@ -552,7 +552,10 @@ def generate(
 
     try:
         result = consume_generation(
-            profile, decision["payment_type"], prompt, image_url
+            profile,
+            settings.free_generations_limit,
+            prompt,
+            image_url,
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -561,7 +564,7 @@ def generate(
     return _build_generate_response_after_consume(
         image_url=image_url,
         prompt=prompt,
-        payment_type=decision["payment_type"],
+        payment_type=result["payment_type"],
         updated_profile=updated_profile,
     )
 
@@ -612,7 +615,10 @@ def generate_with_photo(
 
     try:
         result = consume_generation(
-            profile, payment_decision["payment_type"], prompt, image_url
+            profile,
+            settings.free_generations_limit,
+            prompt,
+            image_url,
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -620,7 +626,7 @@ def generate_with_photo(
     return _build_generate_response_after_consume(
         image_url=image_url,
         prompt=prompt,
-        payment_type=payment_decision["payment_type"],
+        payment_type=result["payment_type"],
         updated_profile=result["profile"],
     )
 
@@ -639,12 +645,6 @@ def generate_photoshoot(
     _ = style_title  # client hint; backend title from catalog is source of truth
     user_description = _normalize_photoshoot_description(description)
 
-    if not style.is_free:
-        raise HTTPException(
-            status_code=402,
-            detail="Payment is required for this photoshoot style",
-        )
-
     file_bytes, photo_content_type = _validate_upload_photo(photo)
 
     if not settings.enable_photoshoot_generation:
@@ -659,7 +659,10 @@ def generate_photoshoot(
             profile = ensure_profile_exists(user.id, user.email)
         except RuntimeError:
             raise HTTPException(status_code=500, detail="Failed to ensure user profile")
-        photoshoot_decision = determine_photoshoot_payment(profile)
+        photoshoot_decision = determine_photoshoot_payment(
+            profile,
+            settings.free_generations_limit,
+        )
         if not photoshoot_decision["allowed"]:
             raise HTTPException(
                 status_code=402,
@@ -677,7 +680,10 @@ def generate_photoshoot(
     balance = None
     if settings.enable_credit_consumption:
         try:
-            updated_profile = consume_photoshoot(profile)
+            updated_profile = consume_photoshoot(
+                profile,
+                settings.free_generations_limit,
+            )
         except RuntimeError as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
         balance = build_balance_response(

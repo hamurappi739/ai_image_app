@@ -147,8 +147,6 @@ class _MainShellState extends State<MainShell> {
   StreamSubscription<AuthState>? _authSubscription;
   GallerySuccessKind? _gallerySuccessKind;
   String? _galleryHighlightKey;
-  PackCatalogMode? _buyCatalogPreference;
-
   bool get _canLoadUserBackendData {
     if (!_authService.isConfigured) {
       return true;
@@ -372,22 +370,17 @@ class _MainShellState extends State<MainShell> {
 
   void _goToGalleryTab() => _navigateToSection(AppSection.gallery);
 
-  void _goToPacksTab({PackCatalogMode? catalogMode}) {
+  void _goToPacksTab() {
     setState(() {
-      if (catalogMode != null) {
-        _buyCatalogPreference = catalogMode;
-      }
       _section = AppSection.buy;
       _scrollPhotoshootsToTrending = false;
     });
     _loadBalance();
   }
 
-  void _goToBuyImages() =>
-      _goToPacksTab(catalogMode: PackCatalogMode.imagesOnly);
+  void _goToBuyImages() => _goToPacksTab();
 
-  void _goToBuyPhotoshoots() =>
-      _goToPacksTab(catalogMode: PackCatalogMode.withPhotoshoots);
+  void _goToBuyPhotoshoots() => _goToPacksTab();
 
   void _goToTemplateTab() => _navigateToSection(AppSection.templatePhoto);
 
@@ -494,7 +487,6 @@ class _MainShellState extends State<MainShell> {
         balance: _userBalance,
         balanceLoading: _balanceLoading,
         balanceLoadFailed: _balanceLoadFailed,
-        catalogModePreference: _buyCatalogPreference,
         onRefreshBalance: _loadBalance,
         onBalanceUpdated: _updateBalance,
       ),
@@ -608,192 +600,26 @@ class _PackOffering {
     required this.imageCount,
     required this.cardTitle,
     required this.subtitle,
-    this.photoshootCount = 0,
+    this.extraNote,
     this.featured = false,
+    this.valueBadge,
   });
 
   final String packageId;
   final int priceRub;
   final int imageCount;
-  final int photoshootCount;
   final String cardTitle;
   final String subtitle;
+  final String? extraNote;
   final bool featured;
+  final String? valueBadge;
 
   String get priceLabel => '$priceRub ₽';
 }
 
-enum PackCatalogMode { withPhotoshoots, imagesOnly }
-
-class _PackCatalogModeToggle extends StatelessWidget {
-  const _PackCatalogModeToggle({
-    required this.mode,
-    required this.onChanged,
-  });
-
-  final PackCatalogMode mode;
-  final ValueChanged<PackCatalogMode> onChanged;
-
-  static const _accent = Color(0xFF5B6CFF);
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _accent.withValues(alpha: 0.35)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _PackModeSegmentButton(
-                  label: 'Фото + фотосессии',
-                  selected: mode == PackCatalogMode.withPhotoshoots,
-                  onTap: () => onChanged(PackCatalogMode.withPhotoshoots),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: _PackModeSegmentButton(
-                  label: 'Только фото',
-                  selected: mode == PackCatalogMode.imagesOnly,
-                  onTap: () => onChanged(PackCatalogMode.imagesOnly),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PackModeSegmentButton extends StatelessWidget {
-  const _PackModeSegmentButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  static const _accent = Color(0xFF5B6CFF);
-
-  @override
-  Widget build(BuildContext context) {
-    final foreground = selected ? Colors.white : AiImageGeneratorApp.textPrimary;
-
-    return Material(
-      color: selected ? _accent : Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 52),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (selected) ...[
-                  Icon(Icons.check, size: 14, color: foreground),
-                  const SizedBox(width: 4),
-                ],
-                Flexible(
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.visible,
-                    softWrap: true,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      height: 1.25,
-                      color: foreground,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-String _packPhotoshootLabel(int count) {
-  final mod10 = count % 10;
-  final mod100 = count % 100;
-  if (mod100 >= 11 && mod100 <= 14) return 'фотосессий';
-  if (mod10 == 1) return 'фотосессия';
-  if (mod10 >= 2 && mod10 <= 4) return 'фотосессии';
-  return 'фотосессий';
-}
-
-void _showPackPaymentSoonDialog(BuildContext context) {
-  showDialog<void>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text(
-        'Оплата скоро появится',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-      ),
-      content: const Text(
-        'Сейчас это демонстрационный режим. Позже здесь будет подключена '
-        'оплата и автоматическое пополнение баланса.',
-        style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
-      ),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.of(dialogContext).pop(),
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF5B6CFF),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: const Text('Понятно'),
-        ),
-      ],
-    ),
-  );
-}
-
-String _formatPackReceiveSummary(int images, int photoshoots) {
-  if (photoshoots > 0 && images > 0) {
-    return 'Вы получите: $images фото '
-        'и $photoshoots ${_packPhotoshootLabel(photoshoots)}';
-  }
-  if (photoshoots > 0) {
-    return 'Вы получите: $photoshoots ${_packPhotoshootLabel(photoshoots)}';
-  }
-  if (images > 0) {
-    return 'Вы получите: $images фото';
-  }
-  return 'Увеличьте сумму или уменьшите число фотосессий';
-}
-
-String _formatMockPaymentAddedSummary(int images, int photoshoots) {
-  final parts = <String>[];
-  if (images > 0) {
-    parts.add('Фото: +$images');
-  }
-  if (photoshoots > 0) {
-    parts.add('Фотосессии: +$photoshoots');
-  }
-  if (parts.isEmpty) return 'Баланс обновлён';
-  return parts.join('\n');
+String _formatMockPaymentAddedSummary(int images) {
+  if (images <= 0) return 'Баланс обновлён';
+  return 'Изображения: +$images';
 }
 
 const _mockTopUpConfirmMessage =
@@ -807,7 +633,6 @@ class PacksScreen extends StatefulWidget {
     required this.balance,
     required this.balanceLoading,
     required this.balanceLoadFailed,
-    this.catalogModePreference,
     required this.onRefreshBalance,
     required this.onBalanceUpdated,
   });
@@ -816,7 +641,6 @@ class PacksScreen extends StatefulWidget {
   final UserBalance? balance;
   final bool balanceLoading;
   final bool balanceLoadFailed;
-  final PackCatalogMode? catalogModePreference;
   final VoidCallback onRefreshBalance;
   final ValueChanged<UserBalance> onBalanceUpdated;
 
@@ -828,142 +652,49 @@ class _PacksScreenState extends State<PacksScreen> {
   static const _breakpointMedium = 560.0;
   static const _breakpointWide = 900.0;
 
-  static const _imageUnitRub = 10;
-  static const _photoshootUnitRub = 100;
-  static const _customAmountMin = 10;
-  static const _customAmountMax = 100000;
-  static const _customPaymentProcessingId = '__custom__';
-
-  static const _mixedPackages = <_PackOffering>[
+  static const _imagePackages = <_PackOffering>[
     _PackOffering(
-      packageId: 'package_199_mix',
-      priceRub: 199,
-      photoshootCount: 1,
+      packageId: 'package_39_1_image',
+      priceRub: 39,
+      imageCount: 1,
+      cardTitle: '1 фото',
+      subtitle: 'Для одной генерации',
+    ),
+    _PackOffering(
+      packageId: 'package_99_3_images',
+      priceRub: 99,
+      imageCount: 3,
+      cardTitle: '3 фото',
+      subtitle: '33 ₽ за 1 фото',
+      extraNote: 'Хватит на 1 фотосессию',
+    ),
+    _PackOffering(
+      packageId: 'package_249_9_images',
+      priceRub: 249,
       imageCount: 9,
-      cardTitle: 'Попробовать',
-      subtitle: 'Подходит, чтобы начать.',
+      cardTitle: '9 фото',
+      subtitle: '28 ₽ за 1 фото',
     ),
     _PackOffering(
-      packageId: 'package_499_mix',
+      packageId: 'package_499_20_images',
       priceRub: 499,
-      photoshootCount: 3,
-      imageCount: 19,
-      cardTitle: 'Самый удобный',
-      subtitle: 'Хороший вариант для регулярного использования.',
+      imageCount: 20,
+      cardTitle: '20 фото',
+      subtitle: '25 ₽ за 1 фото',
       featured: true,
+      valueBadge: 'Популярно',
     ),
     _PackOffering(
-      packageId: 'package_999_mix',
+      packageId: 'package_999_50_images',
       priceRub: 999,
-      photoshootCount: 8,
-      imageCount: 19,
-      cardTitle: 'Больше возможностей',
-      subtitle: 'Когда хочется сделать много вариантов.',
-    ),
-  ];
-
-  static const _imagesOnlyPackages = <_PackOffering>[
-    _PackOffering(
-      packageId: 'package_199_images',
-      priceRub: 199,
-      imageCount: 19,
-      cardTitle: 'Попробовать',
-      subtitle: 'Подходит, чтобы начать.',
-    ),
-    _PackOffering(
-      packageId: 'package_499_images',
-      priceRub: 499,
-      imageCount: 49,
-      cardTitle: 'Самый удобный',
-      subtitle: 'Хороший вариант для регулярного использования.',
-      featured: true,
-    ),
-    _PackOffering(
-      packageId: 'package_999_images',
-      priceRub: 999,
-      imageCount: 99,
-      cardTitle: 'Больше возможностей',
-      subtitle: 'Когда хочется сделать много вариантов.',
+      imageCount: 50,
+      cardTitle: '50 фото',
+      subtitle: '20 ₽ за 1 фото',
+      valueBadge: 'Выгодно',
     ),
   ];
 
   String? _processingPackageId;
-
-  PackCatalogMode _catalogMode = PackCatalogMode.withPhotoshoots;
-  int _customPhotoshootCount = 8;
-  late final TextEditingController _customAmountController;
-
-  @override
-  void initState() {
-    super.initState();
-    _customAmountController = TextEditingController(text: '1000');
-    _applyCatalogModePreference(widget.catalogModePreference);
-  }
-
-  @override
-  void didUpdateWidget(PacksScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.catalogModePreference != oldWidget.catalogModePreference) {
-      _applyCatalogModePreference(widget.catalogModePreference);
-    }
-  }
-
-  void _applyCatalogModePreference(PackCatalogMode? mode) {
-    if (mode == null || _catalogMode == mode) return;
-    setState(() => _catalogMode = mode);
-  }
-
-  @override
-  void dispose() {
-    _customAmountController.dispose();
-    super.dispose();
-  }
-
-  List<_PackOffering> get _activePackages => _catalogMode == PackCatalogMode.withPhotoshoots
-      ? _mixedPackages
-      : _imagesOnlyPackages;
-
-  int? _parseCustomAmount(String text) {
-    final trimmed = text.replaceAll(RegExp(r'\s'), '');
-    if (trimmed.isEmpty) return null;
-    return int.tryParse(trimmed);
-  }
-
-  String? _customAmountErrorFor(String text) {
-    final trimmed = text.replaceAll(RegExp(r'\s'), '');
-    if (trimmed.isEmpty) {
-      return 'Введите сумму.';
-    }
-    final parsed = int.tryParse(trimmed);
-    if (parsed == null || parsed < _customAmountMin) {
-      return 'Минимальная сумма — 10 ₽.';
-    }
-    if (parsed > _customAmountMax) {
-      return 'Максимальная сумма пополнения — 100 000 ₽';
-    }
-    return null;
-  }
-
-  int? get _validCustomAmount {
-    final parsed = _parseCustomAmount(_customAmountController.text);
-    if (parsed == null) return null;
-    if (parsed < _customAmountMin || parsed > _customAmountMax) return null;
-    return parsed;
-  }
-
-  bool get _isCustomAmountValid => _validCustomAmount != null;
-
-  int get _maxCustomPhotoshoots =>
-      (_validCustomAmount ?? 0) ~/ _photoshootUnitRub;
-
-  int get _customImageCount {
-    final amount = _validCustomAmount;
-    if (amount == null) return 0;
-    final remainder =
-        amount - (_customPhotoshootCount * _photoshootUnitRub);
-    if (remainder <= 0) return 0;
-    return remainder ~/ _imageUnitRub;
-  }
 
   static int _columnCount(double width) {
     if (width >= _breakpointWide) return 3;
@@ -1047,12 +778,45 @@ class _PacksScreenState extends State<PacksScreen> {
     );
   }
 
+  Future<void> _showPackPaymentSoonDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Оплата скоро',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        ),
+        content: const Text(
+          'Пополнение баланса пока доступно только в демо-режиме на backend.',
+          style: TextStyle(
+            fontSize: 15,
+            height: 1.45,
+            color: Color(0xFF6B7280),
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF5B6CFF),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Понятно'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _presentPaymentResult(PaymentResult result) async {
     if (result.isFailed) {
       switch (result.failureReason) {
         case PaymentFailureReason.unavailable:
-          _showPackPaymentSoonDialog(context);
+          await _showPackPaymentSoonDialog();
+          return;
         case PaymentFailureReason.serviceUnavailable:
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
@@ -1064,8 +828,10 @@ class _PacksScreenState extends State<PacksScreen> {
               ),
             ),
           );
+          return;
         case PaymentFailureReason.generic:
         case null:
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
@@ -1077,8 +843,8 @@ class _PacksScreenState extends State<PacksScreen> {
               ),
             ),
           );
+          return;
       }
-      return;
     }
 
     if (result.balance != null) {
@@ -1086,6 +852,7 @@ class _PacksScreenState extends State<PacksScreen> {
     }
 
     if (result.isAlreadyProcessed) {
+      if (!mounted) return;
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -1121,13 +888,13 @@ class _PacksScreenState extends State<PacksScreen> {
 
     var successSummary = _formatMockPaymentAddedSummary(
       result.addedImageGenerations,
-      result.addedPhotoshoots,
     );
     final unusedRub = result.unusedRub;
     if (unusedRub != null && unusedRub > 0) {
       successSummary += '\n\nОстаток $unusedRub ₽ пока не используется';
     }
 
+    if (!mounted) return;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -1216,10 +983,8 @@ class _PacksScreenState extends State<PacksScreen> {
   Widget _buildPackCardsGrid({
     required BuildContext context,
     required int columns,
-    required bool showPhotoshoots,
   }) {
     const spacing = 16.0;
-    final packages = _activePackages;
     final layout = _packCardLayout(context, columns);
 
     return GridView.builder(
@@ -1231,109 +996,22 @@ class _PacksScreenState extends State<PacksScreen> {
         mainAxisSpacing: spacing,
         mainAxisExtent: layout.rowHeight,
       ),
-      itemCount: packages.length,
+      itemCount: _imagePackages.length,
       itemBuilder: (context, index) {
+        final offering = _imagePackages[index];
         return Align(
           alignment: Alignment.topCenter,
           child: _PackOfferingCard(
             layout: layout,
-            offering: packages[index],
-            showPhotoshoots: showPhotoshoots,
-            isLoading: _processingPackageId == packages[index].packageId,
+            offering: offering,
+            isLoading: _processingPackageId == offering.packageId,
             isDisabled: _processingPackageId != null &&
-                _processingPackageId != packages[index].packageId,
-            onSelect: () => _onPackSelected(packages[index]),
+                _processingPackageId != offering.packageId,
+            onSelect: () => _onPackSelected(offering),
           ),
         );
       },
     );
-  }
-
-  Future<void> _onCustomPaymentPressed() async {
-    if (_processingPackageId != null) return;
-
-    if (!_isCustomAmountValid) {
-      final message = _customAmountErrorFor(_customAmountController.text) ??
-          'Минимальная сумма — 10 ₽.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-      return;
-    }
-
-    final amount = _validCustomAmount!;
-    if (_customPhotoshootCount * _photoshootUnitRub > amount) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'На эту сумму нельзя купить столько фотосессий.',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Пополнить баланс?',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-        ),
-        content: const Text(
-          _mockTopUpConfirmMessage,
-          style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Отмена'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF5B6CFF),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text('Пополнить'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    setState(() => _processingPackageId = _customPaymentProcessingId);
-    unawaited(_showMockTopUpLoadingDialog());
-    await Future<void>.delayed(Duration.zero);
-
-    try {
-      final result = await widget.paymentService.purchaseCustomAmountDemo(
-        amountRub: amount,
-        paidPhotoshoots: _customPhotoshootCount,
-      );
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-      await _presentPaymentResult(result);
-    } finally {
-      if (mounted) {
-        setState(() => _processingPackageId = null);
-      }
-    }
   }
 
   void _showHelp() {
@@ -1343,35 +1021,9 @@ class _PacksScreenState extends State<PacksScreen> {
     );
   }
 
-  void _onCustomAmountChanged(String value) {
-    setState(() {
-      final valid = _parseCustomAmount(value);
-      if (valid != null &&
-          valid >= _customAmountMin &&
-          valid <= _customAmountMax) {
-        final maxSessions = valid ~/ _photoshootUnitRub;
-        if (_customPhotoshootCount > maxSessions) {
-          _customPhotoshootCount = maxSessions;
-        }
-      }
-    });
-  }
-
-  void _setCustomPhotoshootCount(int count) {
-    if (!_isCustomAmountValid) return;
-    setState(() {
-      _customPhotoshootCount = count.clamp(0, _maxCustomPhotoshoots);
-    });
-  }
-
-  void _adjustCustomPhotoshoots(int delta) {
-    _setCustomPhotoshootCount(_customPhotoshootCount + delta);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final showPhotoshoots = _catalogMode == PackCatalogMode.withPhotoshoots;
 
     return Scaffold(
       backgroundColor: AiImageGeneratorApp.scaffoldBackground,
@@ -1392,8 +1044,8 @@ class _PacksScreenState extends State<PacksScreen> {
                       AppScreenHeader(
                         title: 'Купить',
                         subtitle:
-                            'Пополните баланс, чтобы создавать фото '
-                            'и фотосессии.',
+                            'Пополните баланс изображений, чтобы создавать '
+                            'фото и фотосессии.',
                         trailing: SectionHelpButton(onPressed: _showHelp),
                       ),
                       const SizedBox(height: 16),
@@ -1406,15 +1058,8 @@ class _PacksScreenState extends State<PacksScreen> {
                         onRefresh: widget.onRefreshBalance,
                       ),
                       const SizedBox(height: 24),
-                      _PackCatalogModeToggle(
-                        mode: _catalogMode,
-                        onChanged: (mode) => setState(() => _catalogMode = mode),
-                      ),
-                      const SizedBox(height: 24),
                       Text(
-                        showPhotoshoots
-                            ? 'Наборы с фотосессиями'
-                            : 'Наборы фото',
+                        'Выберите количество изображений',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -1424,51 +1069,6 @@ class _PacksScreenState extends State<PacksScreen> {
                       _buildPackCardsGrid(
                         context: context,
                         columns: columns,
-                        showPhotoshoots: showPhotoshoots,
-                      ),
-                      const SizedBox(height: 32),
-                      Text(
-                        'Выбрать свою сумму',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Укажите сумму и сколько фотосессий хотите купить. '
-                        'Остаток пойдёт на фото.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontSize: 14,
-                          height: 1.4,
-                          color: AiImageGeneratorApp.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _CustomAmountSection(
-                        amountController: _customAmountController,
-                        amountError: _customAmountErrorFor(
-                          _customAmountController.text,
-                        ),
-                        isAmountValid: _isCustomAmountValid,
-                        validAmount: _validCustomAmount,
-                        photoshootCount: _customPhotoshootCount,
-                        maxPhotoshoots: _maxCustomPhotoshoots,
-                        imageCount: _customImageCount,
-                        onAmountChanged: _onCustomAmountChanged,
-                        onPhotoshootCountChanged: _setCustomPhotoshootCount,
-                        onPhotoshootsDecrease: _isCustomAmountValid &&
-                                _customPhotoshootCount > 0
-                            ? () => _adjustCustomPhotoshoots(-1)
-                            : null,
-                        onPhotoshootsIncrease: _isCustomAmountValid &&
-                                _customPhotoshootCount < _maxCustomPhotoshoots
-                            ? () => _adjustCustomPhotoshoots(1)
-                            : null,
-                        isPaymentLoading:
-                            _processingPackageId == _customPaymentProcessingId,
-                        isPaymentDisabled: _processingPackageId != null,
-                        onPaymentPressed: _onCustomPaymentPressed,
                       ),
                     ],
                   ),
@@ -1512,7 +1112,6 @@ class _PackOfferingCard extends StatelessWidget {
   const _PackOfferingCard({
     required this.layout,
     required this.offering,
-    required this.showPhotoshoots,
     required this.isLoading,
     required this.isDisabled,
     required this.onSelect,
@@ -1520,7 +1119,6 @@ class _PackOfferingCard extends StatelessWidget {
 
   final _PackCardLayout layout;
   final _PackOffering offering;
-  final bool showPhotoshoots;
   final bool isLoading;
   final bool isDisabled;
   final VoidCallback onSelect;
@@ -1533,8 +1131,8 @@ class _PackOfferingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasPhotoshootLine =
-        showPhotoshoots && offering.photoshootCount > 0;
+    final bannerLabel = offering.valueBadge ??
+        (offering.featured ? 'Популярно' : null);
 
     return SizedBox(
       height: layout.rowHeight,
@@ -1560,14 +1158,25 @@ class _PackOfferingCard extends StatelessWidget {
         children: [
           SizedBox(
             height: layout.featuredBannerHeight,
-            child: offering.featured
+            child: bannerLabel != null
                 ? DecoratedBox(
-                    decoration: const BoxDecoration(gradient: _featuredGradient),
+                    decoration: BoxDecoration(
+                      gradient: offering.featured
+                          ? _featuredGradient
+                          : const LinearGradient(
+                              colors: [
+                                Color(0xFFEDE9FF),
+                                Color(0xFFE8E4FF),
+                              ],
+                            ),
+                    ),
                     child: Center(
                       child: Text(
-                        'Популярно',
+                        bannerLabel,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: offering.featured
+                              ? Colors.white
+                              : _accentColor,
                           fontWeight: FontWeight.w600,
                           fontSize: layout.featuredBannerFontSize,
                         ),
@@ -1583,6 +1192,16 @@ class _PackOfferingCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
+                    offering.cardTitle,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: layout.subtitleFontSize + 2,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
                     offering.priceLabel,
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontSize: layout.priceFontSize,
@@ -1591,40 +1210,7 @@ class _PackOfferingCard extends StatelessWidget {
                       height: 1,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    offering.cardTitle,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: layout.subtitleFontSize + 1,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
                   const SizedBox(height: 8),
-                  SizedBox(
-                    height: layout.statRowHeight,
-                    child: hasPhotoshootLine
-                        ? _PackStatRow(
-                            label:
-                                '${offering.photoshootCount} ${_packPhotoshootLabel(offering.photoshootCount)}',
-                            backgroundColor: const Color(0xFFEDE9FF),
-                            textColor: _accentColor,
-                            fontSize: layout.badgeFontSize,
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                  const SizedBox(height: 4),
-                  SizedBox(
-                    height: layout.statRowHeight,
-                    child: _PackStatRow(
-                      label: '${offering.imageCount} фото',
-                      backgroundColor: const Color(0xFFF0F2FF),
-                      textColor: AiImageGeneratorApp.textPrimary,
-                      fontSize: layout.badgeFontSize,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
                   Text(
                     offering.subtitle,
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -1635,6 +1221,20 @@ class _PackOfferingCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (offering.extraNote != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      offering.extraNote!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: layout.subtitleFontSize - 1,
+                        height: 1.25,
+                        color: _accentColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                   const Spacer(),
                   _PackPaymentButton(
                     featured: offering.featured,
@@ -1751,256 +1351,6 @@ class _PackPaymentButton extends StatelessWidget {
   }
 }
 
-class _PackStatRow extends StatelessWidget {
-  const _PackStatRow({
-    required this.label,
-    required this.backgroundColor,
-    required this.textColor,
-    required this.fontSize,
-  });
-
-  final String label;
-  final Color backgroundColor;
-  final Color textColor;
-  final double fontSize;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: textColor,
-            fontSize: fontSize,
-            fontWeight: FontWeight.w600,
-            height: 1.2,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CustomAmountSection extends StatelessWidget {
-  const _CustomAmountSection({
-    required this.amountController,
-    required this.amountError,
-    required this.isAmountValid,
-    required this.validAmount,
-    required this.photoshootCount,
-    required this.maxPhotoshoots,
-    required this.imageCount,
-    required this.onAmountChanged,
-    required this.onPhotoshootCountChanged,
-    required this.onPhotoshootsDecrease,
-    required this.onPhotoshootsIncrease,
-    required this.isPaymentLoading,
-    required this.isPaymentDisabled,
-    required this.onPaymentPressed,
-  });
-
-  static const _accentColor = Color(0xFF5B6CFF);
-
-  final TextEditingController amountController;
-  final String? amountError;
-  final bool isAmountValid;
-  final int? validAmount;
-  final int photoshootCount;
-  final int maxPhotoshoots;
-  final int imageCount;
-  final ValueChanged<String> onAmountChanged;
-  final ValueChanged<int> onPhotoshootCountChanged;
-  final VoidCallback? onPhotoshootsDecrease;
-  final VoidCallback? onPhotoshootsIncrease;
-  final bool isPaymentLoading;
-  final bool isPaymentDisabled;
-  final VoidCallback onPaymentPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return _SoftCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Минимум 10 ₽ · 1 фото = 10 ₽ · 1 фотосессия = 100 ₽',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 13,
-              height: 1.4,
-              color: AiImageGeneratorApp.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: amountController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'Сумма',
-              hintText: 'От 10 до 100 000',
-              errorText: amountError,
-              filled: true,
-              fillColor: const Color(0xFFF7F8FC),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(
-                  color: amountError != null
-                      ? theme.colorScheme.error
-                      : Colors.grey.shade300,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(
-                  color: amountError != null
-                      ? theme.colorScheme.error
-                      : _accentColor,
-                  width: 1.5,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: theme.colorScheme.error),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.error,
-                  width: 1.5,
-                ),
-              ),
-            ),
-            onChanged: onAmountChanged,
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Фотосессии',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontSize: 15,
-              color: isAmountValid
-                  ? null
-                  : AiImageGeneratorApp.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Остаток суммы после фотосессий пойдёт на фото.',
-            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              IconButton.filledTonal(
-                onPressed: onPhotoshootsDecrease,
-                icon: const Icon(Icons.remove),
-              ),
-              Expanded(
-                child: Text(
-                  '$photoshootCount',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              IconButton.filledTonal(
-                onPressed: onPhotoshootsIncrease,
-                icon: const Icon(Icons.add),
-              ),
-            ],
-          ),
-          if (isAmountValid && maxPhotoshoots > 0)
-            Slider(
-              value: photoshootCount.toDouble(),
-              min: 0,
-              max: maxPhotoshoots.toDouble(),
-              divisions: maxPhotoshoots,
-              label: '$photoshootCount',
-              onChanged: (value) =>
-                  onPhotoshootCountChanged(value.round()),
-            ),
-          const SizedBox(height: 16),
-          if (isAmountValid && validAmount != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F6FF),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: _accentColor.withValues(alpha: 0.15),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'К оплате: $validAmount ₽',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: _accentColor,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _formatPackReceiveSummary(imageCount, photoshootCount),
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      height: 1.35,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: FilledButton(
-              onPressed: isAmountValid && !isPaymentDisabled
-                  ? onPaymentPressed
-                  : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: _accentColor,
-                disabledBackgroundColor: Colors.grey.shade200,
-                disabledForegroundColor: AiImageGeneratorApp.textSecondary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: isPaymentLoading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text(
-                      'Купить на свою сумму',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _PhotoshootStyle {
   const _PhotoshootStyle({
     required this.id,
@@ -2033,7 +1383,7 @@ class _PhotoshootStyle {
   String? get effectivePreviewAssetPath =>
       previewAssetPath ?? PreviewAssetPaths.photoshootPathForId(id);
 
-  String get priceLabel => isFree ? 'Бесплатно' : '100 ₽';
+  String get priceLabel => isFree ? 'Бесплатно' : '3 изображения';
 }
 
 class _PhotoshootCollection {
@@ -2775,13 +2125,13 @@ class _PhotoshootsIntroHeader extends StatelessWidget {
           AppScreenBalanceCard(
             balance: balance,
             isLoading: balanceLoading,
-            showPhotoshoots: true,
+            showPhotoshootCostHint: true,
           ),
         if (showDepletedWarning) ...[
           const SizedBox(height: 12),
           InsufficientBalanceHint(
-            message: 'Фотосессии на балансе закончились.',
-            actionLabel: 'Купить фотосессии',
+            message: 'Для фотосессии нужно 3 изображения.',
+            actionLabel: 'Купить изображения',
             onOpenPacks: onOpenPacks,
           ),
         ],
@@ -3082,7 +2432,7 @@ class _PhotoshootCard extends StatelessWidget {
                           textColor: _accentColor,
                         ),
                         _PhotoshootMetaChip(
-                          label: style.isFree ? 'Бесплатно' : '100 ₽',
+                          label: style.priceLabel,
                           backgroundColor: priceBg,
                           textColor: priceFg,
                         ),
@@ -3133,7 +2483,7 @@ class _PhotoshootCard extends StatelessWidget {
                                 padding: EdgeInsets.zero,
                               ),
                               child: const Text(
-                                '100 ₽',
+                                'Выбрать стиль',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
@@ -6256,8 +5606,8 @@ class _CreateScreenState extends State<CreateScreen> {
               const SizedBox(height: 20),
               if (showImagesDepleted) ...[
                 InsufficientBalanceHint(
-                  message: 'Фото на балансе закончились.',
-                  actionLabel: 'Купить фото',
+                  message: 'Изображения на балансе закончились.',
+                  actionLabel: 'Купить изображения',
                   onOpenPacks: widget.onOpenPacks,
                 ),
                 const SizedBox(height: 12),
@@ -6405,27 +5755,30 @@ class _UserBalanceProfileCard extends StatelessWidget {
             )
           else if (balance != null) ...[
             _ProfileBalanceLine(
-              label: 'Фото',
-              value: '${balance!.paidImageGenerations}',
+              label: 'Изображения',
+              value: '${balance!.totalAvailableImages}',
               rowStyle: rowStyle,
             ),
             const SizedBox(height: 10),
             _ProfileBalanceLine(
-              label: 'Фотосессии',
-              value: '${balance!.paidPhotoshoots}',
-              rowStyle: rowStyle,
-            ),
-            const SizedBox(height: 10),
-            _ProfileBalanceLine(
-              label: 'Бесплатные фото',
+              label: 'Бесплатные',
               value:
                   '${balance!.freeGenerationsRemaining} '
                   'из ${balance!.freeGenerationsLimit}',
               rowStyle: rowStyle,
             ),
+            const SizedBox(height: 10),
+            Text(
+              'Фотосессия стоит ${balance!.photoshootImageCost} изображения',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 13,
+                height: 1.4,
+                color: AiImageGeneratorApp.textSecondary,
+              ),
+            ),
             const SizedBox(height: 12),
             Text(
-              'Бесплатные фото используются первыми.',
+              'Сначала используются бесплатные изображения.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 13,
                 height: 1.4,
@@ -6475,20 +5828,16 @@ class _BalancePricingInfoCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Как считается баланс',
+            'Как это работает',
             style: theme.textTheme.titleMedium?.copyWith(
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 10),
-          const _BalancePricingLine(text: '1 фото = 10 ₽'),
+          const _BalancePricingLine(text: '1 обычное фото = 1 изображение'),
           const SizedBox(height: 6),
-          const _BalancePricingLine(text: '1 фотосессия = 100 ₽'),
-          const SizedBox(height: 6),
-          const _BalancePricingLine(
-            text: 'фотосессия создаёт серию из 3 фото',
-          ),
+          const _BalancePricingLine(text: '1 фотосессия = 3 изображения'),
         ],
       ),
     );
@@ -6650,15 +5999,11 @@ class _UserBalancePacksBanner extends StatelessWidget {
                 final compact = constraints.maxWidth < 420;
                 final stats = [
                   _PacksBalanceStat(
-                    label: 'Фото',
-                    value: '${balance!.paidImageGenerations}',
+                    label: 'Изображения',
+                    value: '${balance!.totalAvailableImages}',
                   ),
                   _PacksBalanceStat(
-                    label: 'Фотосессии',
-                    value: '${balance!.paidPhotoshoots}',
-                  ),
-                  _PacksBalanceStat(
-                    label: 'Бесплатные фото',
+                    label: 'Бесплатные',
                     value:
                         '${balance!.freeGenerationsRemaining} из ${balance!.freeGenerationsLimit}',
                   ),
@@ -6687,7 +6032,7 @@ class _UserBalancePacksBanner extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Сначала используются бесплатные фото, потом купленные.',
+              'Сначала используются бесплатные изображения.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 13,
                 height: 1.35,
@@ -6764,7 +6109,7 @@ class _CreateBalanceInfoCard extends StatelessWidget {
     final isDemoMode = balance != null && !balance!.consumptionEnabled;
     final freeRemaining = balance?.freeGenerationsRemaining ?? 0;
     final freeLimit = balance?.freeGenerationsLimit ?? 3;
-    final paidImages = balance?.paidImageGenerations ?? 0;
+    final totalImages = balance?.totalAvailableImages ?? 0;
     final isDepleted = balance != null && balance!.showImageDepletedWarning;
 
     if (isLoading && balance == null) {
@@ -6817,7 +6162,7 @@ class _CreateBalanceInfoCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Фото закончились',
+              'Изображения закончились',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -6837,7 +6182,7 @@ class _CreateBalanceInfoCard extends StatelessWidget {
       );
     }
 
-    if (freeRemaining > 0 && paidImages == 0) {
+    if (freeRemaining > 0 && totalImages == freeRemaining) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -6850,7 +6195,7 @@ class _CreateBalanceInfoCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Бесплатные фото: $freeRemaining из $freeLimit',
+              'Бесплатные: $freeRemaining из $freeLimit',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,

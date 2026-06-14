@@ -10,15 +10,16 @@ class AppBalanceSummary {
   static const textPrimary = Color(0xFF1A1D26);
   static const textSecondary = Color(0xFF6B7280);
 
-  static int photoCount(UserBalance balance) => balance.paidImageGenerations;
-
-  static int photoshootCount(UserBalance balance) => balance.paidPhotoshoots;
+  static int imageCount(UserBalance balance) => balance.totalAvailableImages;
 
   static int freePhotoCount(UserBalance balance) =>
       balance.freeGenerationsRemaining;
 
   static bool showFreePhotos(UserBalance balance) =>
       balance.freeGenerationsRemaining > 0;
+
+  static String photoshootCostNote(UserBalance balance) =>
+      'Фотосессия = ${balance.photoshootImageCost} изображения';
 }
 
 class AppDrawerBalanceBlock extends StatelessWidget {
@@ -92,13 +93,8 @@ class AppDrawerBalanceBlock extends StatelessWidget {
           )
         else if (balance != null) ...[
           _DrawerBalanceLine(
-            label: 'Фото',
-            value: '${AppBalanceSummary.photoCount(balance!)}',
-          ),
-          const SizedBox(height: 4),
-          _DrawerBalanceLine(
-            label: 'Фотосессии',
-            value: '${AppBalanceSummary.photoshootCount(balance!)}',
+            label: 'Изображения',
+            value: '${AppBalanceSummary.imageCount(balance!)}',
           ),
           if (AppBalanceSummary.showFreePhotos(balance!)) ...[
             const SizedBox(height: 4),
@@ -107,6 +103,15 @@ class AppDrawerBalanceBlock extends StatelessWidget {
               value: '${AppBalanceSummary.freePhotoCount(balance!)}',
             ),
           ],
+          const SizedBox(height: 6),
+          Text(
+            AppBalanceSummary.photoshootCostNote(balance!),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 12,
+              height: 1.35,
+              color: AppBalanceSummary.textSecondary,
+            ),
+          ),
         ],
       ],
     );
@@ -156,12 +161,12 @@ class AppScreenBalanceCard extends StatelessWidget {
     super.key,
     required this.balance,
     required this.isLoading,
-    this.showPhotoshoots = false,
+    this.showPhotoshootCostHint = false,
   });
 
   final UserBalance? balance;
   final bool isLoading;
-  final bool showPhotoshoots;
+  final bool showPhotoshootCostHint;
 
   @override
   Widget build(BuildContext context) {
@@ -204,21 +209,34 @@ class AppScreenBalanceCard extends StatelessWidget {
             )
           else if (balance != null) ...[
             _ScreenBalanceLine(
-              label: 'Фото',
-              value: '${AppBalanceSummary.photoCount(balance!)}',
+              label: 'Изображения',
+              value: '${AppBalanceSummary.imageCount(balance!)}',
             ),
-            if (showPhotoshoots) ...[
-              const SizedBox(height: 4),
-              _ScreenBalanceLine(
-                label: 'Фотосессии',
-                value: '${AppBalanceSummary.photoshootCount(balance!)}',
-              ),
-            ],
             if (AppBalanceSummary.showFreePhotos(balance!)) ...[
               const SizedBox(height: 4),
               _ScreenBalanceLine(
                 label: 'Бесплатные',
                 value: '${AppBalanceSummary.freePhotoCount(balance!)}',
+              ),
+            ],
+            if (showPhotoshootCostHint) ...[
+              const SizedBox(height: 8),
+              Text(
+                AppBalanceSummary.photoshootCostNote(balance!),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: AppBalanceSummary.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Доступно изображений: ${AppBalanceSummary.imageCount(balance!)}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: AppBalanceSummary.textSecondary,
+                ),
               ),
             ],
           ],
@@ -295,8 +313,8 @@ class AppHeaderBalanceIndicator extends StatelessWidget {
       );
     }
 
-    final photos = AppBalanceSummary.photoCount(balance!);
-    final label = ultraCompact ? '$photos' : 'Фото: $photos';
+    final images = AppBalanceSummary.imageCount(balance!);
+    final label = ultraCompact ? '$images' : 'Изображения: $images';
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -333,7 +351,7 @@ class AppHeaderBalanceIndicator extends StatelessWidget {
           ] else ...[
             const SizedBox(width: 3),
             Text(
-              '$photos',
+              '$images',
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,

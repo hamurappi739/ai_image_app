@@ -1,3 +1,7 @@
+from app.services.balance_service import (
+    consume_image_credits,
+    determine_image_payment,
+)
 from app.services.supabase_service import (
     create_generation_record,
     insert_credit_transaction,
@@ -6,38 +10,41 @@ from app.services.supabase_service import (
 
 
 def determine_generation_payment(profile: dict, free_limit: int) -> dict:
-    free_generations_used = profile.get("free_generations_used", 0)
-    paid_image_generations = int(profile.get("paid_image_generations") or 0)
+    decision = determine_image_payment(profile, free_limit, 1)
+    if not decision["allowed"]:
+        return {
+            "allowed": False,
+            "payment_type": None,
+            "reason": decision["reason"],
+        }
 
+    free_generations_used = int(profile.get("free_generations_used") or 0)
     if free_generations_used < free_limit:
         return {
             "allowed": True,
             "payment_type": "free",
             "reason": None,
         }
-    if paid_image_generations > 0:
-        return {
-            "allowed": True,
-            "payment_type": "paid",
-            "reason": None,
-        }
     return {
-        "allowed": False,
-        "payment_type": None,
-        "reason": "insufficient_images",
+        "allowed": True,
+        "payment_type": "paid",
+        "reason": None,
     }
 
 
 def consume_generation(
-    profile: dict, payment_type: str, prompt: str, image_url: str
+    profile: dict,
+    free_limit: int,
+    prompt: str,
+    image_url: str,
 ) -> dict:
     user_id = profile["id"]
+    free_generations_used = int(profile.get("free_generations_used") or 0)
+    payment_type = "free" if free_generations_used < free_limit else "paid"
+
+    updated_profile = consume_image_credits(profile, free_limit, 1)
 
     if payment_type == "free":
-        new_free_generations_used = profile["free_generations_used"] + 1
-        updated_profile = update_profile(
-            user_id, {"free_generations_used": new_free_generations_used}
-        )
         generation = create_generation_record(
             user_id=user_id,
             prompt=prompt,
@@ -54,13 +61,6 @@ def consume_generation(
             }
         )
     elif payment_type == "paid":
-        paid_image_generations = int(profile.get("paid_image_generations") or 0)
-        if paid_image_generations <= 0:
-            raise RuntimeError("No paid image generations available")
-        new_paid_images = paid_image_generations - 1
-        updated_profile = update_profile(
-            user_id, {"paid_image_generations": new_paid_images}
-        )
         generation = create_generation_record(
             user_id=user_id,
             prompt=prompt,
@@ -83,6 +83,7 @@ def consume_generation(
         "profile": updated_profile,
         "generation": generation,
         "transaction": transaction,
+        "payment_type": payment_type,
     }
 
 

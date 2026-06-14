@@ -23,6 +23,37 @@ class PaymentPackage:
 
 
 PAYMENT_PACKAGES: dict[str, PaymentPackage] = {
+    "package_39_1_image": PaymentPackage(
+        id="package_39_1_image",
+        amount_rub=39,
+        paid_image_generations=1,
+        paid_photoshoots=0,
+    ),
+    "package_99_3_images": PaymentPackage(
+        id="package_99_3_images",
+        amount_rub=99,
+        paid_image_generations=3,
+        paid_photoshoots=0,
+    ),
+    "package_249_9_images": PaymentPackage(
+        id="package_249_9_images",
+        amount_rub=249,
+        paid_image_generations=9,
+        paid_photoshoots=0,
+    ),
+    "package_499_20_images": PaymentPackage(
+        id="package_499_20_images",
+        amount_rub=499,
+        paid_image_generations=20,
+        paid_photoshoots=0,
+    ),
+    "package_999_50_images": PaymentPackage(
+        id="package_999_50_images",
+        amount_rub=999,
+        paid_image_generations=50,
+        paid_photoshoots=0,
+    ),
+    # Legacy development packages (UI no longer offers these).
     "package_199_mix": PaymentPackage(
         id="package_199_mix",
         amount_rub=199,
