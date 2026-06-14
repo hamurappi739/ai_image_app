@@ -193,17 +193,36 @@ class AppDrawer extends StatelessWidget {
                     label: 'Фотосессии',
                   ),
                   ListTile(
-                    leading: Icon(
+                    leading: const Icon(
                       Icons.trending_up,
-                      color: currentSection == AppSection.photoshoots
-                          ? _accentColor
-                          : _textSecondary,
+                      color: _textSecondary,
                     ),
-                    title: Text(
+                    title: const Text(
                       'Трендовые фотосессии',
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         color: _textPrimary,
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F4F6),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'В разработке',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: _textSecondary,
+                          ),
+                        ),
                       ),
                     ),
                     shape: RoundedRectangleBorder(
@@ -213,11 +232,7 @@ class AppDrawer extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 20),
                     onTap: () {
                       Navigator.of(context).pop();
-                      if (onTrendingPhotoshootsTap != null) {
-                        onTrendingPhotoshootsTap!();
-                      } else {
-                        onSectionSelected(AppSection.photoshoots);
-                      }
+                      onTrendingPhotoshootsTap?.call();
                     },
                   ),
                   _menuTile(

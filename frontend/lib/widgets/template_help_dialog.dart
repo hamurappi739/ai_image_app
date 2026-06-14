@@ -19,7 +19,7 @@ class TemplateHelpDialog extends StatelessWidget {
       blocks: [
         PagedHelpBlock(
           title: 'Выберите подходящий шаблон',
-          body: 'Нажмите «Выбрать» на карточке, которая вам нравится.',
+          body: 'Нажмите «Попробовать» на карточке, которая вам нравится.',
           previewBuilder: _templatePreview,
         ),
         PagedHelpBlock(

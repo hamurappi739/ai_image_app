@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../data/app_prompts.dart';
 import '../assets/preview_asset_paths.dart';
 import '../assets/preview_asset_registry.dart';
+import '../models/generated_image_item.dart';
+import '../models/user_balance.dart';
+import '../services/api_service.dart';
+import '../widgets/template_create_sheet.dart';
 import '../widgets/app_screen_header.dart';
 import '../widgets/preview_asset_image.dart';
 import '../widgets/section_help_button.dart';
@@ -97,12 +101,44 @@ class _TemplateCategoryGroup {
 class TemplatePhotoScreen extends StatelessWidget {
   const TemplatePhotoScreen({
     super.key,
-    required this.onTemplateSelected,
+    required this.apiService,
+    required this.balance,
+    required this.balanceLoading,
+    required this.onImageGenerated,
+    required this.onBalanceUpdated,
+    required this.onRefreshBalance,
+    required this.onOpenGallery,
+    required this.onOpenPacks,
+    required this.onShowMessage,
   });
 
   static const _scaffoldBackground = Color(0xFFF7F8FC);
 
-  final ValueChanged<PhotoTemplate> onTemplateSelected;
+  final ApiService apiService;
+  final UserBalance? balance;
+  final bool balanceLoading;
+  final ValueChanged<GeneratedImageItem> onImageGenerated;
+  final ValueChanged<UserBalance> onBalanceUpdated;
+  final VoidCallback onRefreshBalance;
+  final VoidCallback onOpenGallery;
+  final VoidCallback onOpenPacks;
+  final ValueChanged<String> onShowMessage;
+
+  void _openTemplateSheet(BuildContext context, PhotoTemplate template) {
+    TemplateCreateSheet.show(
+      context,
+      template: template,
+      apiService: apiService,
+      balance: balance,
+      balanceLoading: balanceLoading,
+      onImageGenerated: onImageGenerated,
+      onBalanceUpdated: onBalanceUpdated,
+      onRefreshBalance: onRefreshBalance,
+      onOpenGallery: onOpenGallery,
+      onOpenPacks: onOpenPacks,
+      onShowMessage: onShowMessage,
+    );
+  }
 
   static PhotoTemplate _template({
     required String id,
@@ -300,7 +336,7 @@ class TemplatePhotoScreen extends StatelessWidget {
   }
 
   static double _gridAspectRatio(int columns) {
-    return columns == 1 ? 1.38 : 1.15;
+    return columns == 1 ? 0.92 : 0.78;
   }
 
   @override
@@ -323,8 +359,8 @@ class TemplatePhotoScreen extends StatelessWidget {
                       AppScreenHeader(
                         title: 'Шаблоны фото',
                         subtitle:
-                            'Выберите готовый вариант. Описание подставится '
-                            'само — вам останется только добавить фото.',
+                            'Выберите шаблон, добавьте фото и создайте '
+                            'результат.',
                         trailing: SectionHelpButton(
                           onPressed: () => TemplateHelpDialog.show(context),
                         ),
@@ -344,7 +380,8 @@ class TemplatePhotoScreen extends StatelessWidget {
                           ],
                           columns: columns,
                           aspectRatio: _gridAspectRatio(columns),
-                          onTemplateSelected: onTemplateSelected,
+                          onTemplateTry: (template) =>
+                              _openTemplateSheet(context, template),
                         ),
                       ],
                     ],
@@ -482,7 +519,7 @@ class _TemplateCategorySection extends StatelessWidget {
     required this.templates,
     required this.columns,
     required this.aspectRatio,
-    required this.onTemplateSelected,
+    required this.onTemplateTry,
   });
 
   static const _textPrimary = Color(0xFF1A1D26);
@@ -493,7 +530,7 @@ class _TemplateCategorySection extends StatelessWidget {
   final List<PhotoTemplate> templates;
   final int columns;
   final double aspectRatio;
-  final ValueChanged<PhotoTemplate> onTemplateSelected;
+  final ValueChanged<PhotoTemplate> onTemplateTry;
 
   @override
   Widget build(BuildContext context) {
@@ -540,7 +577,7 @@ class _TemplateCategorySection extends StatelessWidget {
             final template = templates[index];
             return _TemplateCard(
               template: template,
-              onSelect: () => onTemplateSelected(template),
+              onTry: () => onTemplateTry(template),
             );
           },
         ),
@@ -553,7 +590,7 @@ class _TemplateCategorySection extends StatelessWidget {
 class _TemplateCard extends StatelessWidget {
   const _TemplateCard({
     required this.template,
-    required this.onSelect,
+    required this.onTry,
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
@@ -561,7 +598,7 @@ class _TemplateCard extends StatelessWidget {
   static const _textSecondary = Color(0xFF6B7280);
 
   final PhotoTemplate template;
-  final VoidCallback onSelect;
+  final VoidCallback onTry;
 
   @override
   Widget build(BuildContext context) {
@@ -612,7 +649,7 @@ class _TemplateCard extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   template.description,
-                  maxLines: 1,
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontSize: 12,
@@ -620,12 +657,12 @@ class _TemplateCard extends StatelessWidget {
                     color: _textSecondary,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
                   height: 36,
                   child: FilledButton(
-                    onPressed: onSelect,
+                    onPressed: onTry,
                     style: FilledButton.styleFrom(
                       backgroundColor: _accentColor,
                       foregroundColor: Colors.white,
@@ -638,7 +675,7 @@ class _TemplateCard extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    child: const Text('Выбрать'),
+                    child: const Text('Попробовать'),
                   ),
                 ),
               ],

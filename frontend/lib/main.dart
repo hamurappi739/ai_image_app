@@ -29,6 +29,7 @@ import 'widgets/app_balance_summary.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/app_navigation_scope.dart';
 import 'widgets/app_screen_header.dart';
+import 'widgets/coming_soon_dialog.dart';
 import 'widgets/custom_request_flow.dart';
 import 'widgets/create_help_dialog.dart';
 import 'widgets/create_result_tips_card.dart';
@@ -37,6 +38,7 @@ import 'widgets/gallery_result_image.dart';
 import 'widgets/gallery_viewer.dart';
 import 'widgets/generation_progress_dialog.dart';
 import 'widgets/insufficient_balance_dialog.dart';
+import 'widgets/missing_photo_dialog.dart';
 import 'widgets/packs_help_dialog.dart';
 import 'widgets/photoshoots_help_dialog.dart';
 import 'widgets/preview_asset_image.dart';
@@ -134,8 +136,6 @@ class _MainShellState extends State<MainShell> {
   final _authService = AuthService();
 
   AppSection _section = AppSection.home;
-  String? _pendingCustomRequestDescription;
-  int _pendingCustomRequestToken = 0;
   final List<GeneratedImageItem> _generatedImages = [];
   final Set<String> _hiddenGalleryImageKeys = {};
   final Set<String> _hiddenPhotoshootIds = {};
@@ -273,22 +273,6 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
-  void _onTemplateSelected(PhotoTemplate template) {
-    setState(() {
-      _pendingCustomRequestDescription = template.requestDescription;
-      _pendingCustomRequestToken++;
-      _section = AppSection.customRequest;
-    });
-    _loadBalance();
-  }
-
-  void _clearPendingCustomRequestDescription() {
-    if (_pendingCustomRequestDescription == null) return;
-    setState(() {
-      _pendingCustomRequestDescription = null;
-    });
-  }
-
   void _showShellSnackBar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -356,11 +340,9 @@ class _MainShellState extends State<MainShell> {
 
   void _goToPhotoshootsTab() => _navigateToSection(AppSection.photoshoots);
 
-  void _goToTrendingPhotoshoots() {
-    setState(() {
-      _section = AppSection.photoshoots;
-      _scrollPhotoshootsToTrending = true;
-    });
+  void _showTrendingComingSoon() {
+    if (!mounted) return;
+    ComingSoonDialog.show(context);
   }
 
   void _onTrendingPhotoshootsScrollHandled() {
@@ -434,7 +416,17 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final screens = <Widget>[
       HomeScreen(onNavigate: _navigateToSection),
-      TemplatePhotoScreen(onTemplateSelected: _onTemplateSelected),
+      TemplatePhotoScreen(
+        apiService: _apiService,
+        balance: _userBalance,
+        balanceLoading: _balanceLoading,
+        onImageGenerated: _onImageGenerated,
+        onBalanceUpdated: _updateBalance,
+        onRefreshBalance: _loadBalance,
+        onOpenGallery: _goToGalleryTab,
+        onOpenPacks: _goToBuyImages,
+        onShowMessage: _showShellSnackBar,
+      ),
       PhotoshootsScreen(
         isActive: _section == AppSection.photoshoots,
         scrollToTrending: _scrollPhotoshootsToTrending,
@@ -454,9 +446,6 @@ class _MainShellState extends State<MainShell> {
         apiService: _apiService,
         balance: _userBalance,
         balanceLoading: _balanceLoading,
-        pendingDescription: _pendingCustomRequestDescription,
-        pendingDescriptionToken: _pendingCustomRequestToken,
-        onPendingDescriptionApplied: _clearPendingCustomRequestDescription,
         onShowMessage: _showShellSnackBar,
         onImageGenerated: _onImageGenerated,
         onBalanceUpdated: _updateBalance,
@@ -510,7 +499,7 @@ class _MainShellState extends State<MainShell> {
       drawer: AppDrawer(
         currentSection: _section,
         onSectionSelected: _navigateToSection,
-        onTrendingPhotoshootsTap: _goToTrendingPhotoshoots,
+        onTrendingPhotoshootsTap: _showTrendingComingSoon,
         userEmail: _authService.currentUser?.email,
         userDisplayName: _userDisplayName(),
         showUserBalance: _showUserBalance,
@@ -2686,7 +2675,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
     final selectedPhotoFile = _selectedPhotoFile;
     final hasSelectedPhoto = selectedPhotoFile != null;
     if (!hasSelectedPhoto) {
-      widget.onShowMessage('Сначала добавьте фото.');
+      await MissingPhotoDialog.showForPhotoshoot(context);
       return;
     }
     if (!widget.style.isFree) {
@@ -3227,7 +3216,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
 
     final selectedPhotoFile = _selectedPhotoFile;
     if (selectedPhotoFile == null) {
-      widget.onShowMessage('Сначала добавьте фото.');
+      await MissingPhotoDialog.showForPhotoshoot(context);
       return;
     }
 
@@ -5269,9 +5258,6 @@ class CreateScreen extends StatefulWidget {
     required this.apiService,
     required this.balance,
     required this.balanceLoading,
-    this.pendingDescription,
-    this.pendingDescriptionToken = 0,
-    this.onPendingDescriptionApplied,
     this.onShowMessage,
     required this.onImageGenerated,
     required this.onBalanceUpdated,
@@ -5285,9 +5271,6 @@ class CreateScreen extends StatefulWidget {
   final ApiService apiService;
   final UserBalance? balance;
   final bool balanceLoading;
-  final String? pendingDescription;
-  final int pendingDescriptionToken;
-  final VoidCallback? onPendingDescriptionApplied;
   final ValueChanged<String>? onShowMessage;
   final ValueChanged<GeneratedImageItem> onImageGenerated;
   final ValueChanged<UserBalance> onBalanceUpdated;
@@ -5312,7 +5295,6 @@ class _CreateScreenState extends State<CreateScreen> {
   Uint8List? _selectedPhotoBytes;
   XFile? _selectedPhotoFile;
   GenerateImageResponse? _lastResponse;
-  int _lastAppliedPendingToken = 0;
 
   bool get _hasSelectedPhoto => _selectedPhotoBytes != null;
 
@@ -5320,44 +5302,14 @@ class _CreateScreenState extends State<CreateScreen> {
   void initState() {
     super.initState();
     _scheduleFirstVisitHelp();
-    _scheduleApplyPendingDescription();
   }
 
   @override
   void didUpdateWidget(CreateScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.pendingDescriptionToken != oldWidget.pendingDescriptionToken ||
-        (widget.isActive &&
-            !oldWidget.isActive &&
-            widget.pendingDescription != null)) {
-      _scheduleApplyPendingDescription();
-    }
     if (widget.isActive && !oldWidget.isActive) {
       _scheduleFirstVisitHelp();
     }
-  }
-
-  void _scheduleApplyPendingDescription() {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _applyPendingDescription());
-  }
-
-  void _applyPendingDescription() {
-    if (!mounted || !widget.isActive) return;
-
-    final pending = widget.pendingDescription?.trim();
-    if (pending == null || pending.isEmpty) return;
-    if (_lastAppliedPendingToken == widget.pendingDescriptionToken) return;
-
-    _lastAppliedPendingToken = widget.pendingDescriptionToken;
-    _descriptionController.text = pending;
-    _descriptionController.selection = TextSelection.collapsed(
-      offset: pending.length,
-    );
-
-    widget.onPendingDescriptionApplied?.call();
-    widget.onShowMessage?.call(
-      'Описание добавлено. Осталось выбрать фото.',
-    );
   }
 
   void _scheduleFirstVisitHelp() {
@@ -5461,7 +5413,7 @@ class _CreateScreenState extends State<CreateScreen> {
     final text = _descriptionController.text.trim();
 
     if (!_hasSelectedPhoto) {
-      _showSnackBar('Сначала добавьте фото.');
+      await MissingPhotoDialog.showForTemplateOrCustom(context);
       return;
     }
     if (text.isEmpty) {
