@@ -21,6 +21,7 @@ import 'services/api_service.dart';
 import 'services/auth_service.dart';
 import 'services/payment_service.dart';
 import 'services/create_help_service.dart';
+import 'services/free_generations_welcome_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/photoshoots_help_service.dart';
 import 'utils/gallery_item_key.dart';
@@ -33,6 +34,7 @@ import 'widgets/coming_soon_dialog.dart';
 import 'widgets/custom_request_flow.dart';
 import 'widgets/create_help_dialog.dart';
 import 'widgets/create_result_tips_card.dart';
+import 'widgets/free_generations_welcome_dialog.dart';
 import 'utils/mock_image_url.dart';
 import 'widgets/gallery_result_image.dart';
 import 'widgets/gallery_viewer.dart';
@@ -147,6 +149,10 @@ class _MainShellState extends State<MainShell> {
   StreamSubscription<AuthState>? _authSubscription;
   GallerySuccessKind? _gallerySuccessKind;
   String? _galleryHighlightKey;
+  bool _demoWelcomeCheckScheduled = false;
+  bool _demoWelcomePresentationStarted = false;
+
+  bool get _isDemoModeWithoutAuth => !_authService.isConfigured;
   bool get _canLoadUserBackendData {
     if (!_authService.isConfigured) {
       return true;
@@ -169,6 +175,34 @@ class _MainShellState extends State<MainShell> {
     } else {
       _clearSessionUserData();
     }
+    _scheduleDemoFreeGenerationsWelcome();
+  }
+
+  void _scheduleDemoFreeGenerationsWelcome() {
+    if (_demoWelcomeCheckScheduled) return;
+    _demoWelcomeCheckScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_maybeShowDemoFreeGenerationsWelcome());
+    });
+  }
+
+  bool _hasModalOverlay(BuildContext context) {
+    return Navigator.of(context, rootNavigator: true).canPop();
+  }
+
+  Future<void> _maybeShowDemoFreeGenerationsWelcome() async {
+    if (!mounted || !_isDemoModeWithoutAuth) return;
+    if (_demoWelcomePresentationStarted) return;
+    if (FreeGenerationsWelcomeService.shownThisSession) return;
+
+    final alreadySeen = await FreeGenerationsWelcomeService.hasSeen();
+    if (!mounted || alreadySeen) return;
+    if (_hasModalOverlay(context)) return;
+
+    _demoWelcomePresentationStarted = true;
+    await FreeGenerationsWelcomeDialog.show(context);
+    if (!mounted) return;
+    await FreeGenerationsWelcomeService.markSeen();
   }
 
   @override
