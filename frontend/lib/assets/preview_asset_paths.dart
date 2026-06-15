@@ -128,4 +128,9 @@ class PreviewAssetPaths {
       'assets/previews/photoshoots/${id}_3.jpg',
     ];
   }
+
+  // —— Photo quality guides ———————————————————————————————————————————————
+
+  static const guidesGoodPhoto = 'assets/guides/good_photo.jpg';
+  static const guidesBadPhoto = 'assets/guides/bad_photo.jpg';
 }

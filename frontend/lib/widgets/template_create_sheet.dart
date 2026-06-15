@@ -8,6 +8,7 @@ import '../models/user_balance.dart';
 import '../screens/template_photo_screen.dart';
 import '../services/api_service.dart';
 import '../widgets/generation_progress_dialog.dart';
+import '../widgets/good_result_guide_card.dart';
 import '../widgets/insufficient_balance_dialog.dart';
 import '../widgets/missing_photo_dialog.dart';
 import '../widgets/preview_asset_image.dart';
@@ -240,26 +241,12 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                template.title,
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                template.description,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontSize: 14,
-                                  height: 1.4,
-                                  color: const Color(0xFF6B7280),
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            template.title,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                         IconButton(
@@ -271,23 +258,33 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: PreviewAssetImage(
-                        assetPath: template.effectivePreviewAssetPath,
-                        height: 120,
-                        placeholder: VisualPlaceholder(
-                          mood: template.visualKind.placeholderMood,
-                          gradientColors: template.placeholderColors,
-                          caption: VisualPlaceholderPalette.theme(
-                            template.visualKind.placeholderMood,
-                          ).caption,
-                          variant: template.id.hashCode.abs() % 4,
-                          height: 120,
-                          compact: true,
-                        ),
-                      ),
+                    const SizedBox(height: 12),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final height =
+                            (constraints.maxWidth * 9 / 16).clamp(0.0, 150.0);
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: SizedBox(
+                            height: height,
+                            width: double.infinity,
+                            child: PreviewAssetImage(
+                              assetPath: template.effectivePreviewAssetPath,
+                              fit: BoxFit.cover,
+                              placeholder: VisualPlaceholder(
+                                mood: template.visualKind.placeholderMood,
+                                gradientColors: template.placeholderColors,
+                                caption: VisualPlaceholderPalette.theme(
+                                  template.visualKind.placeholderMood,
+                                ).caption,
+                                variant: template.id.hashCode.abs() % 4,
+                                height: height,
+                                compact: true,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -397,34 +394,8 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Theme(
-                      data: theme.copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        tilePadding: EdgeInsets.zero,
-                        childrenPadding: const EdgeInsets.only(bottom: 8),
-                        title: Text(
-                          'Описание',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              template.requestDescription,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontSize: 13,
-                                height: 1.45,
-                                color: const Color(0xFF6B7280),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    const GoodResultGuideCard(style: GoodResultGuideStyle.sheet),
+                    const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       height: 50,
