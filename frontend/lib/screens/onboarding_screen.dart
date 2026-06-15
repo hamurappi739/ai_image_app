@@ -53,10 +53,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           HelpPhotoshootTripletPreview(compact: compact),
     ),
     _OnboardingPage(
-      title: 'Свой запрос',
+      title: 'Своя идея',
       body:
           'Добавьте фото и напишите, '
-          'какой результат хотите получить.',
+          'что нужно изменить или создать.',
       previewBuilder: ({required compact}) =>
           HelpCustomRequestFlowPreview(compact: compact),
     ),

@@ -238,7 +238,7 @@ class AppDrawer extends StatelessWidget {
                   _menuTile(
                     context,
                     section: AppSection.customRequest,
-                    label: 'Свой запрос',
+                    label: 'Своя идея',
                   ),
                   _menuTile(
                     context,

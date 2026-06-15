@@ -21,7 +21,7 @@ class HomeHelpDialog extends StatelessWidget {
           title: 'Меню слева сверху',
           body:
               'Все разделы приложения — в меню слева сверху: '
-              'шаблоны, фотосессии, свой запрос, готовые фото, '
+              'шаблоны, фотосессии, своя идея, готовые фото, '
               'раздел «Купить» и профиль.',
           previewBuilder: ({required compact}) =>
               HelpDrawerMenuPreview(compact: compact),

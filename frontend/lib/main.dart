@@ -5531,9 +5531,9 @@ class _CreateScreenState extends State<CreateScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AppScreenHeader(
-                title: 'Свой запрос',
+                title: 'Своя идея',
                 subtitle:
-                    'Добавьте фото и напишите, какой результат хотите получить.',
+                    'Добавьте фото и напишите, что нужно изменить или создать.',
                 trailing: SectionHelpButton(
                   onPressed: _showHelp,
                   enabled: !_isHelpDialogVisible,

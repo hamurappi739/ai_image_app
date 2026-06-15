@@ -139,12 +139,12 @@ class CustomRequestFlow extends StatelessWidget {
         const SizedBox(height: 14),
         _StepSection(
           stepNumber: 2,
-          title: 'Опишите результат',
+          title: 'Опишите свою идею',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Вы можете изменить описание.',
+                'Опишите, что хотите получить.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontSize: 12,
                   color: _textSecondary,
@@ -213,10 +213,13 @@ class CustomRequestFlow extends StatelessWidget {
                             ),
                           )
                         : const Text(
-                            'Создать фото',
+                            'Создать по моей идее',
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 17,
+                              fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -228,7 +231,7 @@ class CustomRequestFlow extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Text(
-          'Примеры описания',
+          'Примеры идей',
           style: theme.textTheme.titleMedium?.copyWith(
             fontSize: 16,
             color: _textPrimary,
@@ -236,7 +239,7 @@ class CustomRequestFlow extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Нажмите — текст подставится в поле выше.',
+          'Нажмите — идея подставится в поле выше.',
           style: theme.textTheme.bodyMedium?.copyWith(
             fontSize: 13,
             color: _textSecondary,

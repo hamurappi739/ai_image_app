@@ -63,7 +63,7 @@ class HelpHubScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _HelpTopicTile(
                     icon: Icons.edit_outlined,
-                    title: 'Свой запрос',
+                    title: 'Своя идея',
                     subtitle: 'Как описать свою идею и добавить фото.',
                     onTap: () =>
                         _openDialog(context, const CreateHelpDialog()),

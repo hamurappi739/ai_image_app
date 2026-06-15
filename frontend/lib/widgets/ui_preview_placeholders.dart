@@ -399,7 +399,7 @@ class HelpDrawerMenuPreview extends StatelessWidget {
     'Главная',
     'Фото по шаблону',
     'Фотосессии',
-    'Свой запрос',
+    'Своя идея',
     'Готовые фото',
     'Купить',
   ];
@@ -495,7 +495,7 @@ class HelpWelcomePreview extends StatelessWidget {
             child: _WelcomeStepChip(
               compact: compact,
               icon: Icons.edit_outlined,
-              label: 'Свой запрос',
+              label: 'Своя идея',
             ),
           ),
         ],

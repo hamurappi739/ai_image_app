@@ -41,7 +41,7 @@ class CreateHelpDialog extends StatelessWidget {
           previewBuilder: _qualityPreview,
         ),
         PagedHelpBlock(
-          title: 'Нажмите «Создать фото»',
+          title: 'Нажмите «Создать по моей идее»',
           body: 'Готовое фото появится в разделе «Готовые фото».',
           previewBuilder: _createPreview,
         ),

@@ -235,7 +235,7 @@ class VisualPlaceholderHero extends StatelessWidget {
             ),
             _HeroFeatureBadge(
               icon: Icons.edit_outlined,
-              label: 'Свой запрос',
+              label: 'Своя идея',
             ),
           ],
         ),
