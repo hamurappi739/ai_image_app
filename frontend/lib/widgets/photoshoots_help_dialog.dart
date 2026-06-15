@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'onboarding/onboarding_mockups.dart';
 import 'paged_help_dialog.dart';
-import 'ui_preview_placeholders.dart';
 
 class PhotoshootsHelpDialog extends StatelessWidget {
   const PhotoshootsHelpDialog({
@@ -15,50 +15,28 @@ class PhotoshootsHelpDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return PagedHelpDialog(
       onDismissed: onDismissed,
-      blocks: const [
-        PagedHelpBlock(
+      blocks: [
+        OnboardingStep(
           title: 'Выберите стиль',
-          body: 'Нажмите на карточку с понравившимся образом.',
-          previewBuilder: _stylePreview,
+          body: 'Выберите категорию и нажмите на понравившуюся фотосессию.',
+          mockupBuilder: OnboardingMockups.photoshootStylePick,
         ),
-        PagedHelpBlock(
-          title: 'Фотосессия создаёт 3 фото',
+        OnboardingStep(
+          title: 'Фотосессия = 3 фото',
           body: 'Вы получите серию из трёх фото в одном стиле.',
-          previewBuilder: _tripletPreview,
+          mockupBuilder: OnboardingMockups.photoshootThreeResults,
         ),
-        PagedHelpBlock(
-          title: 'Загрузите своё фото',
-          body: 'Добавьте фото на устройстве. Лицо должно быть хорошо видно.',
-          previewBuilder: _photoPreview,
+        OnboardingStep(
+          title: 'Добавьте фото',
+          body: 'Загрузите своё фото — лицо должно быть хорошо видно.',
+          mockupBuilder: OnboardingMockups.photoshootAddPhoto,
         ),
-        PagedHelpBlock(
-          title: 'Создайте свой образ',
-          body:
-              'Если не нашли подходящий стиль, '
-              'нажмите «Создать свой образ» вверху экрана.',
-          previewBuilder: _customStylePreview,
-        ),
-        PagedHelpBlock(
-          title: 'Где смотреть результат',
-          body: 'Готовая фотосессия появится в «Готовые фото».',
-          previewBuilder: _galleryPreview,
+        OnboardingStep(
+          title: 'Смотрите готовые фото',
+          body: 'Готовая фотосессия появится в разделе «Готовые фото».',
+          mockupBuilder: OnboardingMockups.photoshootGallery,
         ),
       ],
     );
   }
-
-  static Widget _stylePreview({required bool compact}) =>
-      HelpTemplatePreview(compact: compact);
-
-  static Widget _tripletPreview({required bool compact}) =>
-      HelpPhotoshootTripletPreview(compact: compact);
-
-  static Widget _photoPreview({required bool compact}) =>
-      HelpPhotoUploadPreview(compact: compact);
-
-  static Widget _customStylePreview({required bool compact}) =>
-      HelpCustomStyleBannerPreview(compact: compact);
-
-  static Widget _galleryPreview({required bool compact}) =>
-      HelpGalleryPreview(compact: compact);
 }

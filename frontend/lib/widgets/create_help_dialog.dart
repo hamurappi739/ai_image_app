@@ -15,7 +15,7 @@ class CreateHelpDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return PagedHelpDialog(
       onDismissed: onDismissed,
-      blocks: const [
+      blocks: [
         PagedHelpBlock(
           title: 'Это режим для своей идеи',
           body:

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'onboarding/onboarding_mockups.dart';
 import 'paged_help_dialog.dart';
-import 'ui_preview_placeholders.dart';
 
 class TemplateHelpDialog extends StatelessWidget {
   const TemplateHelpDialog({super.key});
@@ -9,49 +9,36 @@ class TemplateHelpDialog extends StatelessWidget {
   static void show(BuildContext context) {
     showDialog<void>(
       context: context,
+      barrierDismissible: true,
       builder: (_) => const TemplateHelpDialog(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return const PagedHelpDialog(
+    return PagedHelpDialog(
       blocks: [
-        PagedHelpBlock(
-          title: 'Выберите подходящий шаблон',
+        OnboardingStep(
+          title: 'Выберите категорию',
+          body: 'Сверху выберите категорию — ниже появятся подходящие шаблоны.',
+          mockupBuilder: OnboardingMockups.templateCategories,
+        ),
+        OnboardingStep(
+          title: 'Откройте шаблон',
           body: 'Нажмите «Попробовать» на карточке, которая вам нравится.',
-          previewBuilder: _templatePreview,
+          mockupBuilder: OnboardingMockups.templateOpen,
         ),
-        PagedHelpBlock(
-          title: 'Описание подставится автоматически',
-          body:
-              'Приложение само заполнит текст — '
-              'ничего писать с нуля не нужно.',
-          previewBuilder: _descriptionPreview,
-        ),
-        PagedHelpBlock(
-          title: 'Потом добавьте своё фото',
+        OnboardingStep(
+          title: 'Добавьте фото',
           body: 'Выберите фото на устройстве. Лицо должно быть хорошо видно.',
-          previewBuilder: _photoPreview,
+          mockupBuilder: OnboardingMockups.templateAddPhoto,
         ),
-        PagedHelpBlock(
-          title: 'Нажмите «Создать фото»',
-          body: 'Обычно ждать 20–60 секунд. Результат появится в «Готовые фото».',
-          previewBuilder: _createPreview,
+        OnboardingStep(
+          title: 'Получите результат',
+          body: 'Готовое фото сохранится в разделе «Готовые фото».',
+          mockupBuilder: OnboardingMockups.templateResult,
         ),
       ],
     );
   }
-
-  static Widget _templatePreview({required bool compact}) =>
-      HelpTemplatePreview(compact: compact);
-
-  static Widget _descriptionPreview({required bool compact}) =>
-      HelpDescriptionPreview(compact: compact);
-
-  static Widget _photoPreview({required bool compact}) =>
-      HelpPhotoUploadPreview(compact: compact);
-
-  static Widget _createPreview({required bool compact}) =>
-      HelpCreateButtonPreview(compact: compact);
 }
