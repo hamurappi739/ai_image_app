@@ -1768,11 +1768,9 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     return _stylesForIds(collection.styleIds);
   }
 
-  static double _photoshootCardExtent(double gridWidth, int columns) {
-    final cardWidth = (gridWidth - (columns - 1) * 16) / columns;
-    final tripletHeight = cardWidth;
-    const contentHeight = 12.0 + 36.0 + 4.0 + 30.0 + 6.0 + 16.0 + 10.0 + 40.0 + 14.0;
-    return tripletHeight + contentHeight;
+  static double _photoshootGridItemWidth(double gridWidth, int columns) {
+    if (columns <= 1) return gridWidth;
+    return (gridWidth - 16 * (columns - 1)) / columns;
   }
 
   void _scheduleFirstVisitHelp() {
@@ -1888,27 +1886,25 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     required BuildContext context,
     required List<_PhotoshootStyle> styles,
     required int columns,
-    required double cardExtent,
+    required double gridWidth,
   }) {
     if (styles.isEmpty) return const SizedBox.shrink();
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columns,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        mainAxisExtent: cardExtent,
-      ),
-      itemCount: styles.length,
-      itemBuilder: (context, index) {
-        final style = styles[index];
-        return _PhotoshootCard(
-          style: style,
-          onAction: () => _onStyleSelected(context, style),
-        );
-      },
+    final itemWidth = _photoshootGridItemWidth(gridWidth, columns);
+
+    return Wrap(
+      spacing: 16,
+      runSpacing: 16,
+      children: [
+        for (final style in styles)
+          SizedBox(
+            width: itemWidth,
+            child: _PhotoshootCard(
+              style: style,
+              onAction: () => _onStyleSelected(context, style),
+            ),
+          ),
+      ],
     );
   }
 
@@ -1957,8 +1953,6 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
               builder: (context, constraints) {
                 final columns =
                     constraints.maxWidth >= _gridBreakpoint ? 2 : 1;
-                final cardExtent =
-                    _photoshootCardExtent(constraints.maxWidth, columns);
                 final styles = _stylesForSelectedCategory();
                 final selectedCollection = _collections.firstWhere(
                   (c) => c.id == _selectedCategoryId,
@@ -2007,7 +2001,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                         context: context,
                         styles: styles,
                         columns: columns,
-                        cardExtent: cardExtent,
+                        gridWidth: constraints.maxWidth,
                       ),
                     ],
                   ),
@@ -2049,7 +2043,7 @@ class _PhotoshootCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,

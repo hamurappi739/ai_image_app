@@ -345,11 +345,9 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
     return 1;
   }
 
-  static double _cardMainExtent(double gridWidth, int columns) {
-    final cardWidth = (gridWidth - (columns - 1) * 16) / columns;
-    final previewHeight = cardWidth * 3 / 4;
-    const contentHeight = 14.0 + 38.0 + 6.0 + 34.0 + 10.0 + 40.0 + 14.0;
-    return previewHeight + contentHeight;
+  static double _gridItemWidth(double gridWidth, int columns) {
+    if (columns <= 1) return gridWidth;
+    return (gridWidth - 16 * (columns - 1)) / columns;
   }
 
   List<PhotoTemplate> _templatesForCategory(int index) {
@@ -377,8 +375,8 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
               builder: (context, constraints) {
                 final columns = _columnCount(constraints.maxWidth);
                 final templates = _templatesForCategory(_selectedCategoryIndex);
-                final cardExtent =
-                    _cardMainExtent(constraints.maxWidth, columns);
+                final itemWidth =
+                    _gridItemWidth(constraints.maxWidth, columns);
 
                 return SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
@@ -414,25 +412,20 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
                             ),
                       ),
                       const SizedBox(height: 16),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: columns,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          mainAxisExtent: cardExtent,
-                        ),
-                        itemCount: templates.length,
-                        itemBuilder: (context, index) {
-                          final template = templates[index];
-                          return _TemplateCard(
-                            template: template,
-                            onTry: () =>
-                                _openTemplateSheet(context, template),
-                          );
-                        },
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          for (final template in templates)
+                            SizedBox(
+                              width: itemWidth,
+                              child: _TemplateCard(
+                                template: template,
+                                onTry: () =>
+                                    _openTemplateSheet(context, template),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
@@ -571,6 +564,7 @@ class _TemplateCard extends StatelessWidget {
   static const _accentColor = Color(0xFF5B6CFF);
   static const _textPrimary = Color(0xFF1A1D26);
   static const _textSecondary = Color(0xFF6B7280);
+  static const _previewHeight = 190.0;
 
   final PhotoTemplate template;
   final VoidCallback onTry;
@@ -591,28 +585,27 @@ class _TemplateCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          AspectRatio(
-            aspectRatio: 4 / 3,
+          SizedBox(
+            height: _previewHeight,
+            width: double.infinity,
             child: PreviewAssetImage(
               assetPath: template.previewAsset,
               fit: BoxFit.cover,
-              placeholder: LayoutBuilder(
-                builder: (context, constraints) => VisualPlaceholder(
-                  mood: template.visualKind.placeholderMood,
-                  gradientColors: template.placeholderColors,
-                  caption: template.previewLabel ??
-                      VisualPlaceholderPalette.theme(
-                        template.visualKind.placeholderMood,
-                      ).caption,
-                  variant: template.id.hashCode.abs() % 4,
-                  height: constraints.maxHeight,
-                  compact: true,
-                ),
+              placeholder: VisualPlaceholder(
+                mood: template.visualKind.placeholderMood,
+                gradientColors: template.placeholderColors,
+                caption: template.previewLabel ??
+                    VisualPlaceholderPalette.theme(
+                      template.visualKind.placeholderMood,
+                    ).caption,
+                variant: template.id.hashCode.abs() % 4,
+                height: _previewHeight,
+                compact: true,
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
