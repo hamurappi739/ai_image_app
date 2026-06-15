@@ -9,53 +9,56 @@ class PreviewAssetPaths {
 
   static const homeHero = 'assets/previews/common/home_hero.png';
 
-  // —— Templates (planned filenames) ——————————————————————————————————————
+  // —— Templates (planned .jpg / .png filenames) —————————————————————————
 
+  static const templatesBeautifulPortrait =
+      'assets/previews/templates/beautiful_portrait.jpg';
+  static const templatesBusinessPortrait =
+      'assets/previews/templates/business_portrait.jpg';
+  static const templatesSocialPhoto =
+      'assets/previews/templates/social_photo.jpg';
+  static const templatesProductPhoto =
+      'assets/previews/templates/product_photo.jpg';
+  static const templatesWinterPortrait =
+      'assets/previews/templates/winter_portrait.jpg';
+  static const templatesSummerPortrait =
+      'assets/previews/templates/summer_portrait.jpg';
+  static const templatesResumePhoto =
+      'assets/previews/templates/resume_photo.jpg';
+  static const templatesFamilyPhoto =
+      'assets/previews/templates/family_photo.jpg';
+  static const templatesInteriorPhoto =
+      'assets/previews/templates/interior_photo.jpg';
   static const templatesPortraitSoft =
       'assets/previews/templates/portrait_soft.png';
-  static const templatesSocialProfile =
-      'assets/previews/templates/social_profile.png';
-  static const templatesWinterPortrait =
-      'assets/previews/templates/winter_portrait.png';
-  static const templatesSummerPortrait =
-      'assets/previews/templates/summer_portrait.png';
-  static const templatesBusinessPortrait =
-      'assets/previews/templates/business_portrait.png';
-  static const templatesResumePhoto =
-      'assets/previews/templates/resume_photo.png';
-  static const templatesFamilyPhoto =
-      'assets/previews/templates/family_photo.png';
-  static const templatesProductPhoto =
-      'assets/previews/templates/product_photo.png';
-  static const templatesInteriorPhoto =
-      'assets/previews/templates/interior_photo.png';
 
-  // —— Photoshoots (planned filenames) —————————————————————————————————————
+  // —— Photoshoot singles (legacy card hero) —————————————————————————————
 
   static const photoshootsStudioPortrait =
       'assets/previews/photoshoots/studio_portrait.png';
   static const photoshootsBusinessPortrait =
       'assets/previews/photoshoots/business_portrait.png';
-  static const photoshootsCityPortrait =
-      'assets/previews/photoshoots/city_portrait.png';
-  static const photoshootsEveningStyle =
-      'assets/previews/photoshoots/evening_style.png';
-  static const photoshootsWinterPhotoshoot =
-      'assets/previews/photoshoots/winter_photoshoot.png';
-  static const photoshootsHomePortrait =
-      'assets/previews/photoshoots/home_portrait.png';
-  static const photoshootsTravelPortrait =
-      'assets/previews/photoshoots/travel_portrait.png';
-  static const photoshootsPremiumPortrait =
-      'assets/previews/photoshoots/premium_portrait.png';
-  static const photoshootsCustomPhotoshoot =
-      'assets/previews/photoshoots/custom_photoshoot.png';
+
+  // —— Photoshoot triplets (planned .jpg series) ———————————————————————————
+
+  static const photoshootsBusiness1 =
+      'assets/previews/photoshoots/business_1.jpg';
+  static const photoshootsBusiness2 =
+      'assets/previews/photoshoots/business_2.jpg';
+  static const photoshootsBusiness3 =
+      'assets/previews/photoshoots/business_3.jpg';
+  static const photoshootsStudio1 =
+      'assets/previews/photoshoots/studio_1.jpg';
+  static const photoshootsStudio2 =
+      'assets/previews/photoshoots/studio_2.jpg';
+  static const photoshootsStudio3 =
+      'assets/previews/photoshoots/studio_3.jpg';
 
   /// Maps template catalog [id] → planned asset path (may be unbundled).
   static const Map<String, String> templateById = {
-    'beautiful_portrait': templatesPortraitSoft,
+    'beautiful_portrait': templatesBeautifulPortrait,
     'tender_portrait': templatesPortraitSoft,
-    'social_photo': templatesSocialProfile,
+    'social_photo': templatesSocialPhoto,
     'winter_portrait': templatesWinterPortrait,
     'summer_portrait': templatesSummerPortrait,
     'business_portrait': templatesBusinessPortrait,
@@ -66,35 +69,63 @@ class PreviewAssetPaths {
     'clothing_photo': templatesProductPhoto,
     'jewelry_photo': templatesProductPhoto,
     'interior_photo': templatesInteriorPhoto,
+    'profile_photo': templatesSocialPhoto,
+    'expert_look': templatesBusinessPortrait,
+    'vibrant_look': templatesBeautifulPortrait,
   };
 
-  /// Maps photoshoot style [id] → planned asset path (may be unbundled).
+  /// Maps photoshoot style [id] → planned hero asset (legacy / modal).
   static const Map<String, String> photoshootById = {
     'studio_portrait': photoshootsStudioPortrait,
     'business_portrait': photoshootsBusinessPortrait,
-    'urban_portrait': photoshootsCityPortrait,
-    'city_portrait': photoshootsCityPortrait,
-    'evening_look': photoshootsEveningStyle,
-    'winter_photoshoot': photoshootsWinterPhotoshoot,
-    'home_portrait': photoshootsHomePortrait,
-    'travel_portrait': photoshootsTravelPortrait,
-    'premium_portrait': photoshootsPremiumPortrait,
-    'custom_photoshoot': photoshootsCustomPhotoshoot,
+    'urban_portrait': photoshootsBusinessPortrait,
+    'city_portrait': photoshootsBusinessPortrait,
+    'evening_look': photoshootsStudioPortrait,
+    'winter_photoshoot': photoshootsStudioPortrait,
+    'home_portrait': photoshootsStudioPortrait,
+    'travel_portrait': photoshootsStudioPortrait,
+    'premium_portrait': photoshootsBusinessPortrait,
+    'custom_photoshoot': photoshootsStudioPortrait,
   };
 
-  // TODO(preview-assets): when illustration files are added, register each path
-  // in [PreviewAssetRegistry.availableAssets]. Planned catalog:
-  //
-  // Templates: portrait_soft, social_profile, winter_portrait, summer_portrait,
-  //   business_portrait, resume_photo, family_photo, product_photo, interior_photo
-  //
-  // Photoshoots: studio_portrait, business_portrait, city_portrait, evening_style,
-  //   winter_photoshoot, home_portrait, travel_portrait, premium_portrait,
-  //   custom_photoshoot
-  //
-  // Home: home_hero
+  /// Three result previews per photoshoot style (may be unbundled).
+  static const Map<String, List<String>> photoshootTripletById = {
+    'studio_portrait': [
+      photoshootsStudio1,
+      photoshootsStudio2,
+      photoshootsStudio3,
+    ],
+    'business_portrait': [
+      photoshootsBusiness1,
+      photoshootsBusiness2,
+      photoshootsBusiness3,
+    ],
+    'urban_portrait': [
+      photoshootsBusiness1,
+      photoshootsBusiness2,
+      photoshootsBusiness3,
+    ],
+    'city_portrait': [
+      photoshootsBusiness1,
+      photoshootsBusiness2,
+      photoshootsBusiness3,
+    ],
+  };
 
-  static String? templatePathForId(String id) => templateById[id];
+  static String templateAssetForId(String id) =>
+      templateById[id] ?? 'assets/previews/templates/$id.jpg';
+
+  static String? templatePathForId(String id) => templateAssetForId(id);
 
   static String? photoshootPathForId(String id) => photoshootById[id];
+
+  static List<String> photoshootPreviewAssetsForId(String id) {
+    final explicit = photoshootTripletById[id];
+    if (explicit != null && explicit.isNotEmpty) return explicit;
+    return [
+      'assets/previews/photoshoots/${id}_1.jpg',
+      'assets/previews/photoshoots/${id}_2.jpg',
+      'assets/previews/photoshoots/${id}_3.jpg',
+    ];
+  }
 }

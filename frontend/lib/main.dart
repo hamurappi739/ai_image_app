@@ -30,6 +30,7 @@ import 'widgets/app_balance_summary.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/app_navigation_scope.dart';
 import 'widgets/app_screen_header.dart';
+import 'widgets/category_filter_chips.dart';
 import 'widgets/coming_soon_dialog.dart';
 import 'widgets/custom_request_flow.dart';
 import 'widgets/create_help_dialog.dart';
@@ -41,6 +42,7 @@ import 'widgets/gallery_viewer.dart';
 import 'widgets/generation_progress_dialog.dart';
 import 'widgets/insufficient_balance_dialog.dart';
 import 'widgets/missing_photo_dialog.dart';
+import 'widgets/photoshoot_triplet_preview.dart';
 import 'widgets/packs_help_dialog.dart';
 import 'widgets/photoshoots_help_dialog.dart';
 import 'widgets/preview_asset_image.dart';
@@ -1387,6 +1389,7 @@ class _PhotoshootStyle {
     required this.isFree,
     this.previewVariant = 0,
     this.previewAssetPath,
+    this.previewAssetPaths,
   });
 
   final String id;
@@ -1400,11 +1403,17 @@ class _PhotoshootStyle {
   final bool isFree;
   final int previewVariant;
 
-  /// Optional explicit override; otherwise resolved from [PreviewAssetPaths].
+  /// Optional hero preview for modals (legacy single image).
   final String? previewAssetPath;
+
+  /// Three result previews for catalog cards (jpg under assets/previews/photoshoots/).
+  final List<String>? previewAssetPaths;
 
   String? get effectivePreviewAssetPath =>
       previewAssetPath ?? PreviewAssetPaths.photoshootPathForId(id);
+
+  List<String> get effectivePreviewAssets =>
+      previewAssetPaths ?? PreviewAssetPaths.photoshootPreviewAssetsForId(id);
 
   String get priceLabel => isFree ? 'Бесплатно' : '3 изображения';
 }
@@ -1462,15 +1471,23 @@ class PhotoshootsScreen extends StatefulWidget {
 class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
   bool _isHelpDialogVisible = false;
   final _scrollController = ScrollController();
-  final _customPhotoshootKey = GlobalKey();
-  final _sectionKeys = <String, GlobalKey>{
-    'trending': GlobalKey(),
-    'for_self': GlobalKey(),
-    'work': GlobalKey(),
-    'atmospheric': GlobalKey(),
-  };
+  String _selectedCategoryId = 'trending';
 
   static const _gridBreakpoint = 560.0;
+
+  static const _categoryIds = [
+    'trending',
+    'for_self',
+    'work',
+    'atmospheric',
+  ];
+
+  static const _categoryLabels = [
+    'Популярное сейчас',
+    'Для себя',
+    'Для работы',
+    'Атмосферные',
+  ];
 
   static const _collections = [
     _PhotoshootCollection(
@@ -1532,6 +1549,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     required bool isFree,
     int previewVariant = 0,
     String? previewAssetPath,
+    List<String>? previewAssetPaths,
   }) {
     return _PhotoshootStyle(
       id: id,
@@ -1545,6 +1563,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       isFree: isFree,
       previewVariant: previewVariant,
       previewAssetPath: previewAssetPath,
+      previewAssetPaths: previewAssetPaths,
     );
   }
 
@@ -1559,6 +1578,8 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       isFree: true,
       previewVariant: 0,
       previewAssetPath: PreviewAssetPaths.photoshootsStudioPortrait,
+      previewAssetPaths:
+          PreviewAssetPaths.photoshootTripletById['studio_portrait'],
     ),
     _photoshootStyle(
       id: 'business_portrait',
@@ -1570,6 +1591,8 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       isFree: true,
       previewVariant: 1,
       previewAssetPath: PreviewAssetPaths.photoshootsBusinessPortrait,
+      previewAssetPaths:
+          PreviewAssetPaths.photoshootTripletById['business_portrait'],
     ),
     _photoshootStyle(
       id: 'home_portrait',
@@ -1580,7 +1603,6 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFFF5E8D8), Color(0xFFD4B896)],
       isFree: true,
       previewVariant: 2,
-      previewAssetPath: PreviewAssetPaths.photoshootsHomePortrait,
     ),
     _photoshootStyle(
       id: 'premium_portrait',
@@ -1591,7 +1613,6 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFFD8C8F8), Color(0xFF9070D8)],
       isFree: false,
       previewVariant: 3,
-      previewAssetPath: PreviewAssetPaths.photoshootsPremiumPortrait,
     ),
     _photoshootStyle(
       id: 'winter_photoshoot',
@@ -1602,7 +1623,6 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFFD0ECFA), Color(0xFF6CB8E8)],
       isFree: false,
       previewVariant: 1,
-      previewAssetPath: PreviewAssetPaths.photoshootsWinterPhotoshoot,
     ),
     _photoshootStyle(
       id: 'urban_portrait',
@@ -1613,7 +1633,6 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFFC8D4F8), Color(0xFF6878D0)],
       isFree: false,
       previewVariant: 0,
-      previewAssetPath: PreviewAssetPaths.photoshootsCityPortrait,
     ),
     _photoshootStyle(
       id: 'evening_look',
@@ -1624,7 +1643,6 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFF7A5898), Color(0xFF3A2868)],
       isFree: false,
       previewVariant: 2,
-      previewAssetPath: PreviewAssetPaths.photoshootsEveningStyle,
     ),
     _photoshootStyle(
       id: 'travel_portrait',
@@ -1635,7 +1653,6 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
       gradientColors: [Color(0xFFC0ECE0), Color(0xFF58B8A8)],
       isFree: false,
       previewVariant: 3,
-      previewAssetPath: PreviewAssetPaths.photoshootsTravelPortrait,
     ),
     _photoshootStyle(
       id: 'tender_photoshoot',
@@ -1714,7 +1731,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     super.initState();
     _scheduleFirstVisitHelp();
     if (widget.scrollToTrending && widget.isActive) {
-      _scheduleScrollToTrending();
+      _selectedCategoryId = 'trending';
     }
   }
 
@@ -1733,24 +1750,29 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     if (widget.isActive &&
         widget.scrollToTrending &&
         (!oldWidget.scrollToTrending || !oldWidget.isActive)) {
-      _scheduleScrollToTrending();
+      setState(() => _selectedCategoryId = 'trending');
+      widget.onTrendingScrollHandled?.call();
     }
   }
 
-  void _scheduleScrollToTrending() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !widget.isActive) return;
-      final targetContext = _sectionKeys['trending']?.currentContext;
-      if (targetContext != null) {
-        Scrollable.ensureVisible(
-          targetContext,
-          alignment: 0.02,
-          duration: const Duration(milliseconds: 420),
-          curve: Curves.easeOutCubic,
-        );
-      }
-      widget.onTrendingScrollHandled?.call();
-    });
+  int get _selectedCategoryIndex {
+    final index = _categoryIds.indexOf(_selectedCategoryId);
+    return index >= 0 ? index : 0;
+  }
+
+  List<_PhotoshootStyle> _stylesForSelectedCategory() {
+    final collection = _collections.firstWhere(
+      (c) => c.id == _selectedCategoryId,
+      orElse: () => _collections.first,
+    );
+    return _stylesForIds(collection.styleIds);
+  }
+
+  static double _photoshootCardExtent(double gridWidth, int columns) {
+    final cardWidth = (gridWidth - (columns - 1) * 16) / columns;
+    final tripletHeight = cardWidth;
+    const contentHeight = 12.0 + 36.0 + 4.0 + 30.0 + 6.0 + 16.0 + 10.0 + 40.0 + 14.0;
+    return tripletHeight + contentHeight;
   }
 
   void _scheduleFirstVisitHelp() {
@@ -1862,53 +1884,11 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     ];
   }
 
-  void _scrollToPhotoshootSection(String sectionId) {
-    if (sectionId == 'custom') {
-      final context = _customPhotoshootKey.currentContext;
-      if (context != null) {
-        Scrollable.ensureVisible(
-          context,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeInOut,
-          alignment: 0.05,
-        );
-      }
-      return;
-    }
-
-    final context = _sectionKeys[sectionId]?.currentContext;
-    if (context == null) return;
-    Scrollable.ensureVisible(
-      context,
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeInOut,
-      alignment: 0.05,
-    );
-  }
-
-  List<({ _PhotoshootCollection collection, List<_PhotoshootStyle> styles })>
-      _visibleCollections() {
-    final shownIds = <String>{};
-    final result =
-        <({ _PhotoshootCollection collection, List<_PhotoshootStyle> styles })>[];
-
-    for (final collection in _collections) {
-      final exclude = collection.omitDuplicates ? shownIds : null;
-      final styles = _stylesForIds(collection.styleIds, excludeIds: exclude);
-      if (styles.isEmpty) continue;
-      shownIds.addAll(styles.map((s) => s.id));
-      result.add((collection: collection, styles: styles));
-    }
-
-    return result;
-  }
-
   Widget _buildStyleGrid({
     required BuildContext context,
     required List<_PhotoshootStyle> styles,
     required int columns,
-    required double previewHeight,
-    required double gridAspectRatio,
+    required double cardExtent,
   }) {
     if (styles.isEmpty) return const SizedBox.shrink();
 
@@ -1919,18 +1899,14 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
         crossAxisCount: columns,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: gridAspectRatio,
+        mainAxisExtent: cardExtent,
       ),
       itemCount: styles.length,
       itemBuilder: (context, index) {
         final style = styles[index];
-        return Align(
-          alignment: Alignment.topCenter,
-          child: _PhotoshootCard(
-            style: style,
-            previewHeight: previewHeight,
-            onAction: () => _onStyleSelected(context, style),
-          ),
+        return _PhotoshootCard(
+          style: style,
+          onAction: () => _onStyleSelected(context, style),
         );
       },
     );
@@ -1981,13 +1957,13 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
               builder: (context, constraints) {
                 final columns =
                     constraints.maxWidth >= _gridBreakpoint ? 2 : 1;
-                final previewHeight = columns == 2 ? 118.0 : 112.0;
-                final cardWidth =
-                    (constraints.maxWidth - (columns - 1) * 16) / columns;
-                final cardHeight = columns == 2 ? 300.0 : 318.0;
-                final gridAspectRatio = cardWidth / cardHeight;
-
-                final collections = _visibleCollections();
+                final cardExtent =
+                    _photoshootCardExtent(constraints.maxWidth, columns);
+                final styles = _stylesForSelectedCategory();
+                final selectedCollection = _collections.firstWhere(
+                  (c) => c.id == _selectedCategoryId,
+                  orElse: () => _collections.first,
+                );
 
                 return SingleChildScrollView(
                   controller: _scrollController,
@@ -2003,36 +1979,36 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
                         helpEnabled: !_isHelpDialogVisible,
                         onOpenPacks: widget.onOpenPacks,
                       ),
-                      const SizedBox(height: 12),
-                      _PhotoshootCategoryChips(
-                        onSelected: _scrollToPhotoshootSection,
+                      const SizedBox(height: 16),
+                      _CustomPhotoshootPromoBanner(
+                        onAction: () => _openCustomPhotoshootSheet(context),
                       ),
                       const SizedBox(height: 16),
-                      KeyedSubtree(
-                        key: _customPhotoshootKey,
-                        child: _CustomPhotoshootPromoBanner(
-                          onAction: () => _openCustomPhotoshootSheet(context),
-                        ),
+                      CategoryFilterChips(
+                        labels: _categoryLabels,
+                        selectedIndex: _selectedCategoryIndex,
+                        onSelected: (index) {
+                          setState(() {
+                            _selectedCategoryId = _categoryIds[index];
+                          });
+                        },
                       ),
-                      for (var i = 0; i < collections.length; i++) ...[
-                        SizedBox(height: i == 0 ? 24 : 28),
-                        KeyedSubtree(
-                          key: _sectionKeys[collections[i].collection.id],
-                          child: _PhotoshootCollectionHeader(
-                            title: collections[i].collection.title,
-                            subtitle: collections[i].collection.subtitle,
-                            highlighted: collections[i].collection.highlighted,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        _buildStyleGrid(
-                          context: context,
-                          styles: collections[i].styles,
-                          columns: columns,
-                          previewHeight: previewHeight,
-                          gridAspectRatio: gridAspectRatio,
-                        ),
-                      ],
+                      const SizedBox(height: 10),
+                      Text(
+                        selectedCollection.subtitle,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontSize: 13,
+                              height: 1.4,
+                              color: AiImageGeneratorApp.textSecondary,
+                            ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildStyleGrid(
+                        context: context,
+                        styles: styles,
+                        columns: columns,
+                        cardExtent: cardExtent,
+                      ),
                     ],
                   ),
                 );
@@ -2045,44 +2021,122 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
   }
 }
 
-class _PhotoshootCategoryChips extends StatelessWidget {
-  const _PhotoshootCategoryChips({required this.onSelected});
+class _PhotoshootCard extends StatelessWidget {
+  const _PhotoshootCard({
+    required this.style,
+    required this.onAction,
+  });
 
-  final ValueChanged<String> onSelected;
+  final _PhotoshootStyle style;
+  final VoidCallback onAction;
 
-  static const _chips = [
-    (id: 'trending', label: 'Популярное'),
-    (id: 'for_self', label: 'Для себя'),
-    (id: 'work', label: 'Для работы'),
-    (id: 'atmospheric', label: 'Атмосферные'),
-    (id: 'custom', label: 'Своя фотосессия'),
-  ];
+  static const _accentColor = Color(0xFF5B6CFF);
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (var i = 0; i < _chips.length; i++) ...[
-            if (i > 0) const SizedBox(width: 8),
-            ActionChip(
-              label: Text(_chips[i].label),
-              onPressed: () => onSelected(_chips[i].id),
-              backgroundColor: Colors.white,
-              side: const BorderSide(color: Color(0xFFE8EAEF)),
-              labelStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AiImageGeneratorApp.textPrimary,
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: style.isFree
+              ? const Color(0xFFE8EAEF)
+              : _accentColor.withValues(alpha: 0.28),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            PhotoshootTripletPreview(
+              styleId: style.id,
+              previewAssets: style.effectivePreviewAssets,
+              gradientColors: style.gradientColors,
+              icon: style.icon,
+              previewVariant: style.previewVariant,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              style.title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
               ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              style.description,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 12,
+                height: 1.3,
+                color: AiImageGeneratorApp.textSecondary,
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Стоимость: 3 изображения',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: _accentColor,
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: style.isFree
+                  ? FilledButton(
+                      onPressed: onAction,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _accentColor,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Попробовать',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    )
+                  : OutlinedButton(
+                      onPressed: onAction,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _accentColor,
+                        side: BorderSide(
+                          color: _accentColor.withValues(alpha: 0.45),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: const Text(
+                        'Создать',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -2159,68 +2213,6 @@ class _PhotoshootsIntroHeader extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _PhotoshootCollectionHeader extends StatelessWidget {
-  const _PhotoshootCollectionHeader({
-    required this.title,
-    required this.subtitle,
-    this.highlighted = false,
-  });
-
-  static const _accentColor = Color(0xFF5B6CFF);
-
-  final String title;
-  final String subtitle;
-  final bool highlighted;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: AiImageGeneratorApp.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontSize: 14,
-            height: 1.4,
-            color: AiImageGeneratorApp.textSecondary,
-          ),
-        ),
-      ],
-    );
-
-    if (!highlighted) return content;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFF5F7FF),
-            _accentColor.withValues(alpha: 0.08),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _accentColor.withValues(alpha: 0.14)),
-      ),
-      child: content,
     );
   }
 }
@@ -2336,190 +2328,6 @@ class _CustomPhotoshootPromoBanner extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PhotoshootCard extends StatelessWidget {
-  const _PhotoshootCard({
-    required this.style,
-    required this.previewHeight,
-    required this.onAction,
-  });
-
-  final _PhotoshootStyle style;
-  final double previewHeight;
-  final VoidCallback onAction;
-
-  static const _accentColor = Color(0xFF5B6CFF);
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final priceBg =
-        style.isFree ? const Color(0xFFE8F5E9) : const Color(0xFFEDE9FF);
-    final priceFg =
-        style.isFree ? const Color(0xFF2E7D32) : _accentColor;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onAction,
-        borderRadius: BorderRadius.circular(20),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: style.isFree
-                ? Border.all(color: const Color(0xFFE8EAEF))
-                : Border.all(
-                    color: _accentColor.withValues(alpha: 0.28),
-                    width: 1.2,
-                  ),
-            boxShadow: [
-              BoxShadow(
-                color: style.isFree
-                    ? Colors.black.withValues(alpha: 0.05)
-                    : _accentColor.withValues(alpha: 0.12),
-                blurRadius: 22,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (!style.isFree)
-                Container(
-                  height: 3,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        _accentColor.withValues(alpha: 0.6),
-                        const Color(0xFF7C5CFF).withValues(alpha: 0.35),
-                      ],
-                    ),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                  ),
-                ),
-              PreviewAssetImage(
-                assetPath: style.effectivePreviewAssetPath,
-                height: previewHeight,
-                placeholder: VisualPlaceholderSeries(
-                  mood: VisualPlaceholderPalette.moodForPhotoshootId(style.id),
-                  gradientColors: style.gradientColors,
-                  icon: style.icon,
-                  variant: style.previewVariant,
-                  height: previewHeight,
-                  showCatalogBadges: true,
-                  recommendation: style.recommendation,
-                  showPremiumStar: !style.isFree,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      style.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      style.description,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 12,
-                        height: 1.28,
-                        color: AiImageGeneratorApp.textSecondary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        const _PhotoshootMetaChip(
-                          label: '3 фото',
-                          backgroundColor: Color(0xFFF0F2FF),
-                          textColor: _accentColor,
-                        ),
-                        _PhotoshootMetaChip(
-                          label: style.priceLabel,
-                          backgroundColor: priceBg,
-                          textColor: priceFg,
-                        ),
-                        if (style.recommendation.isNotEmpty)
-                          _PhotoshootMetaChip(
-                            label: style.recommendation,
-                            backgroundColor: const Color(0xFFF7F8FC),
-                            textColor: AiImageGeneratorApp.textPrimary,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 34,
-                      child: style.isFree
-                          ? DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF7C5CFF),
-                                    Color(0xFF4A7CFF),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  'Выбрать стиль',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                            )
-                          : OutlinedButton(
-                              onPressed: onAction,
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: _accentColor,
-                                side: BorderSide(
-                                  color: _accentColor.withValues(alpha: 0.4),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: EdgeInsets.zero,
-                              ),
-                              child: const Text(
-                                'Выбрать стиль',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

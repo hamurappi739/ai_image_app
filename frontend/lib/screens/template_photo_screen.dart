@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../data/app_prompts.dart';
 import '../assets/preview_asset_paths.dart';
-import '../assets/preview_asset_registry.dart';
 import '../models/generated_image_item.dart';
 import '../models/user_balance.dart';
 import '../services/api_service.dart';
+import '../widgets/category_filter_chips.dart';
 import '../widgets/template_create_sheet.dart';
 import '../widgets/app_screen_header.dart';
 import '../widgets/preview_asset_image.dart';
@@ -79,11 +79,14 @@ class PhotoTemplate {
   final List<Color> placeholderColors;
   final String? previewLabel;
 
-  /// Planned local preview; used only when registered in [PreviewAssetRegistry].
+  /// Planned local preview path (jpg/png under assets/previews/templates/).
   final String? previewAssetPath;
 
-  String? get effectivePreviewAssetPath =>
-      previewAssetPath ?? PreviewAssetPaths.templatePathForId(id);
+  /// Bundled or planned preview asset for catalog cards and modals.
+  String get previewAsset =>
+      previewAssetPath ?? PreviewAssetPaths.templateAssetForId(id);
+
+  String? get effectivePreviewAssetPath => previewAsset;
 }
 
 class _TemplateCategoryGroup {
@@ -98,7 +101,7 @@ class _TemplateCategoryGroup {
   final List<String> templateIds;
 }
 
-class TemplatePhotoScreen extends StatelessWidget {
+class TemplatePhotoScreen extends StatefulWidget {
   const TemplatePhotoScreen({
     super.key,
     required this.apiService,
@@ -124,19 +127,26 @@ class TemplatePhotoScreen extends StatelessWidget {
   final VoidCallback onOpenPacks;
   final ValueChanged<String> onShowMessage;
 
+  @override
+  State<TemplatePhotoScreen> createState() => _TemplatePhotoScreenState();
+}
+
+class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
+  int _selectedCategoryIndex = 0;
+
   void _openTemplateSheet(BuildContext context, PhotoTemplate template) {
     TemplateCreateSheet.show(
       context,
       template: template,
-      apiService: apiService,
-      balance: balance,
-      balanceLoading: balanceLoading,
-      onImageGenerated: onImageGenerated,
-      onBalanceUpdated: onBalanceUpdated,
-      onRefreshBalance: onRefreshBalance,
-      onOpenGallery: onOpenGallery,
-      onOpenPacks: onOpenPacks,
-      onShowMessage: onShowMessage,
+      apiService: widget.apiService,
+      balance: widget.balance,
+      balanceLoading: widget.balanceLoading,
+      onImageGenerated: widget.onImageGenerated,
+      onBalanceUpdated: widget.onBalanceUpdated,
+      onRefreshBalance: widget.onRefreshBalance,
+      onOpenGallery: widget.onOpenGallery,
+      onOpenPacks: widget.onOpenPacks,
+      onShowMessage: widget.onShowMessage,
     );
   }
 
@@ -335,14 +345,30 @@ class TemplatePhotoScreen extends StatelessWidget {
     return 1;
   }
 
-  static double _gridAspectRatio(int columns) {
-    return columns == 1 ? 0.92 : 0.78;
+  static double _cardMainExtent(double gridWidth, int columns) {
+    final cardWidth = (gridWidth - (columns - 1) * 16) / columns;
+    final previewHeight = cardWidth * 3 / 4;
+    const contentHeight = 14.0 + 38.0 + 6.0 + 34.0 + 10.0 + 40.0 + 14.0;
+    return previewHeight + contentHeight;
+  }
+
+  List<PhotoTemplate> _templatesForCategory(int index) {
+    final group = _categoryGroups[index];
+    return [
+      for (final id in group.templateIds)
+        if (_templatesById.containsKey(id)) _templatesById[id]!,
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
+    final category = _categoryGroups[_selectedCategoryIndex];
+    final categoryLabels = [
+      for (final g in _categoryGroups) g.title,
+    ];
+
     return Scaffold(
-      backgroundColor: _scaffoldBackground,
+      backgroundColor: TemplatePhotoScreen._scaffoldBackground,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -350,6 +376,9 @@ class TemplatePhotoScreen extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final columns = _columnCount(constraints.maxWidth);
+                final templates = _templatesForCategory(_selectedCategoryIndex);
+                final cardExtent =
+                    _cardMainExtent(constraints.maxWidth, columns);
 
                 return SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
@@ -367,23 +396,44 @@ class TemplatePhotoScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       const _HowItWorksBanner(),
-                      const SizedBox(height: 28),
-                      for (var i = 0; i < _categoryGroups.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 28),
-                        _TemplateCategorySection(
-                          title: _categoryGroups[i].title,
-                          subtitle: _categoryGroups[i].subtitle,
-                          templates: [
-                            for (final id in _categoryGroups[i].templateIds)
-                              if (_templatesById.containsKey(id))
-                                _templatesById[id]!,
-                          ],
-                          columns: columns,
-                          aspectRatio: _gridAspectRatio(columns),
-                          onTemplateTry: (template) =>
-                              _openTemplateSheet(context, template),
+                      const SizedBox(height: 20),
+                      CategoryFilterChips(
+                        labels: categoryLabels,
+                        selectedIndex: _selectedCategoryIndex,
+                        onSelected: (index) {
+                          setState(() => _selectedCategoryIndex = index);
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        category.subtitle,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontSize: 13,
+                              height: 1.4,
+                              color: const Color(0xFF6B7280),
+                            ),
+                      ),
+                      const SizedBox(height: 16),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          mainAxisExtent: cardExtent,
                         ),
-                      ],
+                        itemCount: templates.length,
+                        itemBuilder: (context, index) {
+                          final template = templates[index];
+                          return _TemplateCard(
+                            template: template,
+                            onTry: () =>
+                                _openTemplateSheet(context, template),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 );
@@ -512,81 +562,6 @@ class _HowItWorksStep extends StatelessWidget {
   }
 }
 
-class _TemplateCategorySection extends StatelessWidget {
-  const _TemplateCategorySection({
-    required this.title,
-    required this.subtitle,
-    required this.templates,
-    required this.columns,
-    required this.aspectRatio,
-    required this.onTemplateTry,
-  });
-
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textSecondary = Color(0xFF6B7280);
-
-  final String title;
-  final String subtitle;
-  final List<PhotoTemplate> templates;
-  final int columns;
-  final double aspectRatio;
-  final ValueChanged<PhotoTemplate> onTemplateTry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FC),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE8EAEF)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: _textPrimary,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontSize: 13,
-                  height: 1.4,
-                  color: _textSecondary,
-                ),
-          ),
-          const SizedBox(height: 12),
-          GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: aspectRatio,
-          ),
-          itemCount: templates.length,
-          itemBuilder: (context, index) {
-            final template = templates[index];
-            return _TemplateCard(
-              template: template,
-              onTry: () => onTemplateTry(template),
-            );
-          },
-        ),
-        ],
-      ),
-    );
-  }
-}
-
 class _TemplateCard extends StatelessWidget {
   const _TemplateCard({
     required this.template,
@@ -608,7 +583,7 @@ class _TemplateCard extends StatelessWidget {
       color: Colors.white,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
       ),
       clipBehavior: Clip.antiAlias,
@@ -616,24 +591,31 @@ class _TemplateCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          PreviewAssetImage(
-            assetPath: template.effectivePreviewAssetPath,
-            height: 108,
-            placeholder: VisualPlaceholder(
-              mood: template.visualKind.placeholderMood,
-              gradientColors: template.placeholderColors,
-              caption: VisualPlaceholderPalette.theme(
-                template.visualKind.placeholderMood,
-              ).caption,
-              variant: template.id.hashCode.abs() % 4,
-              height: 108,
-              compact: true,
+          AspectRatio(
+            aspectRatio: 4 / 3,
+            child: PreviewAssetImage(
+              assetPath: template.previewAsset,
+              fit: BoxFit.cover,
+              placeholder: LayoutBuilder(
+                builder: (context, constraints) => VisualPlaceholder(
+                  mood: template.visualKind.placeholderMood,
+                  gradientColors: template.placeholderColors,
+                  caption: template.previewLabel ??
+                      VisualPlaceholderPalette.theme(
+                        template.visualKind.placeholderMood,
+                      ).caption,
+                  variant: template.id.hashCode.abs() % 4,
+                  height: constraints.maxHeight,
+                  compact: true,
+                ),
+              ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   template.title,
@@ -646,32 +628,33 @@ class _TemplateCard extends StatelessWidget {
                     height: 1.22,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   template.description,
-                  maxLines: 3,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontSize: 12,
-                    height: 1.32,
+                    height: 1.35,
                     color: _textSecondary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
-                  height: 36,
+                  height: 40,
                   child: FilledButton(
                     onPressed: onTry,
                     style: FilledButton.styleFrom(
                       backgroundColor: _accentColor,
                       foregroundColor: Colors.white,
                       elevation: 0,
+                      padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       textStyle: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
