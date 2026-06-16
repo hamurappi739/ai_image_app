@@ -1,0 +1,25 @@
+# Python / local env
+.env
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+htmlcov
+.coverage
+
+# Git / IDE
+.git
+.gitignore
+.idea
+.vscode
+
+# Docs and local notes (not needed in image)
+*.md
+!README.md
+
+# Tests (optional — add back if you run tests in CI image)
+tests/

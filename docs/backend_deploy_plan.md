@@ -1,276 +1,254 @@
 # Backend deploy plan
 
-План будущего деплоя **FastAPI backend** для внешних пользователей. **Реальный деплой не выполнен** — только документация.
+План будущего деплоя **FastAPI backend** на публичный HTTPS. **Реальный деплой не выполнен** — только подготовка кода, Docker и документация.
 
-Связанные документы: [env_config_checklist.md](env_config_checklist.md), [production_safety_checklist.md](production_safety_checklist.md), [demo_release_checklist.md](demo_release_checklist.md), [rustore_integration_plan.md](rustore_integration_plan.md).
-
----
-
-## 1. Current state
-
-| Сейчас | Для внешних пользователей |
-|--------|---------------------------|
-| Backend локально: `uvicorn app.main:app` на порту **8000** | Публичный **HTTPS** endpoint |
-| Flutter web: `http://127.0.0.1:8000` | Production API URL |
-| Flutter Android dev: `http://10.0.2.2:8000` (emulator) | Тот же публичный URL в release-сборке |
-| `ENVIRONMENT=development` в committed `.env` | `ENVIRONMENT=production` на сервере |
-| Supabase: Auth, `profiles`, balance, `generations`, Storage | Тот же проект Supabase (production review) |
-
-Backend уже использует Supabase REST (httpx) для профилей, баланса, истории, `payment_transactions`, Storage bucket `generated-images`.
+Связанные документы: [env_config_checklist.md](env_config_checklist.md), [production_safety_checklist.md](production_safety_checklist.md), [rustore_payments_plan.md](rustore_payments_plan.md), [demo_release_checklist.md](demo_release_checklist.md).
 
 ---
 
-## 2. Hosting options
+## 1. Что сейчас
 
-Выбор хостинга — **отдельное решение** команды. Варианты:
+| Сейчас | Ограничение |
+|--------|-------------|
+| Backend локально: `uvicorn app.main:app --host 0.0.0.0 --port 8000` | Доступен только в вашей сети |
+| Flutter **Chrome**: `http://127.0.0.1:8000` (fallback без dart-define) | Только на этом компьютере |
+| Flutter **Android emulator**: `http://10.0.2.2:8000` | Только emulator → host |
+| Flutter **телефон в Wi‑Fi**: `http://<IP-компьютера>:8000` | Только одна Wi‑Fi сеть |
+| `ENVIRONMENT=development` в локальном `.env` | Debug + mock payments включены |
+| APK с LAN IP | Работает **только** пока телефон видит ваш ПК |
 
-### Managed PaaS (проще старт)
-
-| Платформа | Плюсы | Минусы |
-|-----------|-------|--------|
-| **Railway** | Быстрый deploy, env vars, HTTPS | Зависимость от региона/цены |
-| **Render** | Free/low tiers, health checks | Cold start на free tier |
-| **Fly.io** | Глобальные регионы, Docker | Чуть сложнее настройка |
-
-Подходят для MVP: один контейнер/процесс uvicorn, env из dashboard.
-
-### VPS / cloud VM (больше контроля)
-
-- Полный контроль: nginx/Caddy, systemd, firewall
-- Примеры: Hetzner, DigitalOcean, AWS EC2, GCP Compute
-
-### Российские облака (если нужна юрисдикция / latency)
-
-- **Selectel**, **Timeweb Cloud**, **Yandex Cloud** — возможны как self-managed VPS или managed containers
-- RuStore и аудитория в РФ могут влиять на выбор региона
-
-**Рекомендация на этапе плана:** начать с managed PaaS для скорости; перейти на VPS при росте нагрузки или требованиях compliance.
+**Для удалённых пользователей** нужен публичный **HTTPS** backend URL и release-сборка Flutter с `--dart-define=API_BASE_URL=...`.
 
 ---
 
-## 3. Required production env
+## 2. Что нужно для production
 
-Задавать через **secure env** на хостинге (не в git). См. [env_config_checklist.md](env_config_checklist.md) раздел E.
+| Компонент | Зачем |
+|-----------|--------|
+| Сервер / облако (Railway, Render, Fly.io, VPS, RU cloud) | Постоянный процесс uvicorn |
+| **HTTPS domain** | Обязателен для release APK и браузера |
+| **Env variables** на хостинге | См. §3 — без коммита в git |
+| **Supabase** keys | Auth, profiles, generations, `payment_transactions`, Storage |
+| **Gemini** key | Если `IMAGE_PROVIDER=gemini` |
+| **CORS** `ALLOWED_ORIGINS` | Для Flutter web / admin UI |
+| `ENVIRONMENT=production` | Отключает debug, mock payments, `TEST_USER_ID` |
+| RuStore verification | Отдельный этап — [rustore_payments_plan.md](rustore_payments_plan.md) |
 
-| Переменная | Production значение | Примечание |
-|------------|---------------------|------------|
-| `ENVIRONMENT` | `production` | Включает auth guards, отключает debug/mock |
-| `IMAGE_PROVIDER` | `gemini` | Не `mock` для публичного запуска |
-| `ENABLE_CREDIT_CONSUMPTION` | `true` | Списание баланса |
-| `ENABLE_PHOTOSHOOT_GENERATION` | `true` | Реальные фотосессии |
-| `PHOTOSHOOT_OUTPUT_COUNT` | `3` | По продукту |
-| `SUPABASE_URL` | `https://….supabase.co` | Secret / env |
-| `SUPABASE_ANON_KEY` | JWT anon | Для backend auth validation + Flutter |
-| `SUPABASE_SERVICE_ROLE_KEY` | service role | **Только backend**, never client |
-| `GEMINI_API_KEY` | API key | Secret |
-| `SUPABASE_STORAGE_BUCKET` | `generated-images` | Или production bucket name |
-| `FREE_GENERATIONS_LIMIT` | `3` | По продукту |
-| `CORS_ALLOWED_ORIGINS` | *(future)* | См. раздел 6 — пока в коде `*` для dev |
+---
 
-### Запрещено / пусто в production
+## 3. Safe production env (пример без секретов)
 
-| Переменная | Правило |
-|------------|---------|
-| `TEST_USER_ID` | **Не задавать** — fallback только development |
-| Mock payments | Недоступны (`404`) при `ENVIRONMENT=production` |
-| `/debug/*` | **404** в production |
-| Секреты в репозитории | **Никогда** |
-
-### Future (RuStore)
-
-Когда появится server-side verification:
+Задавать через dashboard хостинга или secrets manager. **Не коммитить.**
 
 ```env
-# TODO — имена уточнить при интеграции
-# RUSTORE_API_KEY=
-# RUSTORE_APP_ID=
+ENVIRONMENT=production
+APP_VERSION=0.1.0
+PORT=8000
+
+ENABLE_CREDIT_CONSUMPTION=true
+IMAGE_PROVIDER=gemini
+ENABLE_PHOTOSHOOT_GENERATION=true
+PHOTOSHOOT_OUTPUT_COUNT=3
+
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+SUPABASE_STORAGE_BUCKET=generated-images
+
+GEMINI_API_KEY=<gemini-key>
+GEMINI_MODEL=gemini-2.5-flash-image
+
+FREE_GENERATIONS_LIMIT=3
+
+# Пусто в production — auth только Bearer
+TEST_USER_ID=
+
+# Flutter web / admin (через запятую)
+ALLOWED_ORIGINS=https://your-domain.com
 ```
 
 ---
 
-## 4. Production startup command
+## 4. Demo backend env (локально / презентация)
 
-Базовая команда:
-
-```bash
-python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+```env
+ENVIRONMENT=development
+ENABLE_CREDIT_CONSUMPTION=true
+IMAGE_PROVIDER=mock
+ENABLE_PHOTOSHOOT_GENERATION=true
+PHOTOSHOOT_OUTPUT_COUNT=3
 ```
 
-| Контекст | Порт |
-|----------|------|
-| Railway / Render / Fly.io | `$PORT` из env хостинга |
-| Локально | `8000` |
-| За reverse proxy | uvicorn на внутреннем порту, HTTPS на nginx/Caddy |
-
-Опционально для production: `--workers N` (несколько воркеров) — после нагрузочного теста.
-
-**Build:** убедиться, что на сервере установлены зависимости из `backend/requirements.txt` (или Docker image).
+Mock-пополнение в **Купить** работает через `POST /payments/rustore/mock-verify` (только development).
 
 ---
 
-## 5. Health checks
+## 5. Команды локального запуска
 
-**Endpoint:** `GET /health`
+### Demo backend (mock + списание баланса)
 
-**Ожидание:**
-
-```json
-{"status": "ok"}
+```powershell
+cd backend
+# .env: ENVIRONMENT=development, IMAGE_PROVIDER=mock,
+# ENABLE_CREDIT_CONSUMPTION=true, ENABLE_PHOTOSHOOT_GENERATION=true
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Использовать для:
+### Gemini safe test (без списания)
 
-- Load balancer / PaaS health probe
-- Post-deploy smoke test
-- Uptime monitoring
+```powershell
+# Временно в .env: IMAGE_PROVIDER=gemini, ENABLE_CREDIT_CONSUMPTION=false
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
 
-Не требует Authorization.
+### Production-like local test
 
----
-
-## 6. CORS
-
-| Сейчас (development) | Production (цель) |
-|----------------------|-------------------|
-| `allow_origins=["*"]` в `main.py` | Явный список **trusted origins** |
-| `allow_credentials=False` | Согласовать с web-клиентом |
-
-**Зафиксировать перед запуском:**
-
-- Flutter **mobile** APK часто не ограничивается CORS так же, как browser — но **Flutter web** и любой admin UI нуждаются в разрешённых origin.
-- Примеры будущих origin: `https://app.example.com`, `https://admin.example.com`
-- Переменная `CORS_ALLOWED_ORIGINS` — **планируется** в config (сейчас не в коде; final review при деплое)
-- Не использовать `*` с `allow_credentials=True`
-
-См. [production_safety_checklist.md](production_safety_checklist.md).
+```powershell
+$env:ENVIRONMENT='production'
+$env:TEST_USER_ID=''
+python -m uvicorn app.main:app --port 8001
+# Ожидание: /debug/* → 404, mock-verify → 404, /balance без Bearer → 401
+```
 
 ---
 
-## 7. Supabase production checklist
+## 6. Flutter API_BASE_URL
 
-Перед деплоем backend:
+Реализовано в `frontend/lib/services/api_service.dart` — **fallback не менять**.
 
-- [ ] Применены **все migrations** (`backend/db/migrations/`, `backend/migrations/`)
-  - `001_initial_schema.sql`
-  - `002_add_photoshoot_id_to_generations.sql`
-  - `003_add_profile_balance_fields.sql`
-  - `004_create_payment_transactions.sql`
-- [ ] Таблица **`profiles`**: поля `paid_image_generations`, `paid_photoshoots`, free generations
-- [ ] Таблица **`payment_transactions`** существует
-- [ ] Таблица **`generations`** с `photoshoot_id` где нужно
-- [ ] Storage bucket **`generated-images`** (или production name) создан
-- [ ] **RLS / policies** — финальный review для production
-- [ ] **`SUPABASE_SERVICE_ROLE_KEY`** — только на backend, не в Flutter
-- [ ] **`SUPABASE_ANON_KEY`** — Flutter Supabase Auth (`--dart-define`)
-- [ ] Storage policies: upload/read согласованы с backend paths `{folder}/{user_id}/...`
+| Сценарий | URL |
+|----------|-----|
+| Chrome, локальный backend | `http://127.0.0.1:8000` (default) |
+| Android emulator | `http://10.0.2.2:8000` (default) |
+| Телефон в той же Wi‑Fi | `http://<IP-компьютера>:8000` (dart-define) |
+| **Production APK** | **HTTPS** публичный backend |
 
----
-
-## 8. Flutter API base URL
-
-Реализовано в `ApiService.baseUrl` (`frontend/lib/services/api_service.dart`):
-
-| Сборка | Backend URL |
-|--------|-------------|
-| Web dev (без dart-define) | `http://127.0.0.1:8000` |
-| Android emulator (без dart-define) | `http://10.0.2.2:8000` |
-| Любая платформа + `--dart-define=API_BASE_URL=...` | Указанный URL (trailing `/` убирается) |
-
-**Chrome, локальный backend:**
+### Локальная разработка
 
 ```powershell
 cd frontend
 flutter run -d chrome
-```
-
-**Chrome, внешний backend:**
-
-```powershell
-flutter run -d chrome --dart-define=API_BASE_URL=https://your-backend.example.com
-```
-
-**Android emulator, локальный backend:**
-
-```powershell
 flutter run -d emulator-5554
 ```
 
-**Debug APK, внешний backend:**
+### Телефон в LAN (debug)
 
 ```powershell
-flutter build apk --debug --dart-define=API_BASE_URL=https://your-backend.example.com
+flutter build apk --debug --dart-define=API_BASE_URL=http://192.168.x.x:8000
 ```
 
-**Release APK (будущий production):**
+### Production release APK
 
 ```powershell
 flutter build apk --release `
-  --dart-define=API_BASE_URL=https://api.your-domain.com `
+  --dart-define=API_BASE_URL=https://your-backend-domain.com `
   --dart-define=SUPABASE_URL=https://xxx.supabase.co `
   --dart-define=SUPABASE_ANON_KEY=your-anon-key
 ```
 
-В debug-сборке base URL один раз пишется в консоль (`debugPrint`), не в UI.
-
-Проверить на **реальном телефоне**: `/health`, `/balance` с Bearer, генерация.
+`API_BASE_URL` логируется один раз в debug-консоль при старте, не показывается в UI.
 
 ---
 
-## 9. Deployment steps (draft)
+## 7. Docker (подготовлено, deploy не выполнен)
 
-1. **Выбрать hosting** (Railway / Render / Fly / VPS / RU cloud).
-2. **Создать backend service** (Python 3.11+, install `requirements.txt`).
-3. **Добавить env variables** из раздела 3 (secrets в dashboard).
-4. **Применить Supabase migrations** на production project.
-5. **Задеплоить backend** (git push / Docker / manual).
-6. **Проверить** `GET https://<api>/health` → `{"status":"ok"}`.
-7. **Проверить** `GET https://<api>/debug/config` → **404** (production).
-8. **Проверить** `GET https://<api>/balance` без `Authorization` → **401**.
-9. **Собрать Flutter APK** с production `API_BASE_URL` + Supabase dart-define.
-10. **Smoke test на телефоне:** вход → баланс → создать → галерея → фотосессия.
+```powershell
+cd backend
+docker build -t ai-image-backend .
+docker run --rm -p 8000:8000 `
+  -e ENVIRONMENT=development `
+  -e PORT=8000 `
+  # ... остальные env через -e или --env-file (файл вне git)
+  ai-image-backend
+```
 
-Дополнительно: [production_safety_checklist.md](production_safety_checklist.md) pre-release checklist.
-
----
-
-## 10. Not production yet
-
-| Область | Статус |
-|---------|--------|
-| Реальный деплой backend | **Не выполнен** |
-| RuStore real payment | Не подключён |
-| Release signing (Android) | Не настроен |
-| Trusted CORS | Не финализирован в коде |
-| Supabase RLS production review | Pending |
-| Real purchase verification | Pending |
-| Monitoring / logging | Не настроен |
-| Configurable API URL в Flutter | ✅ `API_BASE_URL` dart-define |
+- `backend/Dockerfile` — Python 3.12, uvicorn на `0.0.0.0:${PORT}`
+- `backend/.dockerignore` — `.env`, `.venv`, `__pycache__`, `.git`
+- **`.env` не копируется в образ** — только runtime env
 
 ---
 
-## 11. Monitoring / logging (future)
+## 8. Health / readiness
 
-Минимальный набор после деплоя:
+| Endpoint | Назначение | Секреты |
+|----------|------------|---------|
+| `GET /health` | Liveness (load balancer) | **Нет** |
+| `GET /ready` | Readiness (config flags) | **Нет** |
 
-| Категория | Что логировать / алертить |
-|-----------|---------------------------|
-| **Request logs** | Method, path, status, latency (без тел запросов с PII) |
-| **Errors** | 5xx rate, unhandled exceptions (Sentry / hosted logs) |
-| **Gemini** | Failures, timeouts, rate limits |
-| **Payments** | Verification failures (будущий RuStore endpoint) |
-| **Supabase** | REST timeouts, 5xx от PostgREST |
-| **Storage** | Upload failures, bucket errors |
-| **Health** | `/health` probe failures → paging |
+**Пример `/health`:**
 
-Не логировать: `GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, полные Bearer tokens.
+```json
+{
+  "status": "ok",
+  "environment": "development",
+  "version": "0.1.0"
+}
+```
+
+**Пример `/ready`:** проверяет наличие Supabase/Gemini env (флаги `*_configured`), `production_safe` (нет `TEST_USER_ID` в production). **Без** тяжёлых запросов в Supabase.
 
 ---
 
-## Quick reference
+## 9. CORS
 
-| Документ | Зачем |
-|----------|--------|
-| [env_config_checklist.md](env_config_checklist.md) | Env presets |
-| [production_safety_checklist.md](production_safety_checklist.md) | Auth, debug, isolation |
-| [demo_release_checklist.md](demo_release_checklist.md) | Debug APK demo |
-| [rustore_integration_plan.md](rustore_integration_plan.md) | Оплата после деплоя |
+| Режим | `ALLOWED_ORIGINS` | Поведение |
+|-------|-------------------|-----------|
+| Development | пусто | `*` (все origin — для Flutter web на localhost) |
+| Production | `https://app.example.com,...` | Только перечисленные origin |
+| Production | пусто | Браузерные клиенты заблокированы; **mobile APK** не зависит от CORS |
+
+Код: `app/cors.py` → `cors_allow_origins()`.
+
+---
+
+## 10. Что нельзя
+
+- Коммитить `.env` с ключами
+- Хранить `SUPABASE_SERVICE_ROLE_KEY` во Flutter
+- Включать `/debug/*` в production (`ENVIRONMENT=production` → **404**)
+- Включать mock payments в production (`mock-verify` → **404**)
+- Использовать `TEST_USER_ID` в production (игнорируется auth, но env нужно очистить)
+- Начислять баланс без server-side verification (см. payments plan)
+- Копировать `.env` в Docker image
+
+---
+
+## 11. TODO перед реальным deploy
+
+- [ ] Выбрать hosting (PaaS / VPS / RU cloud)
+- [ ] Настроить domain + HTTPS (Let's Encrypt / CDN)
+- [ ] Задать production env на сервере
+- [ ] Применить Supabase migrations
+- [ ] Проверить `GET /health` и `GET /ready`
+- [ ] Проверить `GET /catalog/templates` и `/catalog/photoshoots`
+- [ ] Smoke: auth → balance → generate → gallery → photoshoot
+- [ ] Собрать release APK с HTTPS `API_BASE_URL`
+- [ ] RuStore real payments — отдельный этап
+- [ ] Мониторинг / логирование (5xx, Gemini, Supabase)
+
+---
+
+## 12. Deployment steps (draft)
+
+1. Выбрать hosting.
+2. Собрать Docker image или установить `requirements.txt`.
+3. Задать env из §3.
+4. Запустить: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+5. `GET https://<api>/health` → `status: ok`.
+6. `GET https://<api>/ready` → `status: ready` (после настройки Supabase/Gemini).
+7. `GET https://<api>/debug/config` → **404** (production).
+8. Собрать Flutter APK с production URL.
+9. Smoke test на телефоне.
+
+Pre-release: [production_safety_checklist.md](production_safety_checklist.md).
+
+---
+
+## Hosting options (кратко)
+
+| Тип | Примеры |
+|-----|---------|
+| Managed PaaS | Railway, Render, Fly.io |
+| VPS | Hetzner, DigitalOcean, Selectel, Timeweb, Yandex Cloud |
+
+Для MVP часто достаточно одного контейнера uvicorn + env из dashboard.

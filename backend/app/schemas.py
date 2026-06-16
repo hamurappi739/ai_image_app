@@ -95,6 +95,27 @@ class DebugStorageImagePersistResponse(BaseModel):
     persisted: bool
 
 
+class HealthResponse(BaseModel):
+    status: Literal["ok"]
+    environment: str
+    version: str
+
+
+class ReadyChecks(BaseModel):
+    config_loaded: bool
+    supabase_configured: bool
+    supabase_auth_configured: bool
+    gemini_required: bool
+    gemini_configured: bool
+    production_safe: bool
+
+
+class ReadyResponse(BaseModel):
+    status: Literal["ready", "not_ready"]
+    environment: str
+    checks: ReadyChecks
+
+
 class RuStoreMockVerifyRequest(BaseModel):
     package_id: str
     provider_payment_id: str

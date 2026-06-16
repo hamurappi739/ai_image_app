@@ -115,10 +115,34 @@
 
 ## CORS
 
-| Сейчас | Production TODO |
-|--------|-----------------|
-| `allow_origins=["*"]`, `allow_credentials=False` | Явный список доверенных origin (web/admin) |
-| Комментарий в `main.py` | Не использовать `*` + credentials в production |
+| Development | Production |
+|-------------|------------|
+| `ALLOWED_ORIGINS` пусто → `*` | Явный список в `ALLOWED_ORIGINS` |
+| `allow_credentials=False` | Не использовать `*` + credentials |
+
+Код: `app/cors.py`. См. [backend_deploy_plan.md](backend_deploy_plan.md) §9.
+
+---
+
+## Deploy / HTTPS
+
+- Публичный backend: **HTTPS** + `ENVIRONMENT=production`
+- Flutter release: `--dart-define=API_BASE_URL=https://...`
+- Docker: `backend/Dockerfile`; `.env` **не** в образе
+- Health: `GET /health`, `GET /ready`
+
+Чеклист: [backend_deploy_plan.md](backend_deploy_plan.md) §11.
+
+---
+
+## Health probes
+
+| Endpoint | Содержимое | Секреты |
+|----------|------------|---------|
+| `GET /health` | `status`, `environment`, `version` | **Нет** |
+| `GET /ready` | Config readiness flags (`supabase_configured`, …) | **Нет** |
+
+Использовать для load balancer / post-deploy smoke. См. [backend_deploy_plan.md](backend_deploy_plan.md) §8.
 
 ---
 
@@ -165,8 +189,9 @@
 - [ ] Supabase RLS review
 - [ ] Секреты в secure storage / CI
 - [ ] Release signing + RuStore console
-- [ ] Real RuStore verification endpoint
-- [ ] `ENABLE_CREDIT_CONSUMPTION` policy согласована с продуктом
+- [ ] `GET /health` и `GET /ready` отвечают на публичном URL
+- [ ] `ALLOWED_ORIGINS` задан (если нужен Flutter web)
+- [ ] Release APK с HTTPS `API_BASE_URL`
 
 ---
 

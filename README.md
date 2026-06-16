@@ -106,9 +106,21 @@ Debug/mock endpoints только в development; production требует Auth
 
 Переменные и PowerShell-команды — **[docs/env_config_checklist.md](docs/env_config_checklist.md)**. Шаблон: `backend/.env.example`.
 
-### Backend deploy (future)
+### Backend deploy / production URL
 
-План деплоя FastAPI на публичный HTTPS (хостинг, env, Supabase, Flutter API URL) — **[docs/backend_deploy_plan.md](docs/backend_deploy_plan.md)**. Реальный деплой **ещё не выполнен**.
+План деплоя FastAPI на публичный **HTTPS** (env, Docker, health, CORS, Flutter `API_BASE_URL`). Реальный deploy **ещё не выполнен**.
+
+| Локально | Production APK |
+|----------|----------------|
+| Chrome → `http://127.0.0.1:8000` | `--dart-define=API_BASE_URL=https://your-backend-domain.com` |
+| Emulator → `http://10.0.2.2:8000` | HTTPS обязателен |
+| Телефон в Wi‑Fi → IP компьютера | Публичный URL, не LAN |
+
+```powershell
+flutter build apk --release --dart-define=API_BASE_URL=https://your-backend-domain.com
+```
+
+Подробнее: **[docs/backend_deploy_plan.md](docs/backend_deploy_plan.md)** · безопасность: **[docs/production_safety_checklist.md](docs/production_safety_checklist.md)**
 
 ---
 

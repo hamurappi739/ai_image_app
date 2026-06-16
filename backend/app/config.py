@@ -8,6 +8,7 @@ _BACKEND_DIR = Path(__file__).resolve().parent.parent
 _PHOTOSHOOT_OUTPUT_COUNT_MIN = 1
 _PHOTOSHOOT_OUTPUT_COUNT_MAX = 3
 _PHOTOSHOOT_OUTPUT_COUNT_DEFAULT = 3
+_DEFAULT_APP_VERSION = "0.1.0"
 
 
 class Settings(BaseSettings):
@@ -18,6 +19,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "AI Image Generator Backend"
+    app_version: str = _DEFAULT_APP_VERSION
     environment: str = "development"
     image_provider: str = "mock"
     gemini_api_key: str | None = None
@@ -31,6 +33,10 @@ class Settings(BaseSettings):
     enable_credit_consumption: bool = False
     enable_photoshoot_generation: bool = False
     photoshoot_output_count: int = _PHOTOSHOOT_OUTPUT_COUNT_DEFAULT
+    # Comma-separated trusted origins for CORS (e.g. https://app.example.com).
+    # Development: empty → allow all origins. Production: empty → deny browser CORS.
+    allowed_origins: str | None = None
+    port: int = 8000
 
     @field_validator("photoshoot_output_count", mode="before")
     @classmethod
@@ -43,6 +49,48 @@ class Settings(BaseSettings):
             _PHOTOSHOOT_OUTPUT_COUNT_MIN,
             min(_PHOTOSHOOT_OUTPUT_COUNT_MAX, parsed),
         )
+
+    @property
+    def is_development(self) -> bool:
+        return self.environment.strip().lower() == "development"
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.strip().lower() == "production"
+
+    def cors_origins_list(self) -> list[str]:
+        if not self.allowed_origins or not str(self.allowed_origins).strip():
+            return []
+        return [
+            origin.strip()
+            for origin in str(self.allowed_origins).split(",")
+            if origin.strip()
+        ]
+
+    @staticmethod
+    def _env_value_configured(value: str | None) -> bool:
+        return bool(value and str(value).strip())
+
+    def supabase_configured(self) -> bool:
+        return (
+            self._env_value_configured(self.supabase_url)
+            and self._env_value_configured(self.supabase_service_role_key)
+        )
+
+    def supabase_auth_configured(self) -> bool:
+        return (
+            self._env_value_configured(self.supabase_url)
+            and self._env_value_configured(self.supabase_anon_key)
+        )
+
+    def gemini_configured(self) -> bool:
+        return self._env_value_configured(self.gemini_api_key)
+
+    def production_safety_ok(self) -> bool:
+        """True when production env has no development-only misconfiguration."""
+        if not self.is_production:
+            return True
+        return not self._env_value_configured(self.test_user_id)
 
 
 settings = Settings()

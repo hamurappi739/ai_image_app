@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
+import logging
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import CurrentUser, get_current_user
 from app.config import settings
+from app.cors import cors_allow_origins
 from app.schemas import (
     AddBalanceRequest,
     AddCreditsRequest,
@@ -21,6 +23,7 @@ from app.schemas import (
     GenerationsListResponse,
     PhotoshootGenerateResponse,
 )
+from app.routes.health import router as health_router
 from app.routes.payments import router as payments_router
 from app.services.balance_service import (
     add_paid_balance,
@@ -61,7 +64,7 @@ def _require_development_for_debug() -> None:
 
 
 def _is_development() -> bool:
-    return settings.environment.strip().lower() == "development"
+    return settings.is_development
 
 
 def _optional_user_for_generation(
@@ -76,26 +79,43 @@ def _optional_user_for_generation(
 
 
 def _env_value_configured(value: str | None) -> bool:
-    return bool(value and str(value).strip())
+    return settings._env_value_configured(value)
 
 
-# Development only: allow any origin so Flutter web (random localhost port) can call the API.
-# TODO(production): set allow_origins to explicit trusted origins when ENVIRONMENT=production.
+# Development: allow all origins (Flutter web uses random localhost ports).
+# Production: set ALLOWED_ORIGINS to comma-separated trusted origins.
 # Do not use allow_origins=["*"] with allow_credentials=True in production.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_allow_origins(),
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(health_router)
 app.include_router(payments_router)
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+@app.on_event("startup")
+def _log_startup_config() -> None:
+    logger = logging.getLogger("uvicorn.error")
+    logger.info(
+        "Starting %s env=%s version=%s cors_origins=%s",
+        settings.app_name,
+        settings.environment.strip().lower(),
+        settings.app_version,
+        cors_allow_origins(),
+    )
+    if settings.is_production and settings._env_value_configured(settings.test_user_id):
+        logger.warning(
+            "TEST_USER_ID is set while ENVIRONMENT=production — "
+            "it is ignored for auth but should be removed from server env"
+        )
+    if settings.is_production and not settings.cors_origins_list():
+        logger.warning(
+            "ALLOWED_ORIGINS is empty in production — browser CORS will block web clients"
+        )
 
 
 @app.get("/catalog/templates", response_model=CatalogTemplatesResponse)
