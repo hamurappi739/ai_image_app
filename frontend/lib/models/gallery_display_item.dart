@@ -40,6 +40,12 @@ String? galleryPhotoshootStyleTitle(String description) {
 
 String galleryPhotoshootPhotoCountLabel(int count) => '$count фото';
 
+String formatGalleryDisplayDate(DateTime date) {
+  final day = date.day.toString().padLeft(2, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  return '$day.$month.${date.year}';
+}
+
 List<GalleryDisplayItem> groupGalleryItems(List<GeneratedImageItem> items) {
   if (items.isEmpty) {
     return const [];

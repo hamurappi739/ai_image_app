@@ -80,12 +80,14 @@ class GallerySingleImageViewer extends StatelessWidget {
     required this.description,
     required this.hideKey,
     required this.onHide,
+    this.createdAt,
   });
 
   final String imageUrl;
   final String description;
   final String hideKey;
   final ValueChanged<String> onHide;
+  final DateTime? createdAt;
 
   static Future<void> show(
     BuildContext context, {
@@ -102,6 +104,7 @@ class GallerySingleImageViewer extends StatelessWidget {
         description: item.description,
         hideKey: hideKey,
         onHide: onHide,
+        createdAt: item.createdAt,
       ),
     );
   }
@@ -191,8 +194,18 @@ class GallerySingleImageViewer extends StatelessWidget {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 6),
                   ],
+                  if (createdAt != null)
+                    Text(
+                      formatGalleryDisplayDate(createdAt!),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 13,
+                        color: const Color(0xFF6B7280),
+                      ),
+                    ),
+                  if (description.trim().isNotEmpty || createdAt != null)
+                    const SizedBox(height: 14),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -286,7 +299,6 @@ class GalleryPhotoshootViewer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final styleTitle = galleryPhotoshootStyleTitle(item.description);
-    final title = styleTitle ?? 'Фотосессия';
     final countLabel = item.imageUrls.length == 3
         ? '3 фото'
         : galleryPhotoshootPhotoCountLabel(item.imageUrls.length);
@@ -312,30 +324,55 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          title,
+                          'Фотосессия',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                             fontSize: 18,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0F2FF),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            countLabel,
+                        if (styleTitle != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            styleTitle,
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              fontSize: 12,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: _accentColor,
+                              color: const Color(0xFF6B7280),
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
+                        ],
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0F2FF),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                countLabel,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _accentColor,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              formatGalleryDisplayDate(item.createdAt),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 12,
+                                color: const Color(0xFF6B7280),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

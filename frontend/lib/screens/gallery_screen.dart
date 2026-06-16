@@ -130,6 +130,15 @@ class GalleryScreen extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 14),
+                  Text(
+                    'Создать ещё',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: _textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   _GalleryQuickActions(
                     onOpenTemplates: onOpenTemplates,
                     onOpenPhotoshoots: onOpenPhotoshoots,
@@ -575,13 +584,26 @@ class _GallerySuccessBanner extends StatelessWidget {
           Icon(Icons.check_circle_outline, size: 22, color: Colors.green.shade700),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF1A5C38),
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1A5C38),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Сохранено в готовых фото',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 12,
+                    color: const Color(0xFF3D6B52),
+                  ),
+                ),
+              ],
             ),
           ),
           if (onDismiss != null)
@@ -788,12 +810,6 @@ class _GalleryEmptyPlaceholder extends StatelessWidget {
   }
 }
 
-String _formatGalleryDate(DateTime date) {
-  final day = date.day.toString().padLeft(2, '0');
-  final month = date.month.toString().padLeft(2, '0');
-  return '$day.$month.${date.year}';
-}
-
 class _GalleryPhotoshootCard extends StatelessWidget {
   const _GalleryPhotoshootCard({
     required this.item,
@@ -867,7 +883,7 @@ class _GalleryPhotoshootCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _formatGalleryDate(item.createdAt),
+                  formatGalleryDisplayDate(item.createdAt),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontSize: 12,
                     color: _textSecondary,
@@ -980,7 +996,7 @@ class _GallerySinglePhotoCard extends StatelessWidget {
                 ],
                 const SizedBox(height: 4),
                 Text(
-                  _formatGalleryDate(item.createdAt),
+                  formatGalleryDisplayDate(item.createdAt),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontSize: 12,
                     color: _textSecondary,
