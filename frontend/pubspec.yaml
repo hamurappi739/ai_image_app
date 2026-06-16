@@ -65,6 +65,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/catalog/
     - assets/previews/templates/
     - assets/previews/photoshoots/
     - assets/previews/common/

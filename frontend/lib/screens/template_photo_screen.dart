@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../data/app_prompts.dart';
 import '../assets/preview_asset_paths.dart';
+import '../data/catalog_visuals.dart';
+import '../models/catalog_entries.dart';
+import '../services/catalog_service.dart';
 import '../models/generated_image_item.dart';
 import '../models/user_balance.dart';
 import '../services/api_service.dart';
@@ -87,6 +89,20 @@ class PhotoTemplate {
       previewAssetPath ?? PreviewAssetPaths.templateAssetForId(id);
 
   String? get effectivePreviewAssetPath => previewAsset;
+
+  factory PhotoTemplate.fromCatalog(CatalogTemplateEntry entry) {
+    final visuals = CatalogVisuals.templateFor(entry.id);
+    return PhotoTemplate(
+      id: entry.id,
+      title: entry.title,
+      description: entry.shortDescription,
+      requestDescription: entry.prompt,
+      visualKind: visuals.kind,
+      placeholderColors: visuals.placeholderColors,
+      previewLabel: visuals.previewLabel,
+      previewAssetPath: entry.previewAsset,
+    );
+  }
 }
 
 class _TemplateCategoryGroup {
@@ -150,148 +166,6 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
     );
   }
 
-  static PhotoTemplate _template({
-    required String id,
-    required String title,
-    required TemplateVisualKind visualKind,
-    required List<Color> placeholderColors,
-    String? previewLabel,
-    String? previewAssetPath,
-  }) {
-    return PhotoTemplate(
-      id: id,
-      title: title,
-      description: AppPrompts.templateShort(id),
-      requestDescription: AppPrompts.templateFull(id),
-      visualKind: visualKind,
-      placeholderColors: placeholderColors,
-      previewLabel: previewLabel,
-      previewAssetPath: previewAssetPath,
-    );
-  }
-
-  static final templates = [
-    _template(
-      id: 'beautiful_portrait',
-      title: 'Красивый портрет',
-      visualKind: TemplateVisualKind.portrait,
-      placeholderColors: [Color(0xFFF5E8D8), Color(0xFFD4B896)],
-      previewLabel: 'Нежный портрет',
-    ),
-    _template(
-      id: 'social_photo',
-      title: 'Фото для соцсетей',
-      visualKind: TemplateVisualKind.social,
-      placeholderColors: [Color(0xFFEDE9FF), Color(0xFFB8B0D4)],
-      previewLabel: 'Для профиля',
-    ),
-    _template(
-      id: 'winter_portrait',
-      title: 'Зимний портрет',
-      visualKind: TemplateVisualKind.winter,
-      placeholderColors: [Color(0xFFE8F4FF), Color(0xFFA8C8E8)],
-      previewLabel: 'Зимняя прогулка',
-    ),
-    _template(
-      id: 'business_portrait',
-      title: 'Деловой портрет',
-      visualKind: TemplateVisualKind.business,
-      placeholderColors: [Color(0xFFD4E0EE), Color(0xFF8EA4BE)],
-      previewLabel: 'Деловой образ',
-    ),
-    _template(
-      id: 'resume_photo',
-      title: 'Фото для резюме',
-      visualKind: TemplateVisualKind.resume,
-      placeholderColors: [Color(0xFFF0F2F8), Color(0xFFD0D6E4)],
-      previewLabel: 'Для резюме',
-    ),
-    _template(
-      id: 'product_photo',
-      title: 'Фото товара',
-      visualKind: TemplateVisualKind.product,
-      placeholderColors: [Color(0xFFEAF5EE), Color(0xFFB8D4C4)],
-      previewLabel: 'Карточка товара',
-    ),
-    _template(
-      id: 'summer_portrait',
-      title: 'Летний портрет',
-      visualKind: TemplateVisualKind.summer,
-      placeholderColors: [Color(0xFFFFF0D0), Color(0xFFE8C878)],
-      previewLabel: 'Летний день',
-    ),
-    _template(
-      id: 'tender_portrait',
-      title: 'Нежный портрет',
-      visualKind: TemplateVisualKind.tender,
-      placeholderColors: [Color(0xFFFCE8F0), Color(0xFFE0B8D0)],
-      previewLabel: 'Нежный образ',
-    ),
-    _template(
-      id: 'vibrant_look',
-      title: 'Яркий образ',
-      visualKind: TemplateVisualKind.vibrant,
-      placeholderColors: [Color(0xFFFFE0B8), Color(0xFFE87858)],
-      previewLabel: 'Яркий стиль',
-    ),
-    _template(
-      id: 'profile_photo',
-      title: 'Фото для профиля',
-      visualKind: TemplateVisualKind.profile,
-      placeholderColors: [Color(0xFFE8EEF8), Color(0xFFB0C0D8)],
-      previewLabel: 'Для профиля',
-    ),
-    _template(
-      id: 'expert_look',
-      title: 'Экспертный образ',
-      visualKind: TemplateVisualKind.expert,
-      placeholderColors: [Color(0xFFD8E4F0), Color(0xFF88A0B8)],
-      previewLabel: 'Эксперт',
-    ),
-    _template(
-      id: 'family_photo',
-      title: 'Семейное фото',
-      visualKind: TemplateVisualKind.family,
-      placeholderColors: [Color(0xFFF5E8DC), Color(0xFFD4B8A0)],
-      previewLabel: 'Семья',
-    ),
-    _template(
-      id: 'photo_with_child',
-      title: 'Фото с ребёнком',
-      visualKind: TemplateVisualKind.child,
-      placeholderColors: [Color(0xFFFFF5E8), Color(0xFFE8D0B0)],
-      previewLabel: 'С ребёнком',
-    ),
-    _template(
-      id: 'festive_look',
-      title: 'Праздничный образ',
-      visualKind: TemplateVisualKind.festive,
-      placeholderColors: [Color(0xFFFFE8F0), Color(0xFFD87898)],
-      previewLabel: 'Праздник',
-    ),
-    _template(
-      id: 'clothing_photo',
-      title: 'Фото одежды',
-      visualKind: TemplateVisualKind.clothing,
-      placeholderColors: [Color(0xFFF0F0F8), Color(0xFFC0C0D8)],
-      previewLabel: 'Одежда',
-    ),
-    _template(
-      id: 'jewelry_photo',
-      title: 'Фото украшений',
-      visualKind: TemplateVisualKind.jewelry,
-      placeholderColors: [Color(0xFFFFF8F0), Color(0xFFE8D8C0)],
-      previewLabel: 'Украшение',
-    ),
-    _template(
-      id: 'interior_photo',
-      title: 'Фото интерьера',
-      visualKind: TemplateVisualKind.interior,
-      placeholderColors: [Color(0xFFF5F0E8), Color(0xFFC8B8A0)],
-      previewLabel: 'Интерьер',
-    ),
-  ];
-
   static const _categoryGroups = [
     _TemplateCategoryGroup(
       title: 'Для себя',
@@ -336,10 +210,6 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
     ),
   ];
 
-  static final Map<String, PhotoTemplate> _templatesById = {
-    for (final t in templates) t.id: t,
-  };
-
   static int _columnCount(double width) {
     if (width >= 560) return 2;
     return 1;
@@ -352,14 +222,21 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
 
   List<PhotoTemplate> _templatesForCategory(int index) {
     final group = _categoryGroups[index];
-    return [
-      for (final id in group.templateIds)
-        if (_templatesById.containsKey(id)) _templatesById[id]!,
-    ];
+    return CatalogService.instance
+        .templatesForCategory(group.title)
+        .map(PhotoTemplate.fromCatalog)
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!CatalogService.instance.isLoaded) {
+      return const Scaffold(
+        backgroundColor: TemplatePhotoScreen._scaffoldBackground,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final category = _categoryGroups[_selectedCategoryIndex];
     final categoryLabels = [
       for (final g in _categoryGroups) g.title,

@@ -1,132 +1,168 @@
 // Planned local preview image paths under `assets/previews/`.
-// Files are not bundled until added to disk and registered in
-// PreviewAssetRegistry. Until then, UI falls back to Flutter placeholders.
+// Add .jpg files under assets/previews/templates/ or photoshoots/ and
+// restart the app — PreviewAssetImage loads them with placeholder fallback.
 
 class PreviewAssetPaths {
   PreviewAssetPaths._();
+
+  static const _templatesDir = 'assets/previews/templates';
+  static const _photoshootsDir = 'assets/previews/photoshoots';
 
   // —— Common ———————————————————————————————————————————————————————————————
 
   static const homeHero = 'assets/previews/common/home_hero.png';
 
-  // —— Templates (planned .jpg / .png filenames) —————————————————————————
+  // —— Templates (.jpg) — catalog id → filename on disk ————————————————————
 
-  static const templatesBeautifulPortrait =
-      'assets/previews/templates/beautiful_portrait.jpg';
-  static const templatesBusinessPortrait =
-      'assets/previews/templates/business_portrait.jpg';
-  static const templatesSocialPhoto =
-      'assets/previews/templates/social_photo.jpg';
-  static const templatesProductPhoto =
-      'assets/previews/templates/product_photo.jpg';
-  static const templatesWinterPortrait =
-      'assets/previews/templates/winter_portrait.jpg';
-  static const templatesSummerPortrait =
-      'assets/previews/templates/summer_portrait.jpg';
-  static const templatesResumePhoto =
-      'assets/previews/templates/resume_photo.jpg';
-  static const templatesFamilyPhoto =
-      'assets/previews/templates/family_photo.jpg';
-  static const templatesInteriorPhoto =
-      'assets/previews/templates/interior_photo.jpg';
-  static const templatesPortraitSoft =
-      'assets/previews/templates/portrait_soft.png';
-
-  // —— Photoshoot singles (legacy card hero) —————————————————————————————
-
-  static const photoshootsStudioPortrait =
-      'assets/previews/photoshoots/studio_portrait.png';
-  static const photoshootsBusinessPortrait =
-      'assets/previews/photoshoots/business_portrait.png';
-
-  // —— Photoshoot triplets (planned .jpg series) ———————————————————————————
-
-  static const photoshootsBusiness1 =
-      'assets/previews/photoshoots/business_1.jpg';
-  static const photoshootsBusiness2 =
-      'assets/previews/photoshoots/business_2.jpg';
-  static const photoshootsBusiness3 =
-      'assets/previews/photoshoots/business_3.jpg';
-  static const photoshootsStudio1 =
-      'assets/previews/photoshoots/studio_1.jpg';
-  static const photoshootsStudio2 =
-      'assets/previews/photoshoots/studio_2.jpg';
-  static const photoshootsStudio3 =
-      'assets/previews/photoshoots/studio_3.jpg';
-
-  /// Maps template catalog [id] → planned asset path (may be unbundled).
   static const Map<String, String> templateById = {
-    'beautiful_portrait': templatesBeautifulPortrait,
-    'tender_portrait': templatesPortraitSoft,
-    'social_photo': templatesSocialPhoto,
-    'winter_portrait': templatesWinterPortrait,
-    'summer_portrait': templatesSummerPortrait,
-    'business_portrait': templatesBusinessPortrait,
-    'resume_photo': templatesResumePhoto,
-    'family_photo': templatesFamilyPhoto,
-    'photo_with_child': templatesFamilyPhoto,
-    'product_photo': templatesProductPhoto,
-    'clothing_photo': templatesProductPhoto,
-    'jewelry_photo': templatesProductPhoto,
-    'interior_photo': templatesInteriorPhoto,
-    'profile_photo': templatesSocialPhoto,
-    'expert_look': templatesBusinessPortrait,
-    'vibrant_look': templatesBeautifulPortrait,
+    'beautiful_portrait': '$_templatesDir/beautiful_portrait.jpg',
+    'business_portrait': '$_templatesDir/business_portrait.jpg',
+    'social_photo': '$_templatesDir/social_photo.jpg',
+    'winter_portrait': '$_templatesDir/winter_portrait.jpg',
+    'summer_portrait': '$_templatesDir/summer_portrait.jpg',
+    'tender_portrait': '$_templatesDir/gentle_portrait.jpg',
+    'vibrant_look': '$_templatesDir/bright_look.jpg',
+    'resume_photo': '$_templatesDir/resume_photo.jpg',
+    'profile_photo': '$_templatesDir/profile_photo.jpg',
+    'expert_look': '$_templatesDir/expert_look.jpg',
+    'family_photo': '$_templatesDir/family_photo.jpg',
+    'photo_with_child': '$_templatesDir/child_photo.jpg',
+    'festive_look': '$_templatesDir/holiday_look.jpg',
+    'product_photo': '$_templatesDir/product_photo.jpg',
+    'clothing_photo': '$_templatesDir/clothes_photo.jpg',
+    'jewelry_photo': '$_templatesDir/jewelry_photo.jpg',
+    'interior_photo': '$_templatesDir/interior_photo.jpg',
   };
 
-  /// Maps photoshoot style [id] → planned hero asset (legacy / modal).
-  static const Map<String, String> photoshootById = {
-    'studio_portrait': photoshootsStudioPortrait,
-    'business_portrait': photoshootsBusinessPortrait,
-    'urban_portrait': photoshootsBusinessPortrait,
-    'city_portrait': photoshootsBusinessPortrait,
-    'evening_look': photoshootsStudioPortrait,
-    'winter_photoshoot': photoshootsStudioPortrait,
-    'home_portrait': photoshootsStudioPortrait,
-    'travel_portrait': photoshootsStudioPortrait,
-    'premium_portrait': photoshootsBusinessPortrait,
-    'custom_photoshoot': photoshootsStudioPortrait,
+  // —— Photoshoots — catalog id → asset slug (triplet: slug_1..3.jpg) ———————
+
+  static const Map<String, String> photoshootAssetSlugById = {
+    'studio_portrait': 'studio',
+    'business_portrait': 'business',
+    'home_portrait': 'home',
+    'premium_portrait': 'premium',
+    'winter_photoshoot': 'winter',
+    'urban_portrait': 'city',
+    'evening_look': 'evening',
+    'travel_portrait': 'travel',
+    'tender_photoshoot': 'tender',
+    'summer_photoshoot': 'summer',
+    'expert_photoshoot': 'expert',
+    'business_brand': 'business_brand',
+    'personal_brand': 'personal_brand',
+    'cafe_city': 'cafe_city',
+    'park_walk': 'park_walk',
+    'custom_photoshoot': 'custom_photoshoot',
   };
 
-  /// Three result previews per photoshoot style (may be unbundled).
+  /// Three result previews per photoshoot style.
   static const Map<String, List<String>> photoshootTripletById = {
     'studio_portrait': [
-      photoshootsStudio1,
-      photoshootsStudio2,
-      photoshootsStudio3,
+      '$_photoshootsDir/studio_1.jpg',
+      '$_photoshootsDir/studio_2.jpg',
+      '$_photoshootsDir/studio_3.jpg',
     ],
     'business_portrait': [
-      photoshootsBusiness1,
-      photoshootsBusiness2,
-      photoshootsBusiness3,
+      '$_photoshootsDir/business_1.jpg',
+      '$_photoshootsDir/business_2.jpg',
+      '$_photoshootsDir/business_3.jpg',
+    ],
+    'home_portrait': [
+      '$_photoshootsDir/home_1.jpg',
+      '$_photoshootsDir/home_2.jpg',
+      '$_photoshootsDir/home_3.jpg',
+    ],
+    'premium_portrait': [
+      '$_photoshootsDir/premium_1.jpg',
+      '$_photoshootsDir/premium_2.jpg',
+      '$_photoshootsDir/premium_3.jpg',
+    ],
+    'winter_photoshoot': [
+      '$_photoshootsDir/winter_1.jpg',
+      '$_photoshootsDir/winter_2.jpg',
+      '$_photoshootsDir/winter_3.jpg',
     ],
     'urban_portrait': [
-      photoshootsBusiness1,
-      photoshootsBusiness2,
-      photoshootsBusiness3,
+      '$_photoshootsDir/city_1.jpg',
+      '$_photoshootsDir/city_2.jpg',
+      '$_photoshootsDir/city_3.jpg',
     ],
-    'city_portrait': [
-      photoshootsBusiness1,
-      photoshootsBusiness2,
-      photoshootsBusiness3,
+    'evening_look': [
+      '$_photoshootsDir/evening_1.jpg',
+      '$_photoshootsDir/evening_2.jpg',
+      '$_photoshootsDir/evening_3.jpg',
+    ],
+    'travel_portrait': [
+      '$_photoshootsDir/travel_1.jpg',
+      '$_photoshootsDir/travel_2.jpg',
+      '$_photoshootsDir/travel_3.jpg',
+    ],
+    'tender_photoshoot': [
+      '$_photoshootsDir/tender_1.jpg',
+      '$_photoshootsDir/tender_2.jpg',
+      '$_photoshootsDir/tender_3.jpg',
+    ],
+    'summer_photoshoot': [
+      '$_photoshootsDir/summer_1.jpg',
+      '$_photoshootsDir/summer_2.jpg',
+      '$_photoshootsDir/summer_3.jpg',
+    ],
+    'expert_photoshoot': [
+      '$_photoshootsDir/expert_1.jpg',
+      '$_photoshootsDir/expert_2.jpg',
+      '$_photoshootsDir/expert_3.jpg',
+    ],
+    'business_brand': [
+      '$_photoshootsDir/business_brand_1.jpg',
+      '$_photoshootsDir/business_brand_2.jpg',
+      '$_photoshootsDir/business_brand_3.jpg',
+    ],
+    'personal_brand': [
+      '$_photoshootsDir/personal_brand_1.jpg',
+      '$_photoshootsDir/personal_brand_2.jpg',
+      '$_photoshootsDir/personal_brand_3.jpg',
+    ],
+    'cafe_city': [
+      '$_photoshootsDir/cafe_city_1.jpg',
+      '$_photoshootsDir/cafe_city_2.jpg',
+      '$_photoshootsDir/cafe_city_3.jpg',
+    ],
+    'park_walk': [
+      '$_photoshootsDir/park_walk_1.jpg',
+      '$_photoshootsDir/park_walk_2.jpg',
+      '$_photoshootsDir/park_walk_3.jpg',
+    ],
+    'custom_photoshoot': [
+      '$_photoshootsDir/custom_photoshoot_1.jpg',
+      '$_photoshootsDir/custom_photoshoot_2.jpg',
+      '$_photoshootsDir/custom_photoshoot_3.jpg',
     ],
   };
 
   static String templateAssetForId(String id) =>
-      templateById[id] ?? 'assets/previews/templates/$id.jpg';
+      templateById[id] ?? '$_templatesDir/$id.jpg';
 
   static String? templatePathForId(String id) => templateAssetForId(id);
 
-  static String? photoshootPathForId(String id) => photoshootById[id];
+  static String photoshootAssetSlugForId(String id) =>
+      photoshootAssetSlugById[id] ?? id;
+
+  static List<String> photoshootTripletPathsForSlug(String slug) => [
+        '$_photoshootsDir/${slug}_1.jpg',
+        '$_photoshootsDir/${slug}_2.jpg',
+        '$_photoshootsDir/${slug}_3.jpg',
+      ];
 
   static List<String> photoshootPreviewAssetsForId(String id) {
     final explicit = photoshootTripletById[id];
     if (explicit != null && explicit.isNotEmpty) return explicit;
-    return [
-      'assets/previews/photoshoots/${id}_1.jpg',
-      'assets/previews/photoshoots/${id}_2.jpg',
-      'assets/previews/photoshoots/${id}_3.jpg',
-    ];
+    return photoshootTripletPathsForSlug(photoshootAssetSlugForId(id));
+  }
+
+  /// Hero preview for modals (first image of the triplet).
+  static String? photoshootPathForId(String id) {
+    final assets = photoshootPreviewAssetsForId(id);
+    return assets.isEmpty ? null : assets.first;
   }
 
   // —— Photo quality guides ———————————————————————————————————————————————

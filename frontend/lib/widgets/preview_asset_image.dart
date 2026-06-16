@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../assets/preview_asset_registry.dart';
-
-/// Shows a local [Image.asset] when the path is registered; otherwise [placeholder].
+/// Shows a bundled [Image.asset] when the file exists; otherwise [placeholder].
 ///
-/// Does not call [Image.asset] for missing or unregistered paths — no console
-/// errors from absent files during development.
+/// Paths are declared in pubspec under `assets/previews/` and `assets/guides/`.
+/// Missing files are handled via [errorBuilder] — the app does not crash.
 class PreviewAssetImage extends StatelessWidget {
   const PreviewAssetImage({
     super.key,
@@ -26,13 +24,15 @@ class PreviewAssetImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final path = assetPath?.trim();
     final Widget content;
-    if (!PreviewAssetRegistry.isAvailable(assetPath)) {
+    if (path == null || path.isEmpty) {
       content = placeholder;
     } else {
       content = Image.asset(
-        assetPath!,
+        path,
         fit: fit,
+        gaplessPlayback: true,
         errorBuilder: (context, error, stackTrace) => placeholder,
       );
     }

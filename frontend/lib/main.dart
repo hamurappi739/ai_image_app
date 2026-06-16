@@ -17,7 +17,10 @@ import 'screens/help_hub_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/template_photo_screen.dart';
+import 'services/catalog_service.dart';
 import 'services/api_service.dart';
+import 'data/catalog_visuals.dart';
+import 'models/catalog_entries.dart';
 import 'services/auth_service.dart';
 import 'services/payment_service.dart';
 import 'services/create_help_service.dart';
@@ -63,6 +66,8 @@ Future<void> main() async {
     // ignore: avoid_print
     print('Supabase is not configured for Flutter; auth disabled');
   }
+
+  await CatalogService.instance.load();
 
   runApp(const AiImageGeneratorApp());
 }
@@ -1415,6 +1420,25 @@ class _PhotoshootStyle {
       previewAssetPaths ?? PreviewAssetPaths.photoshootPreviewAssetsForId(id);
 
   String get priceLabel => isFree ? 'Бесплатно' : '3 изображения';
+
+  factory _PhotoshootStyle.fromCatalog(CatalogPhotoshootEntry entry) {
+    final visuals = CatalogVisuals.photoshootFor(entry.id);
+    return _PhotoshootStyle(
+      id: entry.id,
+      title: entry.title,
+      description: entry.shortDescription,
+      stylePrompt: entry.prompt,
+      recommendation: entry.badge ?? 'Фотосессия',
+      initials: visuals.initials,
+      icon: visuals.icon,
+      gradientColors: visuals.gradientColors,
+      isFree: entry.isFree,
+      previewVariant: visuals.previewVariant,
+      previewAssetPath:
+          entry.previewAssets.isNotEmpty ? entry.previewAssets.first : null,
+      previewAssetPaths: entry.previewAssets,
+    );
+  }
 }
 
 class _PhotoshootCollection {
@@ -1538,192 +1562,17 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
     ),
   ];
 
-  static _PhotoshootStyle _photoshootStyle({
-    required String id,
-    required String title,
-    required String recommendation,
-    required String initials,
-    required IconData icon,
-    required List<Color> gradientColors,
-    required bool isFree,
-    int previewVariant = 0,
-    String? previewAssetPath,
-    List<String>? previewAssetPaths,
-  }) {
-    return _PhotoshootStyle(
-      id: id,
-      title: title,
-      description: AppPrompts.photoshootShort(id),
-      stylePrompt: AppPrompts.photoshootStylePrompt(id),
-      recommendation: recommendation,
-      initials: initials,
-      icon: icon,
-      gradientColors: gradientColors,
-      isFree: isFree,
-      previewVariant: previewVariant,
-      previewAssetPath: previewAssetPath,
-      previewAssetPaths: previewAssetPaths,
+  List<_PhotoshootStyle> _stylesForSelectedCategory() {
+    final collection = _collections.firstWhere(
+      (c) => c.id == _selectedCategoryId,
+      orElse: () => _collections.first,
     );
+    return [
+      for (final entry
+          in CatalogService.instance.photoshootsForCategory(collection.title))
+        _PhotoshootStyle.fromCatalog(entry),
+    ];
   }
-
-  static final _photoshoots = <_PhotoshootStyle>[
-    _photoshootStyle(
-      id: 'studio_portrait',
-      title: 'Студийный портрет',
-      recommendation: 'Популярно',
-      initials: 'СП',
-      icon: Icons.portrait_outlined,
-      gradientColors: [Color(0xFFE8E4F4), Color(0xFFB8B0D4)],
-      isFree: true,
-      previewVariant: 0,
-      previewAssetPath: PreviewAssetPaths.photoshootsStudioPortrait,
-      previewAssetPaths:
-          PreviewAssetPaths.photoshootTripletById['studio_portrait'],
-    ),
-    _photoshootStyle(
-      id: 'business_portrait',
-      title: 'Деловой портрет',
-      recommendation: 'Для работы',
-      initials: 'ДП',
-      icon: Icons.business_center_outlined,
-      gradientColors: [Color(0xFFD4E0EE), Color(0xFF8EA4BE)],
-      isFree: true,
-      previewVariant: 1,
-      previewAssetPath: PreviewAssetPaths.photoshootsBusinessPortrait,
-      previewAssetPaths:
-          PreviewAssetPaths.photoshootTripletById['business_portrait'],
-    ),
-    _photoshootStyle(
-      id: 'home_portrait',
-      title: 'Домашний портрет',
-      recommendation: 'Для себя',
-      initials: 'ДМ',
-      icon: Icons.home_outlined,
-      gradientColors: [Color(0xFFF5E8D8), Color(0xFFD4B896)],
-      isFree: true,
-      previewVariant: 2,
-    ),
-    _photoshootStyle(
-      id: 'premium_portrait',
-      title: 'Премиум-портрет',
-      recommendation: 'Для себя',
-      initials: 'ПР',
-      icon: Icons.diamond_outlined,
-      gradientColors: [Color(0xFFD8C8F8), Color(0xFF9070D8)],
-      isFree: false,
-      previewVariant: 3,
-    ),
-    _photoshootStyle(
-      id: 'winter_photoshoot',
-      title: 'Зимняя фотосессия',
-      recommendation: 'Для себя',
-      initials: 'ЗМ',
-      icon: Icons.ac_unit,
-      gradientColors: [Color(0xFFD0ECFA), Color(0xFF6CB8E8)],
-      isFree: false,
-      previewVariant: 1,
-    ),
-    _photoshootStyle(
-      id: 'urban_portrait',
-      title: 'Городской портрет',
-      recommendation: 'Для соцсетей',
-      initials: 'ГР',
-      icon: Icons.location_city_outlined,
-      gradientColors: [Color(0xFFC8D4F8), Color(0xFF6878D0)],
-      isFree: false,
-      previewVariant: 0,
-    ),
-    _photoshootStyle(
-      id: 'evening_look',
-      title: 'Вечерний образ',
-      recommendation: 'Для себя',
-      initials: 'ВЧ',
-      icon: Icons.nightlife_outlined,
-      gradientColors: [Color(0xFF7A5898), Color(0xFF3A2868)],
-      isFree: false,
-      previewVariant: 2,
-    ),
-    _photoshootStyle(
-      id: 'travel_portrait',
-      title: 'Портрет в путешествии',
-      recommendation: 'Атмосфера',
-      initials: 'ПТ',
-      icon: Icons.flight_outlined,
-      gradientColors: [Color(0xFFC0ECE0), Color(0xFF58B8A8)],
-      isFree: false,
-      previewVariant: 3,
-    ),
-    _photoshootStyle(
-      id: 'tender_photoshoot',
-      title: 'Нежная фотосессия',
-      recommendation: 'Для себя',
-      initials: 'НФ',
-      icon: Icons.spa_outlined,
-      gradientColors: [Color(0xFFF8E8F0), Color(0xFFD8A8C8)],
-      isFree: false,
-      previewVariant: 2,
-    ),
-    _photoshootStyle(
-      id: 'summer_photoshoot',
-      title: 'Летняя фотосессия',
-      recommendation: 'Для себя',
-      initials: 'ЛФ',
-      icon: Icons.wb_sunny_outlined,
-      gradientColors: [Color(0xFFFFF0C8), Color(0xFFE8C060)],
-      isFree: false,
-      previewVariant: 1,
-    ),
-    _photoshootStyle(
-      id: 'expert_photoshoot',
-      title: 'Экспертная фотосессия',
-      recommendation: 'Для работы',
-      initials: 'ЭФ',
-      icon: Icons.school_outlined,
-      gradientColors: [Color(0xFFD0DCE8), Color(0xFF7898B8)],
-      isFree: false,
-      previewVariant: 0,
-    ),
-    _photoshootStyle(
-      id: 'business_brand',
-      title: 'Бизнес-портрет',
-      recommendation: 'Для работы',
-      initials: 'БП',
-      icon: Icons.work_outline,
-      gradientColors: [Color(0xFFC8D8E8), Color(0xFF6888A8)],
-      isFree: false,
-      previewVariant: 1,
-    ),
-    _photoshootStyle(
-      id: 'personal_brand',
-      title: 'Фото для личного бренда',
-      recommendation: 'Для работы',
-      initials: 'ЛБ',
-      icon: Icons.campaign_outlined,
-      gradientColors: [Color(0xFFE0E8F8), Color(0xFF90A8D8)],
-      isFree: false,
-      previewVariant: 2,
-    ),
-    _photoshootStyle(
-      id: 'cafe_city',
-      title: 'Кафе и город',
-      recommendation: 'Атмосфера',
-      initials: 'КГ',
-      icon: Icons.local_cafe_outlined,
-      gradientColors: [Color(0xFFE8D8C8), Color(0xFFA88868)],
-      isFree: false,
-      previewVariant: 0,
-    ),
-    _photoshootStyle(
-      id: 'park_walk',
-      title: 'Прогулка в парке',
-      recommendation: 'Атмосфера',
-      initials: 'ПП',
-      icon: Icons.park_outlined,
-      gradientColors: [Color(0xFFD8F0D8), Color(0xFF68B878)],
-      isFree: false,
-      previewVariant: 3,
-    ),
-  ];
 
   @override
   void initState() {
@@ -1757,14 +1606,6 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
   int get _selectedCategoryIndex {
     final index = _categoryIds.indexOf(_selectedCategoryId);
     return index >= 0 ? index : 0;
-  }
-
-  List<_PhotoshootStyle> _stylesForSelectedCategory() {
-    final collection = _collections.firstWhere(
-      (c) => c.id == _selectedCategoryId,
-      orElse: () => _collections.first,
-    );
-    return _stylesForIds(collection.styleIds);
   }
 
   static double _photoshootGridItemWidth(double gridWidth, int columns) {
@@ -1868,17 +1709,6 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
         ],
       ),
     );
-  }
-
-  List<_PhotoshootStyle> _stylesForIds(
-    List<String> ids, {
-    Set<String>? excludeIds,
-  }) {
-    return [
-      for (final id in ids)
-        if (excludeIds == null || !excludeIds.contains(id))
-          _photoshoots.firstWhere((style) => style.id == id),
-    ];
   }
 
   Widget _buildStyleGrid({
