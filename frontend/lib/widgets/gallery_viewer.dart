@@ -210,7 +210,7 @@ class GallerySingleImageViewer extends StatelessWidget {
                       OutlinedButton.icon(
                         onPressed: () => _onHidePressed(context),
                         icon: const Icon(Icons.visibility_off_outlined, size: 18),
-                        label: const Text('Скрыть из готовых фото'),
+                        label: const Text('Скрыть'),
                       ),
                       FilledButton(
                         onPressed: () => Navigator.of(context).pop(),
