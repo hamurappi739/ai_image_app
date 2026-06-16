@@ -10,6 +10,7 @@ class PhotoshootTripletPreview extends StatelessWidget {
     super.key,
     required this.styleId,
     required this.previewAssets,
+    this.previewUrls = const [],
     required this.gradientColors,
     required this.icon,
     required this.previewVariant,
@@ -20,6 +21,7 @@ class PhotoshootTripletPreview extends StatelessWidget {
 
   final String styleId;
   final List<String> previewAssets;
+  final List<String> previewUrls;
   final List<Color> gradientColors;
   final IconData icon;
   final int previewVariant;
@@ -27,12 +29,17 @@ class PhotoshootTripletPreview extends StatelessWidget {
   final double outerRadius;
   final double innerRadius;
 
+  bool get _useNetworkUrls =>
+      previewUrls.length >= 3 &&
+      previewUrls.take(3).every(isHttpPreviewUrl);
+
   @override
   Widget build(BuildContext context) {
     final mood = VisualPlaceholderPalette.moodForPhotoshootId(styleId);
     final assets = previewAssets.length >= 3
         ? previewAssets
         : PreviewAssetPaths.photoshootPreviewAssetsForId(styleId);
+    final urls = _useNetworkUrls ? previewUrls.take(3).toList() : const <String>[];
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(outerRadius),
@@ -46,8 +53,10 @@ class PhotoshootTripletPreview extends StatelessWidget {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final assetPath = i < assets.length ? assets[i] : null;
+                    final networkUrl = i < urls.length ? urls[i] : null;
                     return PreviewAssetImage(
                       assetPath: assetPath,
+                      networkUrl: networkUrl,
                       fit: BoxFit.cover,
                       borderRadius: BorderRadius.circular(innerRadius),
                       placeholder: VisualPlaceholder(

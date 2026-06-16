@@ -13,6 +13,8 @@ from app.schemas import (
     DebugStorageImagePersistResponse,
     DebugStorageImageTestResponse,
     DebugStorageTestResponse,
+    CatalogPhotoshootsResponse,
+    CatalogTemplatesResponse,
     GenerateRequest,
     GenerateResponse,
     GenerationItem,
@@ -29,6 +31,10 @@ from app.services.balance_service import (
     build_balance_response,
     consume_photoshoot,
     determine_photoshoot_payment,
+)
+from app.services.catalog_service import (
+    load_photoshoots_catalog,
+    load_templates_catalog,
 )
 from app.services.image_service import generate_image
 from app.services.mock_placeholder_urls import DEFAULT_MOCK_IMAGE_URL
@@ -102,6 +108,28 @@ app.add_middleware(
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/catalog/templates", response_model=CatalogTemplatesResponse)
+def get_catalog_templates():
+    try:
+        payload = load_templates_catalog()
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return CatalogTemplatesResponse.model_validate(payload)
+
+
+@app.get("/catalog/photoshoots", response_model=CatalogPhotoshootsResponse)
+def get_catalog_photoshoots():
+    try:
+        payload = load_photoshoots_catalog()
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return CatalogPhotoshootsResponse.model_validate(payload)
 
 
 def _ensure_profile_for_user(user: CurrentUser) -> None:

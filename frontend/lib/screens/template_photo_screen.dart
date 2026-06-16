@@ -71,6 +71,7 @@ class PhotoTemplate {
     required this.placeholderColors,
     this.previewLabel,
     this.previewAssetPath,
+    this.previewUrl,
   });
 
   final String id;
@@ -84,11 +85,17 @@ class PhotoTemplate {
   /// Planned local preview path (jpg/png under assets/previews/templates/).
   final String? previewAssetPath;
 
+  /// Optional remote preview URL from backend catalog.
+  final String? previewUrl;
+
   /// Bundled or planned preview asset for catalog cards and modals.
   String get previewAsset =>
       previewAssetPath ?? PreviewAssetPaths.templateAssetForId(id);
 
   String? get effectivePreviewAssetPath => previewAsset;
+
+  String? get effectivePreviewNetworkUrl =>
+      isHttpPreviewUrl(previewUrl) ? previewUrl!.trim() : null;
 
   factory PhotoTemplate.fromCatalog(CatalogTemplateEntry entry) {
     final visuals = CatalogVisuals.templateFor(entry.id);
@@ -101,6 +108,7 @@ class PhotoTemplate {
       placeholderColors: visuals.placeholderColors,
       previewLabel: visuals.previewLabel,
       previewAssetPath: entry.previewAsset,
+      previewUrl: entry.previewUrl,
     );
   }
 }
@@ -467,6 +475,7 @@ class _TemplateCard extends StatelessWidget {
             width: double.infinity,
             child: PreviewAssetImage(
               assetPath: template.previewAsset,
+              networkUrl: template.effectivePreviewNetworkUrl,
               fit: BoxFit.cover,
               placeholder: VisualPlaceholder(
                 mood: template.visualKind.placeholderMood,

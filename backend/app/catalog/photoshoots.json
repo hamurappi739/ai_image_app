@@ -1,0 +1,272 @@
+[
+  {
+    "id": "studio_portrait",
+    "title": "Студийный портрет",
+    "category": "Популярное сейчас",
+    "shortDescription": "Классическая студийная серия с мягким светом.",
+    "prompt": "Создай серию из 3 студийных портретов по исходному фото. Сохрани лицо, возраст, форму лица, цвет глаз, черты и узнаваемость человека во всех кадрах. Нейтральный фон, мягкий объёмный свет, аккуратные позы, чистая обработка, выразительное лицо и спокойный премиальный стиль. Кожа естественная, без пластиковой ретуши. Без искажений лица, рук, пальцев и пропорций.",
+    "previewAssets": [
+      "assets/previews/photoshoots/studio_portrait_1.jpg",
+      "assets/previews/photoshoots/studio_portrait_2.jpg",
+      "assets/previews/photoshoots/studio_portrait_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 20,
+    "badge": "Популярно",
+    "isFree": true,
+    "previewUrls": []
+  },
+  {
+    "id": "business_portrait",
+    "title": "Деловой портрет",
+    "category": "Популярное сейчас",
+    "shortDescription": "Серия деловых фото для работы, профиля и личного бренда.",
+    "prompt": "Создай серию из 3 реалистичных деловых фото по загруженному фото. Во всех кадрах сохрани лицо, возраст, черты, цвет глаз и узнаваемость человека. Разные аккуратные ракурсы: портрет по плечи, кадр по грудь, лёгкий поворот корпуса. Нейтральный фон, мягкий профессиональный свет, современный деловой образ, уверенный спокойный взгляд. Без искажений лица, рук и пальцев.",
+    "previewAssets": [
+      "assets/previews/photoshoots/business_portrait_1.jpg",
+      "assets/previews/photoshoots/business_portrait_2.jpg",
+      "assets/previews/photoshoots/business_portrait_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 10,
+    "badge": "Для работы",
+    "isFree": true,
+    "previewUrls": []
+  },
+  {
+    "id": "urban_portrait",
+    "title": "Городской портрет",
+    "category": "Популярное сейчас",
+    "shortDescription": "Современный образ на фоне города.",
+    "prompt": "Создай серию из 3 городских портретов по загруженному фото. Сохрани лицо, возраст, черты, цвет глаз и узнаваемость человека. Разные кадры на красивом городском фоне: улица, фасад здания, уютная прогулочная зона. Мягкий дневной свет, современный повседневный стиль, естественная поза и ощущение живой прогулки. Без искажений лица, рук, пальцев и перспективы.",
+    "previewAssets": [
+      "assets/previews/photoshoots/urban_portrait_1.jpg",
+      "assets/previews/photoshoots/urban_portrait_2.jpg",
+      "assets/previews/photoshoots/urban_portrait_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 30,
+    "badge": "Для соцсетей",
+    "isFree": false,
+    "previewUrls": []
+  },
+  {
+    "id": "evening_look",
+    "title": "Вечерний образ",
+    "category": "Популярное сейчас",
+    "shortDescription": "Нарядная серия с красивым вечерним настроением.",
+    "prompt": "Создай серию из 3 вечерних реалистичных фото по исходному снимку. Сохрани лицо, возраст, черты, форму лица и узнаваемость человека во всех кадрах. Нарядный элегантный образ, мягкий тёплый вечерний свет, красивый фон с премиальной атмосферой, лёгкая уверенная поза, аккуратная ретушь. Фото должны выглядеть дорого и естественно, без искажений лица, рук, пальцев и тела.",
+    "previewAssets": [
+      "assets/previews/photoshoots/evening_look_1.jpg",
+      "assets/previews/photoshoots/evening_look_2.jpg",
+      "assets/previews/photoshoots/evening_look_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 40,
+    "badge": "Для себя",
+    "isFree": false,
+    "previewUrls": []
+  },
+  {
+    "id": "tender_photoshoot",
+    "title": "Нежная фотосессия",
+    "category": "Для себя",
+    "shortDescription": "Мягкая, спокойная и женственная серия фото.",
+    "prompt": "Создай серию из 3 нежных портретных фото по загруженному изображению. Сохрани лицо, возраст, черты, цвет глаз, форму лица и естественную мимику человека. Мягкий рассеянный свет, спокойный светлый фон, лёгкий женственный или мягкий casual-образ, естественная улыбка, тёплая атмосфера. Ретушь аккуратная и реалистичная. Без искажений лица, рук, пальцев и пропорций.",
+    "previewAssets": [
+      "assets/previews/photoshoots/tender_photoshoot_1.jpg",
+      "assets/previews/photoshoots/tender_photoshoot_2.jpg",
+      "assets/previews/photoshoots/tender_photoshoot_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 10,
+    "badge": "Для себя",
+    "isFree": false,
+    "previewUrls": []
+  },
+  {
+    "id": "summer_photoshoot",
+    "title": "Летняя фотосессия",
+    "category": "Для себя",
+    "shortDescription": "Светлая летняя серия с лёгким настроением.",
+    "prompt": "Создай серию из 3 летних реалистичных фото по исходному снимку. Сохрани лицо, возраст, основные черты, цвет глаз и узнаваемость человека во всех кадрах. Мягкий солнечный свет, лёгкий образ, приятный природный или городской фон, свежая атмосфера отдыха, разные естественные позы. Цвета тёплые и живые, без чрезмерной ретуши, без искажений лица, рук, пальцев и тела.",
+    "previewAssets": [
+      "assets/previews/photoshoots/summer_photoshoot_1.jpg",
+      "assets/previews/photoshoots/summer_photoshoot_2.jpg",
+      "assets/previews/photoshoots/summer_photoshoot_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 20,
+    "badge": "Для себя",
+    "isFree": false,
+    "previewUrls": []
+  },
+  {
+    "id": "winter_photoshoot",
+    "title": "Зимняя фотосессия",
+    "category": "Для себя",
+    "shortDescription": "Уютная серия со снегом и зимним настроением.",
+    "prompt": "Создай серию из 3 зимних портретных фото по загруженному фото. Сохрани лицо, возраст, форму лица, цвет глаз, черты и узнаваемость человека. Уютная тёплая одежда, мягкий снег, спокойный зимний фон, красивый естественный свет, ощущение прогулки и тепла. Разные ракурсы, но единый стиль. Без искажений лица, рук, пальцев, пропорций и странных деталей на фоне.",
+    "previewAssets": [
+      "assets/previews/photoshoots/winter_photoshoot_1.jpg",
+      "assets/previews/photoshoots/winter_photoshoot_2.jpg",
+      "assets/previews/photoshoots/winter_photoshoot_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 30,
+    "badge": "Для себя",
+    "isFree": false,
+    "previewUrls": []
+  },
+  {
+    "id": "home_portrait",
+    "title": "Домашний портрет",
+    "category": "Для себя",
+    "shortDescription": "Уютная серия в спокойной домашней атмосфере.",
+    "prompt": "Создай серию из 3 домашних реалистичных портретов по исходному фото. Сохрани лицо, возраст, черты, форму лица, цвет глаз и узнаваемость человека. Уютная светлая комната, мягкий естественный свет из окна, спокойный образ, тёплая атмосфера, расслабленные естественные позы. Фото должны выглядеть как настоящая lifestyle-съёмка, без искажений лица, рук, пальцев и мебели.",
+    "previewAssets": [
+      "assets/previews/photoshoots/home_portrait_1.jpg",
+      "assets/previews/photoshoots/home_portrait_2.jpg",
+      "assets/previews/photoshoots/home_portrait_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 40,
+    "badge": "Для себя",
+    "isFree": true,
+    "previewUrls": []
+  },
+  {
+    "id": "expert_photoshoot",
+    "title": "Экспертная фотосессия",
+    "category": "Для работы",
+    "shortDescription": "Фото для эксперта, специалиста или личного бренда.",
+    "prompt": "Создай серию из 3 экспертных фото по загруженному снимку. Сохрани лицо, возраст, черты, цвет глаз и узнаваемость человека во всех кадрах. Образ специалиста, которому можно доверять: спокойный фон, мягкий деловой свет, аккуратная поза, уверенный взгляд, smart casual или деловой стиль. Кадры подходят для сайта, профиля и презентаций. Без искажений лица, рук, пальцев и пропорций.",
+    "previewAssets": [
+      "assets/previews/photoshoots/expert_photoshoot_1.jpg",
+      "assets/previews/photoshoots/expert_photoshoot_2.jpg",
+      "assets/previews/photoshoots/expert_photoshoot_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 10,
+    "badge": "Для работы",
+    "isFree": false,
+    "previewUrls": []
+  },
+  {
+    "id": "business_brand",
+    "title": "Бизнес-портрет",
+    "category": "Для работы",
+    "shortDescription": "Деловая серия для сайта, профиля и рабочих материалов.",
+    "prompt": "Создай серию из 3 бизнес-портретов по исходному фото. Сохрани лицо, возраст, форму лица, цвет глаз, черты и узнаваемость человека. Современный деловой стиль, нейтральный фон, мягкий профессиональный свет, уверенный взгляд, аккуратная осанка, презентабельный внешний вид. Разные ракурсы без смены личности. Результат реалистичный, без искажений лица, рук, пальцев и тела.",
+    "previewAssets": [
+      "assets/previews/photoshoots/business_brand_1.jpg",
+      "assets/previews/photoshoots/business_brand_2.jpg",
+      "assets/previews/photoshoots/business_brand_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 20,
+    "badge": "Для работы",
+    "isFree": false,
+    "previewUrls": []
+  },
+  {
+    "id": "personal_brand",
+    "title": "Фото для личного бренда",
+    "category": "Для работы",
+    "shortDescription": "Серия фото для соцсетей, сайта и продвижения.",
+    "prompt": "Создай серию из 3 фото для личного бренда по загруженному изображению. Сохрани лицо, возраст, черты, цвет глаз и узнаваемость человека во всех кадрах. Современный уверенный образ, приятный фон, мягкий свет, естественные позы, ощущение открытости, доверия и профессиональности. Фото должны подходить для соцсетей, сайта и рекламы эксперта. Без искажений лица, рук и пальцев.",
+    "previewAssets": [
+      "assets/previews/photoshoots/personal_brand_1.jpg",
+      "assets/previews/photoshoots/personal_brand_2.jpg",
+      "assets/previews/photoshoots/personal_brand_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 30,
+    "badge": "Для работы",
+    "isFree": false,
+    "previewUrls": []
+  },
+  {
+    "id": "travel_portrait",
+    "title": "Портрет в путешествии",
+    "category": "Атмосферные",
+    "shortDescription": "Образ на красивом фоне, будто из поездки.",
+    "prompt": "Создай серию из 3 реалистичных портретов в путешествии по исходному фото. Сохрани лицо, возраст, черты, цвет глаз и узнаваемость человека. Красивый атмосферный фон: городская улица, природа или видовая точка, мягкий естественный свет, лёгкий стильный образ, ощущение прогулки и отдыха. Разные живые ракурсы, аккуратная обработка. Без искажений лица, рук, пальцев и фона.",
+    "previewAssets": [
+      "assets/previews/photoshoots/travel_portrait_1.jpg",
+      "assets/previews/photoshoots/travel_portrait_2.jpg",
+      "assets/previews/photoshoots/travel_portrait_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 10,
+    "badge": "Атмосфера",
+    "isFree": false,
+    "previewUrls": []
+  },
+  {
+    "id": "cafe_city",
+    "title": "Кафе и город",
+    "category": "Атмосферные",
+    "shortDescription": "Уютный городской образ в кафе или на прогулке.",
+    "prompt": "Создай серию из 3 фото в стиле кафе и города по загруженному снимку. Сохрани лицо, возраст, черты, цвет глаз и узнаваемость человека во всех кадрах. Уютное кафе, городская улица или витрина, мягкий свет, стильный повседневный образ, естественная поза, живая атмосфера прогулки. Фото реалистичные, тёплые и аккуратные. Без искажений лица, рук, пальцев и перспективы.",
+    "previewAssets": [
+      "assets/previews/photoshoots/cafe_city_1.jpg",
+      "assets/previews/photoshoots/cafe_city_2.jpg",
+      "assets/previews/photoshoots/cafe_city_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 20,
+    "badge": "Атмосфера",
+    "isFree": false,
+    "previewUrls": []
+  },
+  {
+    "id": "park_walk",
+    "title": "Прогулка в парке",
+    "category": "Атмосферные",
+    "shortDescription": "Спокойная серия на природе с мягким светом.",
+    "prompt": "Создай серию из 3 реалистичных фото на прогулке в парке по исходному фото. Сохрани лицо, возраст, форму лица, цвет глаз, черты и узнаваемость человека. Природный фон, мягкий дневной свет, спокойный образ, лёгкая улыбка, естественные позы, ощущение свежести и прогулки. Цвета натуральные, обработка аккуратная. Без искажений лица, рук, пальцев, тела и странных деталей на фоне.",
+    "previewAssets": [
+      "assets/previews/photoshoots/park_walk_1.jpg",
+      "assets/previews/photoshoots/park_walk_2.jpg",
+      "assets/previews/photoshoots/park_walk_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 30,
+    "badge": "Атмосфера",
+    "isFree": false,
+    "previewUrls": []
+  },
+  {
+    "id": "premium_portrait",
+    "title": "Премиум-портрет",
+    "category": "Атмосферные",
+    "shortDescription": "Более дорогой и выразительный образ.",
+    "prompt": "Создай серию из 3 премиальных портретов по загруженному фото. Сохрани лицо, возраст, форму лица, цвет глаз, черты и узнаваемость человека во всех кадрах. Элегантный образ, красивый объёмный свет, дорогая атмосфера, аккуратная ретушь без пластиковой кожи, выразительный взгляд, стильный фон. Кадры должны выглядеть как дорогая профессиональная съёмка. Без искажений лица, рук, пальцев и пропорций.",
+    "previewAssets": [
+      "assets/previews/photoshoots/premium_portrait_1.jpg",
+      "assets/previews/photoshoots/premium_portrait_2.jpg",
+      "assets/previews/photoshoots/premium_portrait_3.jpg"
+    ],
+    "priceImages": 3,
+    "isActive": true,
+    "sortOrder": 40,
+    "badge": "Для себя",
+    "isFree": false,
+    "previewUrls": []
+  }
+]

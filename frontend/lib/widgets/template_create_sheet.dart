@@ -270,6 +270,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                             width: double.infinity,
                             child: PreviewAssetImage(
                               assetPath: template.effectivePreviewAssetPath,
+                              networkUrl: template.effectivePreviewNetworkUrl,
                               fit: BoxFit.cover,
                               placeholder: VisualPlaceholder(
                                 mood: template.visualKind.placeholderMood,

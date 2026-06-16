@@ -141,3 +141,43 @@ class DebugConfigResponse(BaseModel):
     test_user_id_configured: bool
     photoshoot_output_count: int
     photoshoot_generation_enabled: bool
+
+
+class CatalogTemplateItem(BaseModel):
+    id: str
+    title: str
+    category: str
+    shortDescription: str
+    prompt: str
+    previewAsset: str
+    previewUrl: str | None = None
+    priceImages: int = 1
+    isActive: bool = True
+    sortOrder: int = 0
+
+
+class CatalogPhotoshootItem(BaseModel):
+    id: str
+    title: str
+    category: str
+    shortDescription: str
+    prompt: str
+    previewAssets: list[str] = Field(default_factory=list)
+    previewUrls: list[str] = Field(default_factory=list)
+    priceImages: int = 3
+    isActive: bool = True
+    sortOrder: int = 0
+    badge: str | None = None
+    isFree: bool = False
+
+
+class CatalogTemplatesResponse(BaseModel):
+    items: list[CatalogTemplateItem]
+    source: str = "backend"
+    version: str = "1"
+
+
+class CatalogPhotoshootsResponse(BaseModel):
+    items: list[CatalogPhotoshootItem]
+    source: str = "backend"
+    version: str = "1"

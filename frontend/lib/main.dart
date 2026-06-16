@@ -1394,6 +1394,7 @@ class _PhotoshootStyle {
     this.previewVariant = 0,
     this.previewAssetPath,
     this.previewAssetPaths,
+    this.previewUrls,
   });
 
   final String id;
@@ -1413,11 +1414,16 @@ class _PhotoshootStyle {
   /// Three result previews for catalog cards (jpg under assets/previews/photoshoots/).
   final List<String>? previewAssetPaths;
 
+  /// Optional remote preview URLs from backend catalog.
+  final List<String>? previewUrls;
+
   String? get effectivePreviewAssetPath =>
       previewAssetPath ?? PreviewAssetPaths.photoshootPathForId(id);
 
   List<String> get effectivePreviewAssets =>
       previewAssetPaths ?? PreviewAssetPaths.photoshootPreviewAssetsForId(id);
+
+  List<String> get effectivePreviewUrls => previewUrls ?? const [];
 
   String get priceLabel => isFree ? 'Бесплатно' : '3 изображения';
 
@@ -1437,6 +1443,7 @@ class _PhotoshootStyle {
       previewAssetPath:
           entry.previewAssets.isNotEmpty ? entry.previewAssets.first : null,
       previewAssetPaths: entry.previewAssets,
+      previewUrls: entry.previewUrls,
     );
   }
 }
@@ -1880,6 +1887,7 @@ class _PhotoshootCard extends StatelessWidget {
             PhotoshootTripletPreview(
               styleId: style.id,
               previewAssets: style.effectivePreviewAssets,
+              previewUrls: style.effectivePreviewUrls,
               gradientColors: style.gradientColors,
               icon: style.icon,
               previewVariant: style.previewVariant,
@@ -2413,6 +2421,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                     PhotoshootTripletPreview(
                       styleId: style.id,
                       previewAssets: style.effectivePreviewAssets,
+                      previewUrls: style.effectivePreviewUrls,
                       gradientColors: style.gradientColors,
                       icon: style.icon,
                       previewVariant: style.previewVariant,

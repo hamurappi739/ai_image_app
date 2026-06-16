@@ -1,17 +1,24 @@
 # Управление каталогом шаблонов и фотосессий
 
-Каталог приложения хранится в JSON-файлах внутри Flutter-проекта. Это позволяет добавлять и редактировать шаблоны без изменения логики экранов.
+Каталог приложения хранится в JSON. Есть **локальная копия** внутри Flutter (для офлайн-fallback) и **основная копия на backend** (для обновлений без пересборки APK).
 
 ## Где лежат файлы
 
 | Файл | Назначение |
 |------|------------|
-| `frontend/assets/catalog/templates.json` | Шаблоны «Фото по шаблону» |
-| `frontend/assets/catalog/photoshoots.json` | Готовые фотосессии |
-| `frontend/assets/previews/templates/` | Preview-картинки шаблонов |
-| `frontend/assets/previews/photoshoots/` | Preview-картинки фотосессий (по 3 на стиль) |
+| `backend/app/catalog/templates.json` | Шаблоны на сервере (remote catalog) |
+| `backend/app/catalog/photoshoots.json` | Фотосессии на сервере (remote catalog) |
+| `frontend/assets/catalog/templates.json` | Локальный fallback шаблонов |
+| `frontend/assets/catalog/photoshoots.json` | Локальный fallback фотосессий |
+| `frontend/assets/previews/templates/` | Preview-картинки шаблонов в APK |
+| `frontend/assets/previews/photoshoots/` | Preview-картинки фотосессий в APK (по 3 на стиль) |
 
-Подключение в `frontend/pubspec.yaml`:
+API (без авторизации):
+
+- `GET /catalog/templates`
+- `GET /catalog/photoshoots`
+
+Подключение локальных assets в `frontend/pubspec.yaml`:
 
 ```yaml
 assets:
@@ -21,38 +28,65 @@ assets:
   - assets/guides/
 ```
 
-## Как добавить новый шаблон
+## Как обновлять каталог без новой версии APK
 
-1. Откройте `frontend/assets/catalog/templates.json`.
-2. Добавьте объект в массив:
+### 1. Локальный каталог в APK (fallback)
+
+- Редактируете `frontend/assets/catalog/*.json`
+- Кладёте картинки в `frontend/assets/previews/`
+- **Пересобираете APK** — пользователи получают новую версию только после установки
+
+Это резервный вариант: приложение использует его, если backend недоступен.
+
+### 2. Remote catalog на backend (обновление без APK)
+
+1. Отредактируйте `backend/app/catalog/templates.json` или `photoshoots.json`
+2. Для новых preview используйте **публичные URL** в полях `previewUrl` / `previewUrls` (например Supabase Storage)
+3. Убедитесь, что `isActive: true` и задан `sortOrder`
+4. Задеплойте или перезапустите backend
+5. Пользователь **перезапускает приложение** — `CatalogService` подтянет каталог с API
+
+Картинки по URL не входят в APK: их можно менять на сервере без пересборки.
+
+### 3. Разница между previewAsset и previewUrl
+
+| Поле | Где | Когда использовать |
+|------|-----|-------------------|
+| `previewAsset` / `previewAssets` | Локальные пути в APK | Картинка уже в приложении, работает офлайн |
+| `previewUrl` / `previewUrls` | HTTP(S) ссылка | Новые или обновляемые preview без APK |
+
+Приоритет на экране: если `previewUrl` начинается с `http` — показывается сеть; при ошибке — `previewAsset`; если и его нет — цветной placeholder.
+
+## Как добавить новый remote template
+
+1. Откройте `backend/app/catalog/templates.json`
+2. Добавьте объект:
 
 ```json
 {
   "id": "my_new_template",
   "title": "Название в карточке",
   "category": "Для себя",
-  "shortDescription": "Короткий текст под названием (1–2 строки).",
+  "shortDescription": "Короткий текст под названием.",
   "prompt": "Полный промпт для генерации…",
   "previewAsset": "assets/previews/templates/my_new_template.jpg",
+  "previewUrl": "https://your-storage.example.com/previews/my_new_template.jpg",
   "priceImages": 1,
   "isActive": true,
   "sortOrder": 70
 }
 ```
 
-3. Положите картинку `my_new_template.jpg` в `frontend/assets/previews/templates/`.
-4. Пересоберите и перезапустите приложение.
+3. Загрузите картинку в Storage и вставьте публичный URL в `previewUrl`
+4. Деплой backend → перезапуск приложения у пользователя
 
-**Категории шаблонов** (поле `category`):
+Для офлайн-fallback можно продублировать запись в `frontend/assets/catalog/templates.json`.
 
-- `Для себя`
-- `Для работы`
-- `Для семьи`
-- `Для продажи`
+**Категории шаблонов:** `Для себя`, `Для работы`, `Для семьи`, `Для продажи`
 
-## Как добавить новую фотосессию
+## Как добавить новую remote photoshoot
 
-1. Откройте `frontend/assets/catalog/photoshoots.json`.
+1. Откройте `backend/app/catalog/photoshoots.json`
 2. Добавьте объект:
 
 ```json
@@ -60,12 +94,17 @@ assets:
   "id": "my_photoshoot",
   "title": "Название фотосессии",
   "category": "Популярное сейчас",
-  "shortDescription": "Короткое описание в карточке.",
-  "prompt": "Полный промпт фотосессии (серия из 3 фото)…",
+  "shortDescription": "Короткое описание.",
+  "prompt": "Полный промпт фотосессии…",
   "previewAssets": [
     "assets/previews/photoshoots/my_photoshoot_1.jpg",
     "assets/previews/photoshoots/my_photoshoot_2.jpg",
     "assets/previews/photoshoots/my_photoshoot_3.jpg"
+  ],
+  "previewUrls": [
+    "https://your-storage.example.com/previews/my_photoshoot_1.jpg",
+    "https://your-storage.example.com/previews/my_photoshoot_2.jpg",
+    "https://your-storage.example.com/previews/my_photoshoot_3.jpg"
   ],
   "priceImages": 3,
   "isActive": true,
@@ -75,20 +114,10 @@ assets:
 }
 ```
 
-3. Добавьте три jpg в `frontend/assets/previews/photoshoots/`.
-4. Пересоберите приложение.
+3. `previewUrls` — ровно 3 рабочих HTTP(S) URL для сетевых превью
+4. Деплой backend
 
-**Категории фотосессий** (поле `category`):
-
-- `Популярное сейчас`
-- `Для себя`
-- `Для работы`
-- `Атмосферные`
-
-Дополнительные поля для UI (не влияют на генерацию):
-
-- `badge` — подпись на карточке («Популярно», «Для работы» и т.д.)
-- `isFree` — бесплатная фотосессия для теста (`true` / `false`)
+**Категории фотосессий:** `Популярное сейчас`, `Для себя`, `Для работы`, `Атмосферные`
 
 ## Рекомендуемые размеры preview
 
@@ -97,35 +126,61 @@ assets:
 | Шаблон (карточка) | 4:3 или 16:9 | 800×600 или 960×540 px |
 | Фотосессия (1 из 3) | 1:1 | 400×400 px |
 
-Формат: **JPG**. Если файла нет — показывается цветной placeholder.
+Формат: **JPG**. Если файла/URL нет — показывается placeholder.
 
 ## isActive
 
-- `true` — элемент виден в каталоге.
-- `false` — скрыт из UI, но остаётся в JSON (удобно временно отключать).
+- `true` — элемент виден в каталоге (backend отдаёт только активные; frontend дополнительно фильтрует)
+- `false` — скрыт из UI
 
 ## sortOrder
 
-Число для сортировки внутри категории. Меньшее значение — выше в списке. Шаг 10 оставляет место для вставок (`10`, `20`, `30`…).
+Число для сортировки внутри категории. Меньшее значение — выше в списке (`10`, `20`, `30`…).
 
-## Почему нужна новая сборка APK
+## Загрузка в приложении
 
-JSON и картинки входят в assets Flutter-приложения на этапе сборки. После изменения файлов нужен **hot restart** в разработке или **новая сборка APK/IPA** для пользователей — без этого старая версия каталога останется в установленном приложении.
+`CatalogService` при старте:
 
-## Следующий этап — remote catalog
+1. Пробует `GET /catalog/templates` и `GET /catalog/photoshoots` (timeout ~4 с)
+2. При успехе — remote catalog
+3. При ошибке — `assets/catalog/*.json`
+4. При повреждённом JSON — встроенный минимальный fallback (1 шаблон + 1 фотосессия)
 
-Планируется вынести каталог на backend (например Supabase): приложение будет подгружать JSON по сети и обновлять каталог без переустановки. Текущая локальная схема — подготовка к этому: те же поля и структура переедут на сервер.
+## TODO — следующий этап
+
+- Каталог в таблице Supabase или admin panel, чтобы не редактировать JSON вручную
+- Версионирование каталога и кэш на устройстве
 
 ## Генератор JSON из промптов
 
-При массовом обновлении промптов можно пересобрать JSON:
+При массовом обновлении промптов в Dart:
 
 ```bash
 python frontend/tools/generate_catalog_json.py
 ```
 
-Скрипт читает `lib/data/app_prompts.dart` и перезаписывает оба JSON-файла.
+Скрипт перезаписывает **frontend** JSON. После этого скопируйте файлы в `backend/app/catalog/` и добавьте `previewUrl` / `previewUrls` при необходимости.
 
-## Загрузка в приложении
+## Синхронизация frontend ↔ backend
 
-`CatalogService` (`lib/services/catalog_service.dart`) загружается при старте в `main()`. Если JSON повреждён — используется минимальный fallback (1 шаблон + 1 фотосессия), приложение не падает.
+После правок локального каталога:
+
+```bash
+python -c "
+import json
+from pathlib import Path
+root = Path('.')
+dst = root / 'backend/app/catalog'
+dst.mkdir(parents=True, exist_ok=True)
+for name, url_field in [('templates.json', 'previewUrl'), ('photoshoots.json', 'previewUrls')]:
+    data = json.loads((root / 'frontend/assets/catalog' / name).read_text(encoding='utf-8'))
+    for item in data:
+        if url_field == 'previewUrl':
+            item.setdefault('previewUrl', None)
+        else:
+            item.setdefault('previewUrls', [])
+    (dst / name).write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+"
+```
+
+Сохраните существующие `previewUrl` / `previewUrls` на backend перед перезаписью, если они уже заданы.
