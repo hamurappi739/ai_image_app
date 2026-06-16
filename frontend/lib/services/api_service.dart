@@ -475,7 +475,9 @@ class ApiService {
       if (response.statusCode == 200) {
         return response;
       }
-      if (response.statusCode == 403 || response.statusCode == 404) {
+      if (response.statusCode == 403 ||
+          response.statusCode == 404 ||
+          response.statusCode == 501) {
         throw const MockPaymentUnavailableException();
       }
       if (response.statusCode == 400) {
@@ -502,6 +504,27 @@ class ApiService {
       body: {
         'package_id': packageId,
         'provider_payment_id': providerPaymentId,
+      },
+    );
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    return MockVerifyRuStorePaymentResponse.fromJson(json);
+  }
+
+  /// Production RuStore verification (server-side). Not implemented on backend yet.
+  ///
+  /// TODO(rustore): call after RuStore Pay SDK returns purchase id / token.
+  /// Backend path: ``POST /payments/rustore/verify``.
+  Future<MockVerifyRuStorePaymentResponse> verifyRuStorePayment({
+    required String packageId,
+    required String providerPaymentId,
+    String? purchaseToken,
+  }) async {
+    final response = await _postMockPaymentWithRetry(
+      uri: Uri.parse('$baseUrl/payments/rustore/verify'),
+      body: {
+        'package_id': packageId,
+        'provider_payment_id': providerPaymentId,
+        'purchase_token': ?purchaseToken,
       },
     );
     final json = jsonDecode(response.body) as Map<String, dynamic>;

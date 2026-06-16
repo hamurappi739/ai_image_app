@@ -1019,7 +1019,7 @@ class _PacksScreenState extends State<PacksScreen> {
     await Future<void>.delayed(Duration.zero);
 
     try {
-      final result = await widget.paymentService.purchasePackageDemo(
+      final result = await widget.paymentService.purchasePackage(
         offering.packageId,
       );
       if (!mounted) return;

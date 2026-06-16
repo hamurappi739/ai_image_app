@@ -13,6 +13,15 @@ PHOTOSHOOT_UNIT_RUB = 100
 CUSTOM_AMOUNT_MIN_RUB = 10
 CUSTOM_AMOUNT_MAX_RUB = 100_000
 
+# Current UI offerings (1/3/9/20/50 images). Legacy package ids remain for old transactions.
+ACTIVE_IMAGE_PACKAGE_IDS: tuple[str, ...] = (
+    "package_39_1_image",
+    "package_99_3_images",
+    "package_249_9_images",
+    "package_499_20_images",
+    "package_999_50_images",
+)
+
 
 @dataclass(frozen=True, slots=True)
 class PaymentPackage:
@@ -99,3 +108,8 @@ def get_payment_package(package_id: str) -> PaymentPackage:
     if package is None:
         raise HTTPException(status_code=400, detail="Unknown package_id")
     return package
+
+
+def list_active_image_packages() -> list[PaymentPackage]:
+    """Packages offered in the current «Купить» UI (server source of truth)."""
+    return [PAYMENT_PACKAGES[package_id] for package_id in ACTIVE_IMAGE_PACKAGE_IDS]

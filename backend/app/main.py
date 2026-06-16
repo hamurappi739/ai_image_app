@@ -20,12 +20,8 @@ from app.schemas import (
     GenerationItem,
     GenerationsListResponse,
     PhotoshootGenerateResponse,
-    RuStoreMockVerifyRequest,
-    RuStoreMockVerifyResponse,
-    RuStoreMockVerifyCustomRequest,
-    RuStoreMockVerifyCustomResponse,
-    PaymentAddedBalance,
 )
+from app.routes.payments import router as payments_router
 from app.services.balance_service import (
     add_paid_balance,
     build_balance_response,
@@ -42,10 +38,6 @@ from app.services.credits_service import (
     add_paid_credits,
     consume_generation,
     determine_generation_payment,
-)
-from app.services.payment_service import (
-    mock_verify_custom_amount_purchase,
-    mock_verify_rustore_purchase,
 )
 from app.services.photo_generation_service import photo_generation_service
 from app.services.photoshoot_styles import get_photoshoot_style
@@ -64,12 +56,6 @@ app = FastAPI(title="AI Image Generator API")
 
 def _require_development_for_debug() -> None:
     """404 unless ENVIRONMENT is ``development`` (case-insensitive)."""
-    if settings.environment.strip().lower() != "development":
-        raise HTTPException(status_code=404)
-
-
-def _require_development_for_payment_mock() -> None:
-    """404 unless ENVIRONMENT is ``development`` (mock RuStore verify only)."""
     if settings.environment.strip().lower() != "development":
         raise HTTPException(status_code=404)
 
@@ -103,6 +89,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(payments_router)
 
 
 @app.get("/health")
@@ -468,60 +456,6 @@ def debug_add_balance(
         updated_profile,
         settings.free_generations_limit,
         consumption_enabled=settings.enable_credit_consumption,
-    )
-
-
-@app.post("/payments/rustore/mock-verify", response_model=RuStoreMockVerifyResponse)
-def rustore_mock_verify_purchase(
-    body: RuStoreMockVerifyRequest,
-    user: CurrentUser = Depends(get_current_user),
-):
-    """Development-only mock RuStore purchase verification (no real RuStore API)."""
-    _require_development_for_payment_mock()
-    result = mock_verify_rustore_purchase(
-        user_id=user.id,
-        email=user.email,
-        package_id=body.package_id,
-        provider_payment_id=body.provider_payment_id,
-    )
-    return RuStoreMockVerifyResponse(
-        status=result.status,
-        package_id=result.package_id,
-        added=PaymentAddedBalance(
-            paid_image_generations=result.added_paid_image_generations,
-            paid_photoshoots=result.added_paid_photoshoots,
-        ),
-        balance=result.balance,
-    )
-
-
-@app.post(
-    "/payments/rustore/mock-verify-custom",
-    response_model=RuStoreMockVerifyCustomResponse,
-)
-def rustore_mock_verify_custom_amount(
-    body: RuStoreMockVerifyCustomRequest,
-    user: CurrentUser = Depends(get_current_user),
-):
-    """Development-only mock RuStore custom amount verification (no real RuStore API)."""
-    _require_development_for_payment_mock()
-    result = mock_verify_custom_amount_purchase(
-        user_id=user.id,
-        email=user.email,
-        amount_rub=body.amount_rub,
-        paid_photoshoots=body.paid_photoshoots,
-        provider_payment_id=body.provider_payment_id,
-    )
-    return RuStoreMockVerifyCustomResponse(
-        status=result.status,
-        package_id=result.package_id,
-        amount_rub=result.amount_rub,
-        added=PaymentAddedBalance(
-            paid_image_generations=result.added_paid_image_generations,
-            paid_photoshoots=result.added_paid_photoshoots,
-        ),
-        unused_rub=result.unused_rub,
-        balance=result.balance,
     )
 
 

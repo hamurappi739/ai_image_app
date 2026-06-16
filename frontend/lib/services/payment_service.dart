@@ -1,24 +1,60 @@
 import '../models/payment_result.dart';
 import 'api_service.dart';
 
-/// Orchestrates balance top-up: development mock verification today,
-/// RuStore Pay SDK + backend verification in the future.
+/// Which backend path [PaymentService] uses for purchases.
+enum PaymentChannel {
+  /// Development demo: backend mock-verify (no RuStore SDK, no real charges).
+  demo,
+
+  /// Future: RuStore Pay SDK purchase + backend ``/payments/rustore/verify``.
+  rustore,
+}
+
+/// Orchestrates balance top-up for the UI.
+///
+/// UI screens (e.g. «Купить») should call [purchasePackage] only — not mock endpoints
+/// or RuStore SDK details directly.
+///
+/// Current flow (demo):
+/// 1. [purchasePackage] → backend ``/payments/rustore/mock-verify`` (development only).
+/// 2. Backend credits balance and returns updated ``balance``.
 ///
 /// Future RuStore Pay SDK flow (not implemented):
-/// 1. Call RuStore Pay SDK from Android (purchase UI / payment).
-/// 2. Receive purchase / payment id from RuStore.
-/// 3. Send purchase id to backend verification endpoint (server-side only).
-/// 4. Backend credits balance after verification.
-/// 5. Frontend updates UI from verification response or refreshes GET /balance.
+/// 1. RuStore Pay SDK shows purchase UI on Android.
+/// 2. App receives purchase id / token from RuStore.
+/// 3. [purchasePackage] → [ApiService.verifyRuStorePayment] → backend verify.
+/// 4. Backend verifies with RuStore server-side, credits balance, records transaction.
+/// 5. UI updates from verification response.
 ///
 /// Do not use deprecated RuStore BillingClient SDK for new integration.
 class PaymentService {
-  PaymentService({required ApiService apiService}) : _apiService = apiService;
+  PaymentService({
+    required ApiService apiService,
+    PaymentChannel channel = PaymentChannel.demo,
+  })  : _apiService = apiService,
+        _channel = channel;
 
   final ApiService _apiService;
+  final PaymentChannel _channel;
+
+  /// Primary entry point for package purchases from UI.
+  Future<PaymentResult> purchasePackage(String packageId) {
+    switch (_channel) {
+      case PaymentChannel.demo:
+        return _purchasePackageDemo(packageId);
+      case PaymentChannel.rustore:
+        return purchasePackageWithRuStore(packageId);
+    }
+  }
 
   /// Development demo: fixed package top-up via backend mock-verify.
-  Future<PaymentResult> purchasePackageDemo(String packageId) async {
+  ///
+  /// Prefer [purchasePackage] from UI. This method remains for tests and migration.
+  Future<PaymentResult> purchasePackageDemo(String packageId) {
+    return _purchasePackageDemo(packageId);
+  }
+
+  Future<PaymentResult> _purchasePackageDemo(String packageId) async {
     final providerPaymentId =
         'dev-package-$packageId-${DateTime.now().millisecondsSinceEpoch}';
 
@@ -29,14 +65,20 @@ class PaymentService {
       );
       return _mapPackageResponse(response);
     } on MockPaymentUnavailableException {
-      return _failedResult(packageId: packageId, reason: PaymentFailureReason.unavailable);
+      return _failedResult(
+        packageId: packageId,
+        reason: PaymentFailureReason.unavailable,
+      );
     } on MockPaymentServiceUnavailableException {
       return _failedResult(
         packageId: packageId,
         reason: PaymentFailureReason.serviceUnavailable,
       );
     } catch (_) {
-      return _failedResult(packageId: packageId, reason: PaymentFailureReason.generic);
+      return _failedResult(
+        packageId: packageId,
+        reason: PaymentFailureReason.generic,
+      );
     }
   }
 
@@ -57,23 +99,34 @@ class PaymentService {
       );
       return _mapCustomAmountResponse(response);
     } on MockPaymentUnavailableException {
-      return _failedResult(packageId: packageId, reason: PaymentFailureReason.unavailable);
+      return _failedResult(
+        packageId: packageId,
+        reason: PaymentFailureReason.unavailable,
+      );
     } on MockPaymentServiceUnavailableException {
       return _failedResult(
         packageId: packageId,
         reason: PaymentFailureReason.serviceUnavailable,
       );
     } catch (_) {
-      return _failedResult(packageId: packageId, reason: PaymentFailureReason.generic);
+      return _failedResult(
+        packageId: packageId,
+        reason: PaymentFailureReason.generic,
+      );
     }
   }
 
-  // Future RuStore Pay SDK: steps 1–3 above, then map backend response to PaymentResult.
-  Future<PaymentResult> purchasePackageWithRuStore(String packageId) {
-    throw UnimplementedError('RuStore Pay SDK is not connected');
+  /// Future RuStore Pay SDK: purchase UI on device, then backend verification.
+  Future<PaymentResult> purchasePackageWithRuStore(String packageId) async {
+    // TODO(rustore): invoke RuStore Pay SDK, obtain provider_payment_id / token,
+    // then call _apiService.verifyRuStorePayment(...).
+    return _failedResult(
+      packageId: packageId,
+      reason: PaymentFailureReason.unavailable,
+    );
   }
 
-  // Future RuStore Pay SDK: custom amount via RuStore, then backend verification.
+  /// Future RuStore Pay SDK: custom amount via RuStore, then backend verification.
   Future<PaymentResult> purchaseCustomAmountWithRuStore({
     required int amountRub,
     required int paidPhotoshoots,

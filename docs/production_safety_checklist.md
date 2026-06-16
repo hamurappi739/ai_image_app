@@ -2,7 +2,7 @@
 
 Аудит безопасности перед публичным запуском. **Текущий demo/development flow не отключён.**
 
-Связанные документы: [demo_release_checklist.md](demo_release_checklist.md), [rustore_integration_plan.md](rustore_integration_plan.md), [api_contract.md](api_contract.md).
+Связанные документы: [demo_release_checklist.md](demo_release_checklist.md), [rustore_integration_plan.md](rustore_integration_plan.md), [rustore_payments_plan.md](rustore_payments_plan.md), [api_contract.md](api_contract.md).
 
 **Env mode checklist:** [env_config_checklist.md](env_config_checklist.md).
 
@@ -66,9 +66,27 @@
 | `POST /payments/rustore/mock-verify` | `_require_development_for_payment_mock()` → **404** |
 | `POST /payments/rustore/mock-verify-custom` | то же |
 
+| Endpoint | Production behavior |
+|----------|---------------------|
+| `POST /payments/rustore/verify` | **501** — real RuStore verification not implemented; **no balance credit** |
+
 В production mock-verify **не начисляет** баланс (endpoint недоступен).
 
-**Frontend:** `PaymentService` → `MockPaymentUnavailableException` (403/404) → `PaymentFailureReason.unavailable` → UI **«Оплата скоро появится»**; баланс **не** обновляется на клиенте.
+**Frontend:** `PaymentService` → `MockPaymentUnavailableException` (403/404/501) → `PaymentFailureReason.unavailable` → UI **«Оплата скоро появится»**; баланс **не** обновляется на клиенте.
+
+---
+
+## Payments (production rules)
+
+- Mock payment endpoints **disabled** in production (`ENVIRONMENT` ≠ `development` → **404**).
+- Real payment **verification required** before crediting balance (`POST /payments/rustore/verify`).
+- **Backend is source of truth** — amounts from `package_catalog.py`, not from client.
+- **Idempotency** by `(provider, provider_payment_id)` in `payment_transactions`.
+- **No secrets in frontend** — RuStore server credentials only on backend.
+- **No `.env` commit** — keys in secure storage / CI only.
+- `verify_real_rustore_payment` must **not** fake-success until RuStore API is wired.
+
+Подробнее: [rustore_payments_plan.md](rustore_payments_plan.md).
 
 ---
 
@@ -130,9 +148,9 @@
 
 ## RuStore verification
 
-- **Не подключено:** RuStore Pay SDK, server-side RuStore API verify.
-- **Готово:** `PaymentService` abstraction, `payment_transactions`, package catalog.
-- Production: mock-verify **отключён**; только verified real purchases.
+- **Не подключено:** RuStore Pay SDK, server-side RuStore API verify (`verify_real_rustore_payment` → **501**).
+- **Готово:** `package_catalog`, `payment_verification`, `routes/payments`, `PaymentService.purchasePackage`, `payment_transactions`.
+- Production: mock-verify **отключён**; только verified real purchases через `/payments/rustore/verify`.
 
 ---
 

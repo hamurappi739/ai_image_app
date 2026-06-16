@@ -127,6 +127,21 @@ class RuStoreMockVerifyCustomResponse(BaseModel):
     balance: BalanceResponse
 
 
+class RuStoreVerifyRequest(BaseModel):
+    """Future production body for server-side RuStore verification."""
+
+    package_id: str
+    provider_payment_id: str
+    purchase_token: str | None = None
+
+
+class RuStoreVerifyResponse(BaseModel):
+    status: Literal["verified", "already_processed"]
+    package_id: str
+    added: PaymentAddedBalance
+    balance: BalanceResponse
+
+
 class DebugConfigResponse(BaseModel):
     """Safe subset of settings for GET /debug/config (development only)."""
 
