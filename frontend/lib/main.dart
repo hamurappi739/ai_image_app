@@ -631,6 +631,7 @@ class _PackOffering {
     this.extraNote,
     this.featured = false,
     this.valueBadge,
+    this.bestValue = false,
   });
 
   final String packageId;
@@ -641,18 +642,62 @@ class _PackOffering {
   final String? extraNote;
   final bool featured;
   final String? valueBadge;
+  final bool bestValue;
 
   String get priceLabel => '$priceRub ₽';
 }
 
 String _formatMockPaymentAddedSummary(int images) {
-  if (images <= 0) return 'Баланс обновлён';
-  return 'Изображения: +$images';
+  if (images <= 0) return 'Баланс обновлён.';
+  return 'На баланс добавлено $images изображений.';
 }
 
-const _mockTopUpConfirmMessage =
-    'В демо-режиме деньги не списываются. '
-    'Баланс пополнится для проверки приложения.';
+const _demoPurchaseNotice =
+    'Демо-режим: деньги не списываются. '
+    'Покупка нужна только для проверки приложения.';
+
+class _DemoPurchaseNotice extends StatelessWidget {
+  const _DemoPurchaseNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F7FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFDDE3FF)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(
+              Icons.info_outline_rounded,
+              size: 18,
+              color: Color(0xFF5B6CFF),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _demoPurchaseNotice,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 13,
+                height: 1.4,
+                color: AiImageGeneratorApp.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class PacksScreen extends StatefulWidget {
   const PacksScreen({
@@ -702,6 +747,7 @@ class _PacksScreenState extends State<PacksScreen> {
       imageCount: 9,
       cardTitle: '9 фото',
       subtitle: '28 ₽ за 1 фото',
+      extraNote: 'До 3 фотосессий',
     ),
     _PackOffering(
       packageId: 'package_499_20_images',
@@ -711,6 +757,7 @@ class _PacksScreenState extends State<PacksScreen> {
       subtitle: '25 ₽ за 1 фото',
       featured: true,
       valueBadge: 'Популярно',
+      extraNote: 'До 6 фотосессий',
     ),
     _PackOffering(
       packageId: 'package_999_50_images',
@@ -719,6 +766,8 @@ class _PacksScreenState extends State<PacksScreen> {
       cardTitle: '50 фото',
       subtitle: '20 ₽ за 1 фото',
       valueBadge: 'Выгодно',
+      bestValue: true,
+      extraNote: 'До 16 фотосессий',
     ),
   ];
 
@@ -728,50 +777,6 @@ class _PacksScreenState extends State<PacksScreen> {
     if (width >= _breakpointWide) return 3;
     if (width >= _breakpointMedium) return 2;
     return 1;
-  }
-
-  _PackCardLayout _packCardLayout(BuildContext context, int columns) {
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final scaleBump = textScale > 1.0 ? (textScale - 1) * 20 : 0.0;
-
-    return switch (columns) {
-      1 => _PackCardLayout(
-          rowHeight: 300 + scaleBump,
-          priceFontSize: 30,
-          badgeFontSize: 14,
-          statRowHeight: 30,
-          subtitleFontSize: 14,
-          buttonHeight: 42,
-          buttonFontSize: 14,
-          featuredBannerHeight: 30,
-          featuredBannerFontSize: 13,
-          contentPadding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-        ),
-      2 => _PackCardLayout(
-          rowHeight: 268 + scaleBump,
-          priceFontSize: 28,
-          badgeFontSize: 13,
-          statRowHeight: 28,
-          subtitleFontSize: 13,
-          buttonHeight: 38,
-          buttonFontSize: 13,
-          featuredBannerHeight: 28,
-          featuredBannerFontSize: 12,
-          contentPadding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-        ),
-      _ => _PackCardLayout(
-          rowHeight: 256 + scaleBump,
-          priceFontSize: 26,
-          badgeFontSize: 12,
-          statRowHeight: 26,
-          subtitleFontSize: 12,
-          buttonHeight: 36,
-          buttonFontSize: 13,
-          featuredBannerHeight: 28,
-          featuredBannerFontSize: 12,
-          contentPadding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-        ),
-    };
   }
 
   Future<void> _showMockTopUpLoadingDialog() {
@@ -848,7 +853,7 @@ class _PacksScreenState extends State<PacksScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
-                'Не удалось пополнить баланс. Проверьте подключение и попробуйте ещё раз.',
+                'Не удалось выполнить покупку. Попробуйте ещё раз.',
               ),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
@@ -863,7 +868,7 @@ class _PacksScreenState extends State<PacksScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
-                'Не удалось пополнить баланс. Попробуйте ещё раз.',
+                'Не удалось выполнить покупку. Попробуйте ещё раз.',
               ),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
@@ -946,11 +951,26 @@ class _PacksScreenState extends State<PacksScreen> {
               backgroundColor: const Color(0xFF5B6CFF),
               foregroundColor: Colors.white,
             ),
-            child: const Text('Понятно'),
+            child: const Text('Хорошо'),
           ),
         ],
       ),
     );
+  }
+
+  String _purchaseConfirmMessage(_PackOffering offering) {
+    return 'Вы получите ${offering.imageCount} '
+        '${_imagesWord(offering.imageCount)} за ${offering.priceRub} ₽.\n\n'
+        'В демо-режиме деньги не списываются.';
+  }
+
+  static String _imagesWord(int count) {
+    final mod10 = count % 10;
+    final mod100 = count % 100;
+    if (mod100 >= 11 && mod100 <= 14) return 'изображений';
+    if (mod10 == 1) return 'изображение';
+    if (mod10 >= 2 && mod10 <= 4) return 'изображения';
+    return 'изображений';
   }
 
   Future<void> _onPackSelected(_PackOffering offering) async {
@@ -961,12 +981,16 @@ class _PacksScreenState extends State<PacksScreen> {
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          'Пополнить баланс?',
+          'Подтвердите покупку',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
-        content: const Text(
-          _mockTopUpConfirmMessage,
-          style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
+        content: Text(
+          _purchaseConfirmMessage(offering),
+          style: const TextStyle(
+            fontSize: 15,
+            height: 1.45,
+            color: Color(0xFF6B7280),
+          ),
         ),
         actions: [
           TextButton(
@@ -982,7 +1006,7 @@ class _PacksScreenState extends State<PacksScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Пополнить'),
+            child: const Text('Купить'),
           ),
         ],
       ),
@@ -1008,37 +1032,48 @@ class _PacksScreenState extends State<PacksScreen> {
     }
   }
 
-  Widget _buildPackCardsGrid({
+  Widget _buildPackCardsList({
     required BuildContext context,
-    required int columns,
+    required double maxWidth,
   }) {
-    const spacing = 16.0;
-    final layout = _packCardLayout(context, columns);
+    const spacing = 12.0;
+    final columns = _columnCount(maxWidth);
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columns,
-        crossAxisSpacing: spacing,
-        mainAxisSpacing: spacing,
-        mainAxisExtent: layout.rowHeight,
-      ),
-      itemCount: _imagePackages.length,
-      itemBuilder: (context, index) {
-        final offering = _imagePackages[index];
-        return Align(
-          alignment: Alignment.topCenter,
-          child: _PackOfferingCard(
-            layout: layout,
-            offering: offering,
-            isLoading: _processingPackageId == offering.packageId,
-            isDisabled: _processingPackageId != null &&
-                _processingPackageId != offering.packageId,
-            onSelect: () => _onPackSelected(offering),
+    if (columns == 1) {
+      return Column(
+        children: [
+          for (var i = 0; i < _imagePackages.length; i++) ...[
+            if (i > 0) const SizedBox(height: spacing),
+            _PackOfferingCard(
+              offering: _imagePackages[i],
+              isLoading:
+                  _processingPackageId == _imagePackages[i].packageId,
+              isDisabled: _processingPackageId != null &&
+                  _processingPackageId != _imagePackages[i].packageId,
+              onSelect: () => _onPackSelected(_imagePackages[i]),
+            ),
+          ],
+        ],
+      );
+    }
+
+    final cardWidth = (maxWidth - spacing * (columns - 1)) / columns;
+    return Wrap(
+      spacing: spacing,
+      runSpacing: spacing,
+      children: [
+        for (final offering in _imagePackages)
+          SizedBox(
+            width: cardWidth,
+            child: _PackOfferingCard(
+              offering: offering,
+              isLoading: _processingPackageId == offering.packageId,
+              isDisabled: _processingPackageId != null &&
+                  _processingPackageId != offering.packageId,
+              onSelect: () => _onPackSelected(offering),
+            ),
           ),
-        );
-      },
+      ],
     );
   }
 
@@ -1051,8 +1086,6 @@ class _PacksScreenState extends State<PacksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       backgroundColor: AiImageGeneratorApp.scaffoldBackground,
       body: SafeArea(
@@ -1062,22 +1095,18 @@ class _PacksScreenState extends State<PacksScreen> {
             constraints: const BoxConstraints(maxWidth: 1100),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final columns = _columnCount(constraints.maxWidth);
-
                 return SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AppScreenHeader(
-                        title: 'Купить',
+                        title: 'Купить изображения',
                         subtitle:
-                            'Пополните баланс изображений, чтобы создавать '
-                            'фото и фотосессии.',
+                            'Пополните баланс, чтобы создавать фото '
+                            'и фотосессии.',
                         trailing: SectionHelpButton(onPressed: _showHelp),
                       ),
-                      const SizedBox(height: 16),
-                      const _BalancePricingInfoCard(),
                       const SizedBox(height: 16),
                       _UserBalancePacksBanner(
                         balance: widget.balance,
@@ -1085,18 +1114,14 @@ class _PacksScreenState extends State<PacksScreen> {
                         hasError: widget.balanceLoadFailed,
                         onRefresh: widget.onRefreshBalance,
                       ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Выберите количество изображений',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      const SizedBox(height: 16),
+                      const _BalancePricingInfoCard(),
                       const SizedBox(height: 14),
-                      _buildPackCardsGrid(
+                      const _DemoPurchaseNotice(),
+                      const SizedBox(height: 20),
+                      _buildPackCardsList(
                         context: context,
-                        columns: columns,
+                        maxWidth: constraints.maxWidth,
                       ),
                     ],
                   ),
@@ -1110,42 +1135,14 @@ class _PacksScreenState extends State<PacksScreen> {
   }
 }
 
-class _PackCardLayout {
-  const _PackCardLayout({
-    required this.rowHeight,
-    required this.priceFontSize,
-    required this.badgeFontSize,
-    required this.statRowHeight,
-    required this.subtitleFontSize,
-    required this.buttonHeight,
-    required this.buttonFontSize,
-    required this.featuredBannerHeight,
-    required this.featuredBannerFontSize,
-    required this.contentPadding,
-  });
-
-  final double rowHeight;
-  final double priceFontSize;
-  final double badgeFontSize;
-  final double statRowHeight;
-  final double subtitleFontSize;
-  final double buttonHeight;
-  final double buttonFontSize;
-  final double featuredBannerHeight;
-  final double featuredBannerFontSize;
-  final EdgeInsets contentPadding;
-}
-
 class _PackOfferingCard extends StatelessWidget {
   const _PackOfferingCard({
-    required this.layout,
     required this.offering,
     required this.isLoading,
     required this.isDisabled,
     required this.onSelect,
   });
 
-  final _PackCardLayout layout;
   final _PackOffering offering;
   final bool isLoading;
   final bool isDisabled;
@@ -1161,20 +1158,28 @@ class _PackOfferingCard extends StatelessWidget {
     final theme = Theme.of(context);
     final bannerLabel = offering.valueBadge ??
         (offering.featured ? 'Популярно' : null);
+    final borderColor = offering.featured
+        ? const Color(0xFF6B5CFF)
+        : offering.bestValue
+            ? const Color(0xFF9B7CFF)
+            : const Color(0xFFE8EAEF);
 
-    return SizedBox(
-      height: layout.rowHeight,
-      child: Container(
+    return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: offering.featured
-            ? Border.all(color: const Color(0xFF6B5CFF), width: 2)
-            : Border.all(color: const Color(0xFFE8EAEF)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: borderColor,
+          width: offering.featured || offering.bestValue ? 2 : 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: (offering.featured ? _accentColor : Colors.black)
-                .withValues(alpha: offering.featured ? 0.1 : 0.05),
+            color: (offering.featured || offering.bestValue
+                    ? _accentColor
+                    : Colors.black)
+                .withValues(
+              alpha: offering.featured || offering.bestValue ? 0.1 : 0.04,
+            ),
             blurRadius: offering.featured ? 16 : 12,
             offset: const Offset(0, 4),
           ),
@@ -1183,101 +1188,95 @@ class _PackOfferingCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            height: layout.featuredBannerHeight,
-            child: bannerLabel != null
-                ? DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: offering.featured
-                          ? _featuredGradient
-                          : const LinearGradient(
-                              colors: [
+          if (bannerLabel != null)
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: offering.featured
+                    ? _featuredGradient
+                    : LinearGradient(
+                        colors: offering.bestValue
+                            ? const [
+                                Color(0xFFEDE9FF),
+                                Color(0xFFE0D4FF),
+                              ]
+                            : const [
                                 Color(0xFFEDE9FF),
                                 Color(0xFFE8E4FF),
                               ],
-                            ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        bannerLabel,
-                        style: TextStyle(
-                          color: offering.featured
-                              ? Colors.white
-                              : _accentColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: layout.featuredBannerFontSize,
-                        ),
                       ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 7),
+                child: Center(
+                  child: Text(
+                    bannerLabel,
+                    style: TextStyle(
+                      color: offering.featured ? Colors.white : _accentColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
                     ),
-                  )
-                : null,
-          ),
-          Expanded(
-            child: Padding(
-              padding: layout.contentPadding,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    offering.cardTitle,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: layout.subtitleFontSize + 2,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  offering.cardTitle,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  offering.priceLabel,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: _accentColor,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  offering.subtitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 13,
+                    height: 1.3,
+                    color: AiImageGeneratorApp.textSecondary,
+                  ),
+                ),
+                if (offering.extraNote != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    offering.priceLabel,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontSize: layout.priceFontSize,
-                      fontWeight: FontWeight.w800,
-                      color: _accentColor,
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    offering.subtitle,
+                    offering.extraNote!,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      fontSize: layout.subtitleFontSize,
-                      height: 1.25,
-                      color: AiImageGeneratorApp.textSecondary,
+                      fontSize: 12,
+                      height: 1.3,
+                      color: _accentColor,
+                      fontWeight: FontWeight.w600,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (offering.extraNote != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      offering.extraNote!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: layout.subtitleFontSize - 1,
-                        height: 1.25,
-                        color: _accentColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const Spacer(),
-                  _PackPaymentButton(
-                    featured: offering.featured,
-                    height: layout.buttonHeight,
-                    fontSize: layout.buttonFontSize,
-                    isLoading: isLoading,
-                    onPressed: isDisabled ? null : onSelect,
                   ),
                 ],
-              ),
+                const SizedBox(height: 12),
+                _PackPaymentButton(
+                  featured: offering.featured || offering.bestValue,
+                  height: 40,
+                  fontSize: 14,
+                  isLoading: isLoading,
+                  onPressed: isDisabled ? null : onSelect,
+                ),
+              ],
             ),
           ),
         ],
       ),
-    ),
     );
   }
 }
@@ -3564,9 +3563,18 @@ class _BalancePricingInfoCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          const _BalancePricingLine(text: '1 обычное фото = 1 изображение'),
+          const _BalancePricingLine(text: '1 фото = 1 изображение'),
           const SizedBox(height: 6),
           const _BalancePricingLine(text: '1 фотосессия = 3 изображения'),
+          const SizedBox(height: 8),
+          Text(
+            'Все созданные результаты сохраняются в готовых фото.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 12,
+              height: 1.35,
+              color: AiImageGeneratorApp.textSecondary,
+            ),
+          ),
         ],
       ),
     );
@@ -3732,9 +3740,8 @@ class _UserBalancePacksBanner extends StatelessWidget {
                     value: '${balance!.totalAvailableImages}',
                   ),
                   _PacksBalanceStat(
-                    label: 'Бесплатные',
-                    value:
-                        '${balance!.freeGenerationsRemaining} из ${balance!.freeGenerationsLimit}',
+                    label: 'Бесплатные генерации',
+                    value: '${balance!.freeGenerationsRemaining}',
                   ),
                 ];
 
@@ -3761,9 +3768,9 @@ class _UserBalancePacksBanner extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Сначала используются бесплатные изображения.',
+              'Фотосессия стоит 3 изображения',
               style: theme.textTheme.bodyMedium?.copyWith(
-                fontSize: 13,
+                fontSize: 12,
                 height: 1.35,
                 color: AiImageGeneratorApp.textSecondary,
               ),
