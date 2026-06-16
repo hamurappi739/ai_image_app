@@ -78,7 +78,7 @@
 | **Package amount validation** | ✅ | Мин/макс сумма, ошибки под полем, disabled-поведение кнопки оплаты |
 | **Android packages layout polish** | ✅ | Адаптивная высота карточек, читаемые размеры на mobile, без overflow |
 | **Packages help UI** | ✅ | `PacksHelpDialog` + кнопка **«Помощь»** (без автопоказа) |
-| **Section help button (text)** | ✅ | **«Помощь»** вместо **?** на **Создать**, **Фотосессии**, **Пакеты** |
+| **Profile auth UX upgrade** | ✅ | Экран входа: почта + заглушки VK ID / Яндекс ID; [auth_plan.md](auth_plan.md) |
 | **Backend payment foundation** | ✅ | `payment_service.py`, `package_catalog.py`, idempotent top-up после verification |
 | **payment_transactions table** | ✅ | Migration `004_create_payment_transactions.sql`; unique `(provider, provider_payment_id)` |
 | **Backend package catalog** | ✅ | 6 пакетов (mix + images-only); суммы только на сервере |
@@ -316,7 +316,7 @@ Demo-сборка и чеклист: [demo_release_checklist.md](demo_release_ch
 11. **Позже включить `ENABLE_CREDIT_CONSUMPTION=true`** — после полной проверки списаний free/paid и записи в `generations`.
 12. **Безопасные интеграционные тесты backend** — использовать `ENABLE_CREDIT_CONSUMPTION=false`, чтобы не списывать генерации из Supabase.
 13. **Use public/signed URLs** — сейчас bucket public; для private bucket позже — signed URL.
-14. **Auth: улучшения UX** — подтверждение email (если Supabase tребует email confirmation).
+14. **Auth: OAuth провайдеры** — реальный VK ID и Яндекс ID (см. [auth_plan.md](auth_plan.md)); подтверждение email; восстановление пароля.
 15. **Восстановление пароля** — добавить reset password flow.
 16. **Убрать development `TEST_USER_ID` fallback** перед production (обязательный Bearer / auth user id).
 17. **Синхронизация баланса генераций** с аккаунтом после auth.
