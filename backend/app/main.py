@@ -109,6 +109,8 @@ def _log_startup_config() -> None:
         cors_allow_origins(),
     )
     log_settings_diagnostics(logger)
+    for logger_name in ("app", "app.services", "app.services.photoshoot_service"):
+        logging.getLogger(logger_name).setLevel(logging.INFO)
     if settings.is_production and settings._env_value_configured(settings.test_user_id):
         logger.warning(
             "TEST_USER_ID is set while ENVIRONMENT=production — "
@@ -634,6 +636,12 @@ def generate_photoshoot(
     photo: UploadFile | None = File(default=None),
     user: CurrentUser = Depends(get_current_user),
 ):
+    pipeline_log = logging.getLogger("uvicorn.error")
+    pipeline_log.info(
+        "POST /photoshoots/generate received style_id=%s user_id=%s",
+        style_id,
+        user.id,
+    )
     _ensure_profile_for_user(user)
 
     style = get_photoshoot_style(style_id)
@@ -653,6 +661,7 @@ def generate_photoshoot(
         try:
             profile = ensure_profile_exists(user.id, user.email)
         except RuntimeError:
+            pipeline_log.exception("Photoshoot balance check failed: ensure_profile")
             raise HTTPException(status_code=500, detail="Failed to ensure user profile")
         photoshoot_decision = determine_photoshoot_payment(
             profile,
@@ -663,31 +672,73 @@ def generate_photoshoot(
                 status_code=402,
                 detail=photoshoot_decision["reason"],
             )
+        pipeline_log.info(
+            "Photoshoot balance check ok style_id=%s consumption_enabled=true",
+            style_id,
+        )
 
-    photoshoot_result = photoshoot_service.generate_photoshoot(
-        user_id=user.id,
-        style=style,
-        photo_bytes=file_bytes,
-        photo_content_type=photo_content_type,
-        client_style_id=style_id,
-        user_description=user_description,
-    )
+    try:
+        photoshoot_result = photoshoot_service.generate_photoshoot(
+            user_id=user.id,
+            style=style,
+            photo_bytes=file_bytes,
+            photo_content_type=photo_content_type,
+            client_style_id=style_id,
+            user_description=user_description,
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        pipeline_log.exception(
+            "POST /photoshoots/generate failed style_id=%s stage=generation",
+            style_id,
+        )
+        raise
 
     balance = None
     if settings.enable_credit_consumption:
         try:
+            pipeline_log.info(
+                "Photoshoot balance debit start style_id=%s photoshoot_id=%s",
+                style_id,
+                photoshoot_result.photoshoot_id,
+            )
             updated_profile = consume_photoshoot(
                 profile,
                 settings.free_generations_limit,
             )
+        except HTTPException:
+            pipeline_log.exception(
+                "Photoshoot balance debit failed style_id=%s photoshoot_id=%s "
+                "(generation already saved)",
+                style_id,
+                photoshoot_result.photoshoot_id,
+            )
+            raise
         except RuntimeError as exc:
+            pipeline_log.exception(
+                "Photoshoot balance debit failed style_id=%s photoshoot_id=%s",
+                style_id,
+                photoshoot_result.photoshoot_id,
+            )
             raise HTTPException(status_code=500, detail=str(exc)) from exc
         balance = build_balance_response(
             updated_profile,
             settings.free_generations_limit,
             consumption_enabled=True,
         )
+        pipeline_log.info(
+            "Photoshoot balance debit ok style_id=%s photoshoot_id=%s",
+            style_id,
+            photoshoot_result.photoshoot_id,
+        )
 
+    pipeline_log.info(
+        "POST /photoshoots/generate success style_id=%s photoshoot_id=%s frames=%s",
+        style_id,
+        photoshoot_result.photoshoot_id,
+        len(photoshoot_result.image_urls),
+    )
     return PhotoshootGenerateResponse(
         style_id=style.id,
         style_title=style.title,

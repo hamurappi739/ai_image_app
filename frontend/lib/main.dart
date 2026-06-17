@@ -367,7 +367,8 @@ class _MainShellState extends State<MainShell> {
         _backendHistoryUnavailable = false;
         _generatedImages
           ..clear()
-          ..addAll(history.map((item) => item.toGalleryItem()));
+          ..addAll(history.map((item) => item.toGalleryItem()))
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       });
     } catch (_) {
       if (!mounted) return;

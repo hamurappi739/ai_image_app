@@ -20,6 +20,18 @@ REALISM_AND_COMPOSITION_RULES = (
     "Avoid extra fingers, extra hands, distorted anatomy, duplicate limbs, or extra faces."
 )
 
+PHOTO_REALISM_RULES = (
+    "Create a highly realistic portrait photograph with photographic detail. "
+    "Preserve identity, facial features, face shape, eye color, skin tone, hair, age, "
+    "and overall appearance from the reference photo. "
+    "Use natural skin texture, lifelike eyes, realistic lighting, believable shadows, "
+    "and true-to-life proportions. "
+    "The result must look like a real camera photo, not an illustration, CGI, cartoon, "
+    "painting, or over-smoothed beauty filter. "
+    "Avoid plastic skin, waxy texture, painterly strokes, stylized rendering, "
+    "artificial glow, or uncanny facial features."
+)
+
 PHOTO_REFERENCE_RULES = (
     "Use the uploaded photo as the primary reference. "
     "Preserve the recognizable identity of the person or main object. "
@@ -56,10 +68,11 @@ def build_photo_edit_instruction(user_description: str) -> str:
     return (
         f"User description: {description}\n\n"
         f"{PHOTO_REFERENCE_RULES}\n"
+        f"{PHOTO_REALISM_RULES}\n"
         f"{STANDALONE_SINGLE_IMAGE_RULES}\n"
         f"{TEXT_ON_IMAGE_RULES}\n"
         f"{REALISM_AND_COMPOSITION_RULES}\n\n"
-        "Return one high-quality realistic image only. "
+        "Return one high-quality photorealistic image only. "
         "Do not create NSFW content. Return an image only."
     )
 

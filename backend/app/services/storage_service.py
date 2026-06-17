@@ -79,7 +79,10 @@ def _short_response_message(response: httpx.Response) -> str:
 
 
 def _raise_storage_unavailable(exc: httpx.HTTPError) -> None:
-    logger.warning("Supabase Storage request failed: %s", exc.__class__.__name__)
+    logger.exception(
+        "Supabase Storage request failed: %s",
+        exc.__class__.__name__,
+    )
     raise HTTPException(
         status_code=503,
         detail=_STORAGE_UNAVAILABLE_DETAIL,

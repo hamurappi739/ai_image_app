@@ -406,7 +406,8 @@ class ApiService {
               item as Map<String, dynamic>,
             ),
           )
-          .toList();
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return items
           .where((item) => !_isHiddenDevGenerationDescription(item.prompt))
           .toList();
@@ -592,7 +593,13 @@ class ApiService {
     if (response.statusCode == 402) {
       throw const InsufficientPhotoshootsException();
     }
-    if (response.statusCode == 500 || response.statusCode == 502) {
+    if (response.statusCode == 500 || response.statusCode == 502 || response.statusCode == 503) {
+      if (kDebugMode) {
+        debugPrint(
+          'POST /photoshoots/generate failed: '
+          '${response.statusCode} ${response.body}',
+        );
+      }
       throw const PhotoshootGenerationFailedException();
     }
     if (response.statusCode == 200) {

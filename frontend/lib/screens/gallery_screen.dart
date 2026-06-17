@@ -101,11 +101,6 @@ class GalleryScreen extends StatelessWidget {
       );
     }
 
-    final photoshootItems =
-        displayItems.where((item) => item.isPhotoshootGroup).toList();
-    final singleItems =
-        displayItems.where((item) => !item.isPhotoshootGroup).toList();
-
     return Scaffold(
       backgroundColor: _scaffoldBackground,
       body: SafeArea(
@@ -162,74 +157,13 @@ class GalleryScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (photoshootItems.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    const _GallerySectionHeader(
-                      title: 'Фотосессии',
-                      subtitle: 'Серии по 3 фото в одном стиле.',
-                    ),
-                    const SizedBox(height: 12),
-                    for (var i = 0; i < photoshootItems.length; i++) ...[
-                      if (i > 0) const SizedBox(height: 12),
-                      _GalleryPhotoshootCard(
-                        item: photoshootItems[i],
-                        isNew: _isHighlightedItem(
-                          photoshootItems[i],
-                          highlightItemKey,
-                        ),
-                        onHidePhotoshoot: onHidePhotoshoot,
-                      ),
-                    ],
-                  ],
-                  if (singleItems.isNotEmpty) ...[
-                    SizedBox(height: photoshootItems.isNotEmpty ? 24 : 8),
-                    const _GallerySectionHeader(
-                      title: 'Одиночные фото',
-                      subtitle:
-                          'Фото, созданные по шаблону или своей идее.',
-                    ),
-                    const SizedBox(height: 12),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final columns = constraints.maxWidth >= 560 ? 2 : 1;
-                        if (columns == 1) {
-                          return Column(
-                            children: [
-                              for (var i = 0; i < singleItems.length; i++) ...[
-                                if (i > 0) const SizedBox(height: 12),
-                                _GallerySinglePhotoCard(
-                                  item: singleItems[i],
-                                  isNew: _isHighlightedItem(
-                                    singleItems[i],
-                                    highlightItemKey,
-                                  ),
-                                  onHideImage: onHideImage,
-                                ),
-                              ],
-                            ],
-                          );
-                        }
-                        return Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            for (final item in singleItems)
-                              SizedBox(
-                                width: (constraints.maxWidth - 12) / 2,
-                                child: _GallerySinglePhotoCard(
-                                  item: item,
-                                  isNew: _isHighlightedItem(
-                                    item,
-                                    highlightItemKey,
-                                  ),
-                                  onHideImage: onHideImage,
-                                ),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
+                  ..._GalleryChronologicalList.build(
+                    displayItems: displayItems,
+                    highlightItemKey: highlightItemKey,
+                    onHideImage: onHideImage,
+                    onHidePhotoshoot: onHidePhotoshoot,
+                    isHighlightedItem: _isHighlightedItem,
+                  ),
                 ],
               ),
             ),
@@ -237,6 +171,65 @@ class GalleryScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _GalleryChronologicalList {
+  _GalleryChronologicalList._();
+
+  static List<Widget> build({
+    required List<GalleryDisplayItem> displayItems,
+    required String? highlightItemKey,
+    required ValueChanged<String> onHideImage,
+    required ValueChanged<String> onHidePhotoshoot,
+    required bool Function(GalleryDisplayItem item, String? highlightItemKey)
+        isHighlightedItem,
+  }) {
+    final widgets = <Widget>[const SizedBox(height: 8)];
+    bool? previousWasPhotoshoot;
+
+    for (var index = 0; index < displayItems.length; index++) {
+      final item = displayItems[index];
+      final isPhotoshoot = item.isPhotoshootGroup;
+
+      if (previousWasPhotoshoot != isPhotoshoot) {
+        if (widgets.length > 1) {
+          widgets.add(const SizedBox(height: 24));
+        }
+        widgets.add(
+          _GallerySectionHeader(
+            title: isPhotoshoot ? 'Фотосессии' : 'Одиночные фото',
+            subtitle: isPhotoshoot
+                ? 'Серии по 3 фото в одном стиле.'
+                : 'Фото, созданные по шаблону или своей идее.',
+          ),
+        );
+        widgets.add(const SizedBox(height: 12));
+        previousWasPhotoshoot = isPhotoshoot;
+      } else if (index > 0) {
+        widgets.add(const SizedBox(height: 12));
+      }
+
+      if (isPhotoshoot) {
+        widgets.add(
+          _GalleryPhotoshootCard(
+            item: item,
+            isNew: isHighlightedItem(item, highlightItemKey),
+            onHidePhotoshoot: onHidePhotoshoot,
+          ),
+        );
+      } else {
+        widgets.add(
+          _GallerySinglePhotoCard(
+            item: item,
+            isNew: isHighlightedItem(item, highlightItemKey),
+            onHideImage: onHideImage,
+          ),
+        );
+      }
+    }
+
+    return widgets;
   }
 }
 
@@ -887,14 +880,6 @@ class _GalleryPhotoshootCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  formatGalleryDisplayDate(item.createdAt),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 12,
-                    color: _textSecondary,
-                  ),
-                ),
                 const SizedBox(height: 12),
                 SizedBox(
                   height: 40,
@@ -944,16 +929,8 @@ class _GallerySinglePhotoCard extends StatelessWidget {
     );
   }
 
-  String? _description() {
-    final text = item.description.trim();
-    return text.isEmpty ? null : text;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final description = _description();
-
     return _GalleryResultCardShell(
       isNew: isNew,
       child: Column(
@@ -979,7 +956,7 @@ class _GallerySinglePhotoCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Wrap(
                   spacing: 6,
@@ -988,28 +965,6 @@ class _GallerySinglePhotoCard extends StatelessWidget {
                     const _GalleryChip(label: 'Фото'),
                     if (isNew) const _GalleryChip(label: 'Новое', isNew: true),
                   ],
-                ),
-                if (description != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    description,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      height: 1.35,
-                      color: _textPrimary,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                const SizedBox(height: 4),
-                Text(
-                  formatGalleryDisplayDate(item.createdAt),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 12,
-                    color: _textSecondary,
-                  ),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(

@@ -160,8 +160,14 @@ def _save_photoshoot_results_to_history(
     prompt = _photoshoot_history_prompt(style, user_description)
     payment_type = _photoshoot_payment_type(style)
     photoshoot_id = str(uuid4())
-    for image_url in image_urls:
+    for index, image_url in enumerate(image_urls):
         try:
+            logger.info(
+                "Photoshoot DB save start: photoshoot_id=%s frame=%s/%s",
+                photoshoot_id,
+                index + 1,
+                len(image_urls),
+            )
             create_generation_record(
                 user_id=user_id,
                 prompt=prompt,
@@ -169,8 +175,27 @@ def _save_photoshoot_results_to_history(
                 payment_type=payment_type,
                 photoshoot_id=photoshoot_id,
             )
+            logger.info(
+                "Photoshoot DB save ok: photoshoot_id=%s frame=%s/%s",
+                photoshoot_id,
+                index + 1,
+                len(image_urls),
+            )
+        except HTTPException:
+            logger.exception(
+                "Photoshoot DB save failed: photoshoot_id=%s frame=%s/%s",
+                photoshoot_id,
+                index + 1,
+                len(image_urls),
+            )
+            raise
         except RuntimeError:
-            logger.warning("Failed to save photoshoot result to generations history")
+            logger.exception(
+                "Photoshoot DB save failed: photoshoot_id=%s frame=%s/%s",
+                photoshoot_id,
+                index + 1,
+                len(image_urls),
+            )
             raise HTTPException(
                 status_code=500,
                 detail="Failed to save photoshoot result",
@@ -241,6 +266,8 @@ class GeminiPhotoshootProvider:
                 response_modalities=["Image"],
             ),
         )
+        summary = _build_photoshoot_response_summary(response)
+        logger.info("Gemini frame response: %s", summary)
         return _extract_photoshoot_image_data_url(response)
 
     def _generate_frame_with_retries(
@@ -422,25 +449,39 @@ class PhotoshootService:
                     user_description=user_description,
                 )
                 image_urls = []
-                for data_url in data_urls:
-                    image_urls.append(
-                        storage_service.upload_generated_image_data_url(
-                            user_id=user_id,
-                            data_url=data_url,
-                            folder="photoshoots",
-                        )
+                for index, data_url in enumerate(data_urls):
+                    logger.info(
+                        "Photoshoot storage upload start: style_id=%s frame=%s/%s",
+                        client_style_id,
+                        index + 1,
+                        len(data_urls),
                     )
+                    public_url = storage_service.upload_generated_image_data_url(
+                        user_id=user_id,
+                        data_url=data_url,
+                        folder="photoshoots",
+                    )
+                    logger.info(
+                        "Photoshoot storage upload ok: style_id=%s frame=%s url_host=%s",
+                        client_style_id,
+                        index + 1,
+                        public_url.split("/")[2] if "://" in public_url else "unknown",
+                    )
+                    image_urls.append(public_url)
             photoshoot_id = _save_photoshoot_results_to_history(
                 user_id=user_id,
                 style=style,
                 image_urls=image_urls,
                 user_description=user_description,
             )
-        except HTTPException:
-            logger.warning(
-                "Photoshoot generation failed: style_id=%s provider=%s",
+        except HTTPException as exc:
+            logger.error(
+                "Photoshoot generation failed: style_id=%s provider=%s stage=pipeline "
+                "http_status=%s detail=%s",
                 client_style_id,
                 provider_name,
+                exc.status_code,
+                exc.detail,
             )
             raise
         except Exception:

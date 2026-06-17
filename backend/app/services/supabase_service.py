@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 _SUCCESS_STATUSES = (200, 201, 204, 206)
 _DEFAULT_TIMEOUT = 10.0
+# Writes after long Gemini/Storage work need a longer connect/read budget than GETs.
+_WRITE_TIMEOUT = 60.0
 _SUPABASE_UNAVAILABLE_DETAIL = "Supabase is temporarily unavailable"
 
 # Transport-layer failures (timeout, connection, TLS handshake, etc.).
@@ -48,8 +50,10 @@ def _supabase_write_headers() -> dict[str, str]:
 
 
 def _raise_supabase_unavailable(exc: httpx.HTTPError) -> None:
-    # Log only exception type — never headers, tokens, or keys.
-    logger.warning("Supabase request failed: %s", exc.__class__.__name__)
+    logger.exception(
+        "Supabase request failed: %s",
+        exc.__class__.__name__,
+    )
     raise HTTPException(
         status_code=503,
         detail=_SUPABASE_UNAVAILABLE_DETAIL,
@@ -72,7 +76,7 @@ def _supabase_get(url: str) -> httpx.Response:
 def _supabase_post(url: str, *, json: dict) -> httpx.Response:
     return _execute_supabase_request(
         lambda: httpx.post(
-            url, headers=_supabase_write_headers(), json=json, timeout=_DEFAULT_TIMEOUT
+            url, headers=_supabase_write_headers(), json=json, timeout=_WRITE_TIMEOUT
         )
     )
 
@@ -80,7 +84,7 @@ def _supabase_post(url: str, *, json: dict) -> httpx.Response:
 def _supabase_patch(url: str, *, json: dict) -> httpx.Response:
     return _execute_supabase_request(
         lambda: httpx.patch(
-            url, headers=_supabase_write_headers(), json=json, timeout=_DEFAULT_TIMEOUT
+            url, headers=_supabase_write_headers(), json=json, timeout=_WRITE_TIMEOUT
         )
     )
 

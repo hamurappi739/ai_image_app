@@ -182,62 +182,35 @@ class GallerySingleImageViewer extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.end,
                 children: [
-                  if (description.trim().isNotEmpty) ...[
-                    Text(
-                      description,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        height: 1.35,
-                      ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
+                  OutlinedButton.icon(
+                    onPressed: () => downloadGalleryImage(
+                      context,
+                      imageUrl,
+                      suggestedFileName: 'image',
                     ),
-                    const SizedBox(height: 6),
-                  ],
-                  if (createdAt != null)
-                    Text(
-                      formatGalleryDisplayDate(createdAt!),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 13,
-                        color: const Color(0xFF6B7280),
+                    icon: const Icon(Icons.download_outlined, size: 18),
+                    label: const Text('Скачать'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _onHidePressed(context),
+                    icon: const Icon(Icons.visibility_off_outlined, size: 18),
+                    label: const Text('Скрыть'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _accentColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                  if (description.trim().isNotEmpty || createdAt != null)
-                    const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.end,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: () => downloadGalleryImage(
-                          context,
-                          imageUrl,
-                          suggestedFileName: 'image',
-                        ),
-                        icon: const Icon(Icons.download_outlined, size: 18),
-                        label: const Text('Скачать'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () => _onHidePressed(context),
-                        icon: const Icon(Icons.visibility_off_outlined, size: 18),
-                        label: const Text('Скрыть'),
-                      ),
-                      FilledButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: _accentColor,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text('Закрыть'),
-                      ),
-                    ],
+                    child: const Text('Закрыть'),
                   ),
                 ],
               ),
@@ -363,14 +336,6 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                                   fontWeight: FontWeight.w600,
                                   color: _accentColor,
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              formatGalleryDisplayDate(item.createdAt),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontSize: 12,
-                                color: const Color(0xFF6B7280),
                               ),
                             ),
                           ],
