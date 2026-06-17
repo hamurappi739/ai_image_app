@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from dataclasses import dataclass
 from uuid import uuid4
 
@@ -15,7 +16,6 @@ from app.config import settings
 from app.services.image_service import (
     _blob_to_data_url,
     _extract_gemini_error_status,
-    _extract_gemini_safe_message,
     _iter_response_parts,
 )
 from app.services.mock_placeholder_urls import build_mock_photoshoot_image_urls
@@ -27,6 +27,12 @@ from app.services.supabase_service import create_generation_record
 logger = logging.getLogger(__name__)
 
 _MAX_PHOTOSHOOT_DIAGNOSTIC_TEXT_LEN = 200
+_MAX_GEMINI_FRAME_ATTEMPTS = 3
+_GEMINI_FRAME_RETRY_DELAY_SECONDS = 1.75
+_PHOTOSHOOT_FRAME_FAILURE_DETAIL = (
+    "Photoshoot generation failed: one or more frames could not be created. "
+    "Please try again in a minute."
+)
 
 def _build_photoshoot_instruction(
     style: PhotoshootStyle,
@@ -43,18 +49,6 @@ def _build_photoshoot_instruction(
         output_count=output_count,
         user_description=user_description,
     )
-
-
-def _photoshoot_gemini_error_detail(exc: Exception) -> str:
-    status = _extract_gemini_error_status(exc)
-    message = _extract_gemini_safe_message(exc)
-    if status is not None and message:
-        return f"Gemini photoshoot generation failed: status={status}, message={message}"
-    if status is not None:
-        return f"Gemini photoshoot generation failed: status={status}"
-    if message:
-        return f"Gemini photoshoot generation failed: message={message}"
-    return "Gemini photoshoot generation failed"
 
 
 def _normalize_diagnostic_text(value: str, max_len: int = _MAX_PHOTOSHOOT_DIAGNOSTIC_TEXT_LEN) -> str:
@@ -221,6 +215,113 @@ class GeminiPhotoshootProvider:
     def output_count(self) -> int:
         return self._output_count
 
+    def _call_gemini_frame(
+        self,
+        client: genai.Client,
+        *,
+        instruction: str,
+        photo_bytes: bytes,
+        photo_content_type: str,
+    ) -> str:
+        response = client.models.generate_content(
+            model=settings.gemini_model,
+            contents=[
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_text(text=instruction),
+                        types.Part.from_bytes(
+                            data=photo_bytes,
+                            mime_type=photo_content_type,
+                        ),
+                    ],
+                )
+            ],
+            config=types.GenerateContentConfig(
+                response_modalities=["Image"],
+            ),
+        )
+        return _extract_photoshoot_image_data_url(response)
+
+    def _generate_frame_with_retries(
+        self,
+        client: genai.Client,
+        *,
+        client_style_id: str,
+        instruction: str,
+        photo_bytes: bytes,
+        photo_content_type: str,
+        frame_index: int,
+    ) -> str:
+        last_error_type = "unknown"
+        last_status: int | str | None = None
+
+        for attempt in range(1, _MAX_GEMINI_FRAME_ATTEMPTS + 1):
+            logger.info(
+                "Photoshoot frame start: style_id=%s frame_index=%s frame=%s/%s attempt=%s",
+                client_style_id,
+                frame_index,
+                frame_index + 1,
+                self._output_count,
+                attempt,
+            )
+            try:
+                data_url = self._call_gemini_frame(
+                    client,
+                    instruction=instruction,
+                    photo_bytes=photo_bytes,
+                    photo_content_type=photo_content_type,
+                )
+            except HTTPException as exc:
+                last_error_type = "HTTPException"
+                last_status = exc.status_code
+                logger.warning(
+                    "Photoshoot frame failed: style_id=%s frame_index=%s attempt=%s "
+                    "error_type=%s status=%s",
+                    client_style_id,
+                    frame_index,
+                    attempt,
+                    last_error_type,
+                    last_status,
+                )
+            except Exception as exc:
+                last_error_type = type(exc).__name__
+                last_status = _extract_gemini_error_status(exc)
+                logger.warning(
+                    "Photoshoot frame failed: style_id=%s frame_index=%s attempt=%s "
+                    "error_type=%s status=%s",
+                    client_style_id,
+                    frame_index,
+                    attempt,
+                    last_error_type,
+                    last_status,
+                )
+            else:
+                logger.info(
+                    "Photoshoot frame success: style_id=%s frame_index=%s attempt=%s",
+                    client_style_id,
+                    frame_index,
+                    attempt,
+                )
+                return data_url
+
+            if attempt < _MAX_GEMINI_FRAME_ATTEMPTS:
+                time.sleep(_GEMINI_FRAME_RETRY_DELAY_SECONDS)
+
+        logger.error(
+            "Photoshoot frame exhausted retries: style_id=%s frame_index=%s attempts=%s "
+            "last_error_type=%s last_status=%s",
+            client_style_id,
+            frame_index,
+            _MAX_GEMINI_FRAME_ATTEMPTS,
+            last_error_type,
+            last_status,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail=_PHOTOSHOOT_FRAME_FAILURE_DETAIL,
+        )
+
     def generate(
         self,
         style: PhotoshootStyle,
@@ -240,6 +341,12 @@ class GeminiPhotoshootProvider:
         data_urls: list[str] = []
         client = genai.Client(api_key=api_key.strip())
 
+        logger.info(
+            "Gemini photoshoot start: style_id=%s output_count=%s",
+            client_style_id,
+            self._output_count,
+        )
+
         for index in range(self._output_count):
             instruction = _build_photoshoot_instruction(
                 style,
@@ -248,41 +355,22 @@ class GeminiPhotoshootProvider:
                 frame_index=index,
                 output_count=self._output_count,
             )
-            try:
-                response = client.models.generate_content(
-                    model=settings.gemini_model,
-                    contents=[
-                        types.Content(
-                            role="user",
-                            parts=[
-                                types.Part.from_text(text=instruction),
-                                types.Part.from_bytes(
-                                    data=photo_bytes,
-                                    mime_type=photo_content_type,
-                                ),
-                            ],
-                        )
-                    ],
-                    config=types.GenerateContentConfig(
-                        response_modalities=["Image"],
-                    ),
+            data_urls.append(
+                self._generate_frame_with_retries(
+                    client,
+                    client_style_id=client_style_id,
+                    instruction=instruction,
+                    photo_bytes=photo_bytes,
+                    photo_content_type=photo_content_type,
+                    frame_index=index,
                 )
-            except HTTPException:
-                raise
-            except Exception as exc:
-                status = _extract_gemini_error_status(exc)
-                logger.warning(
-                    "Gemini photoshoot generation failed: status=%s, error=%s",
-                    status,
-                    type(exc).__name__,
-                )
-                raise HTTPException(
-                    status_code=502,
-                    detail=_photoshoot_gemini_error_detail(exc),
-                ) from exc
+            )
 
-            data_urls.append(_extract_photoshoot_image_data_url(response))
-
+        logger.info(
+            "Gemini photoshoot complete: style_id=%s frames=%s",
+            client_style_id,
+            len(data_urls),
+        )
         return data_urls
 
 
@@ -308,35 +396,66 @@ class PhotoshootService:
         user_description: str | None = None,
     ) -> PhotoshootGenerateResult:
         provider = self._get_provider()
-        if isinstance(provider, MockPhotoshootProvider):
-            image_urls = provider.generate(
-                style=style,
-                photo_bytes=photo_bytes,
-                photo_content_type=photo_content_type,
-                user_description=user_description,
-            )
-        else:
-            data_urls = provider.generate(
-                style=style,
-                photo_bytes=photo_bytes,
-                photo_content_type=photo_content_type,
-                client_style_id=client_style_id,
-                user_description=user_description,
-            )
-            image_urls = []
-            for data_url in data_urls:
-                image_urls.append(
-                    storage_service.upload_generated_image_data_url(
-                        user_id=user_id,
-                        data_url=data_url,
-                        folder="photoshoots",
-                    )
+        provider_name = settings.image_provider.strip().lower()
+        output_count = provider.output_count
+        logger.info(
+            "Photoshoot generation start: style_id=%s provider=%s output_count=%s",
+            client_style_id,
+            provider_name,
+            output_count,
+        )
+
+        try:
+            if isinstance(provider, MockPhotoshootProvider):
+                image_urls = provider.generate(
+                    style=style,
+                    photo_bytes=photo_bytes,
+                    photo_content_type=photo_content_type,
+                    user_description=user_description,
                 )
-        photoshoot_id = _save_photoshoot_results_to_history(
-            user_id=user_id,
-            style=style,
-            image_urls=image_urls,
-            user_description=user_description,
+            else:
+                data_urls = provider.generate(
+                    style=style,
+                    photo_bytes=photo_bytes,
+                    photo_content_type=photo_content_type,
+                    client_style_id=client_style_id,
+                    user_description=user_description,
+                )
+                image_urls = []
+                for data_url in data_urls:
+                    image_urls.append(
+                        storage_service.upload_generated_image_data_url(
+                            user_id=user_id,
+                            data_url=data_url,
+                            folder="photoshoots",
+                        )
+                    )
+            photoshoot_id = _save_photoshoot_results_to_history(
+                user_id=user_id,
+                style=style,
+                image_urls=image_urls,
+                user_description=user_description,
+            )
+        except HTTPException:
+            logger.warning(
+                "Photoshoot generation failed: style_id=%s provider=%s",
+                client_style_id,
+                provider_name,
+            )
+            raise
+        except Exception:
+            logger.exception(
+                "Photoshoot generation failed: style_id=%s provider=%s",
+                client_style_id,
+                provider_name,
+            )
+            raise
+
+        logger.info(
+            "Photoshoot generation success: style_id=%s frames=%s photoshoot_id=%s",
+            client_style_id,
+            len(image_urls),
+            photoshoot_id,
         )
         return PhotoshootGenerateResult(
             image_urls=image_urls,

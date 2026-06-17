@@ -1,9 +1,12 @@
+import logging
+import os
 from pathlib import Path
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
+ENV_FILE_PATH = _BACKEND_DIR / ".env"
 
 _PHOTOSHOOT_OUTPUT_COUNT_MIN = 1
 _PHOTOSHOOT_OUTPUT_COUNT_MAX = 3
@@ -13,7 +16,7 @@ _DEFAULT_APP_VERSION = "0.1.0"
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=_BACKEND_DIR / ".env",
+        env_file=ENV_FILE_PATH,
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -94,3 +97,56 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def read_dotenv_value(key: str) -> str | None:
+    """Read a single key from backend/.env without logging secrets elsewhere."""
+    if not ENV_FILE_PATH.is_file():
+        return None
+    for raw_line in ENV_FILE_PATH.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        env_key, _, value = line.partition("=")
+        if env_key.strip() != key:
+            continue
+        cleaned = value.strip().strip('"').strip("'")
+        return cleaned or None
+    return None
+
+
+def log_settings_diagnostics(logger: logging.Logger | None = None) -> None:
+    """Log safe settings diagnostics at startup (no secrets)."""
+    log = logger or logging.getLogger("uvicorn.error")
+    env_file_image_provider = read_dotenv_value("IMAGE_PROVIDER")
+    os_image_provider = os.environ.get("IMAGE_PROVIDER")
+    log.info(
+        "Settings diagnostics: image_provider=%s environment=%s "
+        "env_file=%s env_file_exists=%s env_file_IMAGE_PROVIDER=%s "
+        "os.environ_IMAGE_PROVIDER=%s enable_photoshoot_generation=%s "
+        "enable_credit_consumption=%s",
+        settings.image_provider,
+        settings.environment.strip().lower(),
+        ENV_FILE_PATH,
+        ENV_FILE_PATH.is_file(),
+        env_file_image_provider,
+        os_image_provider,
+        settings.enable_photoshoot_generation,
+        settings.enable_credit_consumption,
+    )
+    if (
+        env_file_image_provider is not None
+        and env_file_image_provider != settings.image_provider
+    ):
+        log.warning(
+            "backend/.env IMAGE_PROVIDER=%s but loaded settings.image_provider=%s — "
+            "restart uvicorn after .env changes (Settings loads once at import)",
+            env_file_image_provider,
+            settings.image_provider,
+        )
+    if os_image_provider is not None and os_image_provider != settings.image_provider:
+        log.warning(
+            "os.environ IMAGE_PROVIDER=%s overrides .env; loaded image_provider=%s",
+            os_image_provider,
+            settings.image_provider,
+        )

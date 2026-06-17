@@ -207,6 +207,10 @@ class PhotoshootInvalidPhotoException implements Exception {
   const PhotoshootInvalidPhotoException();
 }
 
+class PhotoshootGenerationFailedException implements Exception {
+  const PhotoshootGenerationFailedException();
+}
+
 class PhotoshootGenerateResponse {
   const PhotoshootGenerateResponse({
     required this.styleId,
@@ -587,6 +591,9 @@ class ApiService {
     }
     if (response.statusCode == 402) {
       throw const InsufficientPhotoshootsException();
+    }
+    if (response.statusCode == 500 || response.statusCode == 502) {
+      throw const PhotoshootGenerationFailedException();
     }
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body) as Map<String, dynamic>;

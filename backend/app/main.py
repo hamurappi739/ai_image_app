@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 import logging
+import os
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import CurrentUser, get_current_user
-from app.config import settings
+from app.config import ENV_FILE_PATH, read_dotenv_value, settings, log_settings_diagnostics
 from app.cors import cors_allow_origins
 from app.schemas import (
     AddBalanceRequest,
@@ -107,6 +108,7 @@ def _log_startup_config() -> None:
         settings.app_version,
         cors_allow_origins(),
     )
+    log_settings_diagnostics(logger)
     if settings.is_production and settings._env_value_configured(settings.test_user_id):
         logger.warning(
             "TEST_USER_ID is set while ENVIRONMENT=production — "
@@ -242,9 +244,20 @@ def list_generations(
 @app.get("/debug/config", response_model=DebugConfigResponse)
 def debug_config():
     _require_development_for_debug()
+    env_file_image_provider = read_dotenv_value("IMAGE_PROVIDER")
+    os_image_provider = os.environ.get("IMAGE_PROVIDER")
+    env_file_out_of_sync = (
+        env_file_image_provider is not None
+        and env_file_image_provider != settings.image_provider
+    )
     return DebugConfigResponse(
         environment=settings.environment,
         image_provider=settings.image_provider,
+        config_env_file=str(ENV_FILE_PATH),
+        config_env_file_exists=ENV_FILE_PATH.is_file(),
+        env_file_image_provider=env_file_image_provider,
+        os_image_provider=os_image_provider,
+        env_file_out_of_sync=env_file_out_of_sync,
         credit_consumption_enabled=settings.enable_credit_consumption,
         gemini_model=settings.gemini_model,
         gemini_api_key_configured=_env_value_configured(settings.gemini_api_key),

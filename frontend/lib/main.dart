@@ -45,6 +45,7 @@ import 'widgets/generation_progress_dialog.dart';
 import 'widgets/good_result_guide_card.dart';
 import 'widgets/insufficient_balance_dialog.dart';
 import 'widgets/missing_photo_dialog.dart';
+import 'widgets/photoshoot_generation_failed_dialog.dart';
 import 'widgets/photoshoot_triplet_preview.dart';
 import 'widgets/packs_help_dialog.dart';
 import 'widgets/photoshoots_help_dialog.dart';
@@ -2343,9 +2344,12 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
         context,
         onOpenPacks: widget.onOpenPacks,
       );
+    } on PhotoshootGenerationFailedException {
+      if (!mounted) return;
+      await PhotoshootGenerationFailedDialog.show(context);
     } catch (_) {
       if (!mounted) return;
-      widget.onShowMessage('Не удалось подготовить фотосессию. Попробуйте позже.');
+      await PhotoshootGenerationFailedDialog.show(context);
     } finally {
       if (mounted) setState(() => _isPreparingPhotoshoot = false);
     }
@@ -2887,9 +2891,12 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
         context,
         onOpenPacks: widget.onOpenPacks,
       );
+    } on PhotoshootGenerationFailedException {
+      if (!mounted) return;
+      await PhotoshootGenerationFailedDialog.show(context);
     } catch (_) {
       if (!mounted) return;
-      widget.onShowMessage('Не удалось подготовить фотосессию. Попробуйте позже.');
+      await PhotoshootGenerationFailedDialog.show(context);
     } finally {
       if (mounted) setState(() => _isPreparingPhotoshoot = false);
     }

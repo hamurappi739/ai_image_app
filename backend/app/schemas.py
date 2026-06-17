@@ -168,6 +168,11 @@ class DebugConfigResponse(BaseModel):
 
     environment: str
     image_provider: str
+    config_env_file: str
+    config_env_file_exists: bool
+    env_file_image_provider: str | None = None
+    os_image_provider: str | None = None
+    env_file_out_of_sync: bool = False
     credit_consumption_enabled: bool
     gemini_model: str
     gemini_api_key_configured: bool
