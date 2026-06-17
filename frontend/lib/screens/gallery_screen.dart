@@ -320,6 +320,7 @@ class _GalleryQuickActions extends StatelessWidget {
         separatorBuilder: (context, index) => const SizedBox(width: 10),
         itemBuilder: (context, index) => SizedBox(
           width: 168,
+          height: 108,
           child: cards[index],
         ),
       ),
@@ -363,6 +364,7 @@ class _GalleryActionCard extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
                 width: 34,
@@ -373,28 +375,32 @@ class _GalleryActionCard extends StatelessWidget {
                 ),
                 child: Icon(icon, size: 18, color: _accentColor),
               ),
-              const Spacer(),
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: _textPrimary,
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 11,
-                  height: 1.25,
-                  color: _textSecondary,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _textPrimary,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      height: 1.25,
+                      color: _textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -957,12 +963,15 @@ class _GallerySinglePhotoCard extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: () => _openViewer(context),
-              child: AspectRatio(
-                aspectRatio: 4 / 3,
-                child: GalleryResultImage(
-                  url: item.imageUrls.first,
-                  description: item.description,
-                  compact: true,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                child: AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: GalleryResultImage(
+                    url: item.imageUrls.isNotEmpty ? item.imageUrls.first : '',
+                    description: item.description,
+                    compact: true,
+                  ),
                 ),
               ),
             ),
@@ -1111,46 +1120,56 @@ class _GalleryPhotoshootTripletPreview extends StatelessWidget {
   final List<String> imageUrls;
   final String description;
 
+  static const _previewAspectRatio = 16 / 9;
+
+  List<String> get _normalizedUrls {
+    if (imageUrls.isEmpty) {
+      return const ['', '', ''];
+    }
+    if (imageUrls.length >= 3) {
+      return imageUrls.take(3).toList();
+    }
+    final last = imageUrls.last;
+    return [
+      ...imageUrls,
+      for (var i = imageUrls.length; i < 3; i++) last,
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (imageUrls.length >= 3 &&
-        imageUrls.every(isMockPlaceholderImageUrl)) {
-      return ClipRRect(
+    final urls = _normalizedUrls;
+    final allMock = urls.isNotEmpty &&
+        urls.every((url) => url.isEmpty || isMockPlaceholderImageUrl(url));
+
+    return AspectRatio(
+      aspectRatio: _previewAspectRatio,
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: GalleryPhotoshootSeriesPreview(
-          imageUrls: imageUrls,
-          description: description,
-        ),
-      );
-    }
-
-    final urls = imageUrls.length >= 3
-        ? imageUrls.take(3).toList()
-        : [
-            ...imageUrls,
-            for (var i = imageUrls.length; i < 3; i++) imageUrls.last,
-          ];
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Row(
-        children: [
-          for (var i = 0; i < 3; i++) ...[
-            if (i > 0) const SizedBox(width: 4),
-            Expanded(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: GalleryResultImage(
-                  url: urls[i],
-                  description: description,
-                  seriesIndex: i,
-                  compact: true,
-                  photoshootSeries: true,
-                ),
+        child: allMock
+            ? GalleryPhotoshootSeriesPreview(
+                imageUrls: urls.where((u) => u.isNotEmpty).toList(),
+                description: description,
+              )
+            : Row(
+                children: [
+                  for (var i = 0; i < 3; i++) ...[
+                    if (i > 0) const SizedBox(width: 4),
+                    Expanded(
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: GalleryResultImage(
+                          url: urls[i],
+                          description: description,
+                          seriesIndex: i,
+                          compact: true,
+                          photoshootSeries: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ),
-          ],
-        ],
       ),
     );
   }

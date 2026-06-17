@@ -24,6 +24,16 @@ class GalleryResultImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (url.trim().isEmpty) {
+      return GalleryMockResultPreview(
+        url: url,
+        description: description,
+        seriesIndex: seriesIndex,
+        compact: compact,
+        photoshootSeries: photoshootSeries,
+      );
+    }
+
     if (isMockPlaceholderImageUrl(url)) {
       return GalleryMockResultPreview(
         url: url,
@@ -131,10 +141,13 @@ class GalleryPhotoshootSeriesPreview extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final height = constraints.maxHeight.isFinite && constraints.maxHeight > 0
+            ? constraints.maxHeight
+            : 148.0;
         return VisualPlaceholderSeries(
           mood: mood,
           gradientColors: gradient,
-          height: constraints.maxHeight,
+          height: height,
           variant: seed % 4,
           showCatalogBadges: true,
           recommendation: _seriesBadgeLabel(imageUrls.length),

@@ -100,7 +100,7 @@ class GallerySingleImageViewer extends StatelessWidget {
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => GallerySingleImageViewer(
-        imageUrl: item.imageUrls.first,
+        imageUrl: item.imageUrls.isNotEmpty ? item.imageUrls.first : '',
         description: item.description,
         hideKey: hideKey,
         onHide: onHide,
@@ -139,7 +139,7 @@ class GallerySingleImageViewer extends StatelessWidget {
           maxHeight: maxHeight,
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
@@ -163,8 +163,9 @@ class GallerySingleImageViewer extends StatelessWidget {
                 ],
               ),
             ),
-            Flexible(
+            Expanded(
               child: Container(
+                width: double.infinity,
                 color: const Color(0xFFF0F2F8),
                 child: InteractiveViewer(
                   minScale: 0.8,
@@ -311,7 +312,7 @@ class GalleryPhotoshootViewer extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 720, maxHeight: maxHeight),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
@@ -385,21 +386,30 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                 ],
               ),
             ),
-            Flexible(
+            Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
+                    final urls = item.imageUrls.isEmpty
+                        ? const ['', '', '']
+                        : item.imageUrls.length >= 3
+                            ? item.imageUrls.take(3).toList()
+                            : [
+                                ...item.imageUrls,
+                                for (var i = item.imageUrls.length; i < 3; i++)
+                                  item.imageUrls.last,
+                              ];
                     final columns = constraints.maxWidth >= 480 ? 3 : 1;
                     if (columns == 3) {
                       return Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (var i = 0; i < item.imageUrls.length; i++) ...[
+                          for (var i = 0; i < urls.length; i++) ...[
                             if (i > 0) const SizedBox(width: 10),
                             Expanded(
                               child: _PhotoshootPhotoTile(
-                                imageUrl: item.imageUrls[i],
+                                imageUrl: urls[i],
                                 label: 'Фото ${i + 1}',
                                 description: item.description,
                                 seriesIndex: i,
@@ -411,10 +421,10 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                     }
                     return Column(
                       children: [
-                        for (var i = 0; i < item.imageUrls.length; i++) ...[
+                        for (var i = 0; i < urls.length; i++) ...[
                           if (i > 0) const SizedBox(height: 12),
                           _PhotoshootPhotoTile(
-                            imageUrl: item.imageUrls[i],
+                            imageUrl: urls[i],
                             label: 'Фото ${i + 1}',
                             description: item.description,
                             seriesIndex: i,
