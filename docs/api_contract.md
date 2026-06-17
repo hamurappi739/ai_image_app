@@ -313,8 +313,10 @@
 |------|-----|----------|
 | `style_id` | string | Идентификатор выбранного стиля (обязательно); backend проверяет по **catalog** |
 | `style_title` | string \| null | Человекочитаемое название стиля (опционально; **источник правды — catalog на backend**) |
-| `description` | string \| null | Опционально: **расширенный style prompt** для готовых стилей (тексты из [app_prompts.md](app_prompts.md)) или пользовательское описание для **`custom_photoshoot`**. Trim; пустая строка игнорируется; максимум **1000** символов. Если передано — backend использует его как основу инструкции Gemini вместо короткого `style.instruction` |
+| `description` | string \| null | Опционально: пользовательское описание для **«Своей фотосессии»** (`custom_photoshoot`) или override. Trim; пустая строка игнорируется; максимум **1000** символов. Для готовых стилей backend берёт **`prompt`** и **`framePrompts`** из catalog |
 | `photo` | file | Фото пользователя (обязательно) |
+
+**Генерация промптов (Gemini):** для каждого из 3 кадров отдельный вызов API. Финальный prompt = catalog `prompt` + identity lock + `framePrompts[i]` + quality rules. Подробнее: [photoshoot_prompt_strategy.md](photoshoot_prompt_strategy.md).
 
 **Поддерживаемые `style_id` (backend catalog):**
 

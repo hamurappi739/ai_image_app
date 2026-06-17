@@ -198,6 +198,7 @@ class CatalogPhotoshootItem(BaseModel):
     category: str
     shortDescription: str
     prompt: str
+    framePrompts: list[str] = Field(default_factory=list)
     previewAssets: list[str] = Field(default_factory=list)
     previewUrls: list[str] = Field(default_factory=list)
     priceImages: int = 3

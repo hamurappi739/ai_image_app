@@ -57,3 +57,35 @@ def load_photoshoots_catalog() -> dict[str, Any]:
         "source": "backend",
         "version": _CATALOG_VERSION,
     }
+
+
+_photoshoot_catalog_by_id: dict[str, dict[str, Any]] | None = None
+
+
+def _photoshoot_catalog_map() -> dict[str, dict[str, Any]]:
+    global _photoshoot_catalog_by_id
+    if _photoshoot_catalog_by_id is None:
+        items = _read_catalog_array("photoshoots.json")
+        _photoshoot_catalog_by_id = {
+            str(item["id"]): item
+            for item in items
+            if isinstance(item, dict) and item.get("id")
+        }
+    return _photoshoot_catalog_by_id
+
+
+def get_photoshoot_catalog_item(style_id: str) -> dict[str, Any] | None:
+    """Return raw catalog entry for photoshoot generation (prompt / framePrompts)."""
+    normalized = (style_id or "").strip()
+    if not normalized:
+        return None
+    catalog = _photoshoot_catalog_map()
+    if normalized in catalog:
+        return catalog[normalized]
+    return None
+
+
+def invalidate_photoshoot_catalog_cache() -> None:
+    """Clear in-memory catalog map (tests / hot reload)."""
+    global _photoshoot_catalog_by_id
+    _photoshoot_catalog_by_id = None

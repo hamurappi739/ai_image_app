@@ -12,10 +12,6 @@ from google import genai
 from google.genai import types
 
 from app.config import settings
-from app.services.gemini_quality_instructions import (
-    build_custom_photoshoot_frame_instruction,
-    build_photoshoot_frame_instruction,
-)
 from app.services.image_service import (
     _blob_to_data_url,
     _extract_gemini_error_status,
@@ -23,6 +19,7 @@ from app.services.image_service import (
     _iter_response_parts,
 )
 from app.services.mock_placeholder_urls import build_mock_photoshoot_image_urls
+from app.services.photoshoot_prompts import build_photoshoot_frame_prompt
 from app.services.photoshoot_styles import PhotoshootStyle
 from app.services.storage_service import storage_service
 from app.services.supabase_service import create_generation_record
@@ -34,21 +31,17 @@ _MAX_PHOTOSHOOT_DIAGNOSTIC_TEXT_LEN = 200
 def _build_photoshoot_instruction(
     style: PhotoshootStyle,
     *,
+    client_style_id: str,
     user_description: str | None = None,
-    variation_index: int = 1,
-    variation_total: int = 1,
+    frame_index: int = 0,
+    output_count: int = 1,
 ) -> str:
-    if user_description:
-        return build_custom_photoshoot_frame_instruction(
-            user_description,
-            variation_index=variation_index,
-            variation_total=variation_total,
-        )
-    return build_photoshoot_frame_instruction(
-        style.instruction,
-        style.title,
-        variation_index=variation_index,
-        variation_total=variation_total,
+    return build_photoshoot_frame_prompt(
+        client_style_id,
+        style,
+        frame_index=frame_index,
+        output_count=output_count,
+        user_description=user_description,
     )
 
 
@@ -234,6 +227,7 @@ class GeminiPhotoshootProvider:
         photo_bytes: bytes,
         photo_content_type: str,
         *,
+        client_style_id: str,
         user_description: str | None = None,
     ) -> list[str]:
         api_key = settings.gemini_api_key
@@ -249,9 +243,10 @@ class GeminiPhotoshootProvider:
         for index in range(self._output_count):
             instruction = _build_photoshoot_instruction(
                 style,
+                client_style_id=client_style_id,
                 user_description=user_description,
-                variation_index=index + 1,
-                variation_total=self._output_count,
+                frame_index=index,
+                output_count=self._output_count,
             )
             try:
                 response = client.models.generate_content(
@@ -309,6 +304,7 @@ class PhotoshootService:
         photo_bytes: bytes,
         photo_content_type: str,
         *,
+        client_style_id: str,
         user_description: str | None = None,
     ) -> PhotoshootGenerateResult:
         provider = self._get_provider()
@@ -324,6 +320,7 @@ class PhotoshootService:
                 style=style,
                 photo_bytes=photo_bytes,
                 photo_content_type=photo_content_type,
+                client_style_id=client_style_id,
                 user_description=user_description,
             )
             image_urls = []

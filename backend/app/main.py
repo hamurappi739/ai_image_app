@@ -656,6 +656,7 @@ def generate_photoshoot(
         style=style,
         photo_bytes=file_bytes,
         photo_content_type=photo_content_type,
+        client_style_id=style_id,
         user_description=user_description,
     )
 

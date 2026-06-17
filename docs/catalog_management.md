@@ -96,6 +96,11 @@ assets:
   "category": "Популярное сейчас",
   "shortDescription": "Короткое описание.",
   "prompt": "Полный промпт фотосессии…",
+  "framePrompts": [
+    "Кадр 1 из 3: …",
+    "Кадр 2 из 3: …",
+    "Кадр 3 из 3: …"
+  ],
   "previewAssets": [
     "assets/previews/photoshoots/my_photoshoot_1.jpg",
     "assets/previews/photoshoots/my_photoshoot_2.jpg",
@@ -114,8 +119,9 @@ assets:
 }
 ```
 
-3. `previewUrls` — ровно 3 рабочих HTTP(S) URL для сетевых превью
-4. Деплой backend
+3. `framePrompts` — **3 строки** с промптом каждого кадра (ракурс/поза). Backend использует их при Gemini-генерации; см. [photoshoot_prompt_strategy.md](photoshoot_prompt_strategy.md)
+4. `previewUrls` — ровно 3 рабочих HTTP(S) URL для сетевых превью
+5. Деплой backend
 
 **Категории фотосессий:** `Популярное сейчас`, `Для себя`, `Для работы`, `Атмосферные`
 
