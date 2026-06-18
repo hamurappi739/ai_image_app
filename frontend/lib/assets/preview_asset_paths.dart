@@ -1,6 +1,11 @@
-// Planned local preview image paths under `assets/previews/`.
-// Add .jpg files under assets/previews/templates/ or photoshoots/ and
-// restart the app — PreviewAssetImage loads them with placeholder fallback.
+// Fallback local preview paths under `assets/previews/`.
+//
+// Primary source for catalog cards: `previewAsset` / `previewAssets` from
+// `assets/catalog/templates.json` and `assets/catalog/photoshoots.json`
+// (or the same fields from GET /catalog/*). This file is used only when those
+// JSON fields are missing — e.g. embedded fallback catalog or incomplete entries.
+//
+// PreviewAssetImage loads bundled assets and shows VisualPlaceholder on error.
 
 class PreviewAssetPaths {
   PreviewAssetPaths._();
@@ -34,130 +39,18 @@ class PreviewAssetPaths {
     'interior_photo': '$_templatesDir/interior_photo.jpg',
   };
 
-  // —— Photoshoots — catalog id → asset slug (triplet: slug_1..3.jpg) ———————
-
-  static const Map<String, String> photoshootAssetSlugById = {
-    'studio_portrait': 'studio',
-    'business_portrait': 'business',
-    'home_portrait': 'home',
-    'premium_portrait': 'premium',
-    'winter_photoshoot': 'winter',
-    'urban_portrait': 'city',
-    'evening_look': 'evening',
-    'travel_portrait': 'travel',
-    'tender_photoshoot': 'tender',
-    'summer_photoshoot': 'summer',
-    'expert_photoshoot': 'expert',
-    'business_brand': 'business_brand',
-    'personal_brand': 'personal_brand',
-    'cafe_city': 'cafe_city',
-    'park_walk': 'park_walk',
-    'custom_photoshoot': 'custom_photoshoot',
-  };
-
-  /// Three result previews per photoshoot style.
-  static const Map<String, List<String>> photoshootTripletById = {
-    'studio_portrait': [
-      '$_photoshootsDir/studio_1.jpg',
-      '$_photoshootsDir/studio_2.jpg',
-      '$_photoshootsDir/studio_3.jpg',
-    ],
-    'business_portrait': [
-      '$_photoshootsDir/business_1.jpg',
-      '$_photoshootsDir/business_2.jpg',
-      '$_photoshootsDir/business_3.jpg',
-    ],
-    'home_portrait': [
-      '$_photoshootsDir/home_1.jpg',
-      '$_photoshootsDir/home_2.jpg',
-      '$_photoshootsDir/home_3.jpg',
-    ],
-    'premium_portrait': [
-      '$_photoshootsDir/premium_1.jpg',
-      '$_photoshootsDir/premium_2.jpg',
-      '$_photoshootsDir/premium_3.jpg',
-    ],
-    'winter_photoshoot': [
-      '$_photoshootsDir/winter_1.jpg',
-      '$_photoshootsDir/winter_2.jpg',
-      '$_photoshootsDir/winter_3.jpg',
-    ],
-    'urban_portrait': [
-      '$_photoshootsDir/city_1.jpg',
-      '$_photoshootsDir/city_2.jpg',
-      '$_photoshootsDir/city_3.jpg',
-    ],
-    'evening_look': [
-      '$_photoshootsDir/evening_1.jpg',
-      '$_photoshootsDir/evening_2.jpg',
-      '$_photoshootsDir/evening_3.jpg',
-    ],
-    'travel_portrait': [
-      '$_photoshootsDir/travel_1.jpg',
-      '$_photoshootsDir/travel_2.jpg',
-      '$_photoshootsDir/travel_3.jpg',
-    ],
-    'tender_photoshoot': [
-      '$_photoshootsDir/tender_1.jpg',
-      '$_photoshootsDir/tender_2.jpg',
-      '$_photoshootsDir/tender_3.jpg',
-    ],
-    'summer_photoshoot': [
-      '$_photoshootsDir/summer_1.jpg',
-      '$_photoshootsDir/summer_2.jpg',
-      '$_photoshootsDir/summer_3.jpg',
-    ],
-    'expert_photoshoot': [
-      '$_photoshootsDir/expert_1.jpg',
-      '$_photoshootsDir/expert_2.jpg',
-      '$_photoshootsDir/expert_3.jpg',
-    ],
-    'business_brand': [
-      '$_photoshootsDir/business_brand_1.jpg',
-      '$_photoshootsDir/business_brand_2.jpg',
-      '$_photoshootsDir/business_brand_3.jpg',
-    ],
-    'personal_brand': [
-      '$_photoshootsDir/personal_brand_1.jpg',
-      '$_photoshootsDir/personal_brand_2.jpg',
-      '$_photoshootsDir/personal_brand_3.jpg',
-    ],
-    'cafe_city': [
-      '$_photoshootsDir/cafe_city_1.jpg',
-      '$_photoshootsDir/cafe_city_2.jpg',
-      '$_photoshootsDir/cafe_city_3.jpg',
-    ],
-    'park_walk': [
-      '$_photoshootsDir/park_walk_1.jpg',
-      '$_photoshootsDir/park_walk_2.jpg',
-      '$_photoshootsDir/park_walk_3.jpg',
-    ],
-    'custom_photoshoot': [
-      '$_photoshootsDir/custom_photoshoot_1.jpg',
-      '$_photoshootsDir/custom_photoshoot_2.jpg',
-      '$_photoshootsDir/custom_photoshoot_3.jpg',
-    ],
-  };
-
   static String templateAssetForId(String id) =>
       templateById[id] ?? '$_templatesDir/$id.jpg';
 
   static String? templatePathForId(String id) => templateAssetForId(id);
 
-  static String photoshootAssetSlugForId(String id) =>
-      photoshootAssetSlugById[id] ?? id;
-
-  static List<String> photoshootTripletPathsForSlug(String slug) => [
-        '$_photoshootsDir/${slug}_1.jpg',
-        '$_photoshootsDir/${slug}_2.jpg',
-        '$_photoshootsDir/${slug}_3.jpg',
+  /// Fallback triplet when catalog JSON has no `previewAssets`.
+  /// Matches catalog naming: `{style_id}_1.jpg` … `_3.jpg`.
+  static List<String> photoshootPreviewAssetsForId(String id) => [
+        '$_photoshootsDir/${id}_1.jpg',
+        '$_photoshootsDir/${id}_2.jpg',
+        '$_photoshootsDir/${id}_3.jpg',
       ];
-
-  static List<String> photoshootPreviewAssetsForId(String id) {
-    final explicit = photoshootTripletById[id];
-    if (explicit != null && explicit.isNotEmpty) return explicit;
-    return photoshootTripletPathsForSlug(photoshootAssetSlugForId(id));
-  }
 
   /// Hero preview for modals (first image of the triplet).
   static String? photoshootPathForId(String id) {
