@@ -2304,10 +2304,8 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
         ),
       );
       if (!mounted) return;
-      if (result.imageUrls.isEmpty) {
-        widget.onShowMessage(
-          'Не удалось подготовить фотосессию. Попробуйте позже.',
-        );
+      if (result.imageUrls.length < result.outputCount) {
+        await PhotoshootGenerationFailedDialog.show(context);
         return;
       }
       final updatedBalance = result.balance;
@@ -2842,10 +2840,8 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
         ),
       );
       if (!mounted) return;
-      if (result.imageUrls.isEmpty) {
-        widget.onShowMessage(
-          'Не удалось подготовить фотосессию. Попробуйте позже.',
-        );
+      if (result.imageUrls.length < result.outputCount) {
+        await PhotoshootGenerationFailedDialog.show(context);
         return;
       }
 

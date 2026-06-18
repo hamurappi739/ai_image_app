@@ -8,6 +8,7 @@ import time
 from dataclasses import dataclass
 from uuid import uuid4
 
+import httpx
 from fastapi import HTTPException
 from google import genai
 from google.genai import types
@@ -16,23 +17,113 @@ from app.config import settings
 from app.services.image_service import (
     _blob_to_data_url,
     _extract_gemini_error_status,
+    _extract_gemini_safe_message,
     _iter_response_parts,
 )
 from app.services.mock_placeholder_urls import build_mock_photoshoot_image_urls
 from app.services.photoshoot_prompts import build_photoshoot_frame_prompt
 from app.services.photoshoot_styles import PhotoshootStyle
 from app.services.storage_service import storage_service
-from app.services.supabase_service import create_generation_record
+from app.services.supabase_service import (
+    create_generation_record,
+    delete_generations_by_photoshoot_id,
+)
 
 logger = logging.getLogger(__name__)
 
 _MAX_PHOTOSHOOT_DIAGNOSTIC_TEXT_LEN = 200
 _MAX_GEMINI_FRAME_ATTEMPTS = 3
 _GEMINI_FRAME_RETRY_DELAY_SECONDS = 1.75
-_PHOTOSHOOT_FRAME_FAILURE_DETAIL = (
-    "Photoshoot generation failed: one or more frames could not be created. "
-    "Please try again in a minute."
+_PHOTOSHOOT_FAILURE_MESSAGE = "Photoshoot generation failed, please retry"
+_RETRYABLE_GEMINI_HTTP_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
+_NON_RETRYABLE_GEMINI_HTTP_STATUS_CODES = frozenset({400, 401, 403})
+_RETRYABLE_TRANSPORT_ERRORS = (
+    httpx.TimeoutException,
+    httpx.ConnectError,
+    httpx.TransportError,
 )
+
+
+def _extract_http_status_code(exc: Exception) -> int | None:
+    response = getattr(exc, "response", None)
+    if response is not None:
+        response_status = getattr(response, "status_code", None)
+        if response_status is not None:
+            return int(response_status)
+
+    direct_status = getattr(exc, "status_code", None)
+    if direct_status is not None:
+        return int(direct_status)
+
+    raw = _extract_gemini_error_status(exc)
+    if raw is not None:
+        text = str(raw).strip()
+        if text.isdigit():
+            return int(text)
+    return None
+
+
+def _is_retryable_http_status_code(status_code: int) -> bool:
+    if status_code in _NON_RETRYABLE_GEMINI_HTTP_STATUS_CODES:
+        return False
+    if status_code in _RETRYABLE_GEMINI_HTTP_STATUS_CODES or status_code >= 500:
+        return True
+    if status_code == 429:
+        return True
+    if 400 <= status_code < 500:
+        return False
+    return True
+
+
+def _is_retryable_gemini_photoshoot_error(exc: Exception) -> bool:
+    if isinstance(exc, HTTPException):
+        return _is_retryable_http_status_code(exc.status_code)
+
+    status_code = _extract_http_status_code(exc)
+    if status_code is not None:
+        return _is_retryable_http_status_code(status_code)
+
+    if isinstance(exc, _RETRYABLE_TRANSPORT_ERRORS):
+        return True
+
+    if type(exc).__name__ == "ServerError":
+        return True
+    if type(exc).__name__ == "ClientError":
+        return False
+    return True
+
+
+def _gemini_frame_failure_reason(exc: Exception) -> str:
+    if isinstance(exc, HTTPException):
+        return _normalize_diagnostic_text(str(exc.detail))
+
+    status = _extract_gemini_error_status(exc)
+    message = _extract_gemini_safe_message(exc)
+    if status and message:
+        return _normalize_diagnostic_text(f"status={status} message={message}")
+    if status:
+        return _normalize_diagnostic_text(f"status={status}")
+    if message:
+        return _normalize_diagnostic_text(f"message={message}")
+    return type(exc).__name__
+
+
+def _raise_photoshoot_failure(
+    *,
+    style_id: str,
+    stage: str,
+    reason: str,
+    photoshoot_id: str | None = None,
+) -> None:
+    logger.error(
+        "Photoshoot aborted: style_id=%s photoshoot_id=%s stage=%s reason=%s",
+        style_id,
+        photoshoot_id,
+        stage,
+        reason,
+    )
+    raise HTTPException(status_code=502, detail=_PHOTOSHOOT_FAILURE_MESSAGE)
+
 
 def _build_photoshoot_instruction(
     style: PhotoshootStyle,
@@ -124,7 +215,6 @@ def _extract_photoshoot_image_data_url(response) -> str:
         return _blob_to_data_url(inline_data)
 
     summary = _build_photoshoot_response_summary(response)
-    logger.warning("Gemini photoshoot response missing image: %s", summary)
     raise HTTPException(
         status_code=502,
         detail=f"Gemini did not return a photoshoot image: {summary}",
@@ -148,6 +238,63 @@ def _photoshoot_payment_type(style: PhotoshootStyle) -> str:
 class PhotoshootGenerateResult:
     image_urls: list[str]
     photoshoot_id: str
+    storage_paths: list[str]
+
+
+def _rollback_photoshoot_storage(
+    storage_paths: list[str],
+    *,
+    client_style_id: str,
+    photoshoot_id: str,
+    stage: str,
+) -> None:
+    if not storage_paths:
+        return
+    logger.warning(
+        "Photoshoot storage rollback start: style_id=%s photoshoot_id=%s "
+        "stage=%s paths=%s",
+        client_style_id,
+        photoshoot_id,
+        stage,
+        len(storage_paths),
+    )
+    storage_service.delete_objects_best_effort(storage_paths)
+    logger.warning(
+        "Photoshoot storage rollback done: style_id=%s photoshoot_id=%s stage=%s",
+        client_style_id,
+        photoshoot_id,
+        stage,
+    )
+
+
+def rollback_persisted_photoshoot(
+    *,
+    photoshoot_id: str,
+    storage_paths: list[str],
+    client_style_id: str,
+) -> None:
+    """Undo DB rows and uploaded storage files after a post-save pipeline failure."""
+    normalized_id = photoshoot_id.strip()
+    if normalized_id:
+        try:
+            delete_generations_by_photoshoot_id(normalized_id)
+            logger.warning(
+                "Photoshoot DB rollback ok: style_id=%s photoshoot_id=%s stage=debit_failure",
+                client_style_id,
+                normalized_id,
+            )
+        except Exception:
+            logger.exception(
+                "Photoshoot DB rollback failed: style_id=%s photoshoot_id=%s stage=debit_failure",
+                client_style_id,
+                normalized_id,
+            )
+    _rollback_photoshoot_storage(
+        storage_paths,
+        client_style_id=client_style_id,
+        photoshoot_id=normalized_id or photoshoot_id,
+        stage="debit_failure",
+    )
 
 
 def _save_photoshoot_results_to_history(
@@ -155,16 +302,32 @@ def _save_photoshoot_results_to_history(
     style: PhotoshootStyle,
     image_urls: list[str],
     *,
+    client_style_id: str,
     user_description: str | None = None,
+    photoshoot_id: str | None = None,
+    storage_paths: list[str] | None = None,
 ) -> str:
+    if not image_urls:
+        _raise_photoshoot_failure(
+            style_id=client_style_id,
+            stage="db_save",
+            reason="empty_image_urls",
+            photoshoot_id=photoshoot_id,
+        )
+
     prompt = _photoshoot_history_prompt(style, user_description)
     payment_type = _photoshoot_payment_type(style)
-    photoshoot_id = str(uuid4())
-    for index, image_url in enumerate(image_urls):
-        try:
+    batch_id = photoshoot_id or str(uuid4())
+    saved_frames = 0
+
+    try:
+        for index, image_url in enumerate(image_urls):
             logger.info(
-                "Photoshoot DB save start: photoshoot_id=%s frame=%s/%s",
-                photoshoot_id,
+                "Photoshoot DB save start: style_id=%s photoshoot_id=%s "
+                "frame_index=%s frame=%s/%s",
+                client_style_id,
+                batch_id,
+                index,
                 index + 1,
                 len(image_urls),
             )
@@ -173,34 +336,178 @@ def _save_photoshoot_results_to_history(
                 prompt=prompt,
                 image_url=image_url,
                 payment_type=payment_type,
-                photoshoot_id=photoshoot_id,
+                photoshoot_id=batch_id,
             )
+            saved_frames += 1
             logger.info(
-                "Photoshoot DB save ok: photoshoot_id=%s frame=%s/%s",
-                photoshoot_id,
+                "Photoshoot DB save ok: style_id=%s photoshoot_id=%s "
+                "frame_index=%s frame=%s/%s",
+                client_style_id,
+                batch_id,
+                index,
                 index + 1,
                 len(image_urls),
             )
-        except HTTPException:
-            logger.exception(
-                "Photoshoot DB save failed: photoshoot_id=%s frame=%s/%s",
-                photoshoot_id,
-                index + 1,
-                len(image_urls),
+    except HTTPException as exc:
+        logger.exception(
+            "Photoshoot DB save failed: style_id=%s photoshoot_id=%s "
+            "frame_index=%s saved_frames=%s",
+            client_style_id,
+            batch_id,
+            saved_frames,
+            saved_frames,
+        )
+        if saved_frames > 0:
+            try:
+                delete_generations_by_photoshoot_id(batch_id)
+                logger.warning(
+                    "Photoshoot DB rollback ok: style_id=%s photoshoot_id=%s",
+                    client_style_id,
+                    batch_id,
+                )
+            except Exception:
+                logger.exception(
+                    "Photoshoot DB rollback failed: style_id=%s photoshoot_id=%s",
+                    client_style_id,
+                    batch_id,
+                )
+        if storage_paths:
+            _rollback_photoshoot_storage(
+                storage_paths,
+                client_style_id=client_style_id,
+                photoshoot_id=batch_id,
+                stage="db_save",
             )
-            raise
-        except RuntimeError:
-            logger.exception(
-                "Photoshoot DB save failed: photoshoot_id=%s frame=%s/%s",
-                photoshoot_id,
-                index + 1,
-                len(image_urls),
+        _raise_photoshoot_failure(
+            style_id=client_style_id,
+            stage="db_save",
+            reason=str(exc.detail),
+            photoshoot_id=batch_id,
+        )
+    except Exception as exc:
+        logger.exception(
+            "Photoshoot DB save failed: style_id=%s photoshoot_id=%s saved_frames=%s",
+            client_style_id,
+            batch_id,
+            saved_frames,
+        )
+        if saved_frames > 0:
+            try:
+                delete_generations_by_photoshoot_id(batch_id)
+            except Exception:
+                logger.exception(
+                    "Photoshoot DB rollback failed: style_id=%s photoshoot_id=%s",
+                    client_style_id,
+                    batch_id,
+                )
+        if storage_paths:
+            _rollback_photoshoot_storage(
+                storage_paths,
+                client_style_id=client_style_id,
+                photoshoot_id=batch_id,
+                stage="db_save",
             )
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to save photoshoot result",
-            ) from None
-    return photoshoot_id
+        _raise_photoshoot_failure(
+            style_id=client_style_id,
+            stage="db_save",
+            reason=type(exc).__name__,
+            photoshoot_id=batch_id,
+        )
+
+    return batch_id
+
+
+def _upload_photoshoot_frames_to_storage(
+    *,
+    user_id: str,
+    client_style_id: str,
+    data_urls: list[str],
+    photoshoot_id: str,
+) -> tuple[list[str], list[str]]:
+    uploaded_urls: list[str] = []
+    uploaded_paths: list[str] = []
+    try:
+        for index, data_url in enumerate(data_urls):
+            logger.info(
+                "Photoshoot storage upload start: style_id=%s photoshoot_id=%s "
+                "frame_index=%s frame=%s/%s",
+                client_style_id,
+                photoshoot_id,
+                index,
+                index + 1,
+                len(data_urls),
+            )
+            storage_path, public_url = storage_service.upload_generated_image_data_url_with_path(
+                user_id=user_id,
+                data_url=data_url,
+                folder="photoshoots",
+            )
+            uploaded_paths.append(storage_path)
+            uploaded_urls.append(public_url)
+            logger.info(
+                "Photoshoot storage upload ok: style_id=%s photoshoot_id=%s "
+                "frame_index=%s frame=%s/%s",
+                client_style_id,
+                photoshoot_id,
+                index,
+                index + 1,
+                len(data_urls),
+            )
+    except HTTPException as exc:
+        logger.exception(
+            "Photoshoot storage upload failed: style_id=%s photoshoot_id=%s "
+            "uploaded_frames=%s/%s",
+            client_style_id,
+            photoshoot_id,
+            len(uploaded_urls),
+            len(data_urls),
+        )
+        _rollback_photoshoot_storage(
+            uploaded_paths,
+            client_style_id=client_style_id,
+            photoshoot_id=photoshoot_id,
+            stage="storage_upload",
+        )
+        _raise_photoshoot_failure(
+            style_id=client_style_id,
+            stage="storage_upload",
+            reason=str(exc.detail),
+            photoshoot_id=photoshoot_id,
+        )
+    except Exception as exc:
+        logger.exception(
+            "Photoshoot storage upload failed: style_id=%s photoshoot_id=%s",
+            client_style_id,
+            photoshoot_id,
+        )
+        _rollback_photoshoot_storage(
+            uploaded_paths,
+            client_style_id=client_style_id,
+            photoshoot_id=photoshoot_id,
+            stage="storage_upload",
+        )
+        _raise_photoshoot_failure(
+            style_id=client_style_id,
+            stage="storage_upload",
+            reason=type(exc).__name__,
+            photoshoot_id=photoshoot_id,
+        )
+
+    if len(uploaded_urls) != len(data_urls):
+        _rollback_photoshoot_storage(
+            uploaded_paths,
+            client_style_id=client_style_id,
+            photoshoot_id=photoshoot_id,
+            stage="storage_upload",
+        )
+        _raise_photoshoot_failure(
+            style_id=client_style_id,
+            stage="storage_upload",
+            reason=f"partial_upload:{len(uploaded_urls)}/{len(data_urls)}",
+            photoshoot_id=photoshoot_id,
+        )
+
+    return uploaded_urls, uploaded_paths
 
 
 class MockPhotoshootProvider:
@@ -231,7 +538,7 @@ class MockPhotoshootProvider:
 
 
 class GeminiPhotoshootProvider:
-    """Uploaded photo + style instruction → Gemini image data URLs."""
+    """Uploaded photo + style instruction → Gemini image data URLs (in memory only)."""
 
     def __init__(self, output_count: int | None = None) -> None:
         self._output_count = output_count if output_count is not None else settings.photoshoot_output_count
@@ -275,18 +582,20 @@ class GeminiPhotoshootProvider:
         client: genai.Client,
         *,
         client_style_id: str,
+        photoshoot_id: str,
         instruction: str,
         photo_bytes: bytes,
         photo_content_type: str,
         frame_index: int,
     ) -> str:
-        last_error_type = "unknown"
-        last_status: int | str | None = None
+        last_failure_reason = "unknown"
 
         for attempt in range(1, _MAX_GEMINI_FRAME_ATTEMPTS + 1):
             logger.info(
-                "Photoshoot frame start: style_id=%s frame_index=%s frame=%s/%s attempt=%s",
+                "Photoshoot frame start: style_id=%s photoshoot_id=%s "
+                "frame_index=%s frame=%s/%s attempt=%s",
                 client_style_id,
+                photoshoot_id,
                 frame_index,
                 frame_index + 1,
                 self._output_count,
@@ -300,33 +609,67 @@ class GeminiPhotoshootProvider:
                     photo_content_type=photo_content_type,
                 )
             except HTTPException as exc:
-                last_error_type = "HTTPException"
-                last_status = exc.status_code
+                last_failure_reason = _gemini_frame_failure_reason(exc)
                 logger.warning(
-                    "Photoshoot frame failed: style_id=%s frame_index=%s attempt=%s "
-                    "error_type=%s status=%s",
+                    "Photoshoot frame failed: style_id=%s photoshoot_id=%s "
+                    "frame_index=%s attempt=%s reason=%s retryable=%s",
                     client_style_id,
+                    photoshoot_id,
                     frame_index,
                     attempt,
-                    last_error_type,
-                    last_status,
+                    last_failure_reason,
+                    _is_retryable_gemini_photoshoot_error(exc),
                 )
+                if not _is_retryable_gemini_photoshoot_error(exc):
+                    logger.error(
+                        "Photoshoot frame non-retryable failure: style_id=%s photoshoot_id=%s "
+                        "frame_index=%s reason=%s",
+                        client_style_id,
+                        photoshoot_id,
+                        frame_index,
+                        last_failure_reason,
+                    )
+                    _raise_photoshoot_failure(
+                        style_id=client_style_id,
+                        stage="gemini_frame",
+                        reason=last_failure_reason,
+                        photoshoot_id=photoshoot_id,
+                    )
             except Exception as exc:
-                last_error_type = type(exc).__name__
-                last_status = _extract_gemini_error_status(exc)
+                last_failure_reason = _gemini_frame_failure_reason(exc)
+                retryable = _is_retryable_gemini_photoshoot_error(exc)
                 logger.warning(
-                    "Photoshoot frame failed: style_id=%s frame_index=%s attempt=%s "
-                    "error_type=%s status=%s",
+                    "Photoshoot frame failed: style_id=%s photoshoot_id=%s "
+                    "frame_index=%s attempt=%s error_type=%s reason=%s retryable=%s",
                     client_style_id,
+                    photoshoot_id,
                     frame_index,
                     attempt,
-                    last_error_type,
-                    last_status,
+                    type(exc).__name__,
+                    last_failure_reason,
+                    retryable,
                 )
+                if not retryable:
+                    logger.error(
+                        "Photoshoot frame non-retryable failure: style_id=%s photoshoot_id=%s "
+                        "frame_index=%s reason=%s",
+                        client_style_id,
+                        photoshoot_id,
+                        frame_index,
+                        last_failure_reason,
+                    )
+                    _raise_photoshoot_failure(
+                        style_id=client_style_id,
+                        stage="gemini_frame",
+                        reason=last_failure_reason,
+                        photoshoot_id=photoshoot_id,
+                    )
             else:
                 logger.info(
-                    "Photoshoot frame success: style_id=%s frame_index=%s attempt=%s",
+                    "Photoshoot frame success: style_id=%s photoshoot_id=%s "
+                    "frame_index=%s attempt=%s",
                     client_style_id,
+                    photoshoot_id,
                     frame_index,
                     attempt,
                 )
@@ -336,17 +679,19 @@ class GeminiPhotoshootProvider:
                 time.sleep(_GEMINI_FRAME_RETRY_DELAY_SECONDS)
 
         logger.error(
-            "Photoshoot frame exhausted retries: style_id=%s frame_index=%s attempts=%s "
-            "last_error_type=%s last_status=%s",
+            "Photoshoot frame exhausted retries: style_id=%s photoshoot_id=%s "
+            "frame_index=%s attempts=%s reason=%s",
             client_style_id,
+            photoshoot_id,
             frame_index,
             _MAX_GEMINI_FRAME_ATTEMPTS,
-            last_error_type,
-            last_status,
+            _normalize_diagnostic_text(last_failure_reason),
         )
-        raise HTTPException(
-            status_code=502,
-            detail=_PHOTOSHOOT_FRAME_FAILURE_DETAIL,
+        _raise_photoshoot_failure(
+            style_id=client_style_id,
+            stage="gemini_frame",
+            reason=last_failure_reason,
+            photoshoot_id=photoshoot_id,
         )
 
     def generate(
@@ -356,6 +701,7 @@ class GeminiPhotoshootProvider:
         photo_content_type: str,
         *,
         client_style_id: str,
+        photoshoot_id: str,
         user_description: str | None = None,
     ) -> list[str]:
         api_key = settings.gemini_api_key
@@ -369,8 +715,9 @@ class GeminiPhotoshootProvider:
         client = genai.Client(api_key=api_key.strip())
 
         logger.info(
-            "Gemini photoshoot start: style_id=%s output_count=%s",
+            "Gemini photoshoot start: style_id=%s photoshoot_id=%s output_count=%s",
             client_style_id,
+            photoshoot_id,
             self._output_count,
         )
 
@@ -386,6 +733,7 @@ class GeminiPhotoshootProvider:
                 self._generate_frame_with_retries(
                     client,
                     client_style_id=client_style_id,
+                    photoshoot_id=photoshoot_id,
                     instruction=instruction,
                     photo_bytes=photo_bytes,
                     photo_content_type=photo_content_type,
@@ -393,9 +741,18 @@ class GeminiPhotoshootProvider:
                 )
             )
 
+        if len(data_urls) != self._output_count:
+            _raise_photoshoot_failure(
+                style_id=client_style_id,
+                stage="gemini_batch",
+                reason=f"frame_count_mismatch:{len(data_urls)}/{self._output_count}",
+                photoshoot_id=photoshoot_id,
+            )
+
         logger.info(
-            "Gemini photoshoot complete: style_id=%s frames=%s",
+            "Gemini photoshoot complete: style_id=%s photoshoot_id=%s frames=%s",
             client_style_id,
+            photoshoot_id,
             len(data_urls),
         )
         return data_urls
@@ -425,82 +782,83 @@ class PhotoshootService:
         provider = self._get_provider()
         provider_name = settings.image_provider.strip().lower()
         output_count = provider.output_count
+        pending_photoshoot_id = str(uuid4())
+
         logger.info(
-            "Photoshoot generation start: style_id=%s provider=%s output_count=%s",
+            "Photoshoot generation start: style_id=%s photoshoot_id=%s "
+            "provider=%s output_count=%s",
             client_style_id,
+            pending_photoshoot_id,
             provider_name,
             output_count,
         )
 
-        try:
-            if isinstance(provider, MockPhotoshootProvider):
-                image_urls = provider.generate(
-                    style=style,
-                    photo_bytes=photo_bytes,
-                    photo_content_type=photo_content_type,
-                    user_description=user_description,
-                )
-            else:
-                data_urls = provider.generate(
-                    style=style,
-                    photo_bytes=photo_bytes,
-                    photo_content_type=photo_content_type,
-                    client_style_id=client_style_id,
-                    user_description=user_description,
-                )
-                image_urls = []
-                for index, data_url in enumerate(data_urls):
-                    logger.info(
-                        "Photoshoot storage upload start: style_id=%s frame=%s/%s",
-                        client_style_id,
-                        index + 1,
-                        len(data_urls),
-                    )
-                    public_url = storage_service.upload_generated_image_data_url(
-                        user_id=user_id,
-                        data_url=data_url,
-                        folder="photoshoots",
-                    )
-                    logger.info(
-                        "Photoshoot storage upload ok: style_id=%s frame=%s url_host=%s",
-                        client_style_id,
-                        index + 1,
-                        public_url.split("/")[2] if "://" in public_url else "unknown",
-                    )
-                    image_urls.append(public_url)
-            photoshoot_id = _save_photoshoot_results_to_history(
-                user_id=user_id,
+        if isinstance(provider, MockPhotoshootProvider):
+            image_urls = provider.generate(
                 style=style,
-                image_urls=image_urls,
+                photo_bytes=photo_bytes,
+                photo_content_type=photo_content_type,
                 user_description=user_description,
             )
-        except HTTPException as exc:
-            logger.error(
-                "Photoshoot generation failed: style_id=%s provider=%s stage=pipeline "
-                "http_status=%s detail=%s",
-                client_style_id,
-                provider_name,
-                exc.status_code,
-                exc.detail,
+            storage_paths: list[str] = []
+            if len(image_urls) != output_count:
+                _raise_photoshoot_failure(
+                    style_id=client_style_id,
+                    stage="mock_batch",
+                    reason=f"frame_count_mismatch:{len(image_urls)}/{output_count}",
+                    photoshoot_id=pending_photoshoot_id,
+                )
+        else:
+            data_urls = provider.generate(
+                style=style,
+                photo_bytes=photo_bytes,
+                photo_content_type=photo_content_type,
+                client_style_id=client_style_id,
+                photoshoot_id=pending_photoshoot_id,
+                user_description=user_description,
             )
-            raise
-        except Exception:
-            logger.exception(
-                "Photoshoot generation failed: style_id=%s provider=%s",
-                client_style_id,
-                provider_name,
+            if len(data_urls) != output_count:
+                _raise_photoshoot_failure(
+                    style_id=client_style_id,
+                    stage="gemini_batch",
+                    reason=f"frame_count_mismatch:{len(data_urls)}/{output_count}",
+                    photoshoot_id=pending_photoshoot_id,
+                )
+            image_urls, storage_paths = _upload_photoshoot_frames_to_storage(
+                user_id=user_id,
+                client_style_id=client_style_id,
+                data_urls=data_urls,
+                photoshoot_id=pending_photoshoot_id,
             )
-            raise
+
+        photoshoot_id = _save_photoshoot_results_to_history(
+            user_id=user_id,
+            style=style,
+            image_urls=image_urls,
+            client_style_id=client_style_id,
+            user_description=user_description,
+            photoshoot_id=pending_photoshoot_id,
+            storage_paths=storage_paths,
+        )
+
+        if len(image_urls) != output_count:
+            _raise_photoshoot_failure(
+                style_id=client_style_id,
+                stage="finalize",
+                reason=f"frame_count_mismatch:{len(image_urls)}/{output_count}",
+                photoshoot_id=photoshoot_id,
+            )
 
         logger.info(
-            "Photoshoot generation success: style_id=%s frames=%s photoshoot_id=%s",
+            "Photoshoot generation success: style_id=%s photoshoot_id=%s frames=%s",
             client_style_id,
-            len(image_urls),
             photoshoot_id,
+            len(image_urls),
         )
         return PhotoshootGenerateResult(
             image_urls=image_urls,
             photoshoot_id=photoshoot_id,
+            storage_paths=storage_paths,
         )
 
 

@@ -3,7 +3,10 @@ import logging
 import os
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from app.auth import CurrentUser, get_current_user
 from app.config import ENV_FILE_PATH, read_dotenv_value, settings, log_settings_diagnostics
@@ -45,7 +48,7 @@ from app.services.credits_service import (
 )
 from app.services.photo_generation_service import photo_generation_service
 from app.services.photoshoot_styles import get_photoshoot_style
-from app.services.photoshoot_service import photoshoot_service
+from app.services.photoshoot_service import photoshoot_service, rollback_persisted_photoshoot
 from app.services.storage_service import storage_service
 from app.services.supabase_service import (
     check_supabase_connection,
@@ -56,6 +59,19 @@ from app.services.supabase_service import (
 )
 
 app = FastAPI(title="AI Image Generator API")
+
+
+@app.exception_handler(HTTPException)
+async def _photoshoot_http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    if request.url.path == "/photoshoots/generate" and exc.status_code in (502, 503):
+        return JSONResponse(
+            status_code=502,
+            content={
+                "status": "error",
+                "message": "Photoshoot generation failed",
+            },
+        )
+    return await http_exception_handler(request, exc)
 
 
 def _require_development_for_debug() -> None:
@@ -638,9 +654,8 @@ def generate_photoshoot(
 ):
     pipeline_log = logging.getLogger("uvicorn.error")
     pipeline_log.info(
-        "POST /photoshoots/generate received style_id=%s user_id=%s",
+        "POST /photoshoots/generate received style_id=%s",
         style_id,
-        user.id,
     )
     _ensure_profile_for_user(user)
 
@@ -693,7 +708,10 @@ def generate_photoshoot(
             "POST /photoshoots/generate failed style_id=%s stage=generation",
             style_id,
         )
-        raise
+        raise HTTPException(
+            status_code=502,
+            detail="Photoshoot generation failed, please retry",
+        ) from None
 
     balance = None
     if settings.enable_credit_consumption:
@@ -707,21 +725,21 @@ def generate_photoshoot(
                 profile,
                 settings.free_generations_limit,
             )
-        except HTTPException:
+        except (HTTPException, RuntimeError) as exc:
             pipeline_log.exception(
-                "Photoshoot balance debit failed style_id=%s photoshoot_id=%s "
-                "(generation already saved)",
+                "Photoshoot balance debit failed style_id=%s photoshoot_id=%s; rolling back",
                 style_id,
                 photoshoot_result.photoshoot_id,
             )
-            raise
-        except RuntimeError as exc:
-            pipeline_log.exception(
-                "Photoshoot balance debit failed style_id=%s photoshoot_id=%s",
-                style_id,
-                photoshoot_result.photoshoot_id,
+            rollback_persisted_photoshoot(
+                photoshoot_id=photoshoot_result.photoshoot_id,
+                storage_paths=photoshoot_result.storage_paths,
+                client_style_id=style_id,
             )
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=502,
+                detail="Photoshoot generation failed, please retry",
+            ) from exc
         balance = build_balance_response(
             updated_profile,
             settings.free_generations_limit,
@@ -740,6 +758,8 @@ def generate_photoshoot(
         len(photoshoot_result.image_urls),
     )
     return PhotoshootGenerateResponse(
+        status="success",
+        images=photoshoot_result.image_urls,
         style_id=style.id,
         style_title=style.title,
         image_urls=photoshoot_result.image_urls,

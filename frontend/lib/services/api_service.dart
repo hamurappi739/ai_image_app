@@ -231,13 +231,27 @@ class PhotoshootGenerateResponse {
   final String? description;
 
   factory PhotoshootGenerateResponse.fromJson(Map<String, dynamic> json) {
-    final rawUrls = json['image_urls'] as List<dynamic>? ?? [];
+    final status = json['status'] as String?;
+    if (status != null && status != 'success') {
+      throw const PhotoshootGenerationFailedException();
+    }
+    final rawUrls = (json['images'] as List<dynamic>?)
+            ?.map((url) => url as String)
+            .toList() ??
+        (json['image_urls'] as List<dynamic>?)
+            ?.map((url) => url as String)
+            .toList() ??
+        <String>[];
+    final outputCount = json['output_count'] as int? ?? rawUrls.length;
+    if (outputCount <= 0 || rawUrls.length < outputCount) {
+      throw const PhotoshootGenerationFailedException();
+    }
     final rawBalance = json['balance'];
     return PhotoshootGenerateResponse(
       styleId: json['style_id'] as String,
       styleTitle: json['style_title'] as String,
-      imageUrls: rawUrls.map((url) => url as String).toList(),
-      outputCount: json['output_count'] as int? ?? rawUrls.length,
+      imageUrls: rawUrls,
+      outputCount: outputCount,
       photoshootId: json['photoshoot_id'] as String? ?? '',
       balance: rawBalance is Map<String, dynamic>
           ? UserBalance.fromJson(rawBalance)

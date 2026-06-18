@@ -89,6 +89,14 @@ def _supabase_patch(url: str, *, json: dict) -> httpx.Response:
     )
 
 
+def _supabase_delete(url: str) -> httpx.Response:
+    return _execute_supabase_request(
+        lambda: httpx.delete(
+            url, headers=_supabase_write_headers(), timeout=_WRITE_TIMEOUT
+        )
+    )
+
+
 def _parse_supabase_response(response: httpx.Response, error_message: str) -> dict:
     if response.status_code not in _SUCCESS_STATUSES:
         raise RuntimeError(error_message)
@@ -237,6 +245,23 @@ def create_generation_record(
     if photoshoot_id is not None:
         payload["photoshoot_id"] = photoshoot_id
     return insert_generation(payload)
+
+
+def delete_generations_by_photoshoot_id(photoshoot_id: str) -> None:
+    """Best-effort rollback when a photoshoot batch insert fails mid-way."""
+    normalized = photoshoot_id.strip()
+    if not normalized:
+        return
+    base_url = _require_supabase_config()
+    url = (
+        f"{base_url}/rest/v1/generations"
+        f"?photoshoot_id=eq.{quote(normalized, safe='')}"
+    )
+    response = _supabase_delete(url)
+    if response.status_code not in _SUCCESS_STATUSES:
+        raise RuntimeError(
+            f"Failed to rollback photoshoot generations (HTTP {response.status_code})"
+        )
 
 
 def insert_credit_transaction(data: dict) -> dict:

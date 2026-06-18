@@ -219,11 +219,64 @@ class SupabaseStorageService:
         self, user_id: str, data_url: str, folder: str = "generations"
     ) -> str:
         """Decode a generated image data URL, upload to Storage, return public URL."""
-        content_type, content = self._parse_generated_image_data_url(data_url)
-        _, public_url = self._upload_decoded_image(
-            user_id, content, content_type, folder=folder
+        _, public_url = self.upload_generated_image_data_url_with_path(
+            user_id, data_url, folder=folder
         )
         return public_url
+
+    def upload_generated_image_data_url_with_path(
+        self, user_id: str, data_url: str, folder: str = "generations"
+    ) -> tuple[str, str]:
+        """Upload a data URL; return ``(storage_path, public_url)`` for rollback flows."""
+        content_type, content = self._parse_generated_image_data_url(data_url)
+        return self._upload_decoded_image(
+            user_id, content, content_type, folder=folder
+        )
+
+    def delete_object_best_effort(self, path: str) -> bool:
+        """Best-effort delete for photoshoot rollback; logs failures without raising."""
+        try:
+            base_url = _require_storage_config()
+        except RuntimeError as exc:
+            logger.warning("Storage delete skipped (config): reason=%s", exc)
+            return False
+
+        bucket = (self._bucket or "").strip()
+        if not bucket:
+            logger.warning("Storage delete skipped (bucket not configured)")
+            return False
+
+        try:
+            object_path = _encode_object_path(path)
+        except ValueError as exc:
+            logger.warning("Storage delete skipped (invalid path): reason=%s", exc)
+            return False
+
+        url = f"{base_url}/storage/v1/object/{quote(bucket, safe='')}/{object_path}"
+        headers = {
+            "apikey": settings.supabase_service_role_key,
+            "Authorization": f"Bearer {settings.supabase_service_role_key}",
+        }
+        try:
+            response = httpx.delete(url, headers=headers, timeout=60.0)
+        except httpx.HTTPError:
+            logger.exception("Storage delete request failed")
+            return False
+
+        if response.status_code in (200, 204):
+            logger.info("Storage delete ok")
+            return True
+
+        logger.warning(
+            "Storage delete failed: status=%s",
+            response.status_code,
+        )
+        return False
+
+    def delete_objects_best_effort(self, paths: list[str]) -> None:
+        """Delete multiple storage objects; never raises (photoshoot rollback only)."""
+        for path in paths:
+            self.delete_object_best_effort(path)
 
     def persist_generated_image(self, user_id: str, image_url: str) -> tuple[str, str | None]:
         """Upload a generated image when ``image_url`` is a base64 data URL.

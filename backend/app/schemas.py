@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class AddCreditsRequest(BaseModel):
@@ -36,6 +36,8 @@ class PhotoshootGenerateRequest(BaseModel):
 
 
 class PhotoshootGenerateResponse(BaseModel):
+    status: Literal["success"] = "success"
+    images: list[str]
     style_id: str
     style_title: str
     image_urls: list[str]
@@ -43,6 +45,16 @@ class PhotoshootGenerateResponse(BaseModel):
     photoshoot_id: str
     balance: BalanceResponse | None = None
     description: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sync_image_fields(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        urls = data.get("images") or data.get("image_urls") or []
+        data = {**data, "images": urls, "image_urls": urls}
+        data.setdefault("status", "success")
+        return data
 
 
 class GenerateResponse(BaseModel):
