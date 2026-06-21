@@ -210,34 +210,98 @@ def build_photoshoot_frame_prompt(
     )
     safe_index = min(max(frame_index, 0), len(frame_prompts) - 1)
     prompt = build_photoshoot_prompt(base_prompt, frame_prompts[safe_index])
+    if frame_index == 0 and series_reference_mode in {"identity_anchor", "anchor_only"}:
+        prompt = f"{prompt}\n\n{build_series_anchor_frame_prompt()}"
     if frame_index > 0 and series_reference_mode in {"identity_anchor", "anchor_only"}:
         prompt = (
             f"{prompt}\n\n"
-            f"{build_series_continuation_reference_prompt(series_reference_mode)}"
+            f"{build_series_continuation_reference_prompt(series_reference_mode, frame_index)}"
         )
     return prompt
 
 
-def build_series_continuation_reference_prompt(series_reference_mode: str) -> str:
-    """Explain reference image roles for continuation frames (2 and 3)."""
+def build_series_anchor_frame_prompt() -> str:
+    """Instructions for frame 0 when it becomes the series style anchor."""
+    return (
+        "Series anchor frame (frame 1 of 3):\n"
+        "Create the main portrait for this photoshoot — calm, direct shot, close-up or chest-up. "
+        "Establish a clear wardrobe, background, location, lighting, and color grading that "
+        "later frames will match. This frame sets the style anchor for the series."
+    )
+
+
+def build_series_anti_duplicate_rules(*, style_image_label: str) -> str:
+    """Rules to prevent copying pose/composition from the style anchor frame."""
+    return (
+        "Anti-duplicate rules (critical):\n"
+        f"1. {style_image_label} is a style reference only, not a pose/composition reference.\n"
+        f"2. Do not recreate {style_image_label}.\n"
+        "3. Do not copy the same pose, same crop, same camera angle, same facial expression.\n"
+        "4. Generate a clearly different photo from the same photoshoot.\n"
+        "5. Keep the same person, same outfit, same location, same lighting, same color grading.\n"
+        f"6. Change at least 3 visual elements compared to {style_image_label}:\n"
+        "   - camera distance / crop\n"
+        "   - body angle\n"
+        "   - head direction / gaze\n"
+        "   - hand position / arms position\n"
+        "   - seated vs standing pose\n"
+        "   - background framing\n"
+        "7. The result must look like another shot from the same professional photoshoot, "
+        "not a duplicate.\n"
+        "One photoshoot, three different shots — not three different looks or outfits."
+    )
+
+
+def build_series_continuation_frame_composition(frame_index: int) -> str:
+    """Frame-specific pose and composition targets for continuation frames."""
+    if frame_index == 1:
+        return (
+            "This shot (frame 2 of 3) — noticeably different from the anchor frame:\n"
+            "Medium shot with a clear three-quarter body turn. Camera at a different distance "
+            "than the anchor. Gaze slightly off-camera or to the side. Different hand and arm "
+            "position. Must not mirror the anchor pose, crop, or expression."
+        )
+    if frame_index >= 2:
+        return (
+            "This shot (frame 3 of 3) — clearly different from frames 1 and 2:\n"
+            "Wider portrait or waist-up framing with a different camera distance. Distinct body "
+            "pose — for example hands folded, resting on a table/chair/wall, or a relaxed standing "
+            "pose. Different head angle and gaze. Same outfit and location, but not the same "
+            "composition as the anchor frame or frame 2."
+        )
+    return ""
+
+
+def build_series_continuation_reference_prompt(
+    series_reference_mode: str,
+    frame_index: int,
+) -> str:
+    """Explain reference image roles and anti-duplicate rules for continuation frames."""
+    composition = build_series_continuation_frame_composition(frame_index)
+    composition_block = f"\n\n{composition}" if composition else ""
+
     if series_reference_mode == "anchor_only":
+        anti_duplicate = build_series_anti_duplicate_rules(style_image_label="Image 1")
         return (
             "Reference image roles for this request:\n"
-            "Image 1: The first generated frame of this photoshoot series. "
-            "Preserve this person's identity, wardrobe, background, location, lighting, "
-            "and overall processing style.\n"
-            "Generate exactly ONE new frame of the same photoshoot. "
-            "Same person, same outfit, same location, same lighting. "
-            "Change only pose, camera angle, or framing."
+            "Image 1: The first generated frame of this photoshoot series. Use it only as a "
+            "style anchor — preserve wardrobe, background, location, lighting, color grading, "
+            "and processing. Do NOT copy its pose, crop, camera angle, or facial expression.\n"
+            "Generate exactly ONE new frame of the same photoshoot.\n\n"
+            f"{anti_duplicate}"
+            f"{composition_block}"
         )
+
+    anti_duplicate = build_series_anti_duplicate_rules(style_image_label="Image 2")
     return (
         "Reference image roles for this request:\n"
-        "Image 1: The original user photo. Preserve this person's identity — "
-        "same face, age, facial features, skin tone, hair, and recognizability.\n"
-        "Image 2: The first generated frame of this photoshoot series. "
-        "Preserve wardrobe, background, location, lighting, and processing style "
-        "from this frame.\n"
-        "Generate exactly ONE new frame of the same photoshoot. "
-        "Same person as Image 1, same outfit/location/lighting as Image 2. "
-        "Change only pose, camera angle, or framing."
+        "Image 1: The original user photo. Identity reference only — preserve face, age, facial "
+        "features, skin tone, hair, and recognizability. Do not copy pose or composition from "
+        "Image 1 unless needed for identity.\n"
+        "Image 2: The first generated frame of this photoshoot series. Style anchor only — "
+        "preserve wardrobe, background, location, lighting, color grading, and processing. "
+        "Do NOT copy pose, crop, camera angle, or facial expression from Image 2.\n"
+        "Generate exactly ONE new frame of the same photoshoot.\n\n"
+        f"{anti_duplicate}"
+        f"{composition_block}"
     )
