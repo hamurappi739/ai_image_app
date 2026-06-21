@@ -287,6 +287,7 @@ def debug_config():
         test_user_id_configured=_env_value_configured(settings.test_user_id),
         photoshoot_output_count=settings.photoshoot_output_count,
         photoshoot_generation_enabled=settings.enable_photoshoot_generation,
+        photoshoot_series_reference_mode=settings.photoshoot_series_reference_mode,
     )
 
 

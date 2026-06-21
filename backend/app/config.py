@@ -11,6 +11,10 @@ ENV_FILE_PATH = _BACKEND_DIR / ".env"
 _PHOTOSHOOT_OUTPUT_COUNT_MIN = 1
 _PHOTOSHOOT_OUTPUT_COUNT_MAX = 3
 _PHOTOSHOOT_OUTPUT_COUNT_DEFAULT = 3
+_PHOTOSHOOT_SERIES_REFERENCE_MODES = frozenset(
+    {"identity_anchor", "legacy", "anchor_only"}
+)
+_PHOTOSHOOT_SERIES_REFERENCE_MODE_DEFAULT = "identity_anchor"
 _DEFAULT_APP_VERSION = "0.1.0"
 
 
@@ -36,6 +40,7 @@ class Settings(BaseSettings):
     enable_credit_consumption: bool = False
     enable_photoshoot_generation: bool = False
     photoshoot_output_count: int = _PHOTOSHOOT_OUTPUT_COUNT_DEFAULT
+    photoshoot_series_reference_mode: str = _PHOTOSHOOT_SERIES_REFERENCE_MODE_DEFAULT
     # Comma-separated trusted origins for CORS (e.g. https://app.example.com).
     # Development: empty → allow all origins. Production: empty → deny browser CORS.
     allowed_origins: str | None = None
@@ -52,6 +57,16 @@ class Settings(BaseSettings):
             _PHOTOSHOOT_OUTPUT_COUNT_MIN,
             min(_PHOTOSHOOT_OUTPUT_COUNT_MAX, parsed),
         )
+
+    @field_validator("photoshoot_series_reference_mode", mode="before")
+    @classmethod
+    def normalize_photoshoot_series_reference_mode(cls, value: object) -> str:
+        if value is None:
+            return _PHOTOSHOOT_SERIES_REFERENCE_MODE_DEFAULT
+        normalized = str(value).strip().lower()
+        if normalized in _PHOTOSHOOT_SERIES_REFERENCE_MODES:
+            return normalized
+        return _PHOTOSHOOT_SERIES_REFERENCE_MODE_DEFAULT
 
     @property
     def is_development(self) -> bool:

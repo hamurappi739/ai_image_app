@@ -194,6 +194,7 @@ class DebugConfigResponse(BaseModel):
     test_user_id_configured: bool
     photoshoot_output_count: int
     photoshoot_generation_enabled: bool
+    photoshoot_series_reference_mode: str
 
 
 class CatalogTemplateItem(BaseModel):

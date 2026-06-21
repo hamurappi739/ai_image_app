@@ -195,6 +195,7 @@ def build_photoshoot_frame_prompt(
     frame_index: int,
     output_count: int,
     user_description: str | None = None,
+    series_reference_mode: str = "legacy",
 ) -> str:
     """Build Gemini instruction for one photoshoot frame (0-based index)."""
     base_prompt = resolve_base_prompt(
@@ -208,4 +209,35 @@ def build_photoshoot_frame_prompt(
         output_count=output_count,
     )
     safe_index = min(max(frame_index, 0), len(frame_prompts) - 1)
-    return build_photoshoot_prompt(base_prompt, frame_prompts[safe_index])
+    prompt = build_photoshoot_prompt(base_prompt, frame_prompts[safe_index])
+    if frame_index > 0 and series_reference_mode in {"identity_anchor", "anchor_only"}:
+        prompt = (
+            f"{prompt}\n\n"
+            f"{build_series_continuation_reference_prompt(series_reference_mode)}"
+        )
+    return prompt
+
+
+def build_series_continuation_reference_prompt(series_reference_mode: str) -> str:
+    """Explain reference image roles for continuation frames (2 and 3)."""
+    if series_reference_mode == "anchor_only":
+        return (
+            "Reference image roles for this request:\n"
+            "Image 1: The first generated frame of this photoshoot series. "
+            "Preserve this person's identity, wardrobe, background, location, lighting, "
+            "and overall processing style.\n"
+            "Generate exactly ONE new frame of the same photoshoot. "
+            "Same person, same outfit, same location, same lighting. "
+            "Change only pose, camera angle, or framing."
+        )
+    return (
+        "Reference image roles for this request:\n"
+        "Image 1: The original user photo. Preserve this person's identity — "
+        "same face, age, facial features, skin tone, hair, and recognizability.\n"
+        "Image 2: The first generated frame of this photoshoot series. "
+        "Preserve wardrobe, background, location, lighting, and processing style "
+        "from this frame.\n"
+        "Generate exactly ONE new frame of the same photoshoot. "
+        "Same person as Image 1, same outfit/location/lighting as Image 2. "
+        "Change only pose, camera angle, or framing."
+    )

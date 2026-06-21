@@ -6,6 +6,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass
+from typing import TypeAlias
 from uuid import uuid4
 
 import httpx
@@ -41,6 +42,33 @@ _RETRYABLE_TRANSPORT_ERRORS = (
     httpx.TimeoutException,
     httpx.ConnectError,
     httpx.TransportError,
+)
+ReferenceImage: TypeAlias = tuple[bytes, str]
+_MULTI_IMAGE_400_HINTS = (
+    "multi-image",
+    "multiple image",
+    "too many image",
+    "image count",
+    "too many parts",
+    "number of images",
+    "reference image",
+    "only one image",
+    "payload",
+    "request too large",
+    "input size",
+    "request size",
+)
+_NON_FALLBACK_400_HINTS = (
+    "location is not supported",
+    "api key",
+    "authentication",
+    "authorization",
+    "quota",
+    "rate limit",
+    "resource exhausted",
+    "safety",
+    "blocked",
+    "policy",
 )
 
 
@@ -132,14 +160,35 @@ def _build_photoshoot_instruction(
     user_description: str | None = None,
     frame_index: int = 0,
     output_count: int = 1,
+    series_reference_mode: str | None = None,
 ) -> str:
+    mode = (
+        series_reference_mode
+        if series_reference_mode is not None
+        else settings.photoshoot_series_reference_mode
+    )
     return build_photoshoot_frame_prompt(
         client_style_id,
         style,
         frame_index=frame_index,
         output_count=output_count,
         user_description=user_description,
+        series_reference_mode=mode,
     )
+
+
+def _decode_generated_image_data_url(data_url: str) -> ReferenceImage:
+    content_type, content = storage_service._parse_generated_image_data_url(data_url)
+    return content, content_type
+
+
+def _is_anchor_only_fallback_eligible(exc: Exception) -> bool:
+    if _extract_http_status_code(exc) != 400:
+        return False
+    reason = _gemini_frame_failure_reason(exc).lower()
+    if any(hint in reason for hint in _NON_FALLBACK_400_HINTS):
+        return False
+    return any(hint in reason for hint in _MULTI_IMAGE_400_HINTS)
 
 
 def _normalize_diagnostic_text(value: str, max_len: int = _MAX_PHOTOSHOOT_DIAGNOSTIC_TEXT_LEN) -> str:
@@ -552,21 +601,22 @@ class GeminiPhotoshootProvider:
         client: genai.Client,
         *,
         instruction: str,
-        photo_bytes: bytes,
-        photo_content_type: str,
+        reference_images: list[ReferenceImage],
     ) -> str:
+        parts: list[types.Part] = [types.Part.from_text(text=instruction)]
+        for image_bytes, image_mime in reference_images:
+            parts.append(
+                types.Part.from_bytes(
+                    data=image_bytes,
+                    mime_type=image_mime,
+                )
+            )
         response = client.models.generate_content(
             model=settings.gemini_model,
             contents=[
                 types.Content(
                     role="user",
-                    parts=[
-                        types.Part.from_text(text=instruction),
-                        types.Part.from_bytes(
-                            data=photo_bytes,
-                            mime_type=photo_content_type,
-                        ),
-                    ],
+                    parts=parts,
                 )
             ],
             config=types.GenerateContentConfig(
@@ -574,8 +624,51 @@ class GeminiPhotoshootProvider:
             ),
         )
         summary = _build_photoshoot_response_summary(response)
-        logger.info("Gemini frame response: %s", summary)
+        logger.info(
+            "Gemini frame response: reference_count=%s %s",
+            len(reference_images),
+            summary,
+        )
         return _extract_photoshoot_image_data_url(response)
+
+    def _invoke_gemini_frame_with_optional_fallback(
+        self,
+        client: genai.Client,
+        *,
+        client_style_id: str,
+        photoshoot_id: str,
+        frame_index: int,
+        instruction: str,
+        reference_images: list[ReferenceImage],
+        fallback_reference_images: list[ReferenceImage] | None = None,
+    ) -> str:
+        try:
+            return self._call_gemini_frame(
+                client,
+                instruction=instruction,
+                reference_images=reference_images,
+            )
+        except Exception as exc:
+            if (
+                fallback_reference_images
+                and reference_images != fallback_reference_images
+                and _is_anchor_only_fallback_eligible(exc)
+            ):
+                logger.info(
+                    "Photoshoot frame multi-image fallback: style_id=%s photoshoot_id=%s "
+                    "frame_index=%s from=%s to=anchor_only reason=%s",
+                    client_style_id,
+                    photoshoot_id,
+                    frame_index,
+                    len(reference_images),
+                    _normalize_diagnostic_text(_gemini_frame_failure_reason(exc)),
+                )
+                return self._call_gemini_frame(
+                    client,
+                    instruction=instruction,
+                    reference_images=fallback_reference_images,
+                )
+            raise
 
     def _generate_frame_with_retries(
         self,
@@ -584,29 +677,36 @@ class GeminiPhotoshootProvider:
         client_style_id: str,
         photoshoot_id: str,
         instruction: str,
-        photo_bytes: bytes,
-        photo_content_type: str,
+        reference_images: list[ReferenceImage],
         frame_index: int,
+        reference_mode: str,
+        fallback_reference_images: list[ReferenceImage] | None = None,
     ) -> str:
         last_failure_reason = "unknown"
 
         for attempt in range(1, _MAX_GEMINI_FRAME_ATTEMPTS + 1):
             logger.info(
                 "Photoshoot frame start: style_id=%s photoshoot_id=%s "
-                "frame_index=%s frame=%s/%s attempt=%s",
+                "frame_index=%s frame=%s/%s attempt=%s reference_mode=%s "
+                "reference_count=%s",
                 client_style_id,
                 photoshoot_id,
                 frame_index,
                 frame_index + 1,
                 self._output_count,
                 attempt,
+                reference_mode,
+                len(reference_images),
             )
             try:
-                data_url = self._call_gemini_frame(
+                data_url = self._invoke_gemini_frame_with_optional_fallback(
                     client,
+                    client_style_id=client_style_id,
+                    photoshoot_id=photoshoot_id,
+                    frame_index=frame_index,
                     instruction=instruction,
-                    photo_bytes=photo_bytes,
-                    photo_content_type=photo_content_type,
+                    reference_images=reference_images,
+                    fallback_reference_images=fallback_reference_images,
                 )
             except HTTPException as exc:
                 last_failure_reason = _gemini_frame_failure_reason(exc)
@@ -713,12 +813,16 @@ class GeminiPhotoshootProvider:
 
         data_urls: list[str] = []
         client = genai.Client(api_key=api_key.strip())
+        series_mode = settings.photoshoot_series_reference_mode.strip().lower()
+        identity_reference: ReferenceImage = (photo_bytes, photo_content_type)
 
         logger.info(
-            "Gemini photoshoot start: style_id=%s photoshoot_id=%s output_count=%s",
+            "Gemini photoshoot start: style_id=%s photoshoot_id=%s output_count=%s "
+            "series_reference_mode=%s",
             client_style_id,
             photoshoot_id,
             self._output_count,
+            series_mode,
         )
 
         for index in range(self._output_count):
@@ -728,16 +832,46 @@ class GeminiPhotoshootProvider:
                 user_description=user_description,
                 frame_index=index,
                 output_count=self._output_count,
+                series_reference_mode=series_mode,
             )
+            if index == 0 or series_mode == "legacy":
+                reference_images = [identity_reference]
+                reference_mode = "identity_only"
+                fallback_reference_images = None
+            elif series_mode == "anchor_only":
+                if not data_urls:
+                    _raise_photoshoot_failure(
+                        style_id=client_style_id,
+                        stage="gemini_batch",
+                        reason="missing_series_anchor",
+                        photoshoot_id=photoshoot_id,
+                    )
+                reference_images = [_decode_generated_image_data_url(data_urls[0])]
+                reference_mode = "anchor_only"
+                fallback_reference_images = None
+            else:
+                if not data_urls:
+                    _raise_photoshoot_failure(
+                        style_id=client_style_id,
+                        stage="gemini_batch",
+                        reason="missing_series_anchor",
+                        photoshoot_id=photoshoot_id,
+                    )
+                anchor_reference = _decode_generated_image_data_url(data_urls[0])
+                reference_images = [identity_reference, anchor_reference]
+                reference_mode = "identity_anchor"
+                fallback_reference_images = [anchor_reference]
+
             data_urls.append(
                 self._generate_frame_with_retries(
                     client,
                     client_style_id=client_style_id,
                     photoshoot_id=photoshoot_id,
                     instruction=instruction,
-                    photo_bytes=photo_bytes,
-                    photo_content_type=photo_content_type,
+                    reference_images=reference_images,
                     frame_index=index,
+                    reference_mode=reference_mode,
+                    fallback_reference_images=fallback_reference_images,
                 )
             )
 
