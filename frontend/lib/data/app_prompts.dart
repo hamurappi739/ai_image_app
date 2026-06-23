@@ -20,6 +20,15 @@ class AppPrompts {
     'clothing_photo': 'Аккуратное фото одежды для карточки товара.',
     'jewelry_photo': 'Красивое фото украшения с мягким светом.',
     'interior_photo': 'Светлая комната, уют и аккуратная обстановка.',
+    'volcanic_gray_rock':
+        'Драматичный портрет на серой скале в кинематографичном стиле.',
+    'ocean_portrait':
+        'Светлый портрет у океана с ветром, мягким солнцем и морским фоном.',
+    'beach_sand_portrait':
+        'Летний портрет на песке с тёплым светом и отпускным настроением.',
+    'white_dress_yellow_meadow':
+        'Нежный портрет в белом платье среди жёлтых цветов.',
+    'woman_with_cat': 'Тёплое фото с кошкой в уютном кинематографичном стиле.',
   };
 
   static const templateFullPrompts = <String, String>{
@@ -57,6 +66,14 @@ class AppPrompts {
         'Создай красивое реалистичное фото украшения для продажи. Сохрани форму, размер, металл, камни, цвет, фактуру и все мелкие детали исходного предмета. Мягкий премиальный свет, чистый нейтральный фон, аккуратные блики, украшение хорошо видно крупным планом. Не изменяй дизайн, не добавляй лишние камни, надписи или элементы. Результат должен выглядеть как фото для маркетплейса.',
     'interior_photo':
         'Создай красивое реалистичное фото интерьера по исходному изображению. Сохрани планировку, основные предметы, цвета, материалы и стиль комнаты. Сделай пространство светлее, чище и уютнее: мягкий дневной свет, аккуратная обстановка, ровные линии, приятная композиция. Не меняй комнату до неузнаваемости, не добавляй странные предметы, не искажай мебель, окна и перспективу.',
+    'volcanic_gray_rock':
+        'You are given one uploaded user photo. Use it as the identity reference. Keep the same person: face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform only the clothes, background, pose, lighting and style described below.\n\nCreate a photorealistic editorial portrait on a gray volcanic rock landscape. The person is leaning or lying elegantly on textured dark gray porous stone, face clearly visible, loose hair framing the face, wearing an elegant black airy dress with soft fabric folds. Warm golden hour side light, cinematic shadows, premium fashion magazine mood, detailed rock texture, natural skin, realistic hair. No text, no extra people, no fantasy elements.',
+    'ocean_portrait':
+        'You are given one uploaded user photo. Use it as the identity reference. Keep the same person: face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform only the clothes, background, pose, lighting and style described below.\n\nCreate a photorealistic close-up seaside portrait near the ocean. The person stands by the sea, face turned slightly to the side, calm dreamy expression, loose hair gently moving in the wind, wearing a light white blouse. Soft blue-green ocean background, warm natural sunlight, clean minimal seaside composition, premium summer portrait, natural skin texture, realistic hair. No text, no extra people.',
+    'beach_sand_portrait':
+        'You are given one uploaded user photo. Use it as the identity reference. Keep the same person: face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform only the clothes, background, pose, lighting and style described below.\n\nCreate a photorealistic luxury beach portrait. The person is lying or reclining on warm sand, face and shoulders visible, relaxed elegant pose, slightly wet hair with a few grains of sand, natural glowing skin. Golden hour beach light, detailed sand texture, calm expensive editorial mood, not erotic, not overly revealing, focus on face, skin, hair and summer atmosphere. No text, no extra people.',
+    'white_dress_yellow_meadow':
+        'You are given one uploaded user photo. Use it as the identity reference. Keep the same person: face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform only the clothes, background, pose, lighting and style described below.\n\nCreate a photorealistic romantic portrait in a yellow flower meadow. The person wears a white flowing dress, sitting or standing naturally among yellow flowers, soft wind, gentle smile, warm sunlight on face and hair. Golden hour countryside atmosphere, blurred yellow flowers in foreground, soft green meadow background, feminine clean elegant mood, natural skin, realistic fabric. No text, no extra people.',
   };
 
   static const photoshootShortDescriptions = <String, String>{

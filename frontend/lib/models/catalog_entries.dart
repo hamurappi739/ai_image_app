@@ -10,6 +10,8 @@ class CatalogTemplateEntry {
     required this.isActive,
     required this.sortOrder,
     this.previewUrl,
+    this.generationBlocked = false,
+    this.generationBlockedMessage,
   });
 
   final String id;
@@ -22,15 +24,18 @@ class CatalogTemplateEntry {
   final int priceImages;
   final bool isActive;
   final int sortOrder;
+  final bool generationBlocked;
+  final String? generationBlockedMessage;
 
   factory CatalogTemplateEntry.fromJson(Map<String, dynamic> json) {
     final previewUrl = json['previewUrl'];
+    final blockedMessage = json['generationBlockedMessage'];
     return CatalogTemplateEntry(
       id: json['id'] as String,
       title: json['title'] as String,
       category: json['category'] as String,
       shortDescription: json['shortDescription'] as String,
-      prompt: json['prompt'] as String,
+      prompt: json['prompt'] as String? ?? '',
       previewAsset: json['previewAsset'] as String,
       previewUrl: previewUrl is String && previewUrl.trim().isNotEmpty
           ? previewUrl.trim()
@@ -38,6 +43,11 @@ class CatalogTemplateEntry {
       priceImages: (json['priceImages'] as num?)?.toInt() ?? 1,
       isActive: json['isActive'] as bool? ?? true,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+      generationBlocked: json['generationBlocked'] as bool? ?? false,
+      generationBlockedMessage:
+          blockedMessage is String && blockedMessage.trim().isNotEmpty
+              ? blockedMessage.trim()
+              : null,
     );
   }
 }

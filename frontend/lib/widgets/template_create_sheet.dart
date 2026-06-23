@@ -94,6 +94,12 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
         !balance.isImageGenerationAvailable;
   }
 
+  bool get _generationBlocked => widget.template.generationBlocked;
+
+  String get _generationBlockedMessage =>
+      widget.template.generationBlockedMessage ??
+      'Скоро здесь можно будет добавить фото питомца.';
+
   Future<void> _pickPhoto() async {
     if (_isPickingPhoto || _isCreating) return;
     setState(() => _isPickingPhoto = true);
@@ -129,7 +135,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
   }
 
   Future<void> _onCreatePressed() async {
-    if (_isCreating) return;
+    if (_isCreating || _generationBlocked) return;
 
     if (!_hasPhoto) {
       await MissingPhotoDialog.showForTemplateOrCustom(context);
@@ -288,82 +294,106 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      'Добавьте фото',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    if (!_hasPhoto)
-                      SizedBox(
-                        height: 44,
-                        child: FilledButton.icon(
-                          onPressed:
-                              _isPickingPhoto || _isCreating ? null : _pickPhoto,
-                          icon: _isPickingPhoto
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.add_photo_alternate_outlined),
-                          label: Text(
-                            _isPickingPhoto ? 'Подождите…' : 'Выбрать фото',
-                          ),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: _accentColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                    if (_generationBlocked) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF1FF),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: _accentColor.withValues(alpha: 0.18),
                           ),
                         ),
-                      )
-                    else ...[
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: AspectRatio(
-                          aspectRatio: 4 / 3,
-                          child: Image.memory(
-                            _selectedPhotoBytes!,
-                            fit: BoxFit.cover,
+                        child: Text(
+                          _generationBlockedMessage,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 15,
+                            height: 1.45,
+                            color: const Color(0xFF374151),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 4,
-                        children: [
-                          TextButton.icon(
-                            onPressed: _isCreating || _isPickingPhoto
+                    ] else ...[
+                      Text(
+                        'Добавьте фото',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (!_hasPhoto)
+                        SizedBox(
+                          height: 44,
+                          child: FilledButton.icon(
+                            onPressed: _isPickingPhoto || _isCreating
                                 ? null
                                 : _pickPhoto,
-                            icon: const Icon(Icons.edit_outlined, size: 17),
-                            label: const Text('Изменить фото'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: _accentColor,
-                              padding: EdgeInsets.zero,
-                              visualDensity: VisualDensity.compact,
+                            icon: _isPickingPhoto
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.add_photo_alternate_outlined),
+                            label: Text(
+                              _isPickingPhoto ? 'Подождите…' : 'Выбрать фото',
+                            ),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: _accentColor,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                             ),
                           ),
-                          TextButton.icon(
-                            onPressed: _isCreating ? null : _clearPhoto,
-                            icon: const Icon(Icons.close, size: 17),
-                            label: const Text('Убрать фото'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xFF6B7280),
-                              padding: EdgeInsets.zero,
-                              visualDensity: VisualDensity.compact,
+                        )
+                      else ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: AspectRatio(
+                            aspectRatio: 4 / 3,
+                            child: Image.memory(
+                              _selectedPhotoBytes!,
+                              fit: BoxFit.cover,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 4,
+                          children: [
+                            TextButton.icon(
+                              onPressed: _isCreating || _isPickingPhoto
+                                  ? null
+                                  : _pickPhoto,
+                              icon: const Icon(Icons.edit_outlined, size: 17),
+                              label: const Text('Изменить фото'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: _accentColor,
+                                padding: EdgeInsets.zero,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: _isCreating ? null : _clearPhoto,
+                              icon: const Icon(Icons.close, size: 17),
+                              label: const Text('Убрать фото'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF6B7280),
+                                padding: EdgeInsets.zero,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
+                    if (!_generationBlocked) ...[
                     const SizedBox(height: 16),
                     Container(
                       width: double.infinity,
@@ -450,6 +480,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                         ),
                       ),
                     ),
+                    ],
                   ],
                 ),
               ),

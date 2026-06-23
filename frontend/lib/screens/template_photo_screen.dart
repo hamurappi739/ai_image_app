@@ -72,6 +72,8 @@ class PhotoTemplate {
     this.previewLabel,
     this.previewAssetPath,
     this.previewUrl,
+    this.generationBlocked = false,
+    this.generationBlockedMessage,
   });
 
   final String id;
@@ -87,6 +89,9 @@ class PhotoTemplate {
 
   /// Optional remote preview URL from backend catalog.
   final String? previewUrl;
+
+  final bool generationBlocked;
+  final String? generationBlockedMessage;
 
   /// Bundled or planned preview asset for catalog cards and modals.
   String get previewAsset =>
@@ -109,6 +114,8 @@ class PhotoTemplate {
       previewLabel: visuals.previewLabel,
       previewAssetPath: entry.previewAsset,
       previewUrl: entry.previewUrl,
+      generationBlocked: entry.generationBlocked,
+      generationBlockedMessage: entry.generationBlockedMessage,
     );
   }
 }

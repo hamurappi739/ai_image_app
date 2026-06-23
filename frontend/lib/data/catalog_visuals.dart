@@ -119,6 +119,31 @@ class CatalogVisuals {
       placeholderColors: [Color(0xFFF5F0E8), Color(0xFFC8B8A0)],
       previewLabel: 'Интерьер',
     ),
+    'volcanic_gray_rock': CatalogTemplateVisuals(
+      kind: TemplateVisualKind.portrait,
+      placeholderColors: [Color(0xFF3A3A3A), Color(0xFF8A8078)],
+      previewLabel: 'На скале',
+    ),
+    'ocean_portrait': CatalogTemplateVisuals(
+      kind: TemplateVisualKind.summer,
+      placeholderColors: [Color(0xFFD8EEF8), Color(0xFF68A8C8)],
+      previewLabel: 'У океана',
+    ),
+    'beach_sand_portrait': CatalogTemplateVisuals(
+      kind: TemplateVisualKind.summer,
+      placeholderColors: [Color(0xFFFFF0D8), Color(0xFFE8C090)],
+      previewLabel: 'Пляж',
+    ),
+    'white_dress_yellow_meadow': CatalogTemplateVisuals(
+      kind: TemplateVisualKind.tender,
+      placeholderColors: [Color(0xFFFFF8D0), Color(0xFFE8D858)],
+      previewLabel: 'В поле',
+    ),
+    'woman_with_cat': CatalogTemplateVisuals(
+      kind: TemplateVisualKind.family,
+      placeholderColors: [Color(0xFFF5E8DC), Color(0xFFD4B8A0)],
+      previewLabel: 'С кошкой',
+    ),
   };
 
   static const _photoshootVisuals = <String, CatalogPhotoshootVisuals>{

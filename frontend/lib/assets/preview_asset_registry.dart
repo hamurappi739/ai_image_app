@@ -69,6 +69,11 @@ class PreviewAssetRegistry {
     'assets/previews/templates/social_photo.jpg',
     'assets/previews/templates/summer_portrait.jpg',
     'assets/previews/templates/winter_portrait.jpg',
+    'assets/previews/templates/volcanic_gray_rock.jpg',
+    'assets/previews/templates/ocean_portrait.jpg',
+    'assets/previews/templates/beach_sand_portrait.jpg',
+    'assets/previews/templates/white_dress_yellow_meadow.jpg',
+    'assets/previews/templates/woman_with_cat.jpg',
   };
 
   static bool isAvailable(String? assetPath) {

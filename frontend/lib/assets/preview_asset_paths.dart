@@ -37,6 +37,11 @@ class PreviewAssetPaths {
     'clothing_photo': '$_templatesDir/clothes_photo.jpg',
     'jewelry_photo': '$_templatesDir/jewelry_photo.jpg',
     'interior_photo': '$_templatesDir/interior_photo.jpg',
+    'volcanic_gray_rock': '$_templatesDir/volcanic_gray_rock.jpg',
+    'ocean_portrait': '$_templatesDir/ocean_portrait.jpg',
+    'beach_sand_portrait': '$_templatesDir/beach_sand_portrait.jpg',
+    'white_dress_yellow_meadow': '$_templatesDir/white_dress_yellow_meadow.jpg',
+    'woman_with_cat': '$_templatesDir/woman_with_cat.jpg',
   };
 
   static String templateAssetForId(String id) =>
