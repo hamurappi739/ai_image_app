@@ -8,6 +8,11 @@ from google.genai import types
 
 from app.config import settings
 from app.services.gemini_quality_instructions import build_text_to_image_instruction
+from app.services.image_provider_resolver import (
+    KIE_IMAGE_PROVIDER,
+    resolve_template_image_provider,
+)
+from app.services.kie_image_service import KieImageGenerationError, KieImageTaskClient
 from app.services.mock_placeholder_urls import (
     DEFAULT_MOCK_IMAGE_URL,
     build_mock_text_image_url,
@@ -69,18 +74,37 @@ class GeminiImageProvider:
         return _extract_image_data_url(response)
 
 
+class KieImageProvider:
+    """Text-only template generation is not supported for Kie image-to-image."""
+
+    def generate(self, prompt: str) -> str:
+        _ = prompt
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Kie gpt-image-2-image-to-image requires a source image; "
+                "use generate-with-photo or set TEMPLATE_IMAGE_PROVIDER=gemini"
+            ),
+        )
+
+
 class ImageService:
     def generate(self, prompt: str) -> str:
         return self._get_provider().generate(prompt)
 
-    def _get_provider(self) -> MockImageProvider | GeminiImageProvider:
-        provider_name = settings.image_provider.strip().lower()
+    def _get_provider(
+        self,
+    ) -> MockImageProvider | GeminiImageProvider | KieImageProvider:
+        provider_name = resolve_template_image_provider()
 
         if provider_name == "mock":
             return MockImageProvider()
 
         if provider_name == "gemini":
             return GeminiImageProvider()
+
+        if provider_name == KIE_IMAGE_PROVIDER:
+            return KieImageProvider()
 
         raise HTTPException(status_code=500, detail="Unsupported image provider")
 

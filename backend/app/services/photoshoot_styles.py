@@ -70,8 +70,8 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
     "premium_portrait": PhotoshootStyle(
         id="premium_portrait",
         title="Премиум-портрет",
-        price_rub=100,
-        is_free=False,
+        price_rub=0,
+        is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Create one standalone premium cinematic portrait photo based on the uploaded person. "
@@ -84,8 +84,8 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
     "winter_photoshoot": PhotoshootStyle(
         id="winter_photoshoot",
         title="Зимняя фотосессия",
-        price_rub=100,
-        is_free=False,
+        price_rub=0,
+        is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Create one standalone winter-themed portrait photo based on the uploaded person. "
@@ -98,8 +98,8 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
     "city_portrait": PhotoshootStyle(
         id="city_portrait",
         title="Городской портрет",
-        price_rub=100,
-        is_free=False,
+        price_rub=0,
+        is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Create one standalone modern city portrait photo based on the uploaded person. "
@@ -112,22 +112,22 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
     "evening_look": PhotoshootStyle(
         id="evening_look",
         title="Вечерний образ",
-        price_rub=100,
-        is_free=False,
+        price_rub=0,
+        is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
-            "Create one standalone elegant evening portrait photo based on the uploaded person. "
+            "Create one standalone elegant indoor portrait photo based on the uploaded person. "
             "Preserve the person's face, identity, and key facial features. "
-            "Use evening styling, premium low-light ambiance, and a sophisticated background. "
-            "Improve mood lighting, color, and composition. "
+            "Use soft warm indoor light, a modest polished outfit, and a neutral refined background. "
+            "Improve clarity, color, and composition while keeping a calm professional portrait style. "
             "Do not change the person's identity. No NSFW content."
         ),
     ),
     "travel_portrait": PhotoshootStyle(
         id="travel_portrait",
         title="Портрет в путешествии",
-        price_rub=100,
-        is_free=False,
+        price_rub=0,
+        is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Создай реалистичный портрет в путешествии по исходному фото. "
@@ -139,8 +139,8 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
     "tender_photoshoot": PhotoshootStyle(
         id="tender_photoshoot",
         title="Нежная фотосессия",
-        price_rub=100,
-        is_free=False,
+        price_rub=0,
+        is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Создай нежный реалистичный портрет по загруженному фото. "
@@ -152,8 +152,8 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
     "summer_photoshoot": PhotoshootStyle(
         id="summer_photoshoot",
         title="Летняя фотосессия",
-        price_rub=100,
-        is_free=False,
+        price_rub=0,
+        is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Создай летнее реалистичное фото по исходному снимку. "
@@ -165,8 +165,8 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
     "expert_photoshoot": PhotoshootStyle(
         id="expert_photoshoot",
         title="Экспертная фотосессия",
-        price_rub=100,
-        is_free=False,
+        price_rub=0,
+        is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Создай экспертное фото по загруженному снимку. "
@@ -178,8 +178,8 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
     "business_brand": PhotoshootStyle(
         id="business_brand",
         title="Бизнес-портрет",
-        price_rub=100,
-        is_free=False,
+        price_rub=0,
+        is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Создай бизнес-портрет по исходному фото. "
@@ -191,8 +191,8 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
     "personal_brand": PhotoshootStyle(
         id="personal_brand",
         title="Фото для личного бренда",
-        price_rub=100,
-        is_free=False,
+        price_rub=0,
+        is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Создай фото для личного бренда по загруженному изображению. "
@@ -204,8 +204,8 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
     "cafe_city": PhotoshootStyle(
         id="cafe_city",
         title="Кафе и город",
-        price_rub=100,
-        is_free=False,
+        price_rub=0,
+        is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Создай фото в стиле кафе и города по загруженному снимку. "
@@ -217,8 +217,8 @@ PHOTOSHOOT_STYLES: dict[str, PhotoshootStyle] = {
     "park_walk": PhotoshootStyle(
         id="park_walk",
         title="Прогулка в парке",
-        price_rub=100,
-        is_free=False,
+        price_rub=0,
+        is_free=True,
         output_count=PHOTOSHOOT_PRODUCT_OUTPUT_COUNT,
         instruction=(
             "Создай реалистичное фото на прогулке в парке по исходному фото. "

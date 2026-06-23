@@ -9,12 +9,23 @@ from google.genai import types
 
 from app.config import settings
 from app.services.gemini_quality_instructions import build_photo_edit_instruction
+from app.services.photoshoot_prompts import append_kie_vertical_portrait_instruction
+from app.services.image_provider_resolver import (
+    KIE_IMAGE_PROVIDER,
+    resolve_template_image_provider,
+)
 from app.services.image_service import (
     _extract_gemini_error_status,
     _extract_gemini_safe_message,
     _extract_image_data_url,
 )
+from app.services.kie_image_service import (
+    KieImageGenerationError,
+    KieImageTaskClient,
+    bytes_to_data_url,
+)
 from app.services.mock_placeholder_urls import build_mock_photo_image_url
+from app.services.storage_service import storage_service
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +48,10 @@ class MockPhotoGenerationProvider:
         description: str,
         photo_bytes: bytes,
         photo_content_type: str,
+        *,
+        user_id: str | None = None,
     ) -> str:
-        _ = photo_bytes, photo_content_type
+        _ = photo_bytes, photo_content_type, user_id
         return build_mock_photo_image_url(description)
 
 
@@ -48,7 +61,10 @@ class GeminiPhotoGenerationProvider:
         description: str,
         photo_bytes: bytes,
         photo_content_type: str,
+        *,
+        user_id: str | None = None,
     ) -> str:
+        _ = user_id
         api_key = settings.gemini_api_key
         if not api_key or not api_key.strip():
             raise HTTPException(
@@ -94,13 +110,67 @@ class GeminiPhotoGenerationProvider:
         return _extract_image_data_url(response)
 
 
+class KiePhotoGenerationProvider:
+    def generate(
+        self,
+        description: str,
+        photo_bytes: bytes,
+        photo_content_type: str,
+        *,
+        user_id: str | None = None,
+    ) -> str:
+        if not user_id or not str(user_id).strip():
+            raise HTTPException(
+                status_code=500,
+                detail="Kie photo generation requires user_id for temp storage",
+            )
+
+        temp_paths: list[str] = []
+        kie_client = KieImageTaskClient()
+        ttl_seconds = int(settings.kie_temp_signed_url_ttl_seconds)
+        instruction = append_kie_vertical_portrait_instruction(
+            build_photo_edit_instruction(description)
+        )
+
+        try:
+            temp_path, signed_url = storage_service.upload_temp_input_bytes(
+                user_id,
+                photo_bytes,
+                photo_content_type,
+                ttl_seconds=ttl_seconds,
+            )
+            temp_paths.append(temp_path)
+            try:
+                image_bytes, content_type = kie_client.generate_image_bytes(
+                    instruction,
+                    [signed_url],
+                )
+            except KieImageGenerationError as exc:
+                logger.warning(
+                    "Kie photo generation failed: error=%s created_tasks_count=%s",
+                    type(exc).__name__,
+                    kie_client.created_tasks_count,
+                )
+                raise HTTPException(
+                    status_code=502,
+                    detail="Kie photo generation failed",
+                ) from exc
+            return bytes_to_data_url(image_bytes, content_type)
+        finally:
+            storage_service.delete_temp_objects_best_effort(temp_paths)
+
+
 class PhotoGenerationService:
-    def _get_provider(self) -> MockPhotoGenerationProvider | GeminiPhotoGenerationProvider:
-        provider_name = settings.image_provider.strip().lower()
+    def _get_provider(
+        self,
+    ) -> MockPhotoGenerationProvider | GeminiPhotoGenerationProvider | KiePhotoGenerationProvider:
+        provider_name = resolve_template_image_provider()
         if provider_name == "mock":
             return MockPhotoGenerationProvider()
         if provider_name == "gemini":
             return GeminiPhotoGenerationProvider()
+        if provider_name == KIE_IMAGE_PROVIDER:
+            return KiePhotoGenerationProvider()
         raise HTTPException(status_code=500, detail="Unsupported image provider")
 
     def generate(
@@ -108,12 +178,15 @@ class PhotoGenerationService:
         description: str,
         photo_bytes: bytes,
         photo_content_type: str,
+        *,
+        user_id: str | None = None,
     ) -> str:
         provider = self._get_provider()
         return provider.generate(
             description=description,
             photo_bytes=photo_bytes,
             photo_content_type=photo_content_type,
+            user_id=user_id,
         )
 
 

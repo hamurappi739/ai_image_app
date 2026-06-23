@@ -2193,6 +2193,54 @@ class _PhotoshootDetailSheet extends StatefulWidget {
   State<_PhotoshootDetailSheet> createState() => _PhotoshootDetailSheetState();
 }
 
+Future<PhotoshootGenerateResponse> _runPhotoshootGenerationWithProgress({
+  required BuildContext context,
+  required ApiService apiService,
+  required String styleId,
+  required String styleTitle,
+  required XFile photoFile,
+  String? description,
+  int outputCount = 3,
+}) {
+  final frameProgress = ValueNotifier<List<PhotoshootFrameProgress>>(
+    List.generate(
+      outputCount,
+      (index) => PhotoshootFrameProgress(index: index, status: 'queued'),
+    ),
+  );
+  return GenerationProgressDialog.run<PhotoshootGenerateResponse>(
+    context: context,
+    title: 'Создаём фотосессию…',
+    subtitle: 'Обычно это занимает 1–3 минуты.',
+    totalSeconds: 180,
+    frameProgressListenable: frameProgress,
+    task: () async {
+      final result = await apiService.generatePhotoshootWithProgress(
+        styleId: styleId,
+        styleTitle: styleTitle,
+        photoFile: photoFile,
+        description: description,
+        onStatus: (status) {
+          frameProgress.value = status.frames
+              .map(
+                (frame) => PhotoshootFrameProgress(
+                  index: frame.index,
+                  status: frame.status,
+                ),
+              )
+              .toList();
+        },
+      );
+      frameProgress.value = List.generate(
+        outputCount,
+        (index) => PhotoshootFrameProgress(index: index, status: 'done'),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      return result;
+    },
+  );
+}
+
 class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
   static const _accentColor = Color(0xFF5B6CFF);
   final _imagePicker = ImagePicker();
@@ -2291,17 +2339,13 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
     }
     setState(() => _isPreparingPhotoshoot = true);
     try {
-      final result = await GenerationProgressDialog.run<PhotoshootGenerateResponse>(
+      final result = await _runPhotoshootGenerationWithProgress(
         context: context,
-        title: 'Создаём фотосессию…',
-        subtitle: 'Обычно это занимает около 1–2 минут.',
-        totalSeconds: 120,
-        task: () => widget.apiService.generatePhotoshoot(
-          styleId: widget.style.id,
-          styleTitle: widget.style.title,
-          description: widget.style.stylePrompt,
-          photoFile: selectedPhotoFile,
-        ),
+        apiService: widget.apiService,
+        styleId: widget.style.id,
+        styleTitle: widget.style.title,
+        photoFile: selectedPhotoFile,
+        description: widget.style.stylePrompt,
       );
       if (!mounted) return;
       if (result.imageUrls.length < result.outputCount) {
@@ -2827,17 +2871,13 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
     setState(() => _isPreparingPhotoshoot = true);
 
     try {
-      final result = await GenerationProgressDialog.run<PhotoshootGenerateResponse>(
+      final result = await _runPhotoshootGenerationWithProgress(
         context: context,
-        title: 'Создаём фотосессию…',
-        subtitle: 'Обычно это занимает около 1–2 минут.',
-        totalSeconds: 120,
-        task: () => widget.apiService.generatePhotoshoot(
-          styleId: _CustomPhotoshootFlow.styleId,
-          styleTitle: _CustomPhotoshootFlow.baseTitle,
-          photoFile: selectedPhotoFile,
-          description: description,
-        ),
+        apiService: widget.apiService,
+        styleId: _CustomPhotoshootFlow.styleId,
+        styleTitle: _CustomPhotoshootFlow.baseTitle,
+        photoFile: selectedPhotoFile,
+        description: description,
       );
       if (!mounted) return;
       if (result.imageUrls.length < result.outputCount) {

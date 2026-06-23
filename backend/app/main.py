@@ -26,6 +26,8 @@ from app.schemas import (
     GenerationItem,
     GenerationsListResponse,
     PhotoshootGenerateResponse,
+    PhotoshootJobStartResponse,
+    PhotoshootJobStatusResponse,
 )
 from app.routes.health import router as health_router
 from app.routes.payments import router as payments_router
@@ -40,6 +42,10 @@ from app.services.catalog_service import (
     load_templates_catalog,
 )
 from app.services.image_service import generate_image
+from app.services.image_provider_resolver import (
+    resolve_photoshoot_image_provider,
+    resolve_template_image_provider,
+)
 from app.services.mock_placeholder_urls import DEFAULT_MOCK_IMAGE_URL
 from app.services.credits_service import (
     add_paid_credits,
@@ -47,6 +53,10 @@ from app.services.credits_service import (
     determine_generation_payment,
 )
 from app.services.photo_generation_service import photo_generation_service
+from app.services.photoshoot_job_service import (
+    get_photoshoot_job_status,
+    start_photoshoot_job,
+)
 from app.services.photoshoot_styles import get_photoshoot_style
 from app.services.photoshoot_service import photoshoot_service, rollback_persisted_photoshoot
 from app.services.storage_service import storage_service
@@ -125,7 +135,13 @@ def _log_startup_config() -> None:
         cors_allow_origins(),
     )
     log_settings_diagnostics(logger)
-    for logger_name in ("app", "app.services", "app.services.photoshoot_service"):
+    for logger_name in (
+        "app",
+        "app.services",
+        "app.services.photoshoot_service",
+        "app.services.kie_image_service",
+        "app.services.kie_photoshoot_provider",
+    ):
         logging.getLogger(logger_name).setLevel(logging.INFO)
     if settings.is_production and settings._env_value_configured(settings.test_user_id):
         logger.warning(
@@ -271,6 +287,8 @@ def debug_config():
     return DebugConfigResponse(
         environment=settings.environment,
         image_provider=settings.image_provider,
+        template_image_provider=resolve_template_image_provider(),
+        photoshoot_image_provider=resolve_photoshoot_image_provider(),
         config_env_file=str(ENV_FILE_PATH),
         config_env_file_exists=ENV_FILE_PATH.is_file(),
         env_file_image_provider=env_file_image_provider,
@@ -279,6 +297,12 @@ def debug_config():
         credit_consumption_enabled=settings.enable_credit_consumption,
         gemini_model=settings.gemini_model,
         gemini_api_key_configured=_env_value_configured(settings.gemini_api_key),
+        kie_image_model=settings.kie_image_model,
+        kie_api_key_configured=_env_value_configured(settings.kie_api_key),
+        kie_image_resolution=settings.kie_image_resolution,
+        kie_image_aspect_ratio=settings.kie_image_aspect_ratio,
+        supabase_temp_storage_bucket=settings.supabase_temp_storage_bucket,
+        kie_max_photoshoot_tasks=settings.kie_max_photoshoot_tasks,
         supabase_url_configured=_env_value_configured(settings.supabase_url),
         supabase_anon_key_configured=_env_value_configured(settings.supabase_anon_key),
         supabase_service_role_key_configured=_env_value_configured(
@@ -616,6 +640,7 @@ def generate_with_photo(
         description=prompt,
         photo_bytes=file_bytes,
         photo_content_type=photo_content_type,
+        user_id=_resolve_user_for_image_storage(user, authorization).id,
     )
     if image_url.startswith("data:image/"):
         storage_user = _resolve_user_for_image_storage(user, authorization)
@@ -658,7 +683,6 @@ def generate_photoshoot(
         "POST /photoshoots/generate received style_id=%s",
         style_id,
     )
-    _ensure_profile_for_user(user)
 
     style = get_photoshoot_style(style_id)
     _ = style_title  # client hint; backend title from catalog is source of truth
@@ -676,20 +700,34 @@ def generate_photoshoot(
     if settings.enable_credit_consumption:
         try:
             profile = ensure_profile_exists(user.id, user.email)
+        except HTTPException:
+            pipeline_log.exception(
+                "POST /photoshoots/generate failed style_id=%s stage=profile_precheck",
+                style_id,
+            )
+            raise
         except RuntimeError:
-            pipeline_log.exception("Photoshoot balance check failed: ensure_profile")
+            pipeline_log.exception(
+                "POST /photoshoots/generate failed style_id=%s stage=profile_precheck",
+                style_id,
+            )
             raise HTTPException(status_code=500, detail="Failed to ensure user profile")
         photoshoot_decision = determine_photoshoot_payment(
             profile,
             settings.free_generations_limit,
         )
         if not photoshoot_decision["allowed"]:
+            pipeline_log.info(
+                "POST /photoshoots/generate denied style_id=%s stage=balance_check reason=%s",
+                style_id,
+                photoshoot_decision["reason"],
+            )
             raise HTTPException(
                 status_code=402,
                 detail=photoshoot_decision["reason"],
             )
         pipeline_log.info(
-            "Photoshoot balance check ok style_id=%s consumption_enabled=true",
+            "Photoshoot balance check ok style_id=%s stage=balance_check consumption_enabled=true",
             style_id,
         )
 
@@ -769,3 +807,63 @@ def generate_photoshoot(
         balance=balance,
         description=user_description,
     )
+
+
+@app.post("/photoshoots/generate/start", response_model=PhotoshootJobStartResponse)
+def start_photoshoot_generation_job(
+    style_id: str = Form(...),
+    style_title: str | None = Form(default=None),
+    description: str | None = Form(default=None),
+    photo: UploadFile | None = File(default=None),
+    user: CurrentUser = Depends(get_current_user),
+):
+    pipeline_log = logging.getLogger("uvicorn.error")
+    pipeline_log.info(
+        "POST /photoshoots/generate/start received style_id=%s",
+        style_id,
+    )
+
+    style = get_photoshoot_style(style_id)
+    user_description = _normalize_photoshoot_description(description)
+    file_bytes, photo_content_type = _validate_upload_photo(photo)
+
+    if not settings.enable_photoshoot_generation:
+        raise HTTPException(
+            status_code=501,
+            detail="Photoshoot generation is disabled in development mode",
+        )
+
+    if settings.enable_credit_consumption:
+        try:
+            profile = ensure_profile_exists(user.id, user.email)
+        except HTTPException:
+            raise
+        except RuntimeError:
+            raise HTTPException(status_code=500, detail="Failed to ensure user profile")
+        decision = determine_photoshoot_payment(profile, settings.free_generations_limit)
+        if not decision["allowed"]:
+            raise HTTPException(status_code=402, detail=decision["reason"])
+
+    job_id = start_photoshoot_job(
+        user_id=user.id,
+        user_email=user.email,
+        style_id=style_id,
+        style_title=style_title or style.title,
+        photo_bytes=file_bytes,
+        photo_content_type=photo_content_type,
+        user_description=user_description,
+        output_count=settings.photoshoot_output_count,
+    )
+    return PhotoshootJobStartResponse(job_id=job_id)
+
+
+@app.get(
+    "/photoshoots/generate/status/{job_id}",
+    response_model=PhotoshootJobStatusResponse,
+)
+def get_photoshoot_generation_job_status(
+    job_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    payload = get_photoshoot_job_status(job_id, user_id=user.id)
+    return PhotoshootJobStatusResponse.model_validate(payload)

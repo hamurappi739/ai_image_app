@@ -13,12 +13,17 @@ from fastapi.testclient import TestClient
 from app.auth import CurrentUser, get_current_user
 from app.main import app
 from app.services.photoshoot_service import (
+    DuplicateFrameMatch,
     GeminiPhotoshootProvider,
     PhotoshootGenerateResult,
     PhotoshootService,
     _MAX_GEMINI_FRAME_ATTEMPTS,
     _PHOTOSHOOT_FAILURE_MESSAGE,
+    _find_generated_frame_duplicate,
     _is_anchor_only_fallback_eligible,
+    _is_empty_image_response_error,
+    _is_identity_fallback_eligible,
+    _is_multi_image_fallback_eligible,
     _is_retryable_gemini_photoshoot_error,
     _upload_photoshoot_frames_to_storage,
     rollback_persisted_photoshoot,
@@ -27,9 +32,26 @@ from app.services.photoshoot_styles import PHOTOSHOOT_STYLES
 from app.services.storage_service import storage_service
 
 _TEST_DATA_URL = "data:image/png;base64,iVBORw0KGgo="
+_TEST_DATA_URL_2 = "data:image/png;base64,QUJDRA=="
+_TEST_DATA_URL_3 = "data:image/png;base64,QUJDREVG"
+_TEST_DATA_URL_4 = "data:image/png;base64,QUJDRUZX"
 _TEST_PHOTO_BYTES = b"fake-photo"
 _TEST_PHOTO_TYPE = "image/jpeg"
 _TEST_JPEG_BYTES = b"\xff\xd8\xff\xe0" + b"\x00" * 16
+
+
+def _empty_image_http_exception() -> HTTPException:
+    return HTTPException(
+        status_code=502,
+        detail=(
+            "Gemini did not return a photoshoot image: "
+            "candidates=1; parts=0; part_types=none"
+        ),
+    )
+
+
+def _identity_reference() -> tuple[bytes, str]:
+    return _TEST_PHOTO_BYTES, _TEST_PHOTO_TYPE
 
 
 def _anchor_reference_from_data_url(data_url: str) -> tuple[bytes, str]:
@@ -226,6 +248,109 @@ class PhotoshootEndpointGeminiRetryTests(unittest.TestCase):
         mock_create_record.assert_not_called()
         mock_storage.upload_generated_image_data_url_with_path.assert_not_called()
         mock_consume.assert_not_called()
+
+
+class PhotoshootEndpointCreditConsumptionTests(unittest.TestCase):
+    _SUCCESS_RESULT = PhotoshootGenerateResult(
+        image_urls=[
+            "https://cdn.example/0.png",
+            "https://cdn.example/1.png",
+            "https://cdn.example/2.png",
+        ],
+        photoshoot_id="ps-demo-safe",
+        storage_paths=[
+            "photoshoots/user-1/frame-0.png",
+            "photoshoots/user-1/frame-1.png",
+            "photoshoots/user-1/frame-2.png",
+        ],
+    )
+
+    def setUp(self) -> None:
+        def _override_user() -> CurrentUser:
+            return CurrentUser(id="endpoint-test-user", email="u@example.com")
+
+        app.dependency_overrides[get_current_user] = _override_user
+        self.client = TestClient(app)
+
+    def tearDown(self) -> None:
+        app.dependency_overrides.clear()
+
+    def _post_photoshoot_generate(self):
+        return self.client.post(
+            "/photoshoots/generate",
+            data={"style_id": "studio_portrait"},
+            files={"photo": ("photo.jpg", io.BytesIO(_TEST_JPEG_BYTES), "image/jpeg")},
+        )
+
+    @patch("app.main.photoshoot_service.generate_photoshoot")
+    @patch("app.main.ensure_profile_exists")
+    @patch("app.main.settings")
+    def test_consumption_disabled_skips_profile_precheck_and_starts_generation(
+        self,
+        mock_settings: MagicMock,
+        mock_ensure_profile_exists: MagicMock,
+        mock_generate: MagicMock,
+    ) -> None:
+        mock_settings.enable_photoshoot_generation = True
+        mock_settings.enable_credit_consumption = False
+        mock_ensure_profile_exists.side_effect = HTTPException(
+            status_code=503,
+            detail="Supabase is temporarily unavailable",
+        )
+        mock_generate.return_value = self._SUCCESS_RESULT
+
+        response = self._post_photoshoot_generate()
+
+        self.assertEqual(response.status_code, 200)
+        mock_ensure_profile_exists.assert_not_called()
+        mock_generate.assert_called_once()
+
+    @patch("app.main.photoshoot_service.generate_photoshoot")
+    @patch("app.main.ensure_profile_exists")
+    @patch("app.main.settings")
+    def test_consumption_disabled_calls_generate_even_if_profile_would_fail(
+        self,
+        mock_settings: MagicMock,
+        mock_ensure_profile_exists: MagicMock,
+        mock_generate: MagicMock,
+    ) -> None:
+        mock_settings.enable_photoshoot_generation = True
+        mock_settings.enable_credit_consumption = False
+        mock_ensure_profile_exists.side_effect = RuntimeError("Supabase down")
+        mock_generate.return_value = self._SUCCESS_RESULT
+
+        response = self._post_photoshoot_generate()
+
+        self.assertEqual(response.status_code, 200)
+        mock_ensure_profile_exists.assert_not_called()
+        mock_generate.assert_called_once()
+
+    @patch("app.main.photoshoot_service.generate_photoshoot")
+    @patch("app.main.ensure_profile_exists")
+    @patch("app.main.settings")
+    def test_consumption_enabled_profile_precheck_timeout_skips_generation(
+        self,
+        mock_settings: MagicMock,
+        mock_ensure_profile_exists: MagicMock,
+        mock_generate: MagicMock,
+    ) -> None:
+        mock_settings.enable_photoshoot_generation = True
+        mock_settings.enable_credit_consumption = True
+        mock_settings.free_generations_limit = 3
+        mock_ensure_profile_exists.side_effect = HTTPException(
+            status_code=503,
+            detail="Supabase is temporarily unavailable",
+        )
+
+        response = self._post_photoshoot_generate()
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(
+            response.json(),
+            {"status": "error", "message": "Photoshoot generation failed"},
+        )
+        mock_ensure_profile_exists.assert_called_once()
+        mock_generate.assert_not_called()
 
 
 class PhotoshootAtomicityTests(unittest.TestCase):
@@ -513,7 +638,11 @@ class PhotoshootSeriesReferenceModeTests(unittest.TestCase):
         mock_client_cls: MagicMock,
     ) -> None:
         _configure_gemini_settings(mock_settings, mode="legacy")
-        mock_call_frame.return_value = _TEST_DATA_URL
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _TEST_DATA_URL_3,
+        ]
 
         provider = GeminiPhotoshootProvider(output_count=3)
         provider.generate(
@@ -537,7 +666,11 @@ class PhotoshootSeriesReferenceModeTests(unittest.TestCase):
         mock_client_cls: MagicMock,
     ) -> None:
         _configure_gemini_settings(mock_settings, mode="identity_anchor")
-        mock_call_frame.return_value = _TEST_DATA_URL
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _TEST_DATA_URL_3,
+        ]
 
         provider = GeminiPhotoshootProvider(output_count=3)
         provider.generate(
@@ -561,7 +694,11 @@ class PhotoshootSeriesReferenceModeTests(unittest.TestCase):
         mock_client_cls: MagicMock,
     ) -> None:
         _configure_gemini_settings(mock_settings, mode="anchor_only")
-        mock_call_frame.return_value = _TEST_DATA_URL
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _TEST_DATA_URL_3,
+        ]
         expected_anchor = _anchor_reference_from_data_url(_TEST_DATA_URL)
 
         provider = GeminiPhotoshootProvider(output_count=3)
@@ -660,7 +797,7 @@ class PhotoshootSeriesReferenceModeTests(unittest.TestCase):
     @patch("app.services.photoshoot_service.genai.Client")
     @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
     @patch("app.services.photoshoot_service.settings")
-    def test_location_400_does_not_fallback_to_anchor_only(
+    def test_location_400_does_not_fallback_to_identity_only(
         self,
         mock_settings: MagicMock,
         mock_call_frame: MagicMock,
@@ -690,7 +827,7 @@ class PhotoshootSeriesReferenceModeTests(unittest.TestCase):
     @patch("app.services.photoshoot_service.genai.Client")
     @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
     @patch("app.services.photoshoot_service.settings")
-    def test_multi_image_400_falls_back_to_anchor_only_for_frame_one(
+    def test_multi_image_400_falls_back_to_identity_only_for_frame_one(
         self,
         mock_settings: MagicMock,
         mock_call_frame: MagicMock,
@@ -700,10 +837,9 @@ class PhotoshootSeriesReferenceModeTests(unittest.TestCase):
         mock_call_frame.side_effect = [
             _TEST_DATA_URL,
             _FakeGeminiClientError(400, "too many image parts in request"),
-            _TEST_DATA_URL,
-            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _TEST_DATA_URL_3,
         ]
-        expected_anchor = _anchor_reference_from_data_url(_TEST_DATA_URL)
 
         provider = GeminiPhotoshootProvider(output_count=3)
         result = provider.generate(
@@ -717,9 +853,335 @@ class PhotoshootSeriesReferenceModeTests(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(mock_call_frame.call_count, 4)
         fallback_refs = mock_call_frame.call_args_list[2].kwargs["reference_images"]
-        self.assertEqual(fallback_refs, [expected_anchor])
+        self.assertEqual(fallback_refs, [_identity_reference()])
+        fallback_instruction = mock_call_frame.call_args_list[2].kwargs["instruction"]
+        self.assertIn("Fallback generation mode", fallback_instruction)
 
-    def test_anchor_only_fallback_eligibility_classification(self) -> None:
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_empty_image_response_falls_back_to_identity_only_without_retrying_primary(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _empty_image_http_exception(),
+            _TEST_DATA_URL_2,
+            _TEST_DATA_URL_3,
+        ]
+
+        provider = GeminiPhotoshootProvider(output_count=3)
+        result = provider.generate(
+            self.style,
+            _TEST_PHOTO_BYTES,
+            _TEST_PHOTO_TYPE,
+            client_style_id="studio_portrait",
+            photoshoot_id="ps-empty-fallback",
+        )
+
+        self.assertEqual(len(result), 3)
+        self.assertEqual(mock_call_frame.call_count, 4)
+        self.assertEqual(
+            mock_call_frame.call_args_list[1].kwargs["reference_images"],
+            [_identity_reference(), _anchor_reference_from_data_url(_TEST_DATA_URL)],
+        )
+        self.assertEqual(
+            mock_call_frame.call_args_list[2].kwargs["reference_images"],
+            [_identity_reference()],
+        )
+        self.assertLess(mock_call_frame.call_count, 1 + _MAX_GEMINI_FRAME_ATTEMPTS + 1)
+        self.assertEqual(
+            mock_call_frame.call_args_list[2].kwargs["reference_images"],
+            [_identity_reference()],
+        )
+
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_frame_zero_empty_image_uses_safe_prompt_on_attempt_two(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+        mock_call_frame.side_effect = [
+            _empty_image_http_exception(),
+            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _TEST_DATA_URL_3,
+        ]
+
+        provider = GeminiPhotoshootProvider(output_count=3)
+        result = provider.generate(
+            self.style,
+            _TEST_PHOTO_BYTES,
+            _TEST_PHOTO_TYPE,
+            client_style_id="evening_look",
+            photoshoot_id="ps-frame-zero-safe-fallback",
+        )
+
+        self.assertEqual(len(result), 3)
+        self.assertEqual(mock_call_frame.call_count, 4)
+        self.assertIn(
+            "Create one realistic professional portrait photo",
+            mock_call_frame.call_args_list[1].kwargs["instruction"],
+        )
+        self.assertIn(
+            "closed elegant blouse or blazer",
+            mock_call_frame.call_args_list[1].kwargs["instruction"],
+        )
+        self.assertNotEqual(
+            mock_call_frame.call_args_list[0].kwargs["instruction"],
+            mock_call_frame.call_args_list[1].kwargs["instruction"],
+        )
+        self.assertEqual(
+            mock_call_frame.call_args_list[0].kwargs["reference_images"],
+            [_identity_reference()],
+        )
+        self.assertEqual(
+            mock_call_frame.call_args_list[1].kwargs["reference_images"],
+            [_identity_reference()],
+        )
+
+    @patch("app.services.photoshoot_service.create_generation_record")
+    @patch("app.services.photoshoot_service.storage_service")
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_frame_zero_empty_image_on_all_attempts_aborts_without_persist(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+        mock_storage: MagicMock,
+        mock_create_record: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+        mock_call_frame.side_effect = _empty_image_http_exception()
+
+        service = PhotoshootService()
+        with self.assertRaises(HTTPException):
+            service.generate_photoshoot(
+                user_id="user-1",
+                style=PHOTOSHOOT_STYLES["evening_look"],
+                photo_bytes=_TEST_PHOTO_BYTES,
+                photo_content_type=_TEST_PHOTO_TYPE,
+                client_style_id="evening_look",
+            )
+
+        self.assertEqual(mock_call_frame.call_count, _MAX_GEMINI_FRAME_ATTEMPTS)
+        self.assertIn(
+            "Create one realistic professional portrait photo",
+            mock_call_frame.call_args_list[1].kwargs["instruction"],
+        )
+        mock_create_record.assert_not_called()
+        mock_storage.upload_generated_image_data_url_with_path.assert_not_called()
+
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_frame_zero_location_400_does_not_use_safe_fallback(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+        mock_call_frame.side_effect = _FakeGeminiClientError(
+            400,
+            "User location is not supported for the API use.",
+        )
+
+        provider = GeminiPhotoshootProvider(output_count=3)
+        with self.assertRaises(HTTPException):
+            provider.generate(
+                PHOTOSHOOT_STYLES["evening_look"],
+                _TEST_PHOTO_BYTES,
+                _TEST_PHOTO_TYPE,
+                client_style_id="evening_look",
+                photoshoot_id="ps-frame-zero-location",
+            )
+
+        self.assertEqual(mock_call_frame.call_count, 1)
+
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_perceptual_near_duplicate_triggers_identity_only_fallback(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _TEST_DATA_URL_3,
+            _TEST_DATA_URL_4,
+        ]
+        near_duplicate = DuplicateFrameMatch(
+            kind="perceptual",
+            duplicate_frame_index=0,
+            perceptual_distance=2,
+        )
+
+        with patch(
+            "app.services.photoshoot_service._find_generated_frame_duplicate",
+            side_effect=[near_duplicate, None, None],
+        ):
+            provider = GeminiPhotoshootProvider(output_count=3)
+            result = provider.generate(
+                self.style,
+                _TEST_PHOTO_BYTES,
+                _TEST_PHOTO_TYPE,
+                client_style_id="studio_portrait",
+                photoshoot_id="ps-near-dup",
+            )
+
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[1], _TEST_DATA_URL_3)
+        self.assertEqual(
+            mock_call_frame.call_args_list[2].kwargs["reference_images"],
+            [_identity_reference()],
+        )
+
+    @patch("app.services.photoshoot_service.create_generation_record")
+    @patch("app.services.photoshoot_service.storage_service")
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_near_duplicate_persists_after_fallback_aborts_without_persist(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+        mock_storage: MagicMock,
+        mock_create_record: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+
+        def _parse_data_url(data_url: str) -> tuple[str, bytes]:
+            content, content_type = _anchor_reference_from_data_url(data_url)
+            return content_type, content
+
+        mock_storage._parse_generated_image_data_url.side_effect = _parse_data_url
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _TEST_DATA_URL_2,
+        ] + [_empty_image_http_exception()] * (3 * _MAX_GEMINI_FRAME_ATTEMPTS)
+        near_duplicate = DuplicateFrameMatch(
+            kind="perceptual",
+            duplicate_frame_index=0,
+            perceptual_distance=1,
+        )
+
+        with patch(
+            "app.services.photoshoot_service._find_generated_frame_duplicate",
+            side_effect=[near_duplicate, near_duplicate],
+        ):
+            service = PhotoshootService()
+            with self.assertRaises(HTTPException):
+                service.generate_photoshoot(
+                    user_id="user-1",
+                    style=self.style,
+                    photo_bytes=_TEST_PHOTO_BYTES,
+                    photo_content_type=_TEST_PHOTO_TYPE,
+                    client_style_id="studio_portrait",
+                )
+
+        self.assertGreater(mock_call_frame.call_count, 3)
+        batch_calls = [
+            call
+            for call in mock_call_frame.call_args_list
+            if "Safe batch fallback" in call.kwargs.get("instruction", "")
+        ]
+        self.assertTrue(batch_calls)
+        mock_create_record.assert_not_called()
+        mock_storage.upload_generated_image_data_url_with_path.assert_not_called()
+
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_duplicate_frame_one_triggers_identity_only_fallback(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _TEST_DATA_URL_3,
+        ]
+
+        provider = GeminiPhotoshootProvider(output_count=3)
+        result = provider.generate(
+            self.style,
+            _TEST_PHOTO_BYTES,
+            _TEST_PHOTO_TYPE,
+            client_style_id="studio_portrait",
+            photoshoot_id="ps-duplicate-fallback",
+        )
+
+        self.assertEqual(result[0], _TEST_DATA_URL)
+        self.assertEqual(result[1], _TEST_DATA_URL_2)
+        self.assertEqual(mock_call_frame.call_count, 4)
+        self.assertEqual(
+            mock_call_frame.call_args_list[2].kwargs["reference_images"],
+            [_identity_reference()],
+        )
+
+    @patch("app.services.photoshoot_service.create_generation_record")
+    @patch("app.services.photoshoot_service.storage_service")
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_duplicate_persists_after_fallback_aborts_without_persist(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+        mock_storage: MagicMock,
+        mock_create_record: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+
+        def _parse_data_url(data_url: str) -> tuple[str, bytes]:
+            content, content_type = _anchor_reference_from_data_url(data_url)
+            return content_type, content
+
+        mock_storage._parse_generated_image_data_url.side_effect = _parse_data_url
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _TEST_DATA_URL,
+            _TEST_DATA_URL,
+        ] + [_empty_image_http_exception()] * (3 * _MAX_GEMINI_FRAME_ATTEMPTS)
+
+        service = PhotoshootService()
+        with self.assertRaises(HTTPException) as ctx:
+            service.generate_photoshoot(
+                user_id="user-1",
+                style=self.style,
+                photo_bytes=_TEST_PHOTO_BYTES,
+                photo_content_type=_TEST_PHOTO_TYPE,
+                client_style_id="studio_portrait",
+            )
+
+        self.assertEqual(ctx.exception.status_code, 502)
+        self.assertGreater(mock_call_frame.call_count, 3)
+        mock_create_record.assert_not_called()
+        mock_storage.upload_generated_image_data_url_with_path.assert_not_called()
+
+    def test_identity_fallback_eligibility_classification(self) -> None:
         location_exc = _FakeGeminiClientError(
             400,
             "User location is not supported for the API use.",
@@ -728,8 +1190,261 @@ class PhotoshootSeriesReferenceModeTests(unittest.TestCase):
             400,
             "too many image parts in request",
         )
+        empty_image_exc = _empty_image_http_exception()
+        self.assertFalse(_is_multi_image_fallback_eligible(location_exc))
+        self.assertTrue(_is_multi_image_fallback_eligible(multi_image_exc))
+        self.assertTrue(_is_empty_image_response_error(empty_image_exc))
+        self.assertTrue(_is_identity_fallback_eligible(empty_image_exc))
         self.assertFalse(_is_anchor_only_fallback_eligible(location_exc))
         self.assertTrue(_is_anchor_only_fallback_eligible(multi_image_exc))
+
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_duplicate_fallback_empty_switches_to_safe_continuation_and_succeeds(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _empty_image_http_exception(),
+            _TEST_DATA_URL_3,
+            _TEST_DATA_URL_4,
+        ]
+        near_duplicate = DuplicateFrameMatch(
+            kind="perceptual",
+            duplicate_frame_index=0,
+            perceptual_distance=2,
+        )
+
+        with patch(
+            "app.services.photoshoot_service._find_generated_frame_duplicate",
+            side_effect=[near_duplicate, None, None, None],
+        ):
+            provider = GeminiPhotoshootProvider(output_count=3)
+            result = provider.generate(
+                self.style,
+                _TEST_PHOTO_BYTES,
+                _TEST_PHOTO_TYPE,
+                client_style_id="evening_look",
+                photoshoot_id="ps-safe-continuation",
+            )
+
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[1], _TEST_DATA_URL_3)
+        self.assertEqual(mock_call_frame.call_count, 5)
+        safe_call = mock_call_frame.call_args_list[3]
+        self.assertEqual(safe_call.kwargs["reference_images"], [_identity_reference()])
+        self.assertIn("Safe continuation fallback", safe_call.kwargs["instruction"])
+        self.assertIn("Avoid complex scene", safe_call.kwargs["instruction"])
+        self.assertNotIn(
+            "Fallback generation mode",
+            safe_call.kwargs["instruction"],
+        )
+
+    @patch("app.services.photoshoot_service.create_generation_record")
+    @patch("app.services.photoshoot_service.storage_service")
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_fallback_empty_all_attempts_after_safe_continuation_aborts_without_persist(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+        mock_storage: MagicMock,
+        mock_create_record: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+
+        def _parse_data_url(data_url: str) -> tuple[str, bytes]:
+            content, content_type = _anchor_reference_from_data_url(data_url)
+            return content_type, content
+
+        mock_storage._parse_generated_image_data_url.side_effect = _parse_data_url
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _empty_image_http_exception(),
+            _empty_image_http_exception(),
+        ] + [_empty_image_http_exception()] * (3 * _MAX_GEMINI_FRAME_ATTEMPTS)
+        near_duplicate = DuplicateFrameMatch(
+            kind="perceptual",
+            duplicate_frame_index=0,
+            perceptual_distance=2,
+        )
+
+        with patch(
+            "app.services.photoshoot_service._find_generated_frame_duplicate",
+            side_effect=[near_duplicate, None],
+        ):
+            service = PhotoshootService()
+            with self.assertRaises(HTTPException) as ctx:
+                service.generate_photoshoot(
+                    user_id="user-1",
+                    style=PHOTOSHOOT_STYLES["evening_look"],
+                    photo_bytes=_TEST_PHOTO_BYTES,
+                    photo_content_type=_TEST_PHOTO_TYPE,
+                    client_style_id="evening_look",
+                )
+
+        self.assertEqual(ctx.exception.status_code, 502)
+        self.assertGreater(mock_call_frame.call_count, 4)
+        self.assertIn(
+            "Safe continuation fallback",
+            mock_call_frame.call_args_list[3].kwargs["instruction"],
+        )
+        batch_calls = [
+            call
+            for call in mock_call_frame.call_args_list
+            if "Safe batch fallback" in call.kwargs.get("instruction", "")
+        ]
+        self.assertTrue(batch_calls)
+        mock_create_record.assert_not_called()
+        mock_storage.upload_generated_image_data_url_with_path.assert_not_called()
+
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_location_400_in_identity_only_fallback_does_not_use_safe_continuation(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _FakeGeminiClientError(
+                400,
+                "User location is not supported for the API use.",
+            ),
+        ]
+        near_duplicate = DuplicateFrameMatch(
+            kind="perceptual",
+            duplicate_frame_index=0,
+            perceptual_distance=2,
+        )
+
+        with patch(
+            "app.services.photoshoot_service._find_generated_frame_duplicate",
+            side_effect=[near_duplicate],
+        ):
+            provider = GeminiPhotoshootProvider(output_count=3)
+            with self.assertRaises(HTTPException):
+                provider.generate(
+                    self.style,
+                    _TEST_PHOTO_BYTES,
+                    _TEST_PHOTO_TYPE,
+                    client_style_id="evening_look",
+                    photoshoot_id="ps-fallback-location",
+                )
+
+        self.assertEqual(mock_call_frame.call_count, 3)
+        self.assertNotIn(
+            "Safe continuation fallback",
+            mock_call_frame.call_args_list[-1].kwargs["instruction"],
+        )
+
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_frame_two_empty_triggers_safe_a_only_batch_fallback_and_succeeds(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _empty_image_http_exception(),
+            _empty_image_http_exception(),
+            _empty_image_http_exception(),
+            _TEST_DATA_URL_3,
+            _TEST_DATA_URL_4,
+            _TEST_DATA_URL_4,
+        ]
+
+        provider = GeminiPhotoshootProvider(output_count=3)
+        result = provider.generate(
+            self.style,
+            _TEST_PHOTO_BYTES,
+            _TEST_PHOTO_TYPE,
+            client_style_id="business_brand",
+            photoshoot_id="ps-safe-batch-success",
+        )
+
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], _TEST_DATA_URL_3)
+        batch_calls = [
+            call
+            for call in mock_call_frame.call_args_list
+            if "Safe batch fallback" in call.kwargs.get("instruction", "")
+        ]
+        self.assertEqual(len(batch_calls), 3)
+        for call in batch_calls:
+            self.assertEqual(call.kwargs["reference_images"], [_identity_reference()])
+
+    @patch("app.services.photoshoot_service.create_generation_record")
+    @patch("app.services.photoshoot_service.storage_service")
+    @patch("app.services.photoshoot_service.genai.Client")
+    @patch.object(GeminiPhotoshootProvider, "_call_gemini_frame")
+    @patch("app.services.photoshoot_service.settings")
+    def test_safe_batch_success_persists_after_primary_failure(
+        self,
+        mock_settings: MagicMock,
+        mock_call_frame: MagicMock,
+        mock_client_cls: MagicMock,
+        mock_storage: MagicMock,
+        mock_create_record: MagicMock,
+    ) -> None:
+        _configure_gemini_settings(mock_settings, mode="identity_anchor")
+
+        def _parse_data_url(data_url: str) -> tuple[str, bytes]:
+            content, content_type = _anchor_reference_from_data_url(data_url)
+            return content_type, content
+
+        mock_storage._parse_generated_image_data_url.side_effect = _parse_data_url
+        mock_storage.upload_generated_image_data_url_with_path.side_effect = [
+            ("photoshoots/user-1/frame-0.png", "https://cdn.example/0.png"),
+            ("photoshoots/user-1/frame-1.png", "https://cdn.example/1.png"),
+            ("photoshoots/user-1/frame-2.png", "https://cdn.example/2.png"),
+        ]
+        mock_call_frame.side_effect = [
+            _TEST_DATA_URL,
+            _TEST_DATA_URL_2,
+            _empty_image_http_exception(),
+            _empty_image_http_exception(),
+            _empty_image_http_exception(),
+            _TEST_DATA_URL_3,
+            _TEST_DATA_URL_4,
+            _TEST_DATA_URL_4,
+        ]
+
+        service = PhotoshootService()
+        with patch.object(
+            PhotoshootService,
+            "_get_provider",
+            return_value=GeminiPhotoshootProvider(output_count=3),
+        ):
+            result = service.generate_photoshoot(
+                user_id="user-1",
+                style=self.style,
+                photo_bytes=_TEST_PHOTO_BYTES,
+                photo_content_type=_TEST_PHOTO_TYPE,
+                client_style_id="business_brand",
+            )
+
+        self.assertEqual(len(result.image_urls), 3)
+        mock_create_record.assert_called()
+        self.assertEqual(mock_storage.upload_generated_image_data_url_with_path.call_count, 3)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,33 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+/// Per-frame photoshoot progress for UI display.
+class PhotoshootFrameProgress {
+  const PhotoshootFrameProgress({
+    required this.index,
+    required this.status,
+  });
+
+  final int index;
+  final String status;
+
+  String get label {
+    final photoNumber = index + 1;
+    switch (status) {
+      case 'done':
+        return 'Фото $photoNumber — готово';
+      case 'generating':
+        return 'Фото $photoNumber — создаём';
+      case 'error':
+        return 'Фото $photoNumber — ошибка';
+      case 'queued':
+      default:
+        return 'Фото $photoNumber — в очереди';
+    }
+  }
+}
 
 /// Блокирующее окно ожидания с обратным отсчётом во время генерации.
 class GenerationProgressDialog extends StatefulWidget {
@@ -10,12 +37,14 @@ class GenerationProgressDialog extends StatefulWidget {
     required this.subtitle,
     required this.totalSeconds,
     required this.task,
+    this.frameProgressListenable,
   });
 
   final String title;
   final String subtitle;
   final int totalSeconds;
   final Future<dynamic> Function() task;
+  final ValueListenable<List<PhotoshootFrameProgress>>? frameProgressListenable;
 
   /// Показывает modal, выполняет [task], возвращает результат или пробрасывает ошибку.
   static Future<T> run<T>({
@@ -24,6 +53,7 @@ class GenerationProgressDialog extends StatefulWidget {
     required String subtitle,
     required int totalSeconds,
     required Future<T> Function() task,
+    ValueListenable<List<PhotoshootFrameProgress>>? frameProgressListenable,
   }) async {
     final result = await showDialog<dynamic>(
       context: context,
@@ -33,6 +63,7 @@ class GenerationProgressDialog extends StatefulWidget {
         title: title,
         subtitle: subtitle,
         totalSeconds: totalSeconds,
+        frameProgressListenable: frameProgressListenable,
         task: () async => task(),
       ),
     );
@@ -140,16 +171,51 @@ class _GenerationProgressDialogState extends State<GenerationProgressDialog> {
                     color: const Color(0xFF6B7280),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  countdownText,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: _accentColor,
+                if (widget.frameProgressListenable != null) ...[
+                  const SizedBox(height: 18),
+                  ValueListenableBuilder<List<PhotoshootFrameProgress>>(
+                    valueListenable: widget.frameProgressListenable!,
+                    builder: (context, frames, _) {
+                      if (frames.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      return Column(
+                        children: [
+                          for (final frame in frames)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  frame.label,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontSize: 15,
+                                    fontWeight: frame.status == 'generating'
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    color: frame.status == 'done'
+                                        ? const Color(0xFF16A34A)
+                                        : const Color(0xFF374151),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
-                ),
+                ],
+                const SizedBox(height: 16),
+                if (widget.frameProgressListenable == null)
+                  Text(
+                    countdownText,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _accentColor,
+                    ),
+                  ),
               ],
             ),
           ),

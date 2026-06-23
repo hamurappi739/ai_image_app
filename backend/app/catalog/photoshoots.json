@@ -60,20 +60,20 @@
     "isActive": true,
     "sortOrder": 30,
     "badge": "Для соцсетей",
-    "isFree": false,
+    "isFree": true,
     "previewUrls": [],
     "framePrompts": [
-      "Кадр 1 из 3. Городской портрет на улице, красивый размытый фасад здания на фоне, спокойная архитектура в европейско-российском стиле, мягкий дневной свет. Стильный спокойный прогулочный casual, светлый топ, бежевый кардиган или мягкий жакет.",
-      "Кадр 2 из 3. Та же фотосессия, тот же человек, та же одежда, тот же городской стиль. Кадр у красивой городской витрины или арки, естественная поза, лёгкий поворот корпуса, мягкий городской дневной свет, фон красиво размыт.",
-      "Кадр 3 из 3. Та же фотосессия, тот же человек, та же одежда, тот же городской стиль. Lifestyle-фотография на тихой городской улице, лёгкая улыбка, мягкий дневной свет, спокойный красивый городской фон, кадр по пояс или чуть шире."
+      "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into an elegant city portrait in a soft beige urban look.\n\nGenerate a photorealistic portrait on a quiet city sidewalk near a light stone building facade with columns and large windows. The person wears a light cream blouse or knit top, beige cardigan or light trench-style layer, and beige trousers. Chest-up to half-body framing, relaxed posture, looking gently into the camera, soft natural daylight, premium clean city atmosphere.\n\nKeep the outfit light beige/cream, keep the background as an elegant city street facade, no studio background, no office blazer, no evening look, no black clothing, no crowd, no cars dominating the frame.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a new photo of the same person in the same city photoshoot, not a copy of Image 2.\n\nCreate a medium portrait near the same stone city facade, with the body turned slightly three-quarters to the camera. The person stands closer to a doorway or column, one hand relaxed near the cardigan or pocket, gaze softly into camera or slightly off-camera. Same beige outfit, same soft daylight, same elegant urban palette.\n\nChange the crop and pose from the first frame: different body angle, different hand position, slightly different background framing. Do not change the outfit color or location.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate the third distinct photo of the same city photoshoot.\n\nCreate a wider waist-up or almost full-body city portrait on the sidewalk, the person walking slowly or standing with one hand in a pocket, building facade receding into the background. Same light cream/beige outfit, same soft neutral daylight, polished city lifestyle mood.\n\nThe third frame must be clearly different from frames 0 and 1: wider camera distance, more visible street depth, different arm position and gaze. Do not create a studio portrait or business suit look."
     ]
   },
   {
     "id": "evening_look",
     "title": "Вечерний образ",
     "category": "Популярное сейчас",
-    "shortDescription": "Нарядная серия с красивым вечерним настроением.",
-    "prompt": "Создай серию из 3 вечерних реалистичных фото по исходному снимку. Сохрани лицо, возраст, черты, форму лица и узнаваемость человека во всех кадрах. Нарядный элегантный образ, мягкий тёплый вечерний свет, красивый фон с премиальной атмосферой, лёгкая уверенная поза, аккуратная ретушь. Фото должны выглядеть дорого и естественно, без искажений лица, рук, пальцев и тела.",
+    "shortDescription": "Элегантная серия в мягком тёплом интерьерном свете.",
+    "prompt": "Создай серию из 3 элегантных портретных фото по исходному снимку. Сохрани лицо, возраст, черты, форму лица и узнаваемость человека во всех кадрах. Аккуратный нарядный образ: закрытая элегантная блуза или жакет. Мягкий тёплый интерьерный свет, спокойный нейтральный красивый фон, профессиональный портретный стиль. Спокойная уверенная поза, аккуратная реалистичная ретушь. Без искажений лица, рук, пальцев и тела.",
     "previewAssets": [
       "assets/previews/photoshoots/evening_look_1.jpg",
       "assets/previews/photoshoots/evening_look_2.jpg",
@@ -83,12 +83,12 @@
     "isActive": true,
     "sortOrder": 40,
     "badge": "Для себя",
-    "isFree": false,
+    "isFree": true,
     "previewUrls": [],
     "framePrompts": [
-      "Кадр 1 из 3. Вечерний элегантный портрет, тёплый мягкий интерьерный свет, премиальная атмосфера ресторана или лобби отеля, фон красиво размыт. Закрытое тёмно-синее элегантное платье или блуза, нарядный, но сдержанный образ. Минимальные украшения.",
-      "Кадр 2 из 3. Та же фотосессия, тот же человек, тот же тёмно-синий вечерний образ, тот же интерьер и тёплый свет. Кадр по грудь у мягко подсвечённого интерьера, спокойная уверенная поза, тёплые оттенки, лампа или светильник в размытии.",
-      "Кадр 3 из 3. Та же фотосессия, тот же человек, тот же вечерний образ, тот же интерьер и свет. Лёгкий поворот головы, взгляд немного в сторону, дорогой сдержанный стиль, мягкий тёплый свет, премиальный интерьер в размытии."
+      "Кадр 1 из 3. Спокойный нарядный портрет по плечи или по грудь. Мягкий тёплый интерьерный свет, закрытая элегантная блуза или жакет, нейтральный красивый фон в мягком размытии. Профессиональный портретный стиль, минимальные украшения, естественная кожа.",
+      "Кадр 2 из 3. Та же фотосессия, тот же человек, тот же нарядный образ, тот же фон и тёплый интерьерный свет. Medium portrait, лёгкий поворот корпуса в три четверти, спокойная уверенная поза, профессиональный портрет без романтической или ночной атмосферы.",
+      "Кадр 3 из 3. Та же фотосессия, тот же человек, тот же аккуратный нарядный образ, тот же фон и свет. Wider waist-up portrait, другой ракурс и другой взгляд, мягкий тёплый интерьерный свет, спокойный профессиональный стиль."
     ]
   },
   {
@@ -106,12 +106,12 @@
     "isActive": true,
     "sortOrder": 10,
     "badge": "Для себя",
-    "isFree": false,
+    "isFree": true,
     "previewUrls": [],
     "framePrompts": [
-      "Кадр 1 из 3. Нежный крупный портрет, мягкий рассеянный дневной свет, светлый спокойный фон, тёплая женственная атмосфера. Мягкий светлый свитер или молочный трикотаж, уютный, но аккуратный образ. Естественная кожа.",
-      "Кадр 2 из 3. Та же фотосессия, тот же человек, тот же светлый нежный образ, тот же мягкий свет. Спокойный портрет по грудь, тёплые пастельные тона, мягкий casual-образ, естественная мимика, светлый фон.",
-      "Кадр 3 из 3. Та же фотосессия, тот же человек, тот же светлый нежный образ. Уютный нежный кадр в светлой комнате, взгляд в камеру, естественная мимика, мягкий свет, светлый диван или пастельный интерьер в размытии."
+      "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a gentle cozy indoor portrait.\n\nGenerate a photorealistic soft beige interior photoshoot: the person sits on a cream sofa, wearing a light beige or cream knit sweater and soft neutral pants. Warm daylight through sheer curtains, pampas grass or soft dried flowers in the background, calm gentle smile, close half-body framing.\n\nKeep the palette cream, beige and warm white. No dark dramatic lighting, no business jacket, no outdoor park, no black clothes, no glamour evening mood.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a new photo from the same tender indoor photoshoot.\n\nCreate a medium seated portrait on the same cream sofa. The person leans slightly forward, one elbow resting on the knee or sofa arm, one hand gently near the chin or cheek. Same cream knit sweater, same soft beige interior, same window daylight and calm warm color grading.\n\nMake it a different composition from the first frame: different hand placement, different head tilt, slightly closer or more centered crop. Do not change the room, outfit or light.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate the third distinct photo from this same tender photoshoot.\n\nCreate a soft close portrait with the person seated comfortably, shoulders relaxed, gentle smile, face slightly turned toward the light. Cream sofa and pampas/dried flowers remain softly visible in the background, same beige knit outfit and soft daylight.\n\nThe third photo should feel closer and more intimate than the first two, with a different crop and gaze. Keep one consistent outfit and location."
     ]
   },
   {
@@ -129,7 +129,7 @@
     "isActive": true,
     "sortOrder": 20,
     "badge": "Для себя",
-    "isFree": false,
+    "isFree": true,
     "previewUrls": [],
     "framePrompts": [
       "Кадр 1 из 3. Летний портрет крупно, мягкий солнечный свет, лёгкое летнее платье или светлая блуза, парк или терраса на фоне, свежая атмосфера отдыха.",
@@ -152,7 +152,7 @@
     "isActive": true,
     "sortOrder": 30,
     "badge": "Для себя",
-    "isFree": false,
+    "isFree": true,
     "previewUrls": [],
     "framePrompts": [
       "Кадр 1 из 3. Зимний портрет крупно, уютная тёплая куртка или пальто, мягкий снег на фоне, спокойный зимний дневной свет, естественная кожа.",
@@ -178,9 +178,9 @@
     "isFree": true,
     "previewUrls": [],
     "framePrompts": [
-      "Кадр 1 из 3. Домашний портрет у окна, мягкий дневной свет на лице, уютная светлая гостиная на фоне, аккуратный интерьер без беспорядка. Спокойный домашний casual, мягкий светлый кардиган, белый топ, натуральные ткани.",
-      "Кадр 2 из 3. Та же фотосессия, тот же человек, тот же домашний casual-образ, тот же интерьер и свет. Человек сидит в мягком кресле или у небольшого столика, спокойная домашняя атмосфера, мягкий свет из окна, чашка или книга как небольшая деталь.",
-      "Кадр 3 из 3. Та же фотосессия, тот же человек, тот же домашний образ, тот же интерьер. Кадр немного шире на светлом диване в уютной гостиной, лёгкая улыбка, окно сбоку, диван, плед, мягкие подушки, спокойный фон."
+      "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a warm home portrait.\n\nGenerate a photorealistic portrait in a bright cozy living room. The person sits on a sofa near a window, wearing a soft cream cardigan over a white top, relaxed and approachable. Background includes warm neutral home decor, a blanket, vase or plants, soft daylight, clean natural color palette.\n\nKeep it realistic and simple: no studio backdrop, no formal suit, no dark evening light, no cluttered room, no luxury hotel look.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a second home portrait in the same living room.\n\nCreate a medium seated portrait with the person sitting more centered on the sofa, hands relaxed on knees or folded naturally, looking into the camera with a soft friendly expression. Same cream cardigan, white top, warm window daylight, neutral home decor.\n\nChange the pose and crop from the first frame. Keep the same room, outfit and cozy natural mood.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate the third distinct photo from the same home portrait session.\n\nCreate a wider relaxed portrait on the sofa with more of the blanket and living room visible. The person sits comfortably, slightly angled, hands resting naturally, soft direct gaze or gentle smile. Same cream cardigan, white top, warm neutral interior and daylight.\n\nMake the third frame wider and calmer than the first two. Do not change the outfit, background style or lighting."
     ]
   },
   {
@@ -198,7 +198,7 @@
     "isActive": true,
     "sortOrder": 10,
     "badge": "Для работы",
-    "isFree": false,
+    "isFree": true,
     "previewUrls": [],
     "framePrompts": [
       "Кадр 1 из 3. Экспертный портрет по плечи, smart casual или деловой стиль, нейтральный фон, мягкий профессиональный свет, уверенный спокойный взгляд.",
@@ -221,12 +221,12 @@
     "isActive": true,
     "sortOrder": 20,
     "badge": "Для работы",
-    "isFree": false,
+    "isFree": true,
     "previewUrls": [],
     "framePrompts": [
-      "Кадр 1 из 3. Бизнес-портрет по плечи, современный деловой стиль, нейтральный фон, мягкий профессиональный свет, уверенный взгляд.",
-      "Кадр 2 из 3. Та же фотосессия, тот же человек, тот же деловой образ, тот же фон и свет. Кадр по грудь, аккуратная осанка, презентабельный вид.",
-      "Кадр 3 из 3. Та же фотосессия, тот же человек, тот же деловой образ. Лёгкий поворот корпуса, профессиональный стиль для сайта и профиля."
+      "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a clean business brand portrait.\n\nGenerate a photorealistic professional portrait on a warm neutral gray or beige studio background. The person wears a light beige, gray or cream textured blazer over a white top. Chest-up framing, calm confident expression, soft professional daylight, clean personal-brand style.\n\nKeep the outfit light and professional. No black top, no off-shoulder clothes, no floral wallpaper, no park, no evening glamour, no corporate office clutter.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a second business brand portrait in the same studio session.\n\nCreate a medium portrait with the person standing or seated, hands lightly joined at waist level or resting naturally, body facing the camera more directly. Same light textured blazer, white top, neutral gray-beige background and soft professional light.\n\nChange the crop and hand position from the first frame. Keep the same clean professional mood and outfit.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate the third distinct business brand portrait.\n\nCreate a three-quarter angle portrait, the person turned slightly to one side while still engaging the camera. Same light blazer and white top, same neutral studio wall, soft shadows, polished expert look.\n\nMake this frame different through body angle and camera distance. Do not change to a dark suit, outdoor location or glamour styling."
     ]
   },
   {
@@ -244,7 +244,7 @@
     "isActive": true,
     "sortOrder": 30,
     "badge": "Для работы",
-    "isFree": false,
+    "isFree": true,
     "previewUrls": [],
     "framePrompts": [
       "Кадр 1 из 3. Портрет для личного бренда крупно, современный уверенный образ, приятный фон, мягкий свет, открытая естественная мимика.",
@@ -267,12 +267,12 @@
     "isActive": true,
     "sortOrder": 10,
     "badge": "Атмосфера",
-    "isFree": false,
+    "isFree": true,
     "previewUrls": [],
     "framePrompts": [
-      "Кадр 1 из 3. Портрет в путешествии, красивый атмосферный фон — видовая точка или городская улица, мягкий естественный свет, лёгкий стильный образ.",
-      "Кадр 2 из 3. Та же фотосессия, тот же человек, тот же travel-образ, тот же свет. Кадр на прогулке, фон красиво размыт, ощущение поездки и отдыха.",
-      "Кадр 3 из 3. Та же фотосессия, тот же человек, тот же образ. Чуть шире, естественная поза, атмосферный фон путешествия."
+      "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a warm travel portrait.\n\nGenerate a photorealistic portrait in a charming old European town street with stone walls, warm beige buildings, cobblestone path and soft daylight. The person wears a beige linen jacket, cardigan or light trench over a white top. Chest-up framing, relaxed smile, travel lifestyle mood.\n\nKeep the location as old town/travel street. No studio, no business blazer look, no modern office, no beach, no winter clothing.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a second photo from the same travel portrait session.\n\nCreate a medium portrait in the same narrow street, body turned slightly three-quarters, one hand gently touching the lapel/cardigan or holding a small strap. Same beige travel outfit, white top, cobblestone street and warm old-town background.\n\nChange the pose and gaze from the first frame. Keep the same travel location and warm color palette.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate the third distinct photo from this travel session.\n\nCreate a wider portrait with the person walking slowly along a stone wall or turning back slightly on a cobblestone street. More of the old town alley is visible, same beige jacket/cardigan, same white top, soft daylight, relaxed travel expression.\n\nThe third frame should be more side-view or walking-oriented. Do not change to a different city style, studio background or business outfit."
     ]
   },
   {
@@ -290,12 +290,12 @@
     "isActive": true,
     "sortOrder": 20,
     "badge": "Атмосфера",
-    "isFree": false,
+    "isFree": true,
     "previewUrls": [],
     "framePrompts": [
-      "Кадр 1 из 3. Портрет в уютном городском кафе, мягкий тёплый свет внутри кафе и дневной свет из окна. На столе спереди чашка кофе, но лицо остаётся главным. Оливковый жакет, белая рубашка, аккуратный городской casual. Фон кафе мягко размыт.",
-      "Кадр 2 из 3. Та же фотосессия, тот же человек, тот же оливковый жакет и белая рубашка. Городская прогулка у витрины кафе, естественная поза, мягкий дневной свет, приятный городской фон, тёмная рама витрины, фон красиво размыт.",
-      "Кадр 3 из 3. Та же фотосессия, тот же человек, тот же оливковый жакет и белая рубашка. Человек сидит у окна кафе, город за стеклом в мягком размытии, спокойная улыбка, тёплая уютная атмосфера, чашка кофе как деталь."
+      "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a cafe and city portrait.\n\nGenerate a photorealistic portrait at a small cafe table near a large window. The person wears an olive, sage or beige jacket over a crisp white blouse or shirt. A coffee cup is on the table, warm cafe lamps and city street visible through the window, calm confident expression, elegant lifestyle mood.\n\nKeep the outfit olive/beige plus white shirt. Keep cafe-window-city atmosphere. No studio gray background, no black evening dress, no office desk, no crowded restaurant.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a second photo in the same cafe and city photoshoot.\n\nCreate a closer portrait by the cafe window with the coffee cup slightly visible in the foreground. The person sits or leans naturally, body turned three-quarters, gaze into camera or softly toward the window. Same olive/beige jacket, white shirt, warm cafe light and street-through-window background.\n\nChange the pose, crop and gaze from the first frame. Do not change the outfit, cafe location or warm color grading.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate the third distinct photo from this cafe-city session.\n\nCreate a portrait just outside or near the cafe entrance, the city street and cafe windows visible behind the person. The person stands in the same olive/beige jacket and white shirt, relaxed confident posture, soft daylight mixed with warm cafe light.\n\nThe third frame should show more city context and a standing pose. Keep it part of the same session, not a different outfit or different place."
     ]
   },
   {
@@ -313,12 +313,12 @@
     "isActive": true,
     "sortOrder": 30,
     "badge": "Атмосфера",
-    "isFree": false,
+    "isFree": true,
     "previewUrls": [],
     "framePrompts": [
-      "Кадр 1 из 3. Портрет на прогулке в парке крупно, мягкий дневной свет, природный зелёный фон в размытии, спокойный casual-образ.",
-      "Кадр 2 из 3. Та же фотосессия, тот же человек, тот же парковый образ, тот же свет. Кадр по грудь на аллее парка, лёгкая улыбка.",
-      "Кадр 3 из 3. Та же фотосессия, тот же человек, тот же образ. Lifestyle-кадр шире среди деревьев, свежая атмосфера прогулки."
+      "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a calm park walk portrait.\n\nGenerate a photorealistic portrait in a green park with trees and a soft path in the background. The person wears a mint, pale green or light pastel cardigan over a white top. Chest-up framing, relaxed natural smile, soft daylight, fresh calm spring/summer palette.\n\nKeep the outfit mint/white and the location green park. No black clothes, no studio, no business suit, no evening light, no winter snow.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a second photo from the same park walk session.\n\nCreate a medium portrait by a park bench or railing, the person leaning lightly or resting hands naturally, possibly holding a light tote bag or cardigan edge. Same mint cardigan, white top, green trees and soft park daylight.\n\nChange hand position, crop and body angle from the first frame. Keep the same outfit and fresh green park mood.",
+      "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate the third distinct photo from this park walk session.\n\nCreate a wider walking portrait on the park path, the person standing or slowly walking with hands relaxed, body turned slightly to the side, trees framing the background. Same mint cardigan, white top, soft daylight and natural green color grading.\n\nThe third frame should be wider and more lifestyle-oriented than the first two. Do not change to city street, studio, black outfit or formal business styling."
     ]
   },
   {
@@ -336,7 +336,7 @@
     "isActive": true,
     "sortOrder": 40,
     "badge": "Для себя",
-    "isFree": false,
+    "isFree": true,
     "previewUrls": [],
     "framePrompts": [
       "Кадр 1 из 3. Премиальный студийный портрет, чистый тёмно-серый или графитовый фон, мягкий объёмный портретный свет, дорогая минималистичная атмосфера. Графитовый жакет, светлая закрытая блуза, элегантный сдержанный образ высокого класса.",

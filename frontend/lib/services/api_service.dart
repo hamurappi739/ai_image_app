@@ -261,6 +261,100 @@ class PhotoshootGenerateResponse {
   }
 }
 
+class PhotoshootJobStartResponse {
+  const PhotoshootJobStartResponse({required this.jobId});
+
+  final String jobId;
+
+  factory PhotoshootJobStartResponse.fromJson(Map<String, dynamic> json) {
+    return PhotoshootJobStartResponse(jobId: json['job_id'] as String);
+  }
+}
+
+class PhotoshootJobFrameStatus {
+  const PhotoshootJobFrameStatus({required this.index, required this.status});
+
+  final int index;
+  final String status;
+
+  factory PhotoshootJobFrameStatus.fromJson(Map<String, dynamic> json) {
+    return PhotoshootJobFrameStatus(
+      index: json['index'] as int,
+      status: json['status'] as String,
+    );
+  }
+}
+
+class PhotoshootJobStatusResponse {
+  const PhotoshootJobStatusResponse({
+    required this.status,
+    required this.message,
+    required this.frames,
+    required this.images,
+    this.photoshootId,
+    this.styleId,
+    this.styleTitle,
+    this.outputCount,
+    this.balance,
+    this.description,
+  });
+
+  final String status;
+  final String message;
+  final List<PhotoshootJobFrameStatus> frames;
+  final List<String> images;
+  final String? photoshootId;
+  final String? styleId;
+  final String? styleTitle;
+  final int? outputCount;
+  final UserBalance? balance;
+  final String? description;
+
+  factory PhotoshootJobStatusResponse.fromJson(Map<String, dynamic> json) {
+    final rawFrames = json['frames'] as List<dynamic>? ?? const [];
+    final rawImages = (json['images'] as List<dynamic>?)
+            ?.map((url) => url as String)
+            .toList() ??
+        <String>[];
+    final rawBalance = json['balance'];
+    return PhotoshootJobStatusResponse(
+      status: json['status'] as String? ?? 'queued',
+      message: json['message'] as String? ?? '',
+      frames: rawFrames
+          .map(
+            (frame) =>
+                PhotoshootJobFrameStatus.fromJson(frame as Map<String, dynamic>),
+          )
+          .toList(),
+      images: rawImages,
+      photoshootId: json['photoshoot_id'] as String?,
+      styleId: json['style_id'] as String?,
+      styleTitle: json['style_title'] as String?,
+      outputCount: json['output_count'] as int?,
+      balance: rawBalance is Map<String, dynamic>
+          ? UserBalance.fromJson(rawBalance)
+          : null,
+      description: json['description'] as String?,
+    );
+  }
+
+  PhotoshootGenerateResponse toGenerateResponse({
+    required String fallbackStyleId,
+    required String fallbackStyleTitle,
+  }) {
+    final resolvedOutputCount = outputCount ?? images.length;
+    return PhotoshootGenerateResponse(
+      styleId: styleId ?? fallbackStyleId,
+      styleTitle: styleTitle ?? fallbackStyleTitle,
+      imageUrls: images,
+      outputCount: resolvedOutputCount,
+      photoshootId: photoshootId ?? '',
+      balance: balance,
+      description: description,
+    );
+  }
+}
+
 const _hiddenDevDescriptionPatterns = [
   'debug test prompt',
   'debug',
@@ -621,5 +715,105 @@ class ApiService {
       return PhotoshootGenerateResponse.fromJson(json);
     }
     throw Exception('Failed to prepare photoshoot');
+  }
+
+  Future<PhotoshootJobStartResponse> startPhotoshootJob({
+    required String styleId,
+    required String styleTitle,
+    required XFile photoFile,
+    String? description,
+  }) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/photoshoots/generate/start'),
+    );
+    request.headers.addAll(_requestHeaders());
+    request.fields['style_id'] = styleId;
+    request.fields['style_title'] = styleTitle;
+    final trimmedDescription = description?.trim();
+    if (trimmedDescription != null && trimmedDescription.isNotEmpty) {
+      request.fields['description'] = trimmedDescription;
+    }
+
+    final photoBytes = await photoFile.readAsBytes();
+    final mimeType = _resolveMultipartMimeType(photoFile);
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'photo',
+        photoBytes,
+        filename: _resolveFileName(photoFile),
+        contentType: MediaType.parse(mimeType),
+      ),
+    );
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode == 501) {
+      throw const PhotoshootPlaceholderException();
+    }
+    if (response.statusCode == 400) {
+      throw const PhotoshootInvalidPhotoException();
+    }
+    if (response.statusCode == 402) {
+      throw const InsufficientPhotoshootsException();
+    }
+    if (response.statusCode >= 500) {
+      throw const PhotoshootGenerationFailedException();
+    }
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return PhotoshootJobStartResponse.fromJson(json);
+    }
+    throw Exception('Failed to start photoshoot job');
+  }
+
+  Future<PhotoshootJobStatusResponse> getPhotoshootJobStatus(String jobId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/photoshoots/generate/status/$jobId'),
+      headers: _requestHeaders(),
+    );
+    if (response.statusCode == 404) {
+      throw const PhotoshootGenerationFailedException();
+    }
+    if (response.statusCode >= 500) {
+      throw const PhotoshootGenerationFailedException();
+    }
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return PhotoshootJobStatusResponse.fromJson(json);
+    }
+    throw Exception('Failed to fetch photoshoot job status');
+  }
+
+  Future<PhotoshootGenerateResponse> generatePhotoshootWithProgress({
+    required String styleId,
+    required String styleTitle,
+    required XFile photoFile,
+    String? description,
+    void Function(PhotoshootJobStatusResponse status)? onStatus,
+  }) async {
+    final started = await startPhotoshootJob(
+      styleId: styleId,
+      styleTitle: styleTitle,
+      photoFile: photoFile,
+      description: description,
+    );
+    while (true) {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      final status = await getPhotoshootJobStatus(started.jobId);
+      onStatus?.call(status);
+      if (status.status == 'success') {
+        return status.toGenerateResponse(
+          fallbackStyleId: styleId,
+          fallbackStyleTitle: styleTitle,
+        );
+      }
+      if (status.status == 'error') {
+        if (status.message.toLowerCase().contains('insufficient')) {
+          throw const InsufficientPhotoshootsException();
+        }
+        throw const PhotoshootGenerationFailedException();
+      }
+    }
   }
 }

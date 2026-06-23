@@ -29,8 +29,24 @@ class Settings(BaseSettings):
     app_version: str = _DEFAULT_APP_VERSION
     environment: str = "development"
     image_provider: str = "mock"
+    template_image_provider: str | None = None
+    photoshoot_image_provider: str | None = None
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-2.5-flash-image"
+    kie_api_key: str | None = None
+    kie_api_base_url: str = "https://api.kie.ai"
+    kie_image_model: str = "gpt-image-2-image-to-image"
+    kie_image_resolution: str = "2K"
+    kie_image_aspect_ratio: str = "3:4"
+    kie_task_timeout_seconds: int = 300
+    kie_poll_initial_delay_seconds: float = 2.0
+    kie_poll_max_delay_seconds: float = 8.0
+    kie_temp_signed_url_ttl_seconds: int = 3600
+    kie_max_create_task_attempts: int = 3
+    kie_max_photoshoot_tasks: int = 5
+    kie_create_task_rate_limit: int = 15
+    kie_create_task_rate_window_seconds: float = 10.0
+    supabase_temp_storage_bucket: str = "ai-temp-inputs"
     free_generations_limit: int = 3
     supabase_url: str | None = None
     supabase_anon_key: str | None = None
@@ -103,6 +119,9 @@ class Settings(BaseSettings):
 
     def gemini_configured(self) -> bool:
         return self._env_value_configured(self.gemini_api_key)
+
+    def kie_configured(self) -> bool:
+        return self._env_value_configured(self.kie_api_key)
 
     def production_safety_ok(self) -> bool:
         """True when production env has no development-only misconfiguration."""

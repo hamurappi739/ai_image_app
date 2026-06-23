@@ -57,6 +57,29 @@ class PhotoshootGenerateResponse(BaseModel):
         return data
 
 
+class PhotoshootFrameStatusItem(BaseModel):
+    index: int
+    status: Literal["queued", "generating", "done", "error"]
+
+
+class PhotoshootJobStartResponse(BaseModel):
+    job_id: str
+    status: Literal["queued"] = "queued"
+
+
+class PhotoshootJobStatusResponse(BaseModel):
+    status: Literal["queued", "running", "success", "error"]
+    message: str = ""
+    frames: list[PhotoshootFrameStatusItem] = Field(default_factory=list)
+    images: list[str] = Field(default_factory=list)
+    photoshoot_id: str | None = None
+    style_id: str | None = None
+    style_title: str | None = None
+    output_count: int | None = None
+    balance: BalanceResponse | None = None
+    description: str | None = None
+
+
 class GenerateResponse(BaseModel):
     image_url: str
     prompt: str
@@ -119,6 +142,8 @@ class ReadyChecks(BaseModel):
     supabase_auth_configured: bool
     gemini_required: bool
     gemini_configured: bool
+    kie_required: bool
+    kie_configured: bool
     production_safe: bool
 
 
@@ -180,6 +205,8 @@ class DebugConfigResponse(BaseModel):
 
     environment: str
     image_provider: str
+    template_image_provider: str
+    photoshoot_image_provider: str
     config_env_file: str
     config_env_file_exists: bool
     env_file_image_provider: str | None = None
@@ -188,6 +215,12 @@ class DebugConfigResponse(BaseModel):
     credit_consumption_enabled: bool
     gemini_model: str
     gemini_api_key_configured: bool
+    kie_image_model: str
+    kie_api_key_configured: bool
+    kie_image_resolution: str
+    kie_image_aspect_ratio: str
+    supabase_temp_storage_bucket: str
+    kie_max_photoshoot_tasks: int
     supabase_url_configured: bool
     supabase_anon_key_configured: bool
     supabase_service_role_key_configured: bool

@@ -5,7 +5,9 @@ from __future__ import annotations
 import logging
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
+from io import BytesIO
 from typing import TypeAlias
 from uuid import uuid4
 
@@ -13,6 +15,7 @@ import httpx
 from fastapi import HTTPException
 from google import genai
 from google.genai import types
+from PIL import Image
 
 from app.config import settings
 from app.services.image_service import (
@@ -21,8 +24,19 @@ from app.services.image_service import (
     _extract_gemini_safe_message,
     _iter_response_parts,
 )
+from app.services.image_provider_resolver import (
+    KIE_IMAGE_PROVIDER,
+    resolve_photoshoot_image_provider,
+)
 from app.services.mock_placeholder_urls import build_mock_photoshoot_image_urls
-from app.services.photoshoot_prompts import build_photoshoot_frame_prompt
+from app.services.photoshoot_prompts import (
+    build_identity_only_fallback_prompt_suffix,
+    build_photoshoot_frame_prompt,
+    build_safe_a_only_batch_frame_prompt,
+    build_safe_continuation_fallback_prompt_suffix,
+    build_safe_frame0_fallback_prompt,
+    resolve_prompt_source,
+)
 from app.services.photoshoot_styles import PhotoshootStyle
 from app.services.storage_service import storage_service
 from app.services.supabase_service import (
@@ -70,6 +84,132 @@ _NON_FALLBACK_400_HINTS = (
     "blocked",
     "policy",
 )
+_PERCEPTUAL_DHASH_WIDTH = 9
+_PERCEPTUAL_DHASH_HEIGHT = 8
+_PERCEPTUAL_DUPLICATE_MAX_HAMMING = 5
+
+
+@dataclass(frozen=True, slots=True)
+class DuplicateFrameMatch:
+    kind: str
+    duplicate_frame_index: int
+    perceptual_distance: int | None = None
+
+
+class _PhotoshootFrameFailure(Exception):
+    """Internal frame failure carrying reason for optional batch-level fallback."""
+
+    def __init__(self, reason: str, *, frame_index: int) -> None:
+        super().__init__(reason)
+        self.reason = reason
+        self.frame_index = frame_index
+
+
+def _is_empty_image_reason(reason: str) -> bool:
+    normalized = reason.lower()
+    if "gemini did not return" not in normalized or "image" not in normalized:
+        return False
+    return "parts=0" in normalized or "part_types=none" in normalized
+
+
+def _is_safe_a_only_batch_fallback_eligible(reason: str) -> bool:
+    normalized = reason.lower()
+    if normalized == "duplicate_frame_persists":
+        return True
+    if _is_empty_image_reason(normalized):
+        return True
+    return "image_other" in normalized
+
+
+def _batch_fallback_reason_label(reason: str) -> str:
+    normalized = reason.lower()
+    if normalized == "duplicate_frame_persists":
+        return "duplicate_persisted"
+    if "image_other" in normalized:
+        return "image_other"
+    if _is_empty_image_reason(normalized):
+        return "empty_image_response"
+    return "unknown"
+
+
+def _will_defer_to_safe_batch_fallback(
+    *,
+    defer_batch_fallback: bool,
+    frame_index: int,
+    reason: str,
+) -> bool:
+    return (
+        defer_batch_fallback
+        and frame_index > 0
+        and _is_safe_a_only_batch_fallback_eligible(reason)
+    )
+
+
+def _log_terminal_frame_failure(
+    *,
+    client_style_id: str,
+    photoshoot_id: str,
+    frame_index: int,
+    reason: str,
+    defer_batch_fallback: bool,
+    exhausted: bool = False,
+    attempts: int | None = None,
+) -> None:
+    if _will_defer_to_safe_batch_fallback(
+        defer_batch_fallback=defer_batch_fallback,
+        frame_index=frame_index,
+        reason=reason,
+    ):
+        logger.info(
+            "Photoshoot primary frame failed; safe batch fallback eligible: "
+            "style_id=%s photoshoot_id=%s frame_index=%s reason=%s",
+            client_style_id,
+            photoshoot_id,
+            frame_index,
+            _normalize_diagnostic_text(reason),
+        )
+        return
+    if exhausted:
+        logger.error(
+            "Photoshoot frame exhausted retries: style_id=%s photoshoot_id=%s "
+            "frame_index=%s attempts=%s reason=%s",
+            client_style_id,
+            photoshoot_id,
+            frame_index,
+            attempts,
+            _normalize_diagnostic_text(reason),
+        )
+        return
+    logger.error(
+        "Photoshoot frame non-retryable failure: style_id=%s photoshoot_id=%s "
+        "frame_index=%s reason=%s",
+        client_style_id,
+        photoshoot_id,
+        frame_index,
+        _normalize_diagnostic_text(reason),
+    )
+
+
+def _fail_frame_or_raise_batch_deferred(
+    *,
+    style_id: str,
+    photoshoot_id: str,
+    frame_index: int,
+    reason: str,
+    defer_batch_fallback: bool,
+) -> None:
+    if (
+        defer_batch_fallback
+        and frame_index > 0
+        and _is_safe_a_only_batch_fallback_eligible(reason)
+    ):
+        raise _PhotoshootFrameFailure(reason, frame_index=frame_index)
+    _raise_photoshoot_failure(
+        style_id=style_id,
+        stage="gemini_frame",
+        reason=reason,
+        photoshoot_id=photoshoot_id,
+    )
 
 
 def _extract_http_status_code(exc: Exception) -> int | None:
@@ -182,13 +322,269 @@ def _decode_generated_image_data_url(data_url: str) -> ReferenceImage:
     return content, content_type
 
 
-def _is_anchor_only_fallback_eligible(exc: Exception) -> bool:
+def _normalize_data_url_payload(data_url: str) -> str:
+    match = re.match(
+        r"^data:(?P<mime>[^;]+);base64,(?P<payload>.+)$",
+        data_url.strip(),
+        flags=re.DOTALL,
+    )
+    if not match:
+        return data_url.strip()
+    return re.sub(r"\s+", "", match.group("payload"))
+
+
+def _data_url_image_bytes(data_url: str) -> bytes:
+    image_bytes, _mime = _decode_generated_image_data_url(data_url)
+    return image_bytes
+
+
+def _exception_detail_text(exc: Exception) -> str:
+    if isinstance(exc, HTTPException):
+        detail = exc.detail
+        if isinstance(detail, str):
+            return detail
+        return str(detail)
+    message = _extract_gemini_safe_message(exc)
+    if message:
+        return message
+    return str(exc)
+
+
+def _compute_dhash(image_bytes: bytes) -> int | None:
+    try:
+        image = Image.open(BytesIO(image_bytes)).convert("L")
+        image = image.resize(
+            (_PERCEPTUAL_DHASH_WIDTH, _PERCEPTUAL_DHASH_HEIGHT),
+            Image.Resampling.LANCZOS,
+        )
+        pixels = list(image.getdata())
+        hash_value = 0
+        for row in range(_PERCEPTUAL_DHASH_HEIGHT):
+            row_offset = row * _PERCEPTUAL_DHASH_WIDTH
+            for col in range(_PERCEPTUAL_DHASH_WIDTH - 1):
+                left = pixels[row_offset + col]
+                right = pixels[row_offset + col + 1]
+                hash_value = (hash_value << 1) | (1 if left > right else 0)
+        return hash_value
+    except Exception:
+        return None
+
+
+def _hamming_distance(left: int, right: int) -> int:
+    return (left ^ right).bit_count()
+
+
+def _find_perceptual_near_duplicate(
+    data_url: str,
+    existing_data_urls: list[str],
+) -> DuplicateFrameMatch | None:
+    try:
+        candidate_bytes = _data_url_image_bytes(data_url)
+    except HTTPException:
+        return None
+
+    candidate_hash = _compute_dhash(candidate_bytes)
+    if candidate_hash is None:
+        return None
+
+    for index, previous in enumerate(existing_data_urls):
+        try:
+            previous_bytes = _data_url_image_bytes(previous)
+        except HTTPException:
+            continue
+        previous_hash = _compute_dhash(previous_bytes)
+        if previous_hash is None:
+            continue
+        distance = _hamming_distance(candidate_hash, previous_hash)
+        if distance <= _PERCEPTUAL_DUPLICATE_MAX_HAMMING:
+            return DuplicateFrameMatch(
+                kind="perceptual",
+                duplicate_frame_index=index,
+                perceptual_distance=distance,
+            )
+    return None
+
+
+def _find_generated_frame_duplicate(
+    data_url: str,
+    existing_data_urls: list[str],
+) -> DuplicateFrameMatch | None:
+    if not existing_data_urls:
+        return None
+
+    normalized = _normalize_data_url_payload(data_url)
+    try:
+        candidate_bytes = _data_url_image_bytes(data_url)
+    except HTTPException:
+        candidate_bytes = None
+
+    for index, previous in enumerate(existing_data_urls):
+        if _normalize_data_url_payload(previous) == normalized:
+            return DuplicateFrameMatch(kind="exact", duplicate_frame_index=index)
+        if candidate_bytes is not None:
+            try:
+                if _data_url_image_bytes(previous) == candidate_bytes:
+                    return DuplicateFrameMatch(kind="exact", duplicate_frame_index=index)
+            except HTTPException:
+                continue
+
+    return _find_perceptual_near_duplicate(data_url, existing_data_urls)
+
+
+def _is_duplicate_photoshoot_frame(data_url: str, existing_data_urls: list[str]) -> bool:
+    return _find_generated_frame_duplicate(data_url, existing_data_urls) is not None
+
+
+def _is_multi_image_fallback_eligible(exc: Exception) -> bool:
     if _extract_http_status_code(exc) != 400:
         return False
     reason = _gemini_frame_failure_reason(exc).lower()
     if any(hint in reason for hint in _NON_FALLBACK_400_HINTS):
         return False
     return any(hint in reason for hint in _MULTI_IMAGE_400_HINTS)
+
+
+def _is_anchor_only_fallback_eligible(exc: Exception) -> bool:
+    """Backward-compatible alias for multi-image fallback eligibility."""
+    return _is_multi_image_fallback_eligible(exc)
+
+
+def _is_empty_image_response_error(exc: Exception) -> bool:
+    detail = _exception_detail_text(exc).lower()
+    if "gemini did not return" not in detail or "image" not in detail:
+        return False
+    if "photoshoot" in detail or "parts=0" in detail or "part_types=none" in detail:
+        return True
+    return "candidates=" in detail and "parts=0" in detail
+
+
+def _is_identity_fallback_eligible(exc: Exception) -> bool:
+    return _is_empty_image_response_error(exc) or _is_multi_image_fallback_eligible(exc)
+
+
+def _identity_fallback_reason(exc: Exception) -> str:
+    if _is_empty_image_response_error(exc):
+        return "empty_image_response"
+    if _is_multi_image_fallback_eligible(exc):
+        return "multi_image_error"
+    return "unknown"
+
+
+def _should_try_identity_only_fallback(
+    exc: Exception,
+    primary_reference_images: list[ReferenceImage],
+    identity_only_fallback_refs: list[ReferenceImage] | None,
+) -> bool:
+    if not identity_only_fallback_refs:
+        return False
+    if primary_reference_images == identity_only_fallback_refs:
+        return False
+    return _is_identity_fallback_eligible(exc)
+
+
+def _should_use_safe_continuation_fallback(
+    exc: Exception,
+    *,
+    frame_index: int,
+    use_fallback_refs: bool,
+    use_safe_continuation_fallback: bool,
+) -> bool:
+    if frame_index <= 0 or not use_fallback_refs or use_safe_continuation_fallback:
+        return False
+    if not _is_empty_image_response_error(exc):
+        return False
+    status_code = _extract_http_status_code(exc)
+    if status_code == 400:
+        reason = _gemini_frame_failure_reason(exc).lower()
+        if any(hint in reason for hint in _NON_FALLBACK_400_HINTS):
+            return False
+    return True
+
+
+def _frame_attempt_retryable(
+    exc: Exception,
+    *,
+    use_fallback_refs: bool,
+    frame_index: int,
+    identity_only_fallback_refs: list[ReferenceImage] | None,
+) -> bool:
+    if (
+        not use_fallback_refs
+        and frame_index > 0
+        and identity_only_fallback_refs
+        and _is_identity_fallback_eligible(exc)
+    ):
+        return False
+    if use_fallback_refs and _is_multi_image_fallback_eligible(exc):
+        return False
+    if (
+        use_fallback_refs
+        and frame_index > 0
+        and _is_empty_image_response_error(exc)
+    ):
+        return False
+    return _is_retryable_gemini_photoshoot_error(exc)
+
+
+def _should_use_safe_frame0_fallback(
+    exc: Exception,
+    *,
+    frame_index: int,
+    use_safe_frame0_prompt: bool,
+) -> bool:
+    if frame_index != 0 or use_safe_frame0_prompt:
+        return False
+    if not _is_empty_image_response_error(exc):
+        return False
+    status_code = _extract_http_status_code(exc)
+    if status_code == 400:
+        reason = _gemini_frame_failure_reason(exc).lower()
+        if any(hint in reason for hint in _NON_FALLBACK_400_HINTS):
+            return False
+    return True
+
+
+def _format_diagnostic_enum(value: object | None) -> str:
+    if value is None:
+        return ""
+    name = getattr(value, "name", None)
+    if isinstance(name, str) and name.strip():
+        return name.strip()
+    return str(value).strip()
+
+
+def _append_gemini_response_diagnostics(summary_parts: list[str], response) -> None:
+    candidates = getattr(response, "candidates", None) or []
+    for index, candidate in enumerate(candidates):
+        finish_reason = getattr(candidate, "finish_reason", None)
+        if finish_reason is not None:
+            summary_parts.append(
+                f"candidate_{index}_finish_reason={_format_diagnostic_enum(finish_reason)}"
+            )
+
+        safety_ratings = getattr(candidate, "safety_ratings", None) or []
+        for rating in safety_ratings:
+            category = _format_diagnostic_enum(getattr(rating, "category", None))
+            probability = _format_diagnostic_enum(getattr(rating, "probability", None))
+            if category or probability:
+                summary_parts.append(f"candidate_{index}_safety={category}:{probability}")
+
+    prompt_feedback = getattr(response, "prompt_feedback", None)
+    if prompt_feedback is None:
+        return
+
+    block_reason = getattr(prompt_feedback, "block_reason", None)
+    if block_reason is not None:
+        summary_parts.append(
+            f"prompt_block_reason={_format_diagnostic_enum(block_reason)}"
+        )
+
+    feedback_ratings = getattr(prompt_feedback, "safety_ratings", None) or []
+    for rating in feedback_ratings:
+        category = _format_diagnostic_enum(getattr(rating, "category", None))
+        probability = _format_diagnostic_enum(getattr(rating, "probability", None))
+        if category or probability:
+            summary_parts.append(f"prompt_safety={category}:{probability}")
 
 
 def _normalize_diagnostic_text(value: str, max_len: int = _MAX_PHOTOSHOOT_DIAGNOSTIC_TEXT_LEN) -> str:
@@ -243,6 +639,8 @@ def _build_photoshoot_response_summary(response) -> str:
     ]
     if text_preview:
         summary_parts.append(f'text_preview="{text_preview}"')
+
+    _append_gemini_response_diagnostics(summary_parts, response)
 
     return "; ".join(summary_parts)
 
@@ -631,44 +1029,50 @@ class GeminiPhotoshootProvider:
         )
         return _extract_photoshoot_image_data_url(response)
 
-    def _invoke_gemini_frame_with_optional_fallback(
+    def _log_identity_only_fallback(
         self,
-        client: genai.Client,
         *,
         client_style_id: str,
         photoshoot_id: str,
         frame_index: int,
-        instruction: str,
-        reference_images: list[ReferenceImage],
-        fallback_reference_images: list[ReferenceImage] | None = None,
-    ) -> str:
-        try:
-            return self._call_gemini_frame(
-                client,
-                instruction=instruction,
-                reference_images=reference_images,
+        fallback_reason: str,
+        primary_reference_mode: str,
+        primary_reference_count: int,
+        fallback_reference_count: int,
+        duplicate_match: DuplicateFrameMatch | None = None,
+    ) -> None:
+        if duplicate_match is not None and duplicate_match.kind == "perceptual":
+            logger.info(
+                "Photoshoot frame identity fallback: style_id=%s photoshoot_id=%s "
+                "frame_index=%s reference_mode=identity_only_fallback "
+                "fallback_reason=%s primary_reference_mode=%s "
+                "primary_reference_count=%s fallback_reference_count=%s "
+                "duplicate_check=perceptual duplicate_distance=%s duplicate_frame_index=%s",
+                client_style_id,
+                photoshoot_id,
+                frame_index,
+                fallback_reason,
+                primary_reference_mode,
+                primary_reference_count,
+                fallback_reference_count,
+                duplicate_match.perceptual_distance,
+                duplicate_match.duplicate_frame_index,
             )
-        except Exception as exc:
-            if (
-                fallback_reference_images
-                and reference_images != fallback_reference_images
-                and _is_anchor_only_fallback_eligible(exc)
-            ):
-                logger.info(
-                    "Photoshoot frame multi-image fallback: style_id=%s photoshoot_id=%s "
-                    "frame_index=%s from=%s to=anchor_only reason=%s",
-                    client_style_id,
-                    photoshoot_id,
-                    frame_index,
-                    len(reference_images),
-                    _normalize_diagnostic_text(_gemini_frame_failure_reason(exc)),
-                )
-                return self._call_gemini_frame(
-                    client,
-                    instruction=instruction,
-                    reference_images=fallback_reference_images,
-                )
-            raise
+            return
+        logger.info(
+            "Photoshoot frame identity fallback: style_id=%s photoshoot_id=%s "
+            "frame_index=%s reference_mode=identity_only_fallback "
+            "fallback_reason=%s primary_reference_mode=%s "
+            "primary_reference_count=%s fallback_reference_count=%s reference_count=%s",
+            client_style_id,
+            photoshoot_id,
+            frame_index,
+            fallback_reason,
+            primary_reference_mode,
+            primary_reference_count,
+            fallback_reference_count,
+            fallback_reference_count,
+        )
 
     def _generate_frame_with_retries(
         self,
@@ -680,36 +1084,135 @@ class GeminiPhotoshootProvider:
         reference_images: list[ReferenceImage],
         frame_index: int,
         reference_mode: str,
-        fallback_reference_images: list[ReferenceImage] | None = None,
+        existing_data_urls: list[str] | None = None,
+        identity_only_fallback_refs: list[ReferenceImage] | None = None,
+        fallback_instruction_suffix: str | None = None,
+        defer_batch_fallback: bool = False,
+        batch_mode: str = "identity_anchor_primary",
+        prompt_source: str = "-",
     ) -> str:
         last_failure_reason = "unknown"
+        use_fallback_refs = False
+        use_safe_frame0_prompt = False
+        use_safe_continuation_fallback = False
+        safe_frame0_fallback_prompt = build_safe_frame0_fallback_prompt(client_style_id)
+        safe_continuation_fallback_suffix = build_safe_continuation_fallback_prompt_suffix(
+            frame_index=frame_index,
+            output_count=self._output_count,
+            client_style_id=client_style_id,
+        )
 
         for attempt in range(1, _MAX_GEMINI_FRAME_ATTEMPTS + 1):
+            current_reference_images = (
+                identity_only_fallback_refs
+                if use_fallback_refs and identity_only_fallback_refs
+                else reference_images
+            )
+            prompt_mode = ""
+            if use_safe_frame0_prompt and frame_index == 0:
+                current_reference_mode = "safe_frame0_fallback"
+                current_instruction = safe_frame0_fallback_prompt
+                prompt_mode = "safe_frame0_fallback"
+            elif use_fallback_refs:
+                current_reference_mode = "identity_only_fallback"
+                current_instruction = instruction
+                if use_safe_continuation_fallback:
+                    current_instruction = instruction + safe_continuation_fallback_suffix
+                    prompt_mode = "safe_continuation_fallback"
+                elif fallback_instruction_suffix:
+                    current_instruction = instruction + fallback_instruction_suffix
+            else:
+                current_reference_mode = reference_mode
+                current_instruction = instruction
+
             logger.info(
                 "Photoshoot frame start: style_id=%s photoshoot_id=%s "
-                "frame_index=%s frame=%s/%s attempt=%s reference_mode=%s "
-                "reference_count=%s",
+                "frame_index=%s frame=%s/%s attempt=%s batch_mode=%s "
+                "reference_mode=%s prompt_mode=%s prompt_source=%s reference_count=%s",
                 client_style_id,
                 photoshoot_id,
                 frame_index,
                 frame_index + 1,
                 self._output_count,
                 attempt,
-                reference_mode,
-                len(reference_images),
+                batch_mode,
+                current_reference_mode,
+                prompt_mode or "-",
+                prompt_source,
+                len(current_reference_images),
             )
             try:
-                data_url = self._invoke_gemini_frame_with_optional_fallback(
+                data_url = self._call_gemini_frame(
                     client,
-                    client_style_id=client_style_id,
-                    photoshoot_id=photoshoot_id,
-                    frame_index=frame_index,
-                    instruction=instruction,
-                    reference_images=reference_images,
-                    fallback_reference_images=fallback_reference_images,
+                    instruction=current_instruction,
+                    reference_images=current_reference_images,
                 )
             except HTTPException as exc:
                 last_failure_reason = _gemini_frame_failure_reason(exc)
+                if _should_use_safe_frame0_fallback(
+                    exc,
+                    frame_index=frame_index,
+                    use_safe_frame0_prompt=use_safe_frame0_prompt,
+                ):
+                    use_safe_frame0_prompt = True
+                    logger.info(
+                        "Photoshoot frame safe fallback: style_id=%s photoshoot_id=%s "
+                        "frame_index=%s fallback_reason=empty_image_response "
+                        "prompt_mode=safe_frame0_fallback attempt=%s reference_count=%s",
+                        client_style_id,
+                        photoshoot_id,
+                        frame_index,
+                        attempt + 1,
+                        len(reference_images),
+                    )
+                    continue
+                if _should_use_safe_continuation_fallback(
+                    exc,
+                    frame_index=frame_index,
+                    use_fallback_refs=use_fallback_refs,
+                    use_safe_continuation_fallback=use_safe_continuation_fallback,
+                ):
+                    use_safe_continuation_fallback = True
+                    logger.info(
+                        "Photoshoot frame safe continuation fallback: style_id=%s "
+                        "photoshoot_id=%s frame_index=%s reference_mode=identity_only_fallback "
+                        "prompt_mode=safe_continuation_fallback "
+                        "fallback_reason=empty_image_response attempt=%s reference_count=%s",
+                        client_style_id,
+                        photoshoot_id,
+                        frame_index,
+                        attempt + 1,
+                        len(current_reference_images),
+                    )
+                    continue
+                if (
+                    not use_fallback_refs
+                    and identity_only_fallback_refs
+                    and reference_images != identity_only_fallback_refs
+                    and _should_try_identity_only_fallback(
+                        exc,
+                        reference_images,
+                        identity_only_fallback_refs,
+                    )
+                ):
+                    use_fallback_refs = True
+                    self._log_identity_only_fallback(
+                        client_style_id=client_style_id,
+                        photoshoot_id=photoshoot_id,
+                        frame_index=frame_index,
+                        fallback_reason=_identity_fallback_reason(exc),
+                        primary_reference_mode=reference_mode,
+                        primary_reference_count=len(reference_images),
+                        fallback_reference_count=len(identity_only_fallback_refs),
+                    )
+                    continue
+
+                retryable = _frame_attempt_retryable(
+                    exc,
+                    use_fallback_refs=use_fallback_refs,
+                    frame_index=frame_index,
+                    identity_only_fallback_refs=identity_only_fallback_refs,
+                )
                 logger.warning(
                     "Photoshoot frame failed: style_id=%s photoshoot_id=%s "
                     "frame_index=%s attempt=%s reason=%s retryable=%s",
@@ -718,26 +1221,89 @@ class GeminiPhotoshootProvider:
                     frame_index,
                     attempt,
                     last_failure_reason,
-                    _is_retryable_gemini_photoshoot_error(exc),
+                    retryable,
                 )
-                if not _is_retryable_gemini_photoshoot_error(exc):
-                    logger.error(
-                        "Photoshoot frame non-retryable failure: style_id=%s photoshoot_id=%s "
-                        "frame_index=%s reason=%s",
-                        client_style_id,
-                        photoshoot_id,
-                        frame_index,
-                        last_failure_reason,
-                    )
-                    _raise_photoshoot_failure(
-                        style_id=client_style_id,
-                        stage="gemini_frame",
-                        reason=last_failure_reason,
+                if not retryable:
+                    _log_terminal_frame_failure(
+                        client_style_id=client_style_id,
                         photoshoot_id=photoshoot_id,
+                        frame_index=frame_index,
+                        reason=last_failure_reason,
+                        defer_batch_fallback=defer_batch_fallback,
+                    )
+                    _fail_frame_or_raise_batch_deferred(
+                        style_id=client_style_id,
+                        photoshoot_id=photoshoot_id,
+                        frame_index=frame_index,
+                        reason=last_failure_reason,
+                        defer_batch_fallback=defer_batch_fallback,
                     )
             except Exception as exc:
                 last_failure_reason = _gemini_frame_failure_reason(exc)
-                retryable = _is_retryable_gemini_photoshoot_error(exc)
+                if _should_use_safe_frame0_fallback(
+                    exc,
+                    frame_index=frame_index,
+                    use_safe_frame0_prompt=use_safe_frame0_prompt,
+                ):
+                    use_safe_frame0_prompt = True
+                    logger.info(
+                        "Photoshoot frame safe fallback: style_id=%s photoshoot_id=%s "
+                        "frame_index=%s fallback_reason=empty_image_response "
+                        "prompt_mode=safe_frame0_fallback attempt=%s reference_count=%s",
+                        client_style_id,
+                        photoshoot_id,
+                        frame_index,
+                        attempt + 1,
+                        len(reference_images),
+                    )
+                    continue
+                if _should_use_safe_continuation_fallback(
+                    exc,
+                    frame_index=frame_index,
+                    use_fallback_refs=use_fallback_refs,
+                    use_safe_continuation_fallback=use_safe_continuation_fallback,
+                ):
+                    use_safe_continuation_fallback = True
+                    logger.info(
+                        "Photoshoot frame safe continuation fallback: style_id=%s "
+                        "photoshoot_id=%s frame_index=%s reference_mode=identity_only_fallback "
+                        "prompt_mode=safe_continuation_fallback "
+                        "fallback_reason=empty_image_response attempt=%s reference_count=%s",
+                        client_style_id,
+                        photoshoot_id,
+                        frame_index,
+                        attempt + 1,
+                        len(current_reference_images),
+                    )
+                    continue
+                if (
+                    not use_fallback_refs
+                    and identity_only_fallback_refs
+                    and reference_images != identity_only_fallback_refs
+                    and _should_try_identity_only_fallback(
+                        exc,
+                        reference_images,
+                        identity_only_fallback_refs,
+                    )
+                ):
+                    use_fallback_refs = True
+                    self._log_identity_only_fallback(
+                        client_style_id=client_style_id,
+                        photoshoot_id=photoshoot_id,
+                        frame_index=frame_index,
+                        fallback_reason=_identity_fallback_reason(exc),
+                        primary_reference_mode=reference_mode,
+                        primary_reference_count=len(reference_images),
+                        fallback_reference_count=len(identity_only_fallback_refs),
+                    )
+                    continue
+
+                retryable = _frame_attempt_retryable(
+                    exc,
+                    use_fallback_refs=use_fallback_refs,
+                    frame_index=frame_index,
+                    identity_only_fallback_refs=identity_only_fallback_refs,
+                )
                 logger.warning(
                     "Photoshoot frame failed: style_id=%s photoshoot_id=%s "
                     "frame_index=%s attempt=%s error_type=%s reason=%s retryable=%s",
@@ -750,51 +1316,105 @@ class GeminiPhotoshootProvider:
                     retryable,
                 )
                 if not retryable:
-                    logger.error(
-                        "Photoshoot frame non-retryable failure: style_id=%s photoshoot_id=%s "
-                        "frame_index=%s reason=%s",
-                        client_style_id,
-                        photoshoot_id,
-                        frame_index,
-                        last_failure_reason,
-                    )
-                    _raise_photoshoot_failure(
-                        style_id=client_style_id,
-                        stage="gemini_frame",
-                        reason=last_failure_reason,
+                    _log_terminal_frame_failure(
+                        client_style_id=client_style_id,
                         photoshoot_id=photoshoot_id,
+                        frame_index=frame_index,
+                        reason=last_failure_reason,
+                        defer_batch_fallback=defer_batch_fallback,
+                    )
+                    _fail_frame_or_raise_batch_deferred(
+                        style_id=client_style_id,
+                        photoshoot_id=photoshoot_id,
+                        frame_index=frame_index,
+                        reason=last_failure_reason,
+                        defer_batch_fallback=defer_batch_fallback,
                     )
             else:
+                duplicate_match = (
+                    _find_generated_frame_duplicate(data_url, existing_data_urls)
+                    if existing_data_urls
+                    else None
+                )
+                if (
+                    duplicate_match is not None
+                    and identity_only_fallback_refs
+                    and reference_images != identity_only_fallback_refs
+                ):
+                    if not use_fallback_refs:
+                        logger.warning(
+                            "Photoshoot duplicate frame detected: style_id=%s photoshoot_id=%s "
+                            "frame_index=%s attempt=%s fallback_reason=duplicate_frame "
+                            "duplicate_check=%s duplicate_frame_index=%s duplicate_distance=%s",
+                            client_style_id,
+                            photoshoot_id,
+                            frame_index,
+                            attempt,
+                            duplicate_match.kind,
+                            duplicate_match.duplicate_frame_index,
+                            duplicate_match.perceptual_distance,
+                        )
+                        use_fallback_refs = True
+                        self._log_identity_only_fallback(
+                            client_style_id=client_style_id,
+                            photoshoot_id=photoshoot_id,
+                            frame_index=frame_index,
+                            fallback_reason="duplicate_frame",
+                            primary_reference_mode=reference_mode,
+                            primary_reference_count=len(reference_images),
+                            fallback_reference_count=len(identity_only_fallback_refs),
+                            duplicate_match=duplicate_match,
+                        )
+                        continue
+
+                    _log_terminal_frame_failure(
+                        client_style_id=client_style_id,
+                        photoshoot_id=photoshoot_id,
+                        frame_index=frame_index,
+                        reason="duplicate_frame_persists",
+                        defer_batch_fallback=defer_batch_fallback,
+                    )
+                    _fail_frame_or_raise_batch_deferred(
+                        style_id=client_style_id,
+                        photoshoot_id=photoshoot_id,
+                        frame_index=frame_index,
+                        reason="duplicate_frame_persists",
+                        defer_batch_fallback=defer_batch_fallback,
+                    )
+
                 logger.info(
                     "Photoshoot frame success: style_id=%s photoshoot_id=%s "
-                    "frame_index=%s attempt=%s",
+                    "frame_index=%s attempt=%s reference_mode=%s reference_count=%s",
                     client_style_id,
                     photoshoot_id,
                     frame_index,
                     attempt,
+                    current_reference_mode,
+                    len(current_reference_images),
                 )
                 return data_url
 
             if attempt < _MAX_GEMINI_FRAME_ATTEMPTS:
                 time.sleep(_GEMINI_FRAME_RETRY_DELAY_SECONDS)
 
-        logger.error(
-            "Photoshoot frame exhausted retries: style_id=%s photoshoot_id=%s "
-            "frame_index=%s attempts=%s reason=%s",
-            client_style_id,
-            photoshoot_id,
-            frame_index,
-            _MAX_GEMINI_FRAME_ATTEMPTS,
-            _normalize_diagnostic_text(last_failure_reason),
-        )
-        _raise_photoshoot_failure(
-            style_id=client_style_id,
-            stage="gemini_frame",
-            reason=last_failure_reason,
+        _log_terminal_frame_failure(
+            client_style_id=client_style_id,
             photoshoot_id=photoshoot_id,
+            frame_index=frame_index,
+            reason=last_failure_reason,
+            defer_batch_fallback=defer_batch_fallback,
+            exhausted=True,
+            attempts=_MAX_GEMINI_FRAME_ATTEMPTS,
+        )
+        _fail_frame_or_raise_batch_deferred(
+            style_id=client_style_id,
+            photoshoot_id=photoshoot_id,
+            frame_index=frame_index,
+            reason=last_failure_reason,
+            defer_batch_fallback=defer_batch_fallback,
         )
 
-    def generate(
+    def _generate_primary_batch(
         self,
         style: PhotoshootStyle,
         photo_bytes: bytes,
@@ -818,14 +1438,24 @@ class GeminiPhotoshootProvider:
 
         logger.info(
             "Gemini photoshoot start: style_id=%s photoshoot_id=%s output_count=%s "
-            "series_reference_mode=%s",
+            "series_reference_mode=%s batch_mode=identity_anchor_primary prompt_source=%s",
             client_style_id,
             photoshoot_id,
             self._output_count,
             series_mode,
+            resolve_prompt_source(
+                client_style_id,
+                style,
+                user_description=user_description,
+            ),
         )
 
         for index in range(self._output_count):
+            prompt_source = resolve_prompt_source(
+                client_style_id,
+                style,
+                user_description=user_description,
+            )
             instruction = _build_photoshoot_instruction(
                 style,
                 client_style_id=client_style_id,
@@ -834,10 +1464,12 @@ class GeminiPhotoshootProvider:
                 output_count=self._output_count,
                 series_reference_mode=series_mode,
             )
+            identity_only_fallback_refs: list[ReferenceImage] | None = None
+            fallback_instruction_suffix: str | None = None
+
             if index == 0 or series_mode == "legacy":
                 reference_images = [identity_reference]
                 reference_mode = "identity_only"
-                fallback_reference_images = None
             elif series_mode == "anchor_only":
                 if not data_urls:
                     _raise_photoshoot_failure(
@@ -848,7 +1480,6 @@ class GeminiPhotoshootProvider:
                     )
                 reference_images = [_decode_generated_image_data_url(data_urls[0])]
                 reference_mode = "anchor_only"
-                fallback_reference_images = None
             else:
                 if not data_urls:
                     _raise_photoshoot_failure(
@@ -859,8 +1490,13 @@ class GeminiPhotoshootProvider:
                     )
                 anchor_reference = _decode_generated_image_data_url(data_urls[0])
                 reference_images = [identity_reference, anchor_reference]
-                reference_mode = "identity_anchor"
-                fallback_reference_images = [anchor_reference]
+                reference_mode = "identity_anchor_primary"
+                identity_only_fallback_refs = [identity_reference]
+                fallback_instruction_suffix = build_identity_only_fallback_prompt_suffix(
+                    frame_index=index,
+                    output_count=self._output_count,
+                    client_style_id=client_style_id,
+                )
 
             data_urls.append(
                 self._generate_frame_with_retries(
@@ -871,7 +1507,12 @@ class GeminiPhotoshootProvider:
                     reference_images=reference_images,
                     frame_index=index,
                     reference_mode=reference_mode,
-                    fallback_reference_images=fallback_reference_images,
+                    existing_data_urls=data_urls if index > 0 else None,
+                    identity_only_fallback_refs=identity_only_fallback_refs,
+                    fallback_instruction_suffix=fallback_instruction_suffix,
+                    defer_batch_fallback=True,
+                    batch_mode="identity_anchor_primary",
+                    prompt_source=prompt_source,
                 )
             )
 
@@ -884,23 +1525,121 @@ class GeminiPhotoshootProvider:
             )
 
         logger.info(
-            "Gemini photoshoot complete: style_id=%s photoshoot_id=%s frames=%s",
+            "Gemini photoshoot complete: style_id=%s photoshoot_id=%s frames=%s "
+            "batch_mode=identity_anchor_primary",
             client_style_id,
             photoshoot_id,
             len(data_urls),
         )
         return data_urls
 
+    def _generate_safe_a_only_batch(
+        self,
+        client: genai.Client,
+        *,
+        client_style_id: str,
+        photoshoot_id: str,
+        identity_reference: ReferenceImage,
+        fallback_reason: str,
+        failed_frame_index: int,
+    ) -> list[str]:
+        data_urls: list[str] = []
+        logger.info(
+            "Photoshoot safe batch fallback starting: style_id=%s photoshoot_id=%s "
+            "fallback_reason=%s failed_frame_index=%s batch_mode=safe_a_only_batch_fallback",
+            client_style_id,
+            photoshoot_id,
+            fallback_reason,
+            failed_frame_index,
+        )
+
+        for index in range(self._output_count):
+            instruction = build_safe_a_only_batch_frame_prompt(
+                client_style_id,
+                frame_index=index,
+                output_count=self._output_count,
+            )
+            data_urls.append(
+                self._generate_frame_with_retries(
+                    client,
+                    client_style_id=client_style_id,
+                    photoshoot_id=photoshoot_id,
+                    instruction=instruction,
+                    reference_images=[identity_reference],
+                    frame_index=index,
+                    reference_mode="safe_a_only_batch",
+                    existing_data_urls=data_urls if index > 0 else None,
+                    defer_batch_fallback=False,
+                    batch_mode="safe_a_only_batch_fallback",
+                    prompt_source="safe_a_only_batch_fallback",
+                )
+            )
+
+        logger.info(
+            "Photoshoot safe batch fallback success: style_id=%s photoshoot_id=%s frames=%s "
+            "batch_mode=safe_a_only_batch_fallback",
+            client_style_id,
+            photoshoot_id,
+            len(data_urls),
+        )
+        return data_urls
+
+    def generate(
+        self,
+        style: PhotoshootStyle,
+        photo_bytes: bytes,
+        photo_content_type: str,
+        *,
+        client_style_id: str,
+        photoshoot_id: str,
+        user_description: str | None = None,
+        user_id: str | None = None,
+    ) -> list[str]:
+        _ = user_id
+        try:
+            return self._generate_primary_batch(
+                style,
+                photo_bytes,
+                photo_content_type,
+                client_style_id=client_style_id,
+                photoshoot_id=photoshoot_id,
+                user_description=user_description,
+            )
+        except _PhotoshootFrameFailure as exc:
+            api_key = settings.gemini_api_key
+            if not api_key or not api_key.strip():
+                raise HTTPException(
+                    status_code=500,
+                    detail="GEMINI_API_KEY is not configured",
+                ) from exc
+            client = genai.Client(api_key=api_key.strip())
+            identity_reference: ReferenceImage = (photo_bytes, photo_content_type)
+            fallback_reason = _batch_fallback_reason_label(exc.reason)
+            return self._generate_safe_a_only_batch(
+                client,
+                client_style_id=client_style_id,
+                photoshoot_id=photoshoot_id,
+                identity_reference=identity_reference,
+                fallback_reason=fallback_reason,
+                failed_frame_index=exc.frame_index,
+            )
+
 
 class PhotoshootService:
     """Orchestrates photoshoot generation: style + user photo → public URLs + history."""
 
-    def _get_provider(self) -> MockPhotoshootProvider | GeminiPhotoshootProvider:
-        provider_name = settings.image_provider.strip().lower()
+    def _get_provider(
+        self,
+    ) -> MockPhotoshootProvider | GeminiPhotoshootProvider:
+        provider_name = resolve_photoshoot_image_provider()
         if provider_name == "mock":
             return MockPhotoshootProvider()
         if provider_name == "gemini":
             return GeminiPhotoshootProvider()
+        if provider_name == KIE_IMAGE_PROVIDER:
+            from app.services.kie_photoshoot_provider import KiePhotoshootProvider
+
+            return KiePhotoshootProvider()
         raise HTTPException(status_code=500, detail="Unsupported image provider")
 
     def generate_photoshoot(
@@ -912,9 +1651,10 @@ class PhotoshootService:
         *,
         client_style_id: str,
         user_description: str | None = None,
+        on_frame_status: Callable[[int, str], None] | None = None,
     ) -> PhotoshootGenerateResult:
         provider = self._get_provider()
-        provider_name = settings.image_provider.strip().lower()
+        provider_name = resolve_photoshoot_image_provider()
         output_count = provider.output_count
         pending_photoshoot_id = str(uuid4())
 
@@ -928,12 +1668,14 @@ class PhotoshootService:
         )
 
         if isinstance(provider, MockPhotoshootProvider):
+            self._notify_all_frames(on_frame_status, output_count, "generating")
             image_urls = provider.generate(
                 style=style,
                 photo_bytes=photo_bytes,
                 photo_content_type=photo_content_type,
                 user_description=user_description,
             )
+            self._notify_all_frames(on_frame_status, output_count, "done")
             storage_paths: list[str] = []
             if len(image_urls) != output_count:
                 _raise_photoshoot_failure(
@@ -943,14 +1685,22 @@ class PhotoshootService:
                     photoshoot_id=pending_photoshoot_id,
                 )
         else:
-            data_urls = provider.generate(
-                style=style,
-                photo_bytes=photo_bytes,
-                photo_content_type=photo_content_type,
-                client_style_id=client_style_id,
-                photoshoot_id=pending_photoshoot_id,
-                user_description=user_description,
-            )
+            generate_kwargs = {
+                "style": style,
+                "photo_bytes": photo_bytes,
+                "photo_content_type": photo_content_type,
+                "client_style_id": client_style_id,
+                "photoshoot_id": pending_photoshoot_id,
+                "user_description": user_description,
+                "user_id": user_id,
+            }
+            if provider_name == KIE_IMAGE_PROVIDER:
+                generate_kwargs["on_frame_status"] = on_frame_status
+            elif on_frame_status is not None:
+                self._notify_all_frames(on_frame_status, output_count, "generating")
+            data_urls = provider.generate(**generate_kwargs)
+            if provider_name != KIE_IMAGE_PROVIDER:
+                self._notify_all_frames(on_frame_status, output_count, "done")
             if len(data_urls) != output_count:
                 _raise_photoshoot_failure(
                     style_id=client_style_id,
@@ -994,6 +1744,17 @@ class PhotoshootService:
             photoshoot_id=photoshoot_id,
             storage_paths=storage_paths,
         )
+
+    @staticmethod
+    def _notify_all_frames(
+        callback: Callable[[int, str], None] | None,
+        output_count: int,
+        status: str,
+    ) -> None:
+        if callback is None:
+            return
+        for index in range(output_count):
+            callback(index, status)
 
 
 photoshoot_service = PhotoshootService()
