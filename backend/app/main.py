@@ -53,6 +53,7 @@ from app.services.credits_service import (
     determine_generation_payment,
 )
 from app.services.photo_generation_service import photo_generation_service
+from app.services.template_generation_service import resolve_template_generation_inputs
 from app.services.photoshoot_job_service import (
     get_photoshoot_job_status,
     start_photoshoot_job,
@@ -611,13 +612,25 @@ def generate(
 def generate_with_photo(
     description: str = Form(...),
     photo: UploadFile | None = File(default=None),
+    pet_photo: UploadFile | None = File(default=None),
+    child_photo: UploadFile | None = File(default=None),
+    baby_photo: UploadFile | None = File(default=None),
+    template_id: str | None = Form(default=None),
+    cake_digit: str | None = Form(default=None),
+    name_text: str | None = Form(default=None),
     authorization: str | None = Header(default=None),
 ):
-    prompt = description.strip()
-    if not prompt:
-        raise HTTPException(status_code=400, detail="Description cannot be empty")
-
-    file_bytes, photo_content_type = _validate_upload_photo(photo)
+    _ = name_text  # reserved for a future template flow
+    generation_inputs = resolve_template_generation_inputs(
+        template_id=template_id,
+        description=description,
+        photo=photo,
+        pet_photo=pet_photo,
+        child_photo=child_photo,
+        baby_photo=baby_photo,
+        cake_digit=cake_digit,
+    )
+    prompt = generation_inputs.prompt
 
     user = _optional_user_for_generation(authorization)
 
@@ -638,9 +651,10 @@ def generate_with_photo(
 
     image_url = photo_generation_service.generate(
         description=prompt,
-        photo_bytes=file_bytes,
-        photo_content_type=photo_content_type,
+        photo_bytes=generation_inputs.photo_bytes,
+        photo_content_type=generation_inputs.photo_content_type,
         user_id=_resolve_user_for_image_storage(user, authorization).id,
+        extra_photos=generation_inputs.extra_photos,
     )
     if image_url.startswith("data:image/"):
         storage_user = _resolve_user_for_image_storage(user, authorization)

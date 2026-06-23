@@ -26,6 +26,7 @@ from app.services.kie_image_service import (
 )
 from app.services.mock_placeholder_urls import build_mock_photo_image_url
 from app.services.storage_service import storage_service
+from app.services.template_generation_service import ExtraPhotoInput
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +51,9 @@ class MockPhotoGenerationProvider:
         photo_content_type: str,
         *,
         user_id: str | None = None,
+        extra_photos: list[ExtraPhotoInput] | None = None,
     ) -> str:
-        _ = photo_bytes, photo_content_type, user_id
+        _ = photo_bytes, photo_content_type, user_id, extra_photos
         return build_mock_photo_image_url(description)
 
 
@@ -63,6 +65,7 @@ class GeminiPhotoGenerationProvider:
         photo_content_type: str,
         *,
         user_id: str | None = None,
+        extra_photos: list[ExtraPhotoInput] | None = None,
     ) -> str:
         _ = user_id
         api_key = settings.gemini_api_key
@@ -73,6 +76,20 @@ class GeminiPhotoGenerationProvider:
             )
 
         instruction = build_photo_edit_instruction(description)
+        parts: list[types.Part] = [
+            types.Part.from_text(text=instruction),
+            types.Part.from_bytes(
+                data=photo_bytes,
+                mime_type=photo_content_type,
+            ),
+        ]
+        for extra in extra_photos or []:
+            parts.append(
+                types.Part.from_bytes(
+                    data=extra.photo_bytes,
+                    mime_type=extra.photo_content_type,
+                )
+            )
         try:
             client = genai.Client(api_key=api_key.strip())
             response = client.models.generate_content(
@@ -80,13 +97,7 @@ class GeminiPhotoGenerationProvider:
                 contents=[
                     types.Content(
                         role="user",
-                        parts=[
-                            types.Part.from_text(text=instruction),
-                            types.Part.from_bytes(
-                                data=photo_bytes,
-                                mime_type=photo_content_type,
-                            ),
-                        ],
+                        parts=parts,
                     )
                 ],
                 config=types.GenerateContentConfig(
@@ -118,6 +129,7 @@ class KiePhotoGenerationProvider:
         photo_content_type: str,
         *,
         user_id: str | None = None,
+        extra_photos: list[ExtraPhotoInput] | None = None,
     ) -> str:
         if not user_id or not str(user_id).strip():
             raise HTTPException(
@@ -133,17 +145,25 @@ class KiePhotoGenerationProvider:
         )
 
         try:
-            temp_path, signed_url = storage_service.upload_temp_input_bytes(
-                user_id,
-                photo_bytes,
-                photo_content_type,
-                ttl_seconds=ttl_seconds,
+            input_urls: list[str] = []
+            uploads = [(photo_bytes, photo_content_type)]
+            uploads.extend(
+                (extra.photo_bytes, extra.photo_content_type)
+                for extra in (extra_photos or [])
             )
-            temp_paths.append(temp_path)
+            for upload_bytes, upload_content_type in uploads:
+                temp_path, signed_url = storage_service.upload_temp_input_bytes(
+                    user_id,
+                    upload_bytes,
+                    upload_content_type,
+                    ttl_seconds=ttl_seconds,
+                )
+                temp_paths.append(temp_path)
+                input_urls.append(signed_url)
             try:
                 image_bytes, content_type = kie_client.generate_image_bytes(
                     instruction,
-                    [signed_url],
+                    input_urls,
                 )
             except KieImageGenerationError as exc:
                 logger.warning(
@@ -180,6 +200,7 @@ class PhotoGenerationService:
         photo_content_type: str,
         *,
         user_id: str | None = None,
+        extra_photos: list[ExtraPhotoInput] | None = None,
     ) -> str:
         provider = self._get_provider()
         return provider.generate(
@@ -187,6 +208,7 @@ class PhotoGenerationService:
             photo_bytes=photo_bytes,
             photo_content_type=photo_content_type,
             user_id=user_id,
+            extra_photos=extra_photos,
         )
 
 

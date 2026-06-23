@@ -232,12 +232,33 @@
     "title": "Фото с ребёнком",
     "category": "Для семьи",
     "shortDescription": "Нежное фото с ребёнком и мягким светом.",
-    "prompt": "Создай нежное реалистичное фото взрослого с ребёнком по загруженному снимку. Сохрани лица, возраст, основные черты и узнаваемость всех людей, особенно естественные детские черты ребёнка. Мягкий свет, тёплая семейная атмосфера, спокойный фон, живые эмоции, аккуратная обработка без пластиковой кожи. Не искажай лица, руки, пальцы, рост и пропорции.",
+    "prompt": "You are given two uploaded images. Image 1 is the adult user photo and must be used as the identity reference for the adult. Image 2 is the child photo and must be used as the identity reference for the child. Keep both people recognizable and place them together in the described birthday scene.\n\nCreate a photorealistic warm birthday portrait of the adult and the child together. They are sitting close together near a small birthday cake, smiling naturally, warm family atmosphere, soft studio or home light, clean bright background, gentle emotional mood. The birthday cake must have the number {digit} clearly visible as a candle or cake topper. Keep the adult and the child recognizable from the uploaded images. No extra people, no text, no distorted hands, no changed age.",
     "previewAsset": "assets/previews/templates/child_photo.jpg",
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 20,
-    "previewUrl": null
+    "previewUrl": null,
+    "inputRequirements": {
+      "photos": [
+        {
+          "id": "user_photo",
+          "field": "photo",
+          "label": "Добавить ваше фото"
+        },
+        {
+          "id": "child_photo",
+          "field": "child_photo",
+          "label": "Добавить фото ребёнка"
+        }
+      ],
+      "fields": [
+        {
+          "id": "cake_digit",
+          "label": "Цифра на торте",
+          "type": "cake_digit"
+        }
+      ]
+    }
   },
   {
     "id": "festive_look",
@@ -256,13 +277,26 @@
     "title": "Фото с кошкой",
     "category": "Для семьи",
     "shortDescription": "Тёплое фото с кошкой в уютном кинематографичном стиле.",
-    "prompt": "",
+    "prompt": "You are given two uploaded images. Image 1 is the user photo and must be used as the identity reference for the person. Image 2 is the pet photo and must be used as the identity reference for the cat. Keep the same person and the same pet, and place them together in the described scene.\n\nCreate a photorealistic warm portrait of the adult person holding or sitting close to the same cat from Image 2. The person and cat are looking at each other or gently touching noses, cozy emotional moment, soft smile, natural face. Warm indoor cinematic light, elegant neutral background, realistic cat fur, natural skin texture, intimate home portrait feeling, clean premium composition. No text, no extra people, no distorted animal features.",
     "previewAsset": "assets/previews/templates/woman_with_cat.jpg",
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 35,
     "previewUrl": null,
-    "generationBlocked": true,
-    "generationBlockedMessage": "Скоро здесь можно будет добавить фото питомца."
+    "inputRequirements": {
+      "photos": [
+        {
+          "id": "user_photo",
+          "field": "photo",
+          "label": "Добавить ваше фото"
+        },
+        {
+          "id": "pet_photo",
+          "field": "pet_photo",
+          "label": "Добавить фото питомца"
+        }
+      ],
+      "fields": []
+    }
   }
 ]

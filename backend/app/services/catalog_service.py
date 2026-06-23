@@ -89,3 +89,31 @@ def invalidate_photoshoot_catalog_cache() -> None:
     """Clear in-memory catalog map (tests / hot reload)."""
     global _photoshoot_catalog_by_id
     _photoshoot_catalog_by_id = None
+
+
+_template_catalog_by_id: dict[str, dict[str, Any]] | None = None
+
+
+def _template_catalog_map() -> dict[str, dict[str, Any]]:
+    global _template_catalog_by_id
+    if _template_catalog_by_id is None:
+        items = _read_catalog_array("templates.json")
+        _template_catalog_by_id = {
+            str(item["id"]): item
+            for item in items
+            if isinstance(item, dict) and item.get("id")
+        }
+    return _template_catalog_by_id
+
+
+def get_template_catalog_item(template_id: str) -> dict[str, Any] | None:
+    normalized = (template_id or "").strip()
+    if not normalized:
+        return None
+    return _template_catalog_map().get(normalized)
+
+
+def invalidate_template_catalog_cache() -> None:
+    """Clear in-memory template catalog map (tests / hot reload)."""
+    global _template_catalog_by_id
+    _template_catalog_by_id = None

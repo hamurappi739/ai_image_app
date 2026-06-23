@@ -230,6 +230,23 @@ class DebugConfigResponse(BaseModel):
     photoshoot_series_reference_mode: str
 
 
+class CatalogTemplatePhotoInput(BaseModel):
+    id: str
+    field: str
+    label: str
+
+
+class CatalogTemplateFieldInput(BaseModel):
+    id: str
+    label: str
+    type: str
+
+
+class CatalogTemplateInputRequirements(BaseModel):
+    photos: list[CatalogTemplatePhotoInput] = Field(default_factory=list)
+    fields: list[CatalogTemplateFieldInput] = Field(default_factory=list)
+
+
 class CatalogTemplateItem(BaseModel):
     id: str
     title: str
@@ -241,6 +258,9 @@ class CatalogTemplateItem(BaseModel):
     priceImages: int = 1
     isActive: bool = True
     sortOrder: int = 0
+    generationBlocked: bool = False
+    generationBlockedMessage: str | None = None
+    inputRequirements: CatalogTemplateInputRequirements | None = None
 
 
 class CatalogPhotoshootItem(BaseModel):

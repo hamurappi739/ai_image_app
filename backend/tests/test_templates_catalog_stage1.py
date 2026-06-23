@@ -27,8 +27,6 @@ _IDENTITY_INTRO = (
     "pose, lighting and style described below."
 )
 
-_BLOCKED_MESSAGE = "Скоро здесь можно будет добавить фото питомца."
-
 
 def _load_catalog(path: Path) -> list[dict]:
     with path.open(encoding="utf-8") as handle:
@@ -68,20 +66,18 @@ class TemplatesCatalogStage1Tests(unittest.TestCase):
                 )
                 self.assertNotEqual(prompt.strip(), "", template_id)
 
-    def test_woman_with_cat_is_blocked_without_prompt(self) -> None:
+    def test_woman_with_cat_is_unblocked_with_two_image_prompt(self) -> None:
         for catalog in (self.backend_by_id, self.frontend_by_id):
             item = catalog["woman_with_cat"]
-            self.assertTrue(item.get("generationBlocked"), "woman_with_cat blocked")
-            self.assertEqual(
-                item.get("generationBlockedMessage"),
-                _BLOCKED_MESSAGE,
-            )
-            self.assertEqual(item.get("prompt", "").strip(), "")
-            self.assertEqual(
-                item.get("previewAsset"),
-                "assets/previews/templates/woman_with_cat.jpg",
-            )
-            self.assertEqual(item.get("category"), "Для семьи")
+            self.assertFalse(item.get("generationBlocked"), "woman_with_cat unblocked")
+            prompt = item.get("prompt", "")
+            self.assertIn("Image 2 is the pet photo", prompt)
+            requirements = item.get("inputRequirements")
+            self.assertIsInstance(requirements, dict)
+            photos = requirements.get("photos")
+            self.assertEqual(len(photos), 2)
+            fields = {photo["field"] for photo in photos}
+            self.assertEqual(fields, {"photo", "pet_photo"})
 
     def test_frontend_catalog_matches_backend_stage1_fields(self) -> None:
         keys = (

@@ -464,6 +464,7 @@ class KiePhotoshootAtomicityTests(unittest.TestCase):
         kie_client.generate_image_bytes.side_effect = [
             (_RESULT_IMAGE_BYTES, "image/png"),
             KieImageGenerationError("kie_task_failed"),
+            KieImageGenerationError("kie_task_failed"),
         ]
         mock_kie_client_cls.return_value = kie_client
 

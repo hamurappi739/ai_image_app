@@ -447,6 +447,10 @@ class ApiService {
   Future<GenerateImageResponse> generateImageWithPhoto({
     required String description,
     required XFile photoFile,
+    String? templateId,
+    XFile? petPhotoFile,
+    XFile? childPhotoFile,
+    String? cakeDigit,
   }) async {
     final request = http.MultipartRequest(
       'POST',
@@ -454,17 +458,33 @@ class ApiService {
     );
     request.headers.addAll(_requestHeaders());
     request.fields['description'] = description;
+    if (templateId != null && templateId.trim().isNotEmpty) {
+      request.fields['template_id'] = templateId.trim();
+    }
+    if (cakeDigit != null && cakeDigit.trim().isNotEmpty) {
+      request.fields['cake_digit'] = cakeDigit.trim();
+    }
 
-    final photoBytes = await photoFile.readAsBytes();
-    final mimeType = _resolveMultipartMimeType(photoFile);
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'photo',
-        photoBytes,
-        filename: _resolveFileName(photoFile),
-        contentType: MediaType.parse(mimeType),
-      ),
-    );
+    Future<void> attachFile(String fieldName, XFile file) async {
+      final fileBytes = await file.readAsBytes();
+      final mimeType = _resolveMultipartMimeType(file);
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          fieldName,
+          fileBytes,
+          filename: _resolveFileName(file),
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
+    }
+
+    await attachFile('photo', photoFile);
+    if (petPhotoFile != null) {
+      await attachFile('pet_photo', petPhotoFile);
+    }
+    if (childPhotoFile != null) {
+      await attachFile('child_photo', childPhotoFile);
+    }
 
     final streamed = await request.send();
     final response = await http.Response.fromStream(streamed);

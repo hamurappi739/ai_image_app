@@ -8,7 +8,8 @@
     "previewAsset": "assets/previews/templates/product_photo.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 10
+    "sortOrder": 10,
+    "previewUrl": null
   },
   {
     "id": "clothing_photo",
@@ -19,7 +20,8 @@
     "previewAsset": "assets/previews/templates/clothes_photo.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 20
+    "sortOrder": 20,
+    "previewUrl": null
   },
   {
     "id": "jewelry_photo",
@@ -30,7 +32,8 @@
     "previewAsset": "assets/previews/templates/jewelry_photo.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 30
+    "sortOrder": 30,
+    "previewUrl": null
   },
   {
     "id": "interior_photo",
@@ -41,7 +44,8 @@
     "previewAsset": "assets/previews/templates/interior_photo.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 40
+    "sortOrder": 40,
+    "previewUrl": null
   },
   {
     "id": "business_portrait",
@@ -52,7 +56,8 @@
     "previewAsset": "assets/previews/templates/business_portrait.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 10
+    "sortOrder": 10,
+    "previewUrl": null
   },
   {
     "id": "resume_photo",
@@ -63,7 +68,8 @@
     "previewAsset": "assets/previews/templates/resume_photo.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 20
+    "sortOrder": 20,
+    "previewUrl": null
   },
   {
     "id": "profile_photo",
@@ -74,7 +80,8 @@
     "previewAsset": "assets/previews/templates/profile_photo.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 30
+    "sortOrder": 30,
+    "previewUrl": null
   },
   {
     "id": "expert_look",
@@ -85,7 +92,8 @@
     "previewAsset": "assets/previews/templates/expert_look.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 40
+    "sortOrder": 40,
+    "previewUrl": null
   },
   {
     "id": "beautiful_portrait",
@@ -96,7 +104,8 @@
     "previewAsset": "assets/previews/templates/beautiful_portrait.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 10
+    "sortOrder": 10,
+    "previewUrl": null
   },
   {
     "id": "social_photo",
@@ -107,7 +116,8 @@
     "previewAsset": "assets/previews/templates/social_photo.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 20
+    "sortOrder": 20,
+    "previewUrl": null
   },
   {
     "id": "winter_portrait",
@@ -118,7 +128,8 @@
     "previewAsset": "assets/previews/templates/winter_portrait.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 30
+    "sortOrder": 30,
+    "previewUrl": null
   },
   {
     "id": "summer_portrait",
@@ -129,7 +140,8 @@
     "previewAsset": "assets/previews/templates/summer_portrait.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 40
+    "sortOrder": 40,
+    "previewUrl": null
   },
   {
     "id": "tender_portrait",
@@ -140,7 +152,8 @@
     "previewAsset": "assets/previews/templates/gentle_portrait.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 50
+    "sortOrder": 50,
+    "previewUrl": null
   },
   {
     "id": "vibrant_look",
@@ -151,7 +164,8 @@
     "previewAsset": "assets/previews/templates/bright_look.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 60
+    "sortOrder": 60,
+    "previewUrl": null
   },
   {
     "id": "volcanic_gray_rock",
@@ -210,18 +224,41 @@
     "previewAsset": "assets/previews/templates/family_photo.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 10
+    "sortOrder": 10,
+    "previewUrl": null
   },
   {
     "id": "photo_with_child",
     "title": "Фото с ребёнком",
     "category": "Для семьи",
     "shortDescription": "Нежное фото с ребёнком и мягким светом.",
-    "prompt": "Создай нежное реалистичное фото взрослого с ребёнком по загруженному снимку. Сохрани лица, возраст, основные черты и узнаваемость всех людей, особенно естественные детские черты ребёнка. Мягкий свет, тёплая семейная атмосфера, спокойный фон, живые эмоции, аккуратная обработка без пластиковой кожи. Не искажай лица, руки, пальцы, рост и пропорции.",
+    "prompt": "You are given two uploaded images. Image 1 is the adult user photo and must be used as the identity reference for the adult. Image 2 is the child photo and must be used as the identity reference for the child. Keep both people recognizable and place them together in the described birthday scene.\n\nCreate a photorealistic warm birthday portrait of the adult and the child together. They are sitting close together near a small birthday cake, smiling naturally, warm family atmosphere, soft studio or home light, clean bright background, gentle emotional mood. The birthday cake must have the number {digit} clearly visible as a candle or cake topper. Keep the adult and the child recognizable from the uploaded images. No extra people, no text, no distorted hands, no changed age.",
     "previewAsset": "assets/previews/templates/child_photo.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 20
+    "sortOrder": 20,
+    "previewUrl": null,
+    "inputRequirements": {
+      "photos": [
+        {
+          "id": "user_photo",
+          "field": "photo",
+          "label": "Добавить ваше фото"
+        },
+        {
+          "id": "child_photo",
+          "field": "child_photo",
+          "label": "Добавить фото ребёнка"
+        }
+      ],
+      "fields": [
+        {
+          "id": "cake_digit",
+          "label": "Цифра на торте",
+          "type": "cake_digit"
+        }
+      ]
+    }
   },
   {
     "id": "festive_look",
@@ -232,20 +269,34 @@
     "previewAsset": "assets/previews/templates/holiday_look.jpg",
     "priceImages": 1,
     "isActive": true,
-    "sortOrder": 30
+    "sortOrder": 30,
+    "previewUrl": null
   },
   {
     "id": "woman_with_cat",
     "title": "Фото с кошкой",
     "category": "Для семьи",
     "shortDescription": "Тёплое фото с кошкой в уютном кинематографичном стиле.",
-    "prompt": "",
+    "prompt": "You are given two uploaded images. Image 1 is the user photo and must be used as the identity reference for the person. Image 2 is the pet photo and must be used as the identity reference for the cat. Keep the same person and the same pet, and place them together in the described scene.\n\nCreate a photorealistic warm portrait of the adult person holding or sitting close to the same cat from Image 2. The person and cat are looking at each other or gently touching noses, cozy emotional moment, soft smile, natural face. Warm indoor cinematic light, elegant neutral background, realistic cat fur, natural skin texture, intimate home portrait feeling, clean premium composition. No text, no extra people, no distorted animal features.",
     "previewAsset": "assets/previews/templates/woman_with_cat.jpg",
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 35,
     "previewUrl": null,
-    "generationBlocked": true,
-    "generationBlockedMessage": "Скоро здесь можно будет добавить фото питомца."
+    "inputRequirements": {
+      "photos": [
+        {
+          "id": "user_photo",
+          "field": "photo",
+          "label": "Добавить ваше фото"
+        },
+        {
+          "id": "pet_photo",
+          "field": "pet_photo",
+          "label": "Добавить фото питомца"
+        }
+      ],
+      "fields": []
+    }
   }
 ]

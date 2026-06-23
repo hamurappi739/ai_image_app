@@ -74,6 +74,7 @@ class PhotoTemplate {
     this.previewUrl,
     this.generationBlocked = false,
     this.generationBlockedMessage,
+    this.inputRequirements,
   });
 
   final String id;
@@ -92,6 +93,10 @@ class PhotoTemplate {
 
   final bool generationBlocked;
   final String? generationBlockedMessage;
+  final CatalogTemplateInputRequirements? inputRequirements;
+
+  bool get isMultiInputTemplate =>
+      inputRequirements?.isMultiInput ?? false;
 
   /// Bundled or planned preview asset for catalog cards and modals.
   String get previewAsset =>
@@ -116,6 +121,7 @@ class PhotoTemplate {
       previewUrl: entry.previewUrl,
       generationBlocked: entry.generationBlocked,
       generationBlockedMessage: entry.generationBlockedMessage,
+      inputRequirements: entry.inputRequirements,
     );
   }
 }
