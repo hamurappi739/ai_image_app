@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../visual_placeholder.dart';
+import '../preview_asset_image.dart';
 import 'onboarding_arrow.dart';
 
 /// Flutter mockups for onboarding and section help slides.
@@ -11,6 +11,19 @@ class OnboardingMockups {
   static const _textPrimary = Color(0xFF1A1D26);
   static const _textSecondary = Color(0xFF6B7280);
   static const _surface = Color(0xFFF7F8FC);
+
+  static const _businessPortrait =
+      'assets/previews/templates/business_portrait.jpg';
+  static const _beautifulPortrait =
+      'assets/previews/templates/beautiful_portrait.jpg';
+  static const _goodPhoto = 'assets/guides/good_photo.jpg';
+  static const _badPhoto = 'assets/guides/bad_photo.jpg';
+  static const _studioPortrait1 =
+      'assets/previews/photoshoots/studio_portrait_1.jpg';
+  static const _studioPortrait2 =
+      'assets/previews/photoshoots/studio_portrait_2.jpg';
+  static const _studioPortrait3 =
+      'assets/previews/photoshoots/studio_portrait_3.jpg';
 
   // —— First-run ———————————————————————————————————————————————————————————
 
@@ -33,31 +46,16 @@ class OnboardingMockups {
   }
 
   static Widget templateCardTry({required bool compact}) {
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.center,
-      children: [
-        _MockPhoneFrame(
-          compact: compact,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _mockHeader(compact: compact, title: 'Шаблоны фото'),
-              const SizedBox(height: 8),
-              _mockTemplateCard(compact: compact, highlightButton: true),
-            ],
-          ),
-        ),
-        Positioned(
-          right: compact ? 4 : 12,
-          bottom: compact ? 8 : 16,
-          child: OnboardingPointer(
-            label: 'Попробовать',
-            direction: OnboardingArrowDirection.downRight,
-            compact: compact,
-          ),
-        ),
-      ],
+    return _MockPhoneFrame(
+      compact: compact,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _mockHeader(compact: compact, title: 'Шаблоны фото'),
+          const SizedBox(height: 8),
+          _mockTemplateCard(compact: compact, highlightButton: true),
+        ],
+      ),
     );
   }
 
@@ -236,89 +234,82 @@ class OnboardingMockups {
   // —— Template help ————————————————————————————————————————————————————————
 
   static Widget templateCategories({required bool compact}) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        _MockPhoneFrame(
-          compact: compact,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _mockHeader(compact: compact, title: 'Шаблоны фото'),
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _chip('Для себя', selected: true, compact: compact),
-                    const SizedBox(width: 6),
-                    _chip('Для работы', compact: compact),
-                    const SizedBox(width: 6),
-                    _chip('Для семьи', compact: compact),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              _mockTemplateCard(compact: compact),
-            ],
+    return _MockPhoneFrame(
+      compact: compact,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _mockHeader(compact: compact, title: 'Шаблоны фото'),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _chip('Для себя', selected: true, compact: compact),
+                const SizedBox(width: 6),
+                _chip('Для работы', compact: compact),
+                const SizedBox(width: 6),
+                _chip('Для семьи', compact: compact),
+              ],
+            ),
           ),
-        ),
-        Positioned(
-          left: compact ? 12 : 24,
-          top: compact ? 52 : 60,
-          child: OnboardingPointer(
-            label: 'Категория',
-            direction: OnboardingArrowDirection.down,
-            compact: compact,
-          ),
-        ),
-      ],
+          const SizedBox(height: 10),
+          _mockTemplateCard(compact: compact),
+        ],
+      ),
     );
   }
 
   static Widget templateOpen({required bool compact}) => templateCardTry(compact: compact);
 
   static Widget templateAddPhoto({required bool compact}) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        _MockPhoneFrame(
-          compact: compact,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    return _MockPhoneFrame(
+      compact: compact,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Деловой портрет',
+            style: TextStyle(
+              fontSize: compact ? 14 : 15,
+              fontWeight: FontWeight.w700,
+              color: _textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _assetThumb(_businessPortrait, compact: compact),
+          const SizedBox(height: 10),
+          Text(
+            'Добавьте фото',
+            style: TextStyle(
+              fontSize: compact ? 12 : 13,
+              fontWeight: FontWeight.w700,
+              color: _textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
             children: [
-              Text(
-                'Деловой портрет',
-                style: TextStyle(
-                  fontSize: compact ? 14 : 15,
-                  fontWeight: FontWeight.w700,
-                  color: _textPrimary,
+              SizedBox(
+                width: compact ? 52 : 60,
+                child: _assetThumb(
+                  _goodPhoto,
+                  compact: compact,
+                  aspectRatio: 1,
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                'Добавьте фото',
-                style: TextStyle(
-                  fontSize: compact ? 12 : 13,
-                  fontWeight: FontWeight.w700,
-                  color: _textPrimary,
+              const SizedBox(width: 10),
+              Expanded(
+                child: _gradientButton(
+                  'Выбрать фото',
+                  compact: compact,
+                  height: 40,
                 ),
               ),
-              const SizedBox(height: 8),
-              _gradientButton('Выбрать фото', compact: compact, height: 40),
             ],
           ),
-        ),
-        Positioned(
-          right: compact ? 8 : 16,
-          bottom: compact ? 4 : 8,
-          child: OnboardingPointer(
-            label: 'Выбрать фото',
-            direction: OnboardingArrowDirection.downRight,
-            compact: compact,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -332,12 +323,10 @@ class OnboardingMockups {
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: VisualPlaceholder(
-              mood: VisualPlaceholderMood.business,
-              gradientColors: const [Color(0xFFD4E0EE), Color(0xFF8EA4BE)],
-              height: compact ? 100 : 120,
-              compact: true,
-              caption: 'Готовое фото',
+            child: _assetThumb(
+              _beautifulPortrait,
+              compact: compact,
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
           const SizedBox(height: 8),
@@ -395,13 +384,7 @@ class OnboardingMockups {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          VisualPlaceholderSeries(
-            mood: VisualPlaceholderMood.photoshoot,
-            height: compact ? 72 : 88,
-            gradientColors: const [Color(0xFFEDE9FF), Color(0xFFB8B0D4)],
-            icon: Icons.photo_camera_outlined,
-            borderRadius: BorderRadius.circular(12),
-          ),
+          _photoshootThumbRow(compact: compact),
           const SizedBox(height: 8),
           Text(
             '3 готовых фото в одном стиле',
@@ -454,12 +437,8 @@ class OnboardingMockups {
             ),
           ),
           const SizedBox(height: 8),
-          VisualPlaceholderSeries(
-            mood: VisualPlaceholderMood.photoshoot,
-            height: compact ? 72 : 88,
-            gradientColors: const [Color(0xFFC0ECE0), Color(0xFF58B8A8)],
-            icon: Icons.collections_outlined,
-            borderRadius: BorderRadius.circular(12),
+          _photoshootThumbRow(
+            compact: compact,
             showPhotoLabels: true,
           ),
         ],
@@ -468,6 +447,78 @@ class OnboardingMockups {
   }
 
   // —— Building blocks ———————————————————————————————————————————————————————
+
+  static Widget _assetThumb(
+    String assetPath, {
+    required bool compact,
+    double aspectRatio = 4 / 3,
+    BorderRadius borderRadius = const BorderRadius.all(Radius.circular(10)),
+    bool dimmed = false,
+  }) {
+    Widget image = PreviewAssetImage(
+      assetPath: assetPath,
+      fit: BoxFit.cover,
+      placeholder: Container(
+        color: const Color(0xFFE8EAEF),
+        alignment: Alignment.center,
+        child: Icon(
+          Icons.image_outlined,
+          color: _textSecondary,
+          size: compact ? 20 : 24,
+        ),
+      ),
+    );
+    if (dimmed) {
+      image = ColorFiltered(
+        colorFilter: ColorFilter.mode(
+          Colors.black.withValues(alpha: 0.35),
+          BlendMode.darken,
+        ),
+        child: image,
+      );
+    }
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: AspectRatio(aspectRatio: aspectRatio, child: image),
+    );
+  }
+
+  static Widget _photoshootThumbRow({
+    required bool compact,
+    bool showPhotoLabels = false,
+  }) {
+    const paths = [_studioPortrait1, _studioPortrait2, _studioPortrait3];
+    return Row(
+      children: [
+        for (var i = 0; i < paths.length; i++) ...[
+          if (i > 0) SizedBox(width: compact ? 4 : 6),
+          Expanded(
+            child: Column(
+              children: [
+                _assetThumb(
+                  paths[i],
+                  compact: compact,
+                  aspectRatio: 3 / 4,
+                  borderRadius: BorderRadius.circular(compact ? 8 : 10),
+                ),
+                if (showPhotoLabels) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Фото ${i + 1}',
+                    style: TextStyle(
+                      fontSize: compact ? 9 : 10,
+                      fontWeight: FontWeight.w500,
+                      color: _textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 
   static Widget _mockHeader({
     required bool compact,
@@ -612,11 +663,10 @@ class OnboardingMockups {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: VisualPlaceholder(
-              mood: VisualPlaceholderMood.business,
-              gradientColors: const [Color(0xFFD4E0EE), Color(0xFF8EA4BE)],
-              height: compact ? 56 : 68,
-              compact: true,
+            child: _assetThumb(
+              _businessPortrait,
+              compact: compact,
+              aspectRatio: 4 / 3,
             ),
           ),
           SizedBox(height: compact ? 6 : 8),
@@ -673,14 +723,7 @@ class OnboardingMockups {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          VisualPlaceholderSeries(
-            mood: VisualPlaceholderMood.photoshoot,
-            height: compact ? 52 : 64,
-            gradientColors: const [Color(0xFFEDE9FF), Color(0xFFB8B0D4)],
-            icon: Icons.photo_camera_outlined,
-            borderRadius: BorderRadius.circular(10),
-            showPhotoLabels: false,
-          ),
+          _photoshootThumbRow(compact: compact),
           SizedBox(height: compact ? 6 : 8),
           Text(
             'Студийный портрет',
@@ -731,17 +774,11 @@ class OnboardingMockups {
             ),
           ),
           const SizedBox(height: 6),
-          AspectRatio(
+          _assetThumb(
+            isGood ? _goodPhoto : _badPhoto,
+            compact: compact,
             aspectRatio: 1,
-            child: VisualPlaceholder(
-              mood: VisualPlaceholderMood.portrait,
-              gradientColors: isGood
-                  ? const [Color(0xFFD4E0EE), Color(0xFF8EA4BE)]
-                  : const [Color(0xFF3A3F4B), Color(0xFF6B7280)],
-              height: 80,
-              compact: true,
-              dimmed: !isGood,
-            ),
+            dimmed: !isGood,
           ),
         ],
       ),
