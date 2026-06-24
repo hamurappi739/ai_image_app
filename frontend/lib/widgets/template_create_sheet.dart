@@ -85,9 +85,10 @@ class TemplateCreateSheet extends StatefulWidget {
 
 class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
   static const _accentColor = Color(0xFF5B6CFF);
+  static const _sheetPreviewAspectRatio = 4 / 3;
 
   final _imagePicker = ImagePicker();
-  final _cakeDigitController = TextEditingController();
+  final Map<String, TextEditingController> _fieldControllers = {};
   final Map<String, _SelectedPhoto> _photosByField = {};
   String? _pickingField;
   bool _isCreating = false;
@@ -113,8 +114,19 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
       widget.template.inputRequirements;
 
   @override
+  void initState() {
+    super.initState();
+    final fields = widget.template.inputRequirements?.fields ?? const [];
+    for (final field in fields) {
+      _fieldControllers.putIfAbsent(field.type, TextEditingController.new);
+    }
+  }
+
+  @override
   void dispose() {
-    _cakeDigitController.dispose();
+    for (final controller in _fieldControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -145,23 +157,71 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
 
   void _clearPhoto() => _clearPhotoForField('photo');
 
-  String _missingPhotoMessage(String field) {
-    return switch (field) {
+  String _missingPhotoMessage(CatalogTemplatePhotoInput photoInput) {
+    if (photoInput.field == 'baby_photo') {
+      return 'Добавьте фото ребёнка в детстве';
+    }
+    if (photoInput.field == 'child_photo') {
+      if (photoInput.label.contains('сейчас')) {
+        return 'Добавьте фото ребёнка сейчас';
+      }
+      return 'Добавьте фото ребёнка';
+    }
+    return switch (photoInput.field) {
       'pet_photo' => 'Добавьте фото питомца',
-      'child_photo' => 'Добавьте фото ребёнка',
       _ => 'Добавьте ваше фото',
     };
   }
 
-  String? _validateCakeDigit(String value) {
+  String? _validateAgeNumber(String value, {required String emptyMessage}) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) {
-      return 'Введите цифру на торте';
+      return emptyMessage;
     }
     if (!RegExp(r'^[1-9]\d?$').hasMatch(trimmed)) {
       return 'Введите только цифры';
     }
     return null;
+  }
+
+  String? _validateChildName(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return 'Введите имя ребёнка';
+    }
+    if (trimmed.length > 20) {
+      return 'В имени должны быть только буквы';
+    }
+    if (!RegExp(r"^[A-Za-zА-Яа-яЁё\- ]+$").hasMatch(trimmed)) {
+      return 'В имени должны быть только буквы';
+    }
+    return null;
+  }
+
+  String? _validateField(CatalogTemplateFieldInput field, String value) {
+    return switch (field.type) {
+      'cake_digit' => _validateAgeNumber(
+          value,
+          emptyMessage: 'Введите цифру на торте',
+        ),
+      'age_number' => _validateAgeNumber(
+          value,
+          emptyMessage: field.label.contains('Цифра')
+              ? 'Введите цифру на торте'
+              : 'Введите возраст',
+        ),
+      'child_name' => _validateChildName(value),
+      _ => null,
+    };
+  }
+
+  String? _fieldControllerText(String type) {
+    return _fieldControllers[type]?.text.trim();
+  }
+
+  XFile? _optionalPhotoFile(String field, {required String primaryField}) {
+    if (field == primaryField) return null;
+    return _photosByField[field]?.file;
   }
 
   Future<void> _showInsufficientImagesDialog() {
@@ -179,12 +239,16 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
       if (requirements == null) return;
       for (final photoReq in requirements.photos) {
         if (!_photosByField.containsKey(photoReq.field)) {
-          widget.onShowMessage(_missingPhotoMessage(photoReq.field));
+          widget.onShowMessage(_missingPhotoMessage(photoReq));
           return;
         }
       }
-      if (requirements.fieldByType('cake_digit') != null) {
-        final validationError = _validateCakeDigit(_cakeDigitController.text);
+      for (final fieldReq in requirements.fields) {
+        final controller = _fieldControllers[fieldReq.type];
+        final validationError = _validateField(
+          fieldReq,
+          controller?.text ?? '',
+        );
         if (validationError != null) {
           widget.onShowMessage(validationError);
           return;
@@ -200,13 +264,18 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
       return;
     }
 
-    final userPhoto = _photosByField['photo'];
-    if (userPhoto == null) return;
+    final requirements = _inputRequirements;
+    final primaryField = _isMultiInput &&
+            requirements != null &&
+            requirements.photos.isNotEmpty
+        ? requirements.photos.first.field
+        : 'photo';
+    final primaryPhoto = _photosByField[primaryField];
+    if (primaryPhoto == null) return;
 
     setState(() => _isCreating = true);
 
     final prompt = widget.template.requestDescription;
-    final cakeField = _inputRequirements?.fieldByType('cake_digit');
 
     try {
       final response =
@@ -217,13 +286,16 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
         totalSeconds: 60,
         task: () => widget.apiService.generateImageWithPhoto(
           description: prompt,
-          photoFile: userPhoto.file,
+          primaryPhotoFile: primaryPhoto.file,
+          primaryPhotoField: primaryField,
           templateId: _isMultiInput ? widget.template.id : null,
-          petPhotoFile: _photosByField['pet_photo']?.file,
-          childPhotoFile: _photosByField['child_photo']?.file,
-          cakeDigit: cakeField != null
-              ? _cakeDigitController.text.trim()
-              : null,
+          petPhotoFile: _optionalPhotoFile('pet_photo', primaryField: primaryField),
+          childPhotoFile:
+              _optionalPhotoFile('child_photo', primaryField: primaryField),
+          babyPhotoFile: _optionalPhotoFile('baby_photo', primaryField: primaryField),
+          cakeDigit: _fieldControllerText('cake_digit'),
+          ageNumber: _fieldControllerText('age_number'),
+          childName: _fieldControllerText('child_name'),
         ),
       );
 
@@ -431,8 +503,6 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
       return const SizedBox.shrink();
     }
 
-    final cakeField = requirements.fieldByType('cake_digit');
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -446,10 +516,10 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
         const SizedBox(height: 10),
         for (final photoInput in requirements.photos)
           _buildMultiPhotoSlot(photoInput),
-        if (cakeField != null) ...[
+        for (final fieldInput in requirements.fields) ...[
           const SizedBox(height: 4),
           Text(
-            cakeField.label,
+            fieldInput.label,
             style: theme.textTheme.titleMedium?.copyWith(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -457,15 +527,32 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
           ),
           const SizedBox(height: 10),
           TextField(
-            controller: _cakeDigitController,
+            controller: _fieldControllers[fieldInput.type],
             enabled: !_isCreating,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(2),
-            ],
+            keyboardType: switch (fieldInput.type) {
+              'child_name' => TextInputType.name,
+              'cake_digit' || 'age_number' => TextInputType.number,
+              _ => TextInputType.text,
+            },
+            inputFormatters: switch (fieldInput.type) {
+              'child_name' => [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'[A-Za-zА-Яа-яЁё\- ]'),
+                ),
+                LengthLimitingTextInputFormatter(20),
+              ],
+              'cake_digit' || 'age_number' => [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(2),
+              ],
+              _ => const [],
+            },
             decoration: InputDecoration(
-              hintText: 'Например, 3',
+              hintText: switch (fieldInput.type) {
+                'child_name' => 'Например, Маша',
+                'cake_digit' || 'age_number' => 'Например, 3',
+                _ => null,
+              },
               filled: true,
               fillColor: const Color(0xFFF7F8FC),
               border: OutlineInputBorder(
@@ -557,16 +644,13 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final height =
-                            (constraints.maxWidth * 9 / 16).clamp(0.0, 150.0);
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: SizedBox(
-                            height: height,
-                            width: double.infinity,
-                            child: PreviewAssetImage(
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: AspectRatio(
+                        aspectRatio: _sheetPreviewAspectRatio,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return PreviewAssetImage(
                               assetPath: template.effectivePreviewAssetPath,
                               networkUrl: template.effectivePreviewNetworkUrl,
                               fit: BoxFit.cover,
@@ -577,13 +661,13 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                                   template.visualKind.placeholderMood,
                                 ).caption,
                                 variant: template.id.hashCode.abs() % 4,
-                                height: height,
+                                height: constraints.maxHeight,
                                 compact: true,
                               ),
-                            ),
-                          ),
-                        );
-                      },
+                            );
+                          },
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     if (_generationBlocked) ...[

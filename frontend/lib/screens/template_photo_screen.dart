@@ -462,7 +462,7 @@ class _TemplateCard extends StatelessWidget {
   static const _accentColor = Color(0xFF5B6CFF);
   static const _textPrimary = Color(0xFF1A1D26);
   static const _textSecondary = Color(0xFF6B7280);
-  static const _previewHeight = 190.0;
+  static const _previewAspectRatio = 4 / 3;
 
   final PhotoTemplate template;
   final VoidCallback onTry;
@@ -483,24 +483,27 @@ class _TemplateCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            height: _previewHeight,
-            width: double.infinity,
-            child: PreviewAssetImage(
-              assetPath: template.previewAsset,
-              networkUrl: template.effectivePreviewNetworkUrl,
-              fit: BoxFit.cover,
-              placeholder: VisualPlaceholder(
-                mood: template.visualKind.placeholderMood,
-                gradientColors: template.placeholderColors,
-                caption: template.previewLabel ??
-                    VisualPlaceholderPalette.theme(
-                      template.visualKind.placeholderMood,
-                    ).caption,
-                variant: template.id.hashCode.abs() % 4,
-                height: _previewHeight,
-                compact: true,
-              ),
+          AspectRatio(
+            aspectRatio: _previewAspectRatio,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return PreviewAssetImage(
+                  assetPath: template.previewAsset,
+                  networkUrl: template.effectivePreviewNetworkUrl,
+                  fit: BoxFit.cover,
+                  placeholder: VisualPlaceholder(
+                    mood: template.visualKind.placeholderMood,
+                    gradientColors: template.placeholderColors,
+                    caption: template.previewLabel ??
+                        VisualPlaceholderPalette.theme(
+                          template.visualKind.placeholderMood,
+                        ).caption,
+                    variant: template.id.hashCode.abs() % 4,
+                    height: constraints.maxHeight,
+                    compact: true,
+                  ),
+                );
+              },
             ),
           ),
           Padding(

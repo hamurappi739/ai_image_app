@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'preview_asset_image.dart';
 import 'visual_placeholder.dart';
 
 /// Shared visual placeholders for help slides and tips (no real images).
@@ -9,6 +10,92 @@ class UiPreviewPlaceholders {
   static const accent = Color(0xFF5B6CFF);
   static const textPrimary = Color(0xFF1A1D26);
   static const textSecondary = Color(0xFF6B7280);
+
+  static const _businessPortrait =
+      'assets/previews/templates/business_portrait.jpg';
+  static const _beautifulPortrait =
+      'assets/previews/templates/beautiful_portrait.jpg';
+  static const _childPhoto = 'assets/previews/templates/child_photo.jpg';
+  static const _goodPhoto = 'assets/guides/good_photo.jpg';
+  static const _badPhoto = 'assets/guides/bad_photo.jpg';
+  static const _studioPortrait1 =
+      'assets/previews/photoshoots/studio_portrait_1.jpg';
+  static const _studioPortrait2 =
+      'assets/previews/photoshoots/studio_portrait_2.jpg';
+  static const _studioPortrait3 =
+      'assets/previews/photoshoots/studio_portrait_3.jpg';
+
+  static Widget assetPreview({
+    required String assetPath,
+    double aspectRatio = 4 / 3,
+    BorderRadius borderRadius = const BorderRadius.all(Radius.circular(14)),
+    bool dimmed = false,
+    bool compact = false,
+  }) {
+    Widget image = PreviewAssetImage(
+      assetPath: assetPath,
+      fit: BoxFit.cover,
+      placeholder: Container(
+        color: const Color(0xFFE8EAEF),
+        alignment: Alignment.center,
+        child: Icon(
+          Icons.image_outlined,
+          color: textSecondary,
+          size: compact ? 20 : 24,
+        ),
+      ),
+    );
+    if (dimmed) {
+      image = ColorFiltered(
+        colorFilter: ColorFilter.mode(
+          Colors.black.withValues(alpha: 0.35),
+          BlendMode.darken,
+        ),
+        child: image,
+      );
+    }
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: AspectRatio(aspectRatio: aspectRatio, child: image),
+    );
+  }
+
+  static Widget photoshootThumbRow({
+    bool compact = false,
+    bool showLabels = false,
+  }) {
+    const paths = [_studioPortrait1, _studioPortrait2, _studioPortrait3];
+    return Row(
+      children: [
+        for (var i = 0; i < paths.length; i++) ...[
+          if (i > 0) SizedBox(width: compact ? 4 : 6),
+          Expanded(
+            child: Column(
+              children: [
+                assetPreview(
+                  assetPath: paths[i],
+                  aspectRatio: 3 / 4,
+                  borderRadius: BorderRadius.circular(compact ? 8 : 10),
+                  compact: compact,
+                ),
+                if (showLabels) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Фото ${i + 1}',
+                    style: TextStyle(
+                      fontSize: compact ? 9 : 10,
+                      fontWeight: FontWeight.w500,
+                      color: textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 
   static VisualPlaceholderMood _moodForIcon(IconData icon) {
     if (icon == Icons.business_center_outlined ||
@@ -167,12 +254,10 @@ class HelpTemplatePreview extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: UiPreviewPlaceholders.framedPreview(
-              height: compact ? 72 : 80,
-              gradientColors: const [Color(0xFFD4E0EE), Color(0xFF8EA4BE)],
-              icon: Icons.business_center_outlined,
-              mood: VisualPlaceholderMood.business,
-              badge: 'Деловой образ',
+            child: UiPreviewPlaceholders.assetPreview(
+              assetPath: UiPreviewPlaceholders._businessPortrait,
+              compact: compact,
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
           const SizedBox(width: 10),
@@ -279,34 +364,52 @@ class HelpPhotoUploadPreview extends StatelessWidget {
     return UiPreviewPlaceholders.helpShell(
       compact: compact,
       label: shellLabel,
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: compact ? 14 : 18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFFD8DCE8),
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              Icons.add_photo_alternate_outlined,
-              size: compact ? 28 : 32,
-              color: UiPreviewPlaceholders.accent,
+      child: Row(
+        children: [
+          SizedBox(
+            width: compact ? 72 : 80,
+            child: UiPreviewPlaceholders.assetPreview(
+              assetPath: UiPreviewPlaceholders._goodPhoto,
+              aspectRatio: 1,
+              compact: compact,
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Нажмите, чтобы выбрать фото',
-              style: TextStyle(
-                fontSize: compact ? 12 : 13,
-                color: UiPreviewPlaceholders.textSecondary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: compact ? 72 : 80,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: UiPreviewPlaceholders.accent.withValues(alpha: 0.45),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.add_photo_alternate_outlined,
+                    size: compact ? 24 : 28,
+                    color: UiPreviewPlaceholders.accent,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Выбрать фото',
+                    style: TextStyle(
+                      fontSize: compact ? 11 : 12,
+                      fontWeight: FontWeight.w600,
+                      color: UiPreviewPlaceholders.accent,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -362,13 +465,7 @@ class HelpPhotoshootTripletPreview extends StatelessWidget {
     return UiPreviewPlaceholders.helpShell(
       compact: compact,
       label: 'Фотосессия · 3 фото',
-      child: VisualPlaceholderSeries(
-        mood: VisualPlaceholderMood.photoshoot,
-        height: compact ? 88 : 96,
-        gradientColors: const [Color(0xFFEDE9FF), Color(0xFFB8B0D4)],
-        icon: Icons.photo_camera_outlined,
-        borderRadius: BorderRadius.circular(14),
-      ),
+      child: UiPreviewPlaceholders.photoshootThumbRow(compact: compact),
     );
   }
 }
@@ -628,12 +725,30 @@ class HelpGalleryPreview extends StatelessWidget {
     return UiPreviewPlaceholders.helpShell(
       compact: compact,
       label: 'Раздел «Готовые фото»',
-      child: VisualPlaceholderSeries(
-        mood: VisualPlaceholderMood.portrait,
-        height: compact ? 88 : 96,
-        gradientColors: const [Color(0xFFF8EEF5), Color(0xFFC5D8FF)],
-        icon: Icons.photo_library_outlined,
-        borderRadius: BorderRadius.circular(14),
+      child: Row(
+        children: [
+          Expanded(
+            child: UiPreviewPlaceholders.assetPreview(
+              assetPath: UiPreviewPlaceholders._beautifulPortrait,
+              compact: compact,
+            ),
+          ),
+          SizedBox(width: compact ? 6 : 8),
+          Expanded(
+            child: UiPreviewPlaceholders.assetPreview(
+              assetPath: UiPreviewPlaceholders._childPhoto,
+              compact: compact,
+            ),
+          ),
+          SizedBox(width: compact ? 6 : 8),
+          Expanded(
+            child: UiPreviewPlaceholders.assetPreview(
+              assetPath: UiPreviewPlaceholders._studioPortrait1,
+              aspectRatio: 3 / 4,
+              compact: compact,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -649,6 +764,7 @@ class PhotoQualityExampleCard extends StatelessWidget {
     required this.gradientColors,
     required this.icon,
     required this.isGood,
+    this.previewAssetPath,
   });
 
   final String title;
@@ -658,6 +774,7 @@ class PhotoQualityExampleCard extends StatelessWidget {
   final List<Color> gradientColors;
   final IconData icon;
   final bool isGood;
+  final String? previewAssetPath;
 
   @override
   Widget build(BuildContext context) {
@@ -711,11 +828,12 @@ class PhotoQualityExampleCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          UiPreviewPlaceholders.framedPreview(
-            height: 120,
-            gradientColors: gradientColors,
-            icon: icon,
-            badge: 'Пример фото',
+          UiPreviewPlaceholders.assetPreview(
+            assetPath: previewAssetPath ??
+                (isGood
+                    ? UiPreviewPlaceholders._goodPhoto
+                    : UiPreviewPlaceholders._badPhoto),
+            aspectRatio: 4 / 3,
             dimmed: !isGood,
           ),
           const SizedBox(height: 10),
