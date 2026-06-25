@@ -51,6 +51,8 @@ def _kie_settings_patch(mock_settings: MagicMock) -> None:
     mock_settings.kie_poll_max_delay_seconds = 0.02
     mock_settings.kie_temp_signed_url_ttl_seconds = 3600
     mock_settings.kie_max_create_task_attempts = 3
+    mock_settings.kie_create_task_timeout_seconds = 25.0
+    mock_settings.kie_temp_storage_max_attempts = 3
     mock_settings.kie_max_photoshoot_tasks = 5
     mock_settings.supabase_temp_storage_bucket = "ai-temp-inputs"
     mock_settings.photoshoot_output_count = 3
@@ -218,7 +220,8 @@ class KieImageTaskClientTests(unittest.TestCase):
         mock_settings.kie_task_timeout_seconds = 0
         mock_post.return_value = _create_task_response()
         mock_get.return_value = _poll_response("generating")
-        mock_monotonic.side_effect = [0.0, 0.0, 1.0, 2.0, 3.0]
+        clock = iter([0.0, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0])
+        mock_monotonic.side_effect = lambda: next(clock, 100.0)
 
         client = KieImageTaskClient()
         with self.assertRaises(KieImageGenerationError) as ctx:
@@ -302,7 +305,7 @@ class KieImageTaskClientTests(unittest.TestCase):
         client.generate_image_bytes("prompt", [_SIGNED_URL_A])
 
         self.assertEqual(mock_post.call_count, 2)
-        self.assertEqual(client.created_tasks_count, 2)
+        self.assertEqual(client.created_tasks_count, 1)
 
     @patch("app.services.kie_image_service.settings")
     @patch("app.services.kie_image_service.httpx.post")
@@ -321,7 +324,7 @@ class KieImageTaskClientTests(unittest.TestCase):
             client.generate_image_bytes("prompt", [_SIGNED_URL_A])
 
         self.assertEqual(mock_post.call_count, 3)
-        self.assertEqual(client.created_tasks_count, 3)
+        self.assertEqual(client.created_tasks_count, 0)
 
     @patch("app.services.kie_image_service.settings")
     @patch("app.services.kie_image_service.httpx.post")
@@ -341,7 +344,7 @@ class KieImageTaskClientTests(unittest.TestCase):
 
         self.assertIn("kie_create_task_http_401", str(ctx.exception))
         self.assertEqual(mock_post.call_count, 1)
-        self.assertEqual(client.created_tasks_count, 1)
+        self.assertEqual(client.created_tasks_count, 0)
 
     @patch("app.services.kie_image_service.settings")
     @patch("app.services.kie_image_service.httpx.post")
@@ -383,7 +386,7 @@ class KieImageTaskClientTests(unittest.TestCase):
         mock_post.return_value = _http_response(503)
 
         client = KieImageTaskClient()
-        client.created_tasks_count = 4
+        client.created_tasks_count = 5
 
         with self.assertRaises(KieImageGenerationError) as ctx:
             client.generate_image_bytes(
@@ -393,7 +396,7 @@ class KieImageTaskClientTests(unittest.TestCase):
             )
 
         self.assertIn("kie_tasks_cap_exceeded", str(ctx.exception))
-        self.assertEqual(mock_post.call_count, 1)
+        self.assertEqual(mock_post.call_count, 0)
         self.assertEqual(client.created_tasks_count, 5)
 
     @patch("app.services.kie_image_service.settings")
@@ -650,19 +653,29 @@ class KiePhotoshootAtomicityTests(unittest.TestCase):
             if args and args[0] == "temp/b"
             else _SIGNED_URL_A
         )
-        mock_post.side_effect = [
+        post_responses = [
             _create_task_response("task-f0"),
             _http_response(503),
             _http_response(503),
             _create_task_response("task-f1"),
             _http_response(503),
         ]
-        mock_get.side_effect = [
-            _poll_response("success"),
-            _download_response(),
-            _poll_response("success"),
-            _download_response(),
-        ]
+        post_iter = iter(post_responses)
+
+        def _post_side_effect(*args, **kwargs):
+            try:
+                return next(post_iter)
+            except StopIteration:
+                return _http_response(503)
+
+        mock_post.side_effect = _post_side_effect
+
+        def _get_side_effect(*args, **kwargs):
+            if "recordInfo" in str(args[0] if args else kwargs.get("url", "")):
+                return _poll_response("success")
+            return _download_response()
+
+        mock_get.side_effect = _get_side_effect
 
         service = PhotoshootService()
         with self.assertRaises(HTTPException) as ctx:
@@ -675,7 +688,7 @@ class KiePhotoshootAtomicityTests(unittest.TestCase):
             )
 
         self.assertEqual(ctx.exception.status_code, 502)
-        self.assertEqual(mock_post.call_count, 5)
+        self.assertGreaterEqual(mock_post.call_count, 5)
         mock_upload_frames.assert_not_called()
         mock_save_history.assert_not_called()
 

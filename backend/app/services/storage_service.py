@@ -17,6 +17,7 @@ import base64
 import binascii
 import logging
 import re
+import time
 from datetime import datetime, timezone
 from uuid import uuid4
 from urllib.parse import quote
@@ -41,6 +42,8 @@ _MIME_TO_EXTENSION = {
 }
 _ALLOWED_IMAGE_CONTENT_TYPES = frozenset(_MIME_TO_EXTENSION)
 _MAX_GENERATED_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
+_TEMP_STORAGE_RETRY_BACKOFF_SECONDS = (1.0, 2.0, 4.0)
+_RETRIABLE_STORAGE_HTTP_STATUSES = frozenset({500, 502, 503})
 
 
 def _require_storage_config() -> str:
@@ -80,14 +83,40 @@ def _short_response_message(response: httpx.Response) -> str:
 
 
 def _raise_storage_unavailable(exc: httpx.HTTPError) -> None:
-    logger.exception(
-        "Supabase Storage request failed: %s",
+    logger.warning(
+        "Supabase Storage request failed: error_type=%s",
         exc.__class__.__name__,
     )
     raise HTTPException(
         status_code=503,
         detail=_STORAGE_UNAVAILABLE_DETAIL,
     ) from exc
+
+
+def _temp_storage_max_attempts() -> int:
+    return max(1, int(settings.kie_temp_storage_max_attempts))
+
+
+def _sleep_temp_storage_backoff(attempt: int) -> None:
+    index = attempt - 1
+    delays = _TEMP_STORAGE_RETRY_BACKOFF_SECONDS
+    if 0 <= index < len(delays):
+        time.sleep(delays[index])
+
+
+def _is_retriable_storage_exception(exc: Exception) -> bool:
+    return isinstance(
+        exc,
+        (
+            httpx.TimeoutException,
+            httpx.ConnectError,
+            httpx.TransportError,
+        ),
+    )
+
+
+def _is_retriable_storage_http_exception(exc: HTTPException) -> bool:
+    return exc.status_code in _RETRIABLE_STORAGE_HTTP_STATUSES
 
 
 def _raise_storage_upload_failed(response: httpx.Response) -> None:
@@ -307,13 +336,109 @@ class SupabaseStorageService:
                 status_code=500,
                 detail="SUPABASE temp storage bucket is not configured",
             )
-        self._upload_bytes_to_bucket(bucket, path, content, content_type)
-        signed_url = self.create_signed_url(
+        self._upload_temp_bytes_with_retry(bucket, path, content, content_type)
+        signed_url = self._create_temp_signed_url_with_retry(
             path,
             ttl_seconds=ttl_seconds,
             bucket=bucket,
         )
         return path, signed_url
+
+    def _upload_temp_bytes_with_retry(
+        self,
+        bucket: str,
+        path: str,
+        content: bytes,
+        content_type: str,
+    ) -> None:
+        max_attempts = _temp_storage_max_attempts()
+        pipeline_log = logging.getLogger("uvicorn.error")
+        last_exc: Exception | None = None
+        for attempt in range(1, max_attempts + 1):
+            pipeline_log.info(
+                "Template Kie temp_upload start attempt=%s/%s",
+                attempt,
+                max_attempts,
+            )
+            try:
+                self._upload_bytes_to_bucket(bucket, path, content, content_type)
+                pipeline_log.info(
+                    "Template Kie temp_upload done attempt=%s/%s",
+                    attempt,
+                    max_attempts,
+                )
+                return
+            except HTTPException as exc:
+                last_exc = exc
+                if not _is_retriable_storage_http_exception(exc) or attempt >= max_attempts:
+                    pipeline_log.warning(
+                        "Template Kie temp_upload failed stage=temp_storage_upload "
+                        "attempt=%s/%s status=%s error_type=HTTPException",
+                        attempt,
+                        max_attempts,
+                        exc.status_code,
+                    )
+                    raise
+                pipeline_log.warning(
+                    "Template Kie temp_upload retry stage=temp_storage_upload "
+                    "attempt=%s/%s status=%s",
+                    attempt,
+                    max_attempts,
+                    exc.status_code,
+                )
+                _sleep_temp_storage_backoff(attempt)
+        if last_exc is not None:
+            raise last_exc
+
+    def _create_temp_signed_url_with_retry(
+        self,
+        path: str,
+        *,
+        ttl_seconds: int,
+        bucket: str,
+    ) -> str:
+        max_attempts = _temp_storage_max_attempts()
+        pipeline_log = logging.getLogger("uvicorn.error")
+        last_exc: Exception | None = None
+        for attempt in range(1, max_attempts + 1):
+            pipeline_log.info(
+                "Template Kie signed_url start attempt=%s/%s",
+                attempt,
+                max_attempts,
+            )
+            try:
+                signed_url = self.create_signed_url(
+                    path,
+                    ttl_seconds=ttl_seconds,
+                    bucket=bucket,
+                )
+                pipeline_log.info(
+                    "Template Kie signed_url done attempt=%s/%s",
+                    attempt,
+                    max_attempts,
+                )
+                return signed_url
+            except HTTPException as exc:
+                last_exc = exc
+                if not _is_retriable_storage_http_exception(exc) or attempt >= max_attempts:
+                    pipeline_log.warning(
+                        "Template Kie signed_url failed stage=temp_signed_url "
+                        "attempt=%s/%s status=%s error_type=HTTPException",
+                        attempt,
+                        max_attempts,
+                        exc.status_code,
+                    )
+                    raise
+                pipeline_log.warning(
+                    "Template Kie signed_url retry stage=temp_signed_url "
+                    "attempt=%s/%s status=%s",
+                    attempt,
+                    max_attempts,
+                    exc.status_code,
+                )
+                _sleep_temp_storage_backoff(attempt)
+        if last_exc is not None:
+            raise last_exc
 
     def upload_temp_input_data_url(
         self,
@@ -415,24 +540,58 @@ class SupabaseStorageService:
         if not bucket:
             logger.warning("Temp storage delete skipped (bucket not configured)")
             return False
-        return self._delete_object_in_bucket(bucket, path)
+        ok, _ = self._delete_object_in_bucket(
+            bucket,
+            path,
+            compact_temp_log=True,
+        )
+        return ok
 
     def delete_temp_objects_best_effort(self, paths: list[str]) -> None:
+        if not paths:
+            return
+        bucket = (settings.supabase_temp_storage_bucket or "").strip()
+        if not bucket:
+            logger.warning("Temp storage delete skipped (bucket not configured)")
+            return
+        failed_count = 0
+        last_error_type: str | None = None
         for path in paths:
-            self.delete_temp_object_best_effort(path)
+            ok, error_type = self._delete_object_in_bucket(
+                bucket,
+                path,
+                compact_temp_log=True,
+            )
+            if not ok:
+                failed_count += 1
+                if error_type:
+                    last_error_type = error_type
+        if failed_count:
+            logger.warning(
+                "Kie temp cleanup failed: object_count=%s failed_count=%s error_type=%s",
+                len(paths),
+                failed_count,
+                last_error_type or "delete_failed",
+            )
 
-    def _delete_object_in_bucket(self, bucket: str, path: str) -> bool:
+    def _delete_object_in_bucket(
+        self,
+        bucket: str,
+        path: str,
+        *,
+        compact_temp_log: bool = False,
+    ) -> tuple[bool, str | None]:
         try:
             base_url = _require_storage_config()
         except RuntimeError as exc:
             logger.warning("Storage delete skipped (config): reason=%s", exc)
-            return False
+            return False, type(exc).__name__
 
         try:
             object_path = _encode_object_path(path)
         except ValueError as exc:
             logger.warning("Storage delete skipped (invalid path): reason=%s", exc)
-            return False
+            return False, type(exc).__name__
 
         url = f"{base_url}/storage/v1/object/{quote(bucket, safe='')}/{object_path}"
         headers = {
@@ -441,19 +600,29 @@ class SupabaseStorageService:
         }
         try:
             response = httpx.delete(url, headers=headers, timeout=60.0)
-        except httpx.HTTPError:
-            logger.exception("Storage delete request failed")
-            return False
+        except httpx.HTTPError as exc:
+            error_type = exc.__class__.__name__
+            if compact_temp_log:
+                logger.warning(
+                    "Temp storage delete request failed: error_type=%s",
+                    error_type,
+                )
+            else:
+                logger.exception("Storage delete request failed")
+            return False, error_type
 
         if response.status_code in (200, 204):
-            logger.info("Temp storage delete ok")
-            return True
+            if compact_temp_log:
+                logger.info("Temp storage delete ok")
+            else:
+                logger.info("Storage delete ok")
+            return True, None
 
         logger.warning(
             "Temp storage delete failed: status=%s",
             response.status_code,
         )
-        return False
+        return False, f"http_{response.status_code}"
 
     def persist_generated_image(self, user_id: str, image_url: str) -> tuple[str, str | None]:
         """Upload a generated image when ``image_url`` is a base64 data URL.

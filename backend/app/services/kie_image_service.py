@@ -32,12 +32,27 @@ _SENSITIVE_LOG_TOKENS = (
 )
 
 
+_MAX_CONSECUTIVE_POLL_NETWORK_ERRORS = 5
+
+
 class KieImageGenerationError(Exception):
     """Terminal Kie image generation failure (safe to map to HTTP 502)."""
 
 
 class KieRetryableCreateTaskError(Exception):
-    """Transient createTask failure eligible for retry within attempt budget."""
+    """Transient createTask HTTP failure (429/455/500/503) — safe to retry."""
+
+
+class KieCreateTaskNetworkError(KieImageGenerationError):
+    """Ambiguous createTask network/timeout failure — do not auto-retry (no idempotency)."""
+
+
+class KiePollNetworkError(Exception):
+    """Transient poll network failure while task_id is known — safe to retry polling."""
+
+
+class KiePollNetworkExhaustedError(KieImageGenerationError):
+    """Too many consecutive poll network failures for a known task_id."""
 
 
 class KieImageTaskClient:
@@ -59,9 +74,8 @@ class KieImageTaskClient:
         with self._counter_lock:
             self.http_calls_count += 1
 
-    def _record_create_task_attempt(self) -> int:
+    def _record_task_created(self) -> int:
         with self._counter_lock:
-            self.http_calls_count += 1
             self.created_tasks_count += 1
             return self.created_tasks_count
 
@@ -73,6 +87,7 @@ class KieImageTaskClient:
         style_id: str | None = None,
         photoshoot_id: str | None = None,
         frame_index: int | None = None,
+        template_id: str | None = None,
         max_created_tasks: int | None = None,
     ) -> tuple[bytes, str]:
         if not settings.kie_configured():
@@ -80,12 +95,14 @@ class KieImageTaskClient:
         if not input_urls:
             raise KieImageGenerationError("kie_missing_input_urls")
 
+        flow_started = time.monotonic()
         task_id = self._create_task_with_retries(
             prompt=prompt,
             input_urls=input_urls,
             style_id=style_id,
             photoshoot_id=photoshoot_id,
             frame_index=frame_index,
+            template_id=template_id,
             max_created_tasks=max_created_tasks,
         )
         result_url = self._poll_until_result(
@@ -93,21 +110,26 @@ class KieImageTaskClient:
             style_id=style_id,
             photoshoot_id=photoshoot_id,
             frame_index=frame_index,
+            template_id=template_id,
         )
         content, content_type = self._download_result_image(
             result_url,
             style_id=style_id,
             photoshoot_id=photoshoot_id,
             frame_index=frame_index,
+            template_id=template_id,
         )
+        total_elapsed_ms = int((time.monotonic() - flow_started) * 1000)
         kie_log.info(
-            "Kie generate_image_bytes done: style_id=%s photoshoot_id=%s frame_index=%s "
-            "http_calls_count=%s created_tasks_count=%s",
+            "Kie generate_image_bytes done: template_id=%s style_id=%s photoshoot_id=%s "
+            "frame_index=%s http_calls_count=%s created_tasks_count=%s total_elapsed_ms=%s",
+            template_id,
             style_id,
             photoshoot_id,
             frame_index,
             self.http_calls_count,
             self.created_tasks_count,
+            total_elapsed_ms,
         )
         return content, content_type
 
@@ -119,6 +141,7 @@ class KieImageTaskClient:
         style_id: str | None,
         photoshoot_id: str | None,
         frame_index: int | None,
+        template_id: str | None,
         max_created_tasks: int | None,
     ) -> str:
         max_attempts = max(1, int(settings.kie_max_create_task_attempts))
@@ -132,15 +155,14 @@ class KieImageTaskClient:
                     style_id=style_id,
                     photoshoot_id=photoshoot_id,
                     frame_index=frame_index,
+                    template_id=template_id,
                     attempt=attempt,
                 )
+            except KieCreateTaskNetworkError:
+                raise
             except KieImageGenerationError:
                 raise
             except KieRetryableCreateTaskError as exc:
-                last_error = exc
-                if attempt >= max_attempts:
-                    break
-            except Exception as exc:
                 last_error = exc
                 if attempt >= max_attempts:
                     break
@@ -156,6 +178,7 @@ class KieImageTaskClient:
         style_id: str | None,
         photoshoot_id: str | None,
         frame_index: int | None,
+        template_id: str | None,
         attempt: int,
     ) -> str:
         base_url = (settings.kie_api_base_url or "").rstrip("/")
@@ -175,36 +198,57 @@ class KieImageTaskClient:
         }
         started = time.monotonic()
         acquire_kie_create_task_slot()
-        created_tasks_count = self._record_create_task_attempt()
+        create_timeout = float(settings.kie_create_task_timeout_seconds)
         kie_log.info(
-            "Kie create_task start: model=%s style_id=%s photoshoot_id=%s "
-            "frame_index=%s attempt=%s created_tasks_count=%s",
+            "Kie create_task start: template_id=%s model=%s style_id=%s photoshoot_id=%s "
+            "frame_index=%s attempt=%s created_tasks_count=%s timeout_seconds=%s",
+            template_id,
             settings.kie_image_model,
             style_id,
             photoshoot_id,
             frame_index,
             attempt,
-            created_tasks_count,
+            self.created_tasks_count,
+            create_timeout,
         )
         try:
-            response = httpx.post(url, headers=headers, json=payload, timeout=120.0)
+            self._record_http_call()
+            response = httpx.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=create_timeout,
+            )
         except httpx.HTTPError as exc:
+            elapsed_ms = int((time.monotonic() - started) * 1000)
             self._log_kie_event(
                 event="create_task",
+                template_id=template_id,
                 style_id=style_id,
                 photoshoot_id=photoshoot_id,
                 frame_index=frame_index,
                 task_id=None,
                 attempt=attempt,
                 state="network_error",
-                elapsed_ms=int((time.monotonic() - started) * 1000),
+                elapsed_ms=elapsed_ms,
             )
-            raise KieRetryableCreateTaskError("kie_create_task_network") from exc
+            kie_log.warning(
+                "Kie create_task failed: template_id=%s stage=kie_create_task "
+                "error_type=%s reason=network_error elapsed_ms=%s "
+                "created_tasks_count=%s http_calls_count=%s",
+                template_id,
+                type(exc).__name__,
+                elapsed_ms,
+                self.created_tasks_count,
+                self.http_calls_count,
+            )
+            raise KieCreateTaskNetworkError("kie_create_task_network") from exc
 
         elapsed_ms = int((time.monotonic() - started) * 1000)
         if response.status_code in _NON_RETRYABLE_HTTP_STATUSES:
             self._log_kie_event(
                 event="create_task",
+                template_id=template_id,
                 style_id=style_id,
                 photoshoot_id=photoshoot_id,
                 frame_index=frame_index,
@@ -218,6 +262,7 @@ class KieImageTaskClient:
         if response.status_code in _RETRYABLE_HTTP_STATUSES:
             self._log_kie_event(
                 event="create_task",
+                template_id=template_id,
                 style_id=style_id,
                 photoshoot_id=photoshoot_id,
                 frame_index=frame_index,
@@ -233,6 +278,7 @@ class KieImageTaskClient:
         if response.status_code >= 400:
             self._log_kie_event(
                 event="create_task",
+                template_id=template_id,
                 style_id=style_id,
                 photoshoot_id=photoshoot_id,
                 frame_index=frame_index,
@@ -248,8 +294,10 @@ class KieImageTaskClient:
         if not task_id:
             raise KieImageGenerationError("kie_create_task_missing_task_id")
 
+        created_tasks_count = self._record_task_created()
         self._log_kie_event(
             event="create_task",
+            template_id=template_id,
             style_id=style_id,
             photoshoot_id=photoshoot_id,
             frame_index=frame_index,
@@ -257,6 +305,16 @@ class KieImageTaskClient:
             attempt=attempt,
             state="created",
             elapsed_ms=elapsed_ms,
+        )
+        kie_log.info(
+            "Kie create_task done: template_id=%s task_id=%s attempt=%s elapsed_ms=%s "
+            "created_tasks_count=%s http_calls_count=%s",
+            template_id,
+            task_id,
+            attempt,
+            elapsed_ms,
+            created_tasks_count,
+            self.http_calls_count,
         )
         return task_id
 
@@ -267,29 +325,80 @@ class KieImageTaskClient:
         style_id: str | None,
         photoshoot_id: str | None,
         frame_index: int | None,
+        template_id: str | None = None,
     ) -> str:
+        kie_log.info(
+            "Kie poll start: template_id=%s task_id=%s style_id=%s photoshoot_id=%s frame_index=%s",
+            template_id,
+            task_id,
+            style_id,
+            photoshoot_id,
+            frame_index,
+        )
         deadline = time.monotonic() + float(settings.kie_task_timeout_seconds)
         delay = float(settings.kie_poll_initial_delay_seconds)
         max_delay = float(settings.kie_poll_max_delay_seconds)
         poll_attempt = 0
+        poll_started = time.monotonic()
+        consecutive_poll_network_errors = 0
 
         while time.monotonic() < deadline:
             time.sleep(delay)
             poll_attempt += 1
             started = time.monotonic()
-            state, result_urls = self._poll_task_once(
-                task_id,
-                style_id=style_id,
-                photoshoot_id=photoshoot_id,
-                frame_index=frame_index,
-                attempt=poll_attempt,
-            )
+            try:
+                state, result_urls = self._poll_task_once(
+                    task_id,
+                    style_id=style_id,
+                    photoshoot_id=photoshoot_id,
+                    frame_index=frame_index,
+                    attempt=poll_attempt,
+                )
+            except KiePollNetworkError as exc:
+                consecutive_poll_network_errors += 1
+                total_elapsed_ms = int((time.monotonic() - poll_started) * 1000)
+                kie_log.warning(
+                    "Kie poll network_error: template_id=%s task_id=%s attempt=%s "
+                    "consecutive_poll_network_errors=%s total_elapsed_ms=%s "
+                    "error_type=%s",
+                    template_id,
+                    task_id,
+                    poll_attempt,
+                    consecutive_poll_network_errors,
+                    total_elapsed_ms,
+                    type(exc.__cause__).__name__
+                    if exc.__cause__ is not None
+                    else type(exc).__name__,
+                )
+                if (
+                    consecutive_poll_network_errors
+                    >= _MAX_CONSECUTIVE_POLL_NETWORK_ERRORS
+                ):
+                    kie_log.warning(
+                        "Kie poll failed: template_id=%s stage=kie_poll task_id=%s "
+                        "reason=poll_network_exhausted consecutive_poll_network_errors=%s "
+                        "created_tasks_count=%s http_calls_count=%s total_elapsed_ms=%s",
+                        template_id,
+                        task_id,
+                        consecutive_poll_network_errors,
+                        self.created_tasks_count,
+                        self.http_calls_count,
+                        total_elapsed_ms,
+                    )
+                    raise KiePollNetworkExhaustedError(
+                        "kie_poll_network_exhausted"
+                    ) from exc
+                delay = min(delay * 2, max_delay)
+                continue
+
+            consecutive_poll_network_errors = 0
             elapsed_ms = int((time.monotonic() - started) * 1000)
 
             if state in _PENDING_STATES:
                 if poll_attempt % 5 == 0:
                     self._log_kie_event(
                         event="poll",
+                        template_id=template_id,
                         style_id=style_id,
                         photoshoot_id=photoshoot_id,
                         frame_index=frame_index,
@@ -305,6 +414,7 @@ class KieImageTaskClient:
                 if not result_urls:
                     self._log_kie_event(
                         event="poll",
+                        template_id=template_id,
                         style_id=style_id,
                         photoshoot_id=photoshoot_id,
                         frame_index=frame_index,
@@ -316,6 +426,7 @@ class KieImageTaskClient:
                     raise KieImageGenerationError("kie_empty_result_urls")
                 self._log_kie_event(
                     event="poll",
+                    template_id=template_id,
                     style_id=style_id,
                     photoshoot_id=photoshoot_id,
                     frame_index=frame_index,
@@ -324,11 +435,19 @@ class KieImageTaskClient:
                     state=state,
                     elapsed_ms=elapsed_ms,
                 )
+                kie_log.info(
+                    "Kie poll done: template_id=%s task_id=%s state=%s http_calls_count=%s",
+                    template_id,
+                    task_id,
+                    state,
+                    self.http_calls_count,
+                )
                 return result_urls[0]
 
             if state == _FAIL_STATE:
                 self._log_kie_event(
                     event="poll",
+                    template_id=template_id,
                     style_id=style_id,
                     photoshoot_id=photoshoot_id,
                     frame_index=frame_index,
@@ -342,6 +461,7 @@ class KieImageTaskClient:
             if poll_attempt % 5 == 0:
                 self._log_kie_event(
                     event="poll",
+                    template_id=template_id,
                     style_id=style_id,
                     photoshoot_id=photoshoot_id,
                     frame_index=frame_index,
@@ -354,6 +474,7 @@ class KieImageTaskClient:
 
         self._log_kie_event(
             event="poll",
+            template_id=template_id,
             style_id=style_id,
             photoshoot_id=photoshoot_id,
             frame_index=frame_index,
@@ -361,6 +482,14 @@ class KieImageTaskClient:
             attempt=poll_attempt,
             state="timeout",
             elapsed_ms=0,
+        )
+        kie_log.warning(
+            "Kie poll failed: template_id=%s stage=kie_poll task_id=%s state=timeout "
+            "created_tasks_count=%s http_calls_count=%s",
+            template_id,
+            task_id,
+            self.created_tasks_count,
+            self.http_calls_count,
         )
         raise KieImageGenerationError("kie_task_timeout")
 
@@ -385,17 +514,7 @@ class KieImageTaskClient:
                 timeout=60.0,
             )
         except httpx.HTTPError as exc:
-            self._log_kie_event(
-                event="poll",
-                style_id=style_id,
-                photoshoot_id=photoshoot_id,
-                frame_index=frame_index,
-                task_id=task_id,
-                attempt=attempt,
-                state="network_error",
-                elapsed_ms=0,
-            )
-            raise KieImageGenerationError("kie_poll_network") from exc
+            raise KiePollNetworkError("kie_poll_network") from exc
 
         if response.status_code in _NON_RETRYABLE_HTTP_STATUSES:
             raise KieImageGenerationError(f"kie_poll_http_{response.status_code}")
@@ -414,7 +533,15 @@ class KieImageTaskClient:
         style_id: str | None = None,
         photoshoot_id: str | None = None,
         frame_index: int | None = None,
+        template_id: str | None = None,
     ) -> tuple[bytes, str]:
+        kie_log.info(
+            "Kie result download start: template_id=%s style_id=%s photoshoot_id=%s frame_index=%s",
+            template_id,
+            style_id,
+            photoshoot_id,
+            frame_index,
+        )
         self._record_http_call()
         try:
             response = httpx.get(result_url, timeout=120.0, follow_redirects=True)
@@ -432,8 +559,9 @@ class KieImageTaskClient:
         if not content_type.startswith("image/"):
             content_type = "image/png"
         kie_log.info(
-            "Kie result download done: style_id=%s photoshoot_id=%s frame_index=%s "
-            "content_type=%s bytes=%s http_calls_count=%s",
+            "Kie result download done: template_id=%s style_id=%s photoshoot_id=%s "
+            "frame_index=%s content_type=%s bytes=%s http_calls_count=%s",
+            template_id,
             style_id,
             photoshoot_id,
             frame_index,
@@ -447,6 +575,7 @@ class KieImageTaskClient:
         self,
         *,
         event: str,
+        template_id: str | None,
         style_id: str | None,
         photoshoot_id: str | None,
         frame_index: int | None,
@@ -456,10 +585,11 @@ class KieImageTaskClient:
         elapsed_ms: int,
     ) -> None:
         kie_log.info(
-            "Kie %s: model=%s style_id=%s photoshoot_id=%s frame_index=%s "
+            "Kie %s: template_id=%s model=%s style_id=%s photoshoot_id=%s frame_index=%s "
             "task_id=%s attempt=%s state=%s elapsed_ms=%s "
             "http_calls_count=%s created_tasks_count=%s",
             event,
+            template_id,
             settings.kie_image_model,
             style_id,
             photoshoot_id,
