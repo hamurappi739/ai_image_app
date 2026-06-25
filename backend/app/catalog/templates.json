@@ -298,5 +298,127 @@
       ],
       "fields": []
     }
+  },
+  {
+    "id": "child_birthday_number",
+    "title": "Ребёнок с цифрой",
+    "category": "Для семьи",
+    "shortDescription": "Праздничное фото ребёнка с большой цифрой возраста.",
+    "prompt": "You are given one uploaded image. Image 1 is the child photo and must be used as the identity reference for the child. Keep the same child recognizable: face, age impression, facial proportions, skin tone, hair and natural expression. Transform only the scene, outfit, lighting and birthday styling described below.\n\nCreate a photorealistic stylish birthday portrait of the child. The child is smiling naturally and standing or sitting near a large balloon number {age_number}. The number {age_number} must be clearly visible and be the main birthday detail. Minimal clean studio or bright home background, soft daylight, tasteful birthday decorations, warm family mood, realistic child face, natural skin and hair. No extra people, no text, no distorted hands, no changed age.",
+    "previewAsset": "assets/previews/templates/child_birthday_number.jpg",
+    "priceImages": 1,
+    "isActive": true,
+    "sortOrder": 36,
+    "previewUrl": null,
+    "inputRequirements": {
+      "photos": [
+        {
+          "id": "child_photo",
+          "field": "child_photo",
+          "label": "Добавить фото ребёнка"
+        }
+      ],
+      "fields": [
+        {
+          "id": "age_number",
+          "label": "Цифра возраста",
+          "type": "age_number"
+        }
+      ]
+    }
+  },
+  {
+    "id": "child_name_age",
+    "title": "Имя и возраст ребёнка",
+    "category": "Для семьи",
+    "shortDescription": "Стильное фото ребёнка с именем и возрастом.",
+    "prompt": "You are given one uploaded image. Image 1 is the child photo and must be used as the identity reference for the child. Keep the same child recognizable: face, age impression, facial proportions, skin tone, hair and natural expression. Transform only the scene, outfit, lighting and birthday styling described below.\n\nCreate a photorealistic birthday portrait of the child with a clean minimal celebration setup. The child is smiling naturally, wearing neat stylish clothes, with a large balloon number {age_number} or cake topper number {age_number}. Add a simple clean birthday inscription with the child's name {child_name} and age {age_number}, placed on the wall or as a small design element. Keep the child recognizable from the uploaded photo. No extra people, no clutter, no unsafe styling, no distorted text if possible.",
+    "previewAsset": "assets/previews/templates/child_name_age.jpg",
+    "priceImages": 1,
+    "isActive": true,
+    "sortOrder": 37,
+    "previewUrl": null,
+    "inputRequirements": {
+      "photos": [
+        {
+          "id": "child_photo",
+          "field": "child_photo",
+          "label": "Добавить фото ребёнка"
+        }
+      ],
+      "fields": [
+        {
+          "id": "child_name",
+          "label": "Имя ребёнка",
+          "type": "child_name"
+        },
+        {
+          "id": "age_number",
+          "label": "Возраст",
+          "type": "age_number"
+        }
+      ]
+    }
+  },
+  {
+    "id": "child_memory_birthday",
+    "title": "Детское воспоминание",
+    "category": "Для семьи",
+    "shortDescription": "Фото ребёнка сейчас и нежное воспоминание о детстве.",
+    "prompt": "You are given two uploaded images. Image 1 is the current child photo and must be used as the main identity reference for the child. Image 2 is the childhood/baby photo and must be used only as a soft memory reference inside the scene, for example as a framed photo, projection, album photo or decorative background detail. Keep the main child recognizable from Image 1.\n\nCreate a photorealistic artistic birthday portrait of the child now. The child is the main subject, wearing a neat light festive outfit and holding or standing near a small birthday cake with the number {age_number}. In the background, include a soft memory element based on Image 2: a framed photo, album page, projection or gentle decorative portrait from early childhood. The memory element must be secondary and soft, while the current child remains the main focus. Warm studio light, emotional family atmosphere, clean composition. No extra people, no fantasy wings, no unsafe styling, no distorted hands.",
+    "previewAsset": "assets/previews/templates/child_memory_birthday.jpg",
+    "priceImages": 1,
+    "isActive": true,
+    "sortOrder": 38,
+    "previewUrl": null,
+    "inputRequirements": {
+      "photos": [
+        {
+          "id": "current_child_photo",
+          "field": "child_photo",
+          "label": "Фото ребёнка сейчас"
+        },
+        {
+          "id": "baby_photo",
+          "field": "baby_photo",
+          "label": "Фото ребёнка в детстве"
+        }
+      ],
+      "fields": [
+        {
+          "id": "age_number",
+          "label": "Цифра возраста",
+          "type": "age_number"
+        }
+      ]
+    }
+  },
+  {
+    "id": "birthday_balloons",
+    "title": "День рождения",
+    "category": "Для себя",
+    "shortDescription": "Праздничный портрет с шарами и цифрой возраста.",
+    "prompt": "Use the uploaded photo as the identity reference for the person. Keep the same face, age, skin tone, hairstyle, and natural facial features. Preserve the same person — do not change identity, do not change age, and do not add extra people.\n\nCreate a photorealistic celebratory birthday portrait of the person in vertical 3:4 format. The person wears an elegant light festive outfit, sitting or standing in a cozy celebratory room or warm studio with soft warm light and tasteful party decor.\n\nBehind or beside the person, place large metallic foil balloon numbers showing {age_number}. The age number must be clearly visible and unmistakably rendered as large foil balloon numbers in the background — not printed text, not on the cake.\n\nA birthday cake may appear as a secondary decorative element only. Do NOT place the age number on the cake: no cake topper number, no candle numbers, no printed number on the cake.\n\nUse a beige, gold and cream palette with soft cinematic light and a natural smile. Photorealistic only — no cartoon, illustration or CGI. No messy decorations, no distorted text, no age change.",
+    "previewAsset": "assets/previews/templates/birthday_balloons.jpg",
+    "priceImages": 1,
+    "isActive": true,
+    "sortOrder": 105,
+    "previewUrl": null,
+    "inputRequirements": {
+      "photos": [
+        {
+          "id": "user_photo",
+          "field": "photo",
+          "label": "Добавить ваше фото"
+        }
+      ],
+      "fields": [
+        {
+          "id": "age_number",
+          "label": "Возраст",
+          "type": "age_number"
+        }
+      ]
+    }
   }
 ]

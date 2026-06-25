@@ -256,6 +256,7 @@ class HelpTemplatePreview extends StatelessWidget {
           Expanded(
             child: UiPreviewPlaceholders.assetPreview(
               assetPath: UiPreviewPlaceholders._businessPortrait,
+              aspectRatio: 1,
               compact: compact,
               borderRadius: BorderRadius.circular(14),
             ),

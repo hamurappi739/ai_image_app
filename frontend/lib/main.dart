@@ -3268,9 +3268,13 @@ class _CreateScreenState extends State<CreateScreen> {
   bool _isLoading = false;
   bool _showGenerationErrorState = false;
   bool _isHelpDialogVisible = false;
-  bool _isPickingPhoto = false;
+  String? _pickingPhotoSlot;
   Uint8List? _selectedPhotoBytes;
   XFile? _selectedPhotoFile;
+  Uint8List? _optionalPhoto2Bytes;
+  XFile? _optionalPhoto2File;
+  Uint8List? _optionalPhoto3Bytes;
+  XFile? _optionalPhoto3File;
   GenerateImageResponse? _lastResponse;
 
   bool get _hasSelectedPhoto => _selectedPhotoBytes != null;
@@ -3334,30 +3338,48 @@ class _CreateScreenState extends State<CreateScreen> {
     super.dispose();
   }
 
-  Future<void> _pickReferencePhoto() async {
-    if (_isPickingPhoto || _isLoading) return;
-    setState(() => _isPickingPhoto = true);
+  Future<void> _pickReferencePhoto(String slot) async {
+    if (_pickingPhotoSlot != null || _isLoading) return;
+    setState(() => _pickingPhotoSlot = slot);
     try {
       final file = await _imagePicker.pickImage(source: ImageSource.gallery);
       if (file == null || !mounted) return;
       final bytes = await file.readAsBytes();
       if (!mounted) return;
       setState(() {
-        _selectedPhotoFile = file;
-        _selectedPhotoBytes = bytes;
+        switch (slot) {
+          case 'primary':
+            _selectedPhotoFile = file;
+            _selectedPhotoBytes = bytes;
+          case 'photo2':
+            _optionalPhoto2File = file;
+            _optionalPhoto2Bytes = bytes;
+          case 'photo3':
+            _optionalPhoto3File = file;
+            _optionalPhoto3Bytes = bytes;
+        }
       });
     } catch (_) {
       if (!mounted) return;
       _showSnackBar('Не удалось выбрать фото. Попробуйте ещё раз.');
     } finally {
-      if (mounted) setState(() => _isPickingPhoto = false);
+      if (mounted) setState(() => _pickingPhotoSlot = null);
     }
   }
 
-  void _clearReferencePhoto() {
+  void _clearReferencePhoto(String slot) {
     setState(() {
-      _selectedPhotoBytes = null;
-      _selectedPhotoFile = null;
+      switch (slot) {
+        case 'primary':
+          _selectedPhotoBytes = null;
+          _selectedPhotoFile = null;
+        case 'photo2':
+          _optionalPhoto2Bytes = null;
+          _optionalPhoto2File = null;
+        case 'photo3':
+          _optionalPhoto3Bytes = null;
+          _optionalPhoto3File = null;
+      }
     });
   }
 
@@ -3382,7 +3404,9 @@ class _CreateScreenState extends State<CreateScreen> {
     }
     return widget.apiService.generateImageWithPhoto(
       description: text,
-      photoFile: photoFile,
+      primaryPhotoFile: photoFile,
+      extraPhoto1File: _optionalPhoto2File,
+      extraPhoto2File: _optionalPhoto3File,
     );
   }
 
@@ -3543,8 +3567,10 @@ class _CreateScreenState extends State<CreateScreen> {
               ],
               CustomRequestFlow(
                 descriptionController: _descriptionController,
-                photoBytes: _selectedPhotoBytes,
-                isPickingPhoto: _isPickingPhoto,
+                primaryPhotoBytes: _selectedPhotoBytes,
+                optionalPhoto2Bytes: _optionalPhoto2Bytes,
+                optionalPhoto3Bytes: _optionalPhoto3Bytes,
+                pickingPhotoSlot: _pickingPhotoSlot,
                 isBusy: _isLoading,
                 onPickPhoto: _pickReferencePhoto,
                 onClearPhoto: _clearReferencePhoto,

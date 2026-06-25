@@ -85,7 +85,7 @@ class TemplateCreateSheet extends StatefulWidget {
 
 class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
   static const _accentColor = Color(0xFF5B6CFF);
-  static const _sheetPreviewAspectRatio = 4 / 3;
+  static const _sheetPreviewAspectRatio = 1.0;
 
   final _imagePicker = ImagePicker();
   final Map<String, TextEditingController> _fieldControllers = {};
@@ -282,8 +282,8 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
           await GenerationProgressDialog.run<GenerateImageResponse>(
         context: context,
         title: 'Создаём фото…',
-        subtitle: 'Обычно это занимает до минуту.',
-        totalSeconds: 60,
+        subtitle: 'Обычно это занимает 1–3 минуты.',
+        totalSeconds: 180,
         task: () => widget.apiService.generateImageWithPhoto(
           description: prompt,
           primaryPhotoFile: primaryPhoto.file,
@@ -325,6 +325,11 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
     } on PhotoGenerationInvalidPhotoException {
       if (!mounted) return;
       widget.onShowMessage('Выберите фото JPEG, PNG или WebP до 10 МБ');
+    } on PhotoGenerationServiceUnavailableException {
+      if (!mounted) return;
+      widget.onShowMessage(
+        'Сервис временно не ответил. Попробуйте ещё раз через минуту.',
+      );
     } catch (_) {
       if (!mounted) return;
       widget.onShowMessage('Не удалось создать фото. Попробуйте ещё раз.');

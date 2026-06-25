@@ -144,6 +144,27 @@ class CatalogVisuals {
       placeholderColors: [Color(0xFFF5E8DC), Color(0xFFD4B8A0)],
       previewLabel: 'С кошкой',
     ),
+    // Stage 3: temporary previews until dedicated assets are added.
+    'child_birthday_number': CatalogTemplateVisuals(
+      kind: TemplateVisualKind.child,
+      placeholderColors: [Color(0xFFFFF0D8), Color(0xFFE8C090)],
+      previewLabel: 'С цифрой',
+    ),
+    'child_name_age': CatalogTemplateVisuals(
+      kind: TemplateVisualKind.child,
+      placeholderColors: [Color(0xFFEEF1FF), Color(0xFFB8C4FF)],
+      previewLabel: 'Имя и возраст',
+    ),
+    'child_memory_birthday': CatalogTemplateVisuals(
+      kind: TemplateVisualKind.child,
+      placeholderColors: [Color(0xFFF5E8DC), Color(0xFFD4B8A0)],
+      previewLabel: 'Воспоминание',
+    ),
+    'birthday_balloons': CatalogTemplateVisuals(
+      kind: TemplateVisualKind.festive,
+      placeholderColors: [Color(0xFFFFF4DC), Color(0xFFE8D090)],
+      previewLabel: 'День рождения',
+    ),
   };
 
   static const _photoshootVisuals = <String, CatalogPhotoshootVisuals>{

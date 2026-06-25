@@ -63,10 +63,28 @@ def build_text_to_image_instruction(user_description: str) -> str:
     )
 
 
-def build_photo_edit_instruction(user_description: str) -> str:
+CUSTOM_EXTRA_PHOTOS_RULES = (
+    "Use the first uploaded photo as the main identity/reference image. "
+    "If additional photos are provided, use them as optional references for "
+    "extra people, pets, objects, or visual details requested by the user. "
+    "Do not add people from optional photos unless the user description asks for "
+    "multiple people or a group photo. "
+    "Preserve identity from all provided person photos when they are used."
+)
+
+
+def build_photo_edit_instruction(
+    user_description: str,
+    *,
+    extra_photos_count: int = 0,
+) -> str:
     description = user_description.strip()
+    extra_rules = ""
+    if extra_photos_count > 0:
+        extra_rules = f"{CUSTOM_EXTRA_PHOTOS_RULES}\n"
     return (
         f"User description: {description}\n\n"
+        f"{extra_rules}"
         f"{PHOTO_REFERENCE_RULES}\n"
         f"{PHOTO_REALISM_RULES}\n"
         f"{STANDALONE_SINGLE_IMAGE_RULES}\n"

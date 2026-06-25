@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     kie_poll_max_delay_seconds: float = 8.0
     kie_temp_signed_url_ttl_seconds: int = 3600
     kie_max_create_task_attempts: int = 3
+    kie_create_task_timeout_seconds: float = 25.0
+    kie_temp_storage_max_attempts: int = 3
     kie_max_photoshoot_tasks: int = 5
     kie_create_task_rate_limit: int = 15
     kie_create_task_rate_window_seconds: float = 10.0

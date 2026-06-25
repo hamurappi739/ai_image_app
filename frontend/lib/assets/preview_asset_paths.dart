@@ -42,6 +42,11 @@ class PreviewAssetPaths {
     'beach_sand_portrait': '$_templatesDir/beach_sand_portrait.jpg',
     'white_dress_yellow_meadow': '$_templatesDir/white_dress_yellow_meadow.jpg',
     'woman_with_cat': '$_templatesDir/woman_with_cat.jpg',
+    // Stage 3 template previews.
+    'child_birthday_number': '$_templatesDir/child_birthday_number.jpg',
+    'child_name_age': '$_templatesDir/child_name_age.jpg',
+    'child_memory_birthday': '$_templatesDir/child_memory_birthday.jpg',
+    'birthday_balloons': '$_templatesDir/birthday_balloons.jpg',
   };
 
   static String templateAssetForId(String id) =>

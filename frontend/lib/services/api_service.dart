@@ -23,6 +23,10 @@ class PhotoGenerationDescriptionException implements Exception {
   const PhotoGenerationDescriptionException();
 }
 
+class PhotoGenerationServiceUnavailableException implements Exception {
+  const PhotoGenerationServiceUnavailableException();
+}
+
 class GenerateImageResponse {
   const GenerateImageResponse({
     required this.imageUrl,
@@ -446,11 +450,17 @@ class ApiService {
 
   Future<GenerateImageResponse> generateImageWithPhoto({
     required String description,
-    required XFile photoFile,
+    required XFile primaryPhotoFile,
+    String primaryPhotoField = 'photo',
     String? templateId,
     XFile? petPhotoFile,
     XFile? childPhotoFile,
+    XFile? babyPhotoFile,
+    XFile? extraPhoto1File,
+    XFile? extraPhoto2File,
     String? cakeDigit,
+    String? ageNumber,
+    String? childName,
   }) async {
     final request = http.MultipartRequest(
       'POST',
@@ -463,6 +473,12 @@ class ApiService {
     }
     if (cakeDigit != null && cakeDigit.trim().isNotEmpty) {
       request.fields['cake_digit'] = cakeDigit.trim();
+    }
+    if (ageNumber != null && ageNumber.trim().isNotEmpty) {
+      request.fields['age_number'] = ageNumber.trim();
+    }
+    if (childName != null && childName.trim().isNotEmpty) {
+      request.fields['child_name'] = childName.trim();
     }
 
     Future<void> attachFile(String fieldName, XFile file) async {
@@ -478,12 +494,21 @@ class ApiService {
       );
     }
 
-    await attachFile('photo', photoFile);
+    await attachFile(primaryPhotoField, primaryPhotoFile);
+    if (extraPhoto1File != null) {
+      await attachFile('extra_photo_1', extraPhoto1File);
+    }
+    if (extraPhoto2File != null) {
+      await attachFile('extra_photo_2', extraPhoto2File);
+    }
     if (petPhotoFile != null) {
       await attachFile('pet_photo', petPhotoFile);
     }
     if (childPhotoFile != null) {
       await attachFile('child_photo', childPhotoFile);
+    }
+    if (babyPhotoFile != null) {
+      await attachFile('baby_photo', babyPhotoFile);
     }
 
     final streamed = await request.send();
@@ -501,6 +526,9 @@ class ApiService {
     }
     if (response.statusCode == 402) {
       throw const InsufficientImagesException();
+    }
+    if (response.statusCode == 503) {
+      throw const PhotoGenerationServiceUnavailableException();
     }
     throw Exception('Failed to generate image with photo');
   }

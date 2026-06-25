@@ -231,14 +231,37 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
     ),
   ];
 
+  static const _gridGap = 12.0;
+
   static int _columnCount(double width) {
-    if (width >= 560) return 2;
-    return 1;
+    if (width < 360) return 1;
+    if (width >= 900) return 3;
+    return 2;
   }
 
   static double _gridItemWidth(double gridWidth, int columns) {
     if (columns <= 1) return gridWidth;
-    return (gridWidth - 16 * (columns - 1)) / columns;
+    return (gridWidth - _gridGap * (columns - 1)) / columns;
+  }
+
+  static double _cardMainAxisExtent(double itemWidth, bool compact) {
+    const topPad = 8.0;
+    const titleHeight = 38.0;
+    const titleDescGap = 4.0;
+    final descriptionHeight = compact ? 18.0 : 34.0;
+    const descButtonGap = 8.0;
+    const buttonHeight = 36.0;
+    const bottomPad = 12.0;
+    const safetyBuffer = 6.0;
+    final footerHeight = topPad +
+        titleHeight +
+        titleDescGap +
+        descriptionHeight +
+        descButtonGap +
+        buttonHeight +
+        bottomPad +
+        safetyBuffer;
+    return itemWidth + footerHeight;
   }
 
   List<PhotoTemplate> _templatesForCategory(int index) {
@@ -275,6 +298,9 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
                 final templates = _templatesForCategory(_selectedCategoryIndex);
                 final itemWidth =
                     _gridItemWidth(constraints.maxWidth, columns);
+                final compactCard = itemWidth < 170;
+                final cardMainAxisExtent =
+                    _cardMainAxisExtent(itemWidth, compactCard);
 
                 return SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
@@ -310,20 +336,26 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
                             ),
                       ),
                       const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        children: [
-                          for (final template in templates)
-                            SizedBox(
-                              width: itemWidth,
-                              child: _TemplateCard(
-                                template: template,
-                                onTry: () =>
-                                    _openTemplateSheet(context, template),
-                              ),
-                            ),
-                        ],
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: _gridGap,
+                          mainAxisSpacing: _gridGap,
+                          mainAxisExtent: cardMainAxisExtent,
+                        ),
+                        itemCount: templates.length,
+                        itemBuilder: (context, index) {
+                          final template = templates[index];
+                          return _TemplateCard(
+                            template: template,
+                            compact: compactCard,
+                            onTry: () =>
+                                _openTemplateSheet(context, template),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -457,15 +489,16 @@ class _TemplateCard extends StatelessWidget {
   const _TemplateCard({
     required this.template,
     required this.onTry,
+    this.compact = false,
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
   static const _textPrimary = Color(0xFF1A1D26);
   static const _textSecondary = Color(0xFF6B7280);
-  static const _previewAspectRatio = 4 / 3;
 
   final PhotoTemplate template;
   final VoidCallback onTry;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -481,10 +514,9 @@ class _TemplateCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
         children: [
           AspectRatio(
-            aspectRatio: _previewAspectRatio,
+            aspectRatio: 1,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return PreviewAssetImage(
@@ -507,49 +539,57 @@ class _TemplateCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  template.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: _textPrimary,
-                    height: 1.22,
+                SizedBox(
+                  height: 38,
+                  child: Text(
+                    template.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: compact ? 14 : 15,
+                      fontWeight: FontWeight.w700,
+                      color: _textPrimary,
+                      height: 1.22,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  template.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: 12,
-                    height: 1.35,
-                    color: _textSecondary,
+                SizedBox(
+                  height: compact ? 18 : 34,
+                  child: Text(
+                    template.description,
+                    maxLines: compact ? 1 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: compact ? 11 : 12,
+                      height: 1.35,
+                      color: _textSecondary,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
-                  height: 40,
+                  height: 36,
                   child: FilledButton(
                     onPressed: onTry,
                     style: FilledButton.styleFrom(
                       backgroundColor: _accentColor,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: EdgeInsets.zero,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       textStyle: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

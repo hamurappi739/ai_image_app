@@ -53,7 +53,27 @@ class OnboardingMockups {
         children: [
           _mockHeader(compact: compact, title: 'Шаблоны фото'),
           const SizedBox(height: 8),
-          _mockTemplateCard(compact: compact, highlightButton: true),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _mockTemplateCard(
+                  compact: compact,
+                  highlightButton: true,
+                  title: 'Деловой портрет',
+                  previewAsset: _businessPortrait,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _mockTemplateCard(
+                  compact: compact,
+                  title: 'Красивый портрет',
+                  previewAsset: _beautifulPortrait,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -254,7 +274,26 @@ class OnboardingMockups {
             ),
           ),
           const SizedBox(height: 10),
-          _mockTemplateCard(compact: compact),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _mockTemplateCard(
+                  compact: compact,
+                  title: 'Деловой портрет',
+                  previewAsset: _businessPortrait,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _mockTemplateCard(
+                  compact: compact,
+                  title: 'Красивый портрет',
+                  previewAsset: _beautifulPortrait,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -277,7 +316,11 @@ class OnboardingMockups {
             ),
           ),
           const SizedBox(height: 8),
-          _assetThumb(_businessPortrait, compact: compact),
+          _assetThumb(
+            _businessPortrait,
+            compact: compact,
+            aspectRatio: 1,
+          ),
           const SizedBox(height: 10),
           Text(
             'Добавьте фото',
@@ -326,6 +369,7 @@ class OnboardingMockups {
             child: _assetThumb(
               _beautifulPortrait,
               compact: compact,
+              aspectRatio: 1,
               borderRadius: BorderRadius.circular(12),
             ),
           ),
@@ -650,6 +694,8 @@ class OnboardingMockups {
   static Widget _mockTemplateCard({
     required bool compact,
     bool highlightButton = false,
+    String title = 'Деловой портрет',
+    String previewAsset = _businessPortrait,
   }) {
     return Container(
       padding: EdgeInsets.all(compact ? 8 : 10),
@@ -664,14 +710,16 @@ class OnboardingMockups {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: _assetThumb(
-              _businessPortrait,
+              previewAsset,
               compact: compact,
-              aspectRatio: 4 / 3,
+              aspectRatio: 1,
             ),
           ),
           SizedBox(height: compact ? 6 : 8),
           Text(
-            'Деловой портрет',
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: compact ? 12 : 13,
               fontWeight: FontWeight.w700,
@@ -680,7 +728,7 @@ class OnboardingMockups {
           ),
           SizedBox(height: compact ? 6 : 8),
           Container(
-            height: compact ? 32 : 36,
+            height: compact ? 30 : 34,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: highlightButton ? _accent : _accent.withValues(alpha: 0.15),

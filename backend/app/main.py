@@ -95,6 +95,13 @@ def _is_development() -> bool:
     return settings.is_development
 
 
+def _safe_http_error_reason(detail: object) -> str:
+    text = str(detail).strip() if detail is not None else "unknown"
+    if len(text) > 200:
+        return text[:200] + "..."
+    return text
+
+
 def _optional_user_for_generation(
     authorization: str | None,
 ) -> CurrentUser | None:
@@ -612,25 +619,62 @@ def generate(
 def generate_with_photo(
     description: str = Form(...),
     photo: UploadFile | None = File(default=None),
+    extra_photo_1: UploadFile | None = File(default=None),
+    extra_photo_2: UploadFile | None = File(default=None),
     pet_photo: UploadFile | None = File(default=None),
     child_photo: UploadFile | None = File(default=None),
     baby_photo: UploadFile | None = File(default=None),
     template_id: str | None = Form(default=None),
     cake_digit: str | None = Form(default=None),
+    age_number: str | None = Form(default=None),
+    child_name: str | None = Form(default=None),
     name_text: str | None = Form(default=None),
     authorization: str | None = Header(default=None),
 ):
-    _ = name_text  # reserved for a future template flow
-    generation_inputs = resolve_template_generation_inputs(
-        template_id=template_id,
-        description=description,
-        photo=photo,
-        pet_photo=pet_photo,
-        child_photo=child_photo,
-        baby_photo=baby_photo,
-        cake_digit=cake_digit,
+    pipeline_log = logging.getLogger("uvicorn.error")
+    normalized_template_id = (template_id or "").strip() or None
+    pipeline_log.info(
+        "POST /generate-with-photo received template_id=%s",
+        normalized_template_id or "(none)",
+    )
+
+    _ = name_text  # reserved alias; child_name is used for Stage 3 templates
+    try:
+        generation_inputs = resolve_template_generation_inputs(
+            template_id=template_id,
+            description=description,
+            photo=photo,
+            extra_photo_1=extra_photo_1,
+            extra_photo_2=extra_photo_2,
+            pet_photo=pet_photo,
+            child_photo=child_photo,
+            baby_photo=baby_photo,
+            cake_digit=cake_digit,
+            age_number=age_number,
+            child_name=child_name,
+        )
+    except HTTPException as exc:
+        if exc.status_code == 400:
+            pipeline_log.info(
+                "POST /generate-with-photo failed template_id=%s stage=validation "
+                "status=400 reason=%s",
+                normalized_template_id or "(none)",
+                _safe_http_error_reason(exc.detail),
+            )
+        raise
+
+    extra_photos_count = len(generation_inputs.extra_photos)
+    pipeline_log.info(
+        "POST /generate-with-photo stage=validation ok template_id=%s "
+        "extra_photos_count=%s",
+        normalized_template_id or "(none)",
+        extra_photos_count,
     )
     prompt = generation_inputs.prompt
+    pipeline_log.info(
+        "POST /generate-with-photo stage=prompt_build ok template_id=%s",
+        normalized_template_id or "(none)",
+    )
 
     user = _optional_user_for_generation(authorization)
 
@@ -649,18 +693,60 @@ def generate_with_photo(
         if not payment_decision["allowed"]:
             raise HTTPException(status_code=402, detail=payment_decision["reason"])
 
-    image_url = photo_generation_service.generate(
-        description=prompt,
-        photo_bytes=generation_inputs.photo_bytes,
-        photo_content_type=generation_inputs.photo_content_type,
-        user_id=_resolve_user_for_image_storage(user, authorization).id,
-        extra_photos=generation_inputs.extra_photos,
+    provider_name = resolve_template_image_provider()
+    pipeline_log.info(
+        "POST /generate-with-photo stage=provider_generate start provider=%s "
+        "template_id=%s extra_photos_count=%s",
+        provider_name,
+        normalized_template_id or "(none)",
+        extra_photos_count,
     )
+    try:
+        image_url = photo_generation_service.generate(
+            description=prompt,
+            photo_bytes=generation_inputs.photo_bytes,
+            photo_content_type=generation_inputs.photo_content_type,
+            user_id=_resolve_user_for_image_storage(user, authorization).id,
+            extra_photos=generation_inputs.extra_photos,
+            template_id=normalized_template_id,
+        )
+    except HTTPException as exc:
+        if exc.status_code == 503:
+            pipeline_log.warning(
+                "POST /generate-with-photo failed template_id=%s stage=provider_generate "
+                "error_type=HTTPException status=503 reason=%s",
+                normalized_template_id or "(none)",
+                _safe_http_error_reason(exc.detail),
+            )
+        else:
+            pipeline_log.warning(
+                "POST /generate-with-photo failed template_id=%s stage=provider_generate "
+                "error_type=HTTPException status=%s reason=%s",
+                normalized_template_id or "(none)",
+                exc.status_code,
+                _safe_http_error_reason(exc.detail),
+            )
+        raise
+
     if image_url.startswith("data:image/"):
-        storage_user = _resolve_user_for_image_storage(user, authorization)
-        image_url = _store_generated_image_if_needed(storage_user.id, image_url)
+        try:
+            storage_user = _resolve_user_for_image_storage(user, authorization)
+            image_url = _store_generated_image_if_needed(storage_user.id, image_url)
+        except HTTPException as exc:
+            pipeline_log.warning(
+                "POST /generate-with-photo failed template_id=%s stage=storage "
+                "error_type=HTTPException status=%s reason=%s",
+                normalized_template_id or "(none)",
+                exc.status_code,
+                _safe_http_error_reason(exc.detail),
+            )
+            raise
 
     if not settings.enable_credit_consumption:
+        pipeline_log.info(
+            "POST /generate-with-photo success template_id=%s",
+            normalized_template_id or "(none)",
+        )
         return GenerateResponse(
             image_url=image_url,
             prompt=prompt,
@@ -674,8 +760,18 @@ def generate_with_photo(
             image_url,
         )
     except RuntimeError as exc:
+        pipeline_log.warning(
+            "POST /generate-with-photo failed template_id=%s stage=db "
+            "error_type=RuntimeError reason=%s",
+            normalized_template_id or "(none)",
+            _safe_http_error_reason(exc),
+        )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+    pipeline_log.info(
+        "POST /generate-with-photo success template_id=%s",
+        normalized_template_id or "(none)",
+    )
     return _build_generate_response_after_consume(
         image_url=image_url,
         prompt=prompt,

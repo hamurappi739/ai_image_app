@@ -4,13 +4,15 @@ import 'package:flutter/material.dart';
 
 import '../utils/create_description_text_field.dart';
 
-/// Step-based UI for «Свой запрос» — photo first, then description, then create.
+/// Step-based UI for «Свой запрос» — photos first, then description, then create.
 class CustomRequestFlow extends StatelessWidget {
   const CustomRequestFlow({
     super.key,
     required this.descriptionController,
-    required this.photoBytes,
-    required this.isPickingPhoto,
+    required this.primaryPhotoBytes,
+    required this.optionalPhoto2Bytes,
+    required this.optionalPhoto3Bytes,
+    required this.pickingPhotoSlot,
     required this.isBusy,
     required this.onPickPhoto,
     required this.onClearPhoto,
@@ -20,11 +22,13 @@ class CustomRequestFlow extends StatelessWidget {
   });
 
   final TextEditingController descriptionController;
-  final Uint8List? photoBytes;
-  final bool isPickingPhoto;
+  final Uint8List? primaryPhotoBytes;
+  final Uint8List? optionalPhoto2Bytes;
+  final Uint8List? optionalPhoto3Bytes;
+  final String? pickingPhotoSlot;
   final bool isBusy;
-  final VoidCallback onPickPhoto;
-  final VoidCallback onClearPhoto;
+  final ValueChanged<String> onPickPhoto;
+  final ValueChanged<String> onClearPhoto;
   final VoidCallback? onCreate;
   final bool isCreating;
   final ValueChanged<String> onIdeaSelected;
@@ -55,7 +59,6 @@ class CustomRequestFlow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasPhoto = photoBytes != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -66,73 +69,49 @@ class CustomRequestFlow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (!hasPhoto)
-                SizedBox(
-                  height: 44,
-                  child: FilledButton.icon(
-                    onPressed: isPickingPhoto || isBusy ? null : onPickPhoto,
-                    icon: isPickingPhoto
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.add_photo_alternate_outlined),
-                    label: Text(
-                      isPickingPhoto ? 'Подождите…' : 'Выбрать фото',
-                    ),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _accentColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  ),
-                )
-              else ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    height: 132,
-                    width: double.infinity,
-                    child: Image.memory(
-                      photoBytes!,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+              Text(
+                'Добавьте одно фото. Если на результате должно быть несколько '
+                'людей или важный объект, можно добавить ещё 1–2 фото. '
+                'Это необязательно.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 12,
+                  color: _textSecondary,
+                  height: 1.4,
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 0,
-                  children: [
-                    TextButton.icon(
-                      onPressed: isBusy || isPickingPhoto ? null : onPickPhoto,
-                      icon: const Icon(Icons.edit_outlined, size: 17),
-                      label: const Text('Изменить фото'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: _accentColor,
-                        padding: EdgeInsets.zero,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: isBusy ? null : onClearPhoto,
-                      icon: const Icon(Icons.close, size: 17),
-                      label: const Text('Убрать фото'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: _textSecondary,
-                        padding: EdgeInsets.zero,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              ),
+              const SizedBox(height: 12),
+              _PhotoSlot(
+                title: 'Главное фото',
+                subtitle: 'Добавьте ваше фото',
+                optionalHint: null,
+                photoBytes: primaryPhotoBytes,
+                isPicking: pickingPhotoSlot == 'primary',
+                isBusy: isBusy,
+                onPick: () => onPickPhoto('primary'),
+                onClear: () => onClearPhoto('primary'),
+              ),
+              const SizedBox(height: 12),
+              _PhotoSlot(
+                title: 'Фото 2',
+                subtitle: 'По желанию',
+                optionalHint: 'Можно не добавлять',
+                photoBytes: optionalPhoto2Bytes,
+                isPicking: pickingPhotoSlot == 'photo2',
+                isBusy: isBusy,
+                onPick: () => onPickPhoto('photo2'),
+                onClear: () => onClearPhoto('photo2'),
+              ),
+              const SizedBox(height: 12),
+              _PhotoSlot(
+                title: 'Фото 3',
+                subtitle: 'По желанию',
+                optionalHint: 'Можно не добавлять',
+                photoBytes: optionalPhoto3Bytes,
+                isPicking: pickingPhotoSlot == 'photo3',
+                isBusy: isBusy,
+                onPick: () => onPickPhoto('photo3'),
+                onClear: () => onClearPhoto('photo3'),
+              ),
             ],
           ),
         ),
@@ -269,6 +248,160 @@ class CustomRequestFlow extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _PhotoSlot extends StatelessWidget {
+  const _PhotoSlot({
+    required this.title,
+    required this.subtitle,
+    required this.optionalHint,
+    required this.photoBytes,
+    required this.isPicking,
+    required this.isBusy,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  static const _accentColor = Color(0xFF5B6CFF);
+  static const _textPrimary = Color(0xFF1A1D26);
+  static const _textSecondary = Color(0xFF6B7280);
+
+  final String title;
+  final String subtitle;
+  final String? optionalHint;
+  final Uint8List? photoBytes;
+  final bool isPicking;
+  final bool isBusy;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasPhoto = photoBytes != null;
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F8FC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8EAEF)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: _textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
+                        color: _textSecondary,
+                        height: 1.3,
+                      ),
+                    ),
+                    if (optionalHint != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        optionalHint!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                          color: _textSecondary.withValues(alpha: 0.85),
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (!hasPhoto)
+            SizedBox(
+              height: 40,
+              child: FilledButton.icon(
+                onPressed: isBusy || isPicking ? null : onPick,
+                icon: isPicking
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                label: Text(isPicking ? 'Подождите…' : 'Выбрать фото'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _accentColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            )
+          else ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: AspectRatio(
+                aspectRatio: 4 / 3,
+                child: Image.memory(
+                  photoBytes!,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 4,
+              children: [
+                TextButton.icon(
+                  onPressed: isBusy || isPicking ? null : onPick,
+                  icon: const Icon(Icons.edit_outlined, size: 17),
+                  label: const Text('Изменить'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: _accentColor,
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: isBusy ? null : onClear,
+                  icon: const Icon(Icons.close, size: 17),
+                  label: const Text('Убрать'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: _textSecondary,
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

@@ -74,6 +74,10 @@ class PreviewAssetRegistry {
     'assets/previews/templates/beach_sand_portrait.jpg',
     'assets/previews/templates/white_dress_yellow_meadow.jpg',
     'assets/previews/templates/woman_with_cat.jpg',
+    'assets/previews/templates/child_birthday_number.jpg',
+    'assets/previews/templates/child_name_age.jpg',
+    'assets/previews/templates/child_memory_birthday.jpg',
+    'assets/previews/templates/birthday_balloons.jpg',
   };
 
   static bool isAvailable(String? assetPath) {

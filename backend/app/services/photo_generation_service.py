@@ -92,7 +92,10 @@ class GeminiPhotoGenerationProvider:
                 detail="GEMINI_API_KEY is not configured",
             )
 
-        instruction = build_photo_edit_instruction(description)
+        instruction = build_photo_edit_instruction(
+            description,
+            extra_photos_count=len(extra_photos or []),
+        )
         parts: list[types.Part] = [
             types.Part.from_text(text=instruction),
             types.Part.from_bytes(
@@ -173,7 +176,10 @@ class KiePhotoGenerationProvider:
         temp_paths: list[str] = []
         ttl_seconds = int(settings.kie_temp_signed_url_ttl_seconds)
         instruction = append_kie_vertical_portrait_instruction(
-            build_photo_edit_instruction(description)
+            build_photo_edit_instruction(
+                description,
+                extra_photos_count=len(extra_photos or []),
+            )
         )
         normalized_template_id = (template_id or "").strip() or None
         extra_count = len(extra_photos or [])
