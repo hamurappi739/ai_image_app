@@ -379,6 +379,8 @@ class GenerateWithPhotoMultiInputEndpointTests(unittest.TestCase):
         self.assertIn("Gemini photo generation failed", logged)
         self.assertNotIn("fake-child-photo", logged)
 
+    @patch("app.main.create_generation_record", return_value={"id": "gen-test"})
+    @patch("app.main.ensure_profile_exists", return_value={"id": "test-user-id"})
     @patch("app.main.get_current_user")
     @patch("app.services.photo_generation_service.storage_service")
     @patch("app.services.photo_generation_service.resolve_template_image_provider")
@@ -389,6 +391,8 @@ class GenerateWithPhotoMultiInputEndpointTests(unittest.TestCase):
         mock_resolve_provider: MagicMock,
         mock_storage: MagicMock,
         mock_get_current_user: MagicMock,
+        _mock_ensure_profile: MagicMock,
+        _mock_create_record: MagicMock,
     ) -> None:
         from app.auth import CurrentUser
 

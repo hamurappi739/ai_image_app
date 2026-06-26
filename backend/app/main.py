@@ -63,6 +63,7 @@ from app.services.photoshoot_service import photoshoot_service, rollback_persist
 from app.services.storage_service import storage_service
 from app.services.supabase_service import (
     check_supabase_connection,
+    create_generation_record,
     ensure_profile_exists,
     get_credit_transactions_by_user_id,
     get_generations_by_user_id,
@@ -209,6 +210,60 @@ def _resolve_user_for_image_storage(
     return get_current_user(authorization=authorization)
 
 
+def _save_generation_in_demo_mode(
+    *,
+    user: CurrentUser | None,
+    authorization: str | None,
+    prompt: str,
+    image_url: str,
+    endpoint: str,
+) -> None:
+    """Persist a gallery row when credit consumption is disabled (staging/demo)."""
+    pipeline_log = logging.getLogger("uvicorn.error")
+    try:
+        record_user = _resolve_user_for_image_storage(user, authorization)
+    except HTTPException:
+        pipeline_log.warning(
+            "%s stage=db_insert_demo skipped reason=user_unresolved",
+            endpoint,
+        )
+        return
+
+    user_id = record_user.id
+    pipeline_log.info(
+        "%s stage=db_insert_demo start user_id=%s",
+        endpoint,
+        user_id,
+    )
+    try:
+        ensure_profile_exists(user_id, record_user.email)
+        generation = create_generation_record(
+            user_id=user_id,
+            prompt=prompt,
+            image_url=image_url,
+            payment_type="free",
+        )
+    except RuntimeError as exc:
+        pipeline_log.warning(
+            "%s failed stage=db_insert_demo user_id=%s reason=%s",
+            endpoint,
+            user_id,
+            _safe_http_error_reason(exc),
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to save generation",
+        ) from exc
+
+    generation_id = generation.get("id")
+    pipeline_log.info(
+        "%s stage=db_insert_demo ok generation_id=%s user_id=%s",
+        endpoint,
+        generation_id,
+        user_id,
+    )
+
+
 _MAX_PHOTOSHOOT_DESCRIPTION_LEN = 1000
 
 
@@ -275,10 +330,18 @@ def list_generations(
     user: CurrentUser = Depends(get_current_user),
 ):
     _ensure_profile_for_user(user)
+    pipeline_log = logging.getLogger("uvicorn.error")
     try:
         rows = get_generations_by_user_id(user.id, limit=limit)
     except RuntimeError:
         raise HTTPException(status_code=500, detail="Failed to fetch generations")
+    newest_created_at = rows[0].get("created_at") if rows else None
+    pipeline_log.info(
+        "GET /generations user_id=%s count=%s newest_created_at=%s",
+        user.id,
+        len(rows),
+        newest_created_at,
+    )
     generations = [GenerationItem.model_validate(row) for row in rows]
     return GenerationsListResponse(generations=generations)
 
@@ -580,6 +643,13 @@ def generate(
         image_url = _store_generated_image_if_needed(storage_user.id, image_url)
 
     if not settings.enable_credit_consumption:
+        _save_generation_in_demo_mode(
+            user=user,
+            authorization=authorization,
+            prompt=prompt,
+            image_url=image_url,
+            endpoint="POST /generate",
+        )
         return GenerateResponse(
             image_url=image_url,
             prompt=prompt,
@@ -744,6 +814,13 @@ def generate_with_photo(
             raise
 
     if not settings.enable_credit_consumption:
+        _save_generation_in_demo_mode(
+            user=user,
+            authorization=authorization,
+            prompt=prompt,
+            image_url=image_url,
+            endpoint="POST /generate-with-photo",
+        )
         pipeline_log.info(
             "POST /generate-with-photo success template_id=%s",
             normalized_template_id or "(none)",
