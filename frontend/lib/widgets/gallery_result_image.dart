@@ -1,9 +1,27 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/gallery_image_proxy_url.dart';
 import '../utils/mock_image_url.dart';
 import 'visual_placeholder.dart';
+
+/// HTTP headers for gallery image requests (Supabase CDN, etc.).
+const Map<String, String> kGalleryImageRequestHeaders = {
+  'Accept': 'image/jpeg,image/png,image/webp,image/*,*/*;q=0.8',
+};
+
+/// Max decode dimension for compact cards on web/desktop (Android/iOS skip cache hints).
+const int kGalleryCompactDecodeMaxPx = 720;
+
+/// How long to wait before showing the timeout fallback instead of a spinner.
+@visibleForTesting
+Duration galleryNetworkImageLoadingTimeout = const Duration(seconds: 12);
+
+/// Delay before showing "still loading" hint under the spinner.
+@visibleForTesting
+Duration galleryNetworkImageSlowLoadHintDelay = const Duration(seconds: 3);
 
 /// Gallery / viewer image: real URL via network; mock/demo via rich Flutter preview.
 class GalleryResultImage extends StatelessWidget {
@@ -16,6 +34,7 @@ class GalleryResultImage extends StatelessWidget {
     this.photoshootSeries = false,
     this.fit = BoxFit.cover,
     this.fullQuality = false,
+    this.onOpenPressed,
   });
 
   final String url;
@@ -27,6 +46,9 @@ class GalleryResultImage extends StatelessWidget {
 
   /// When true, decode and load the full remote image (viewer / fullscreen).
   final bool fullQuality;
+
+  /// Called when user taps "Открыть" on timeout/error fallback (e.g. open viewer).
+  final VoidCallback? onOpenPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -52,103 +74,196 @@ class GalleryResultImage extends StatelessWidget {
 
     return _GalleryNetworkImage(
       url: url,
-      description: description,
-      seriesIndex: seriesIndex,
       compact: compact,
-      photoshootSeries: photoshootSeries,
       fit: fit,
       fullQuality: fullQuality,
+      onOpenPressed: onOpenPressed,
     );
   }
 }
+
+@visibleForTesting
+String galleryImageUrlWithRetry(String url, int retryGeneration) {
+  if (retryGeneration <= 0) return url;
+  final uri = Uri.tryParse(url);
+  if (uri == null) return '$url?retry=$retryGeneration';
+  return uri
+      .replace(
+        queryParameters: {
+          ...uri.queryParameters,
+          'retry': '$retryGeneration',
+        },
+      )
+      .toString();
+}
+
+@visibleForTesting
+void logGalleryImageLoadError(String url, Object error) {
+  final uri = Uri.tryParse(url);
+  final host = uri?.host ?? 'unknown';
+  final path = uri?.path ?? '';
+  final ext = path.contains('.') ? path.split('.').last.toLowerCase() : 'none';
+  final errorType = error.runtimeType.toString();
+  debugPrint(
+    'Gallery image load failed: urlHost=$host ext=$ext errorType=$errorType',
+  );
+}
+
+bool _shouldUseDecodeCacheHints({required bool fullQuality}) {
+  if (fullQuality) return false;
+  if (kIsWeb) return true;
+  return defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.linux;
+}
+
+enum _GalleryImageLoadPhase { loading, loaded, error, timeout }
 
 class _GalleryNetworkImage extends StatefulWidget {
   const _GalleryNetworkImage({
     required this.url,
     required this.compact,
-    required this.photoshootSeries,
     required this.fit,
     required this.fullQuality,
-    this.description,
-    this.seriesIndex,
+    this.onOpenPressed,
   });
 
   final String url;
-  final String? description;
-  final int? seriesIndex;
   final bool compact;
-  final bool photoshootSeries;
   final BoxFit fit;
   final bool fullQuality;
+  final VoidCallback? onOpenPressed;
 
   @override
   State<_GalleryNetworkImage> createState() => _GalleryNetworkImageState();
 }
 
 class _GalleryNetworkImageState extends State<_GalleryNetworkImage> {
-  static const _slowLoadDelay = Duration(seconds: 3);
-
+  _GalleryImageLoadPhase _phase = _GalleryImageLoadPhase.loading;
+  int _retryGeneration = 0;
   Timer? _slowLoadTimer;
+  Timer? _timeoutTimer;
   bool _showSlowLoadingMessage = false;
 
   @override
   void initState() {
     super.initState();
-    _slowLoadTimer = Timer(_slowLoadDelay, () {
-      if (mounted) {
-        setState(() => _showSlowLoadingMessage = true);
-      }
-    });
+    _startTimers();
   }
 
   @override
   void didUpdateWidget(covariant _GalleryNetworkImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.url != widget.url) {
-      _showSlowLoadingMessage = false;
-      _slowLoadTimer?.cancel();
-      _slowLoadTimer = Timer(_slowLoadDelay, () {
-        if (mounted) {
-          setState(() => _showSlowLoadingMessage = true);
-        }
-      });
+      _resetForNewUrl();
     }
   }
 
   @override
   void dispose() {
-    _slowLoadTimer?.cancel();
+    _cancelTimers();
     super.dispose();
   }
 
-  void _onImageResolved() {
+  void _cancelTimers() {
     _slowLoadTimer?.cancel();
-    if (_showSlowLoadingMessage && mounted) {
-      setState(() => _showSlowLoadingMessage = false);
-    }
+    _slowLoadTimer = null;
+    _timeoutTimer?.cancel();
+    _timeoutTimer = null;
+  }
+
+  void _startTimers() {
+    _cancelTimers();
+    _slowLoadTimer = Timer(galleryNetworkImageSlowLoadHintDelay, () {
+      if (!mounted || _phase != _GalleryImageLoadPhase.loading) return;
+      setState(() => _showSlowLoadingMessage = true);
+    });
+    _timeoutTimer = Timer(galleryNetworkImageLoadingTimeout, () {
+      if (!mounted || _phase != _GalleryImageLoadPhase.loading) return;
+      setState(() => _phase = _GalleryImageLoadPhase.timeout);
+    });
+  }
+
+  void _resetForNewUrl() {
+    _cancelTimers();
+    setState(() {
+      _phase = _GalleryImageLoadPhase.loading;
+      _retryGeneration = 0;
+      _showSlowLoadingMessage = false;
+    });
+    _startTimers();
+  }
+
+  void _onFrameReady() {
+    if (_phase == _GalleryImageLoadPhase.loaded) return;
+    _cancelTimers();
+    if (!mounted) return;
+    setState(() {
+      _phase = _GalleryImageLoadPhase.loaded;
+      _showSlowLoadingMessage = false;
+    });
+  }
+
+  void _onError(Object error) {
+    logGalleryImageLoadError(widget.url, error);
+    _cancelTimers();
+    if (!mounted) return;
+    setState(() {
+      _phase = _GalleryImageLoadPhase.error;
+      _showSlowLoadingMessage = false;
+    });
+  }
+
+  void _retry() {
+    _cancelTimers();
+    setState(() {
+      _retryGeneration++;
+      _phase = _GalleryImageLoadPhase.loading;
+      _showSlowLoadingMessage = false;
+    });
+    _startTimers();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_phase == _GalleryImageLoadPhase.timeout ||
+        _phase == _GalleryImageLoadPhase.error) {
+      return GalleryImageLoadFailureFallback(
+        compact: widget.compact,
+        isTimeout: _phase == _GalleryImageLoadPhase.timeout,
+        onOpenPressed: widget.onOpenPressed,
+        onRetryPressed: _retry,
+      );
+    }
+
+    final displayUrl = galleryImageDisplayUrl(widget.url);
+    final effectiveUrl =
+        galleryImageUrlWithRetry(displayUrl, _retryGeneration);
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cacheSize = _decodeCacheSize(
+        final decodeSize = _decodeCacheSize(
           context: context,
-          constraints: constraints,
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
           fullQuality: widget.fullQuality,
         );
 
         return Image.network(
-          widget.url,
+          effectiveUrl,
+          key: ValueKey<String>('gallery-img-$_retryGeneration-$effectiveUrl'),
           fit: widget.fit,
           width: double.infinity,
           height: double.infinity,
-          cacheWidth: cacheSize?.width,
-          cacheHeight: cacheSize?.height,
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) {
+          headers: kGalleryImageRequestHeaders,
+          cacheWidth: decodeSize?.width,
+          cacheHeight: decodeSize?.height,
+          filterQuality:
+              widget.fullQuality ? FilterQuality.high : FilterQuality.medium,
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded || frame != null) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _onImageResolved();
+                _onFrameReady();
               });
               return child;
             }
@@ -159,9 +274,14 @@ class _GalleryNetworkImageState extends State<_GalleryNetworkImage> {
           },
           errorBuilder: (context, error, stackTrace) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              _onImageResolved();
+              _onError(error);
             });
-            return GalleryImageErrorPlaceholder(compact: widget.compact);
+            return GalleryImageLoadFailureFallback(
+              compact: widget.compact,
+              isTimeout: false,
+              onOpenPressed: widget.onOpenPressed,
+              onRetryPressed: _retry,
+            );
           },
         );
       },
@@ -178,22 +298,22 @@ class _DecodeCacheSize {
 
 _DecodeCacheSize? _decodeCacheSize({
   required BuildContext context,
-  required BoxConstraints constraints,
+  required double width,
+  required double height,
   required bool fullQuality,
 }) {
-  if (fullQuality) return null;
+  if (!_shouldUseDecodeCacheHints(fullQuality: fullQuality)) {
+    return null;
+  }
 
-  final width = constraints.maxWidth;
-  final height = constraints.maxHeight;
   if (!width.isFinite || !height.isFinite || width <= 0 || height <= 0) {
     return null;
   }
 
   final ratio = MediaQuery.devicePixelRatioOf(context);
-  return _DecodeCacheSize(
-    width: (width * ratio).round().clamp(1, 2048),
-    height: (height * ratio).round().clamp(1, 2048),
-  );
+  final w = (width * ratio).round().clamp(1, kGalleryCompactDecodeMaxPx);
+  final h = (height * ratio).round().clamp(1, kGalleryCompactDecodeMaxPx);
+  return _DecodeCacheSize(width: w, height: h);
 }
 
 /// Loading state for gallery network images.
@@ -240,20 +360,32 @@ class GalleryImageLoadingPlaceholder extends StatelessWidget {
   }
 }
 
-/// Error fallback when a gallery image cannot be loaded.
-class GalleryImageErrorPlaceholder extends StatelessWidget {
-  const GalleryImageErrorPlaceholder({super.key, this.compact = false});
+/// Fallback when load times out or [Image.network] reports an error.
+class GalleryImageLoadFailureFallback extends StatelessWidget {
+  const GalleryImageLoadFailureFallback({
+    super.key,
+    required this.compact,
+    required this.isTimeout,
+    this.onOpenPressed,
+    this.onRetryPressed,
+  });
 
   final bool compact;
+  final bool isTimeout;
+  final VoidCallback? onOpenPressed;
+  final VoidCallback? onRetryPressed;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final title = isTimeout
+        ? 'Фото сохранено, но не загрузилось'
+        : 'Не удалось загрузить фото';
 
     return Container(
       color: const Color(0xFFF0F2F8),
       alignment: Alignment.center,
-      padding: EdgeInsets.all(compact ? 12 : 16),
+      padding: EdgeInsets.all(compact ? 10 : 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -264,15 +396,64 @@ class GalleryImageErrorPlaceholder extends StatelessWidget {
           ),
           SizedBox(height: compact ? 6 : 8),
           Text(
-            'Не удалось загрузить фото',
+            title,
             textAlign: TextAlign.center,
+            maxLines: compact ? 3 : 4,
+            overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
               fontSize: compact ? 12 : 13,
               color: const Color(0xFF6B7280),
             ),
           ),
+          SizedBox(height: compact ? 8 : 10),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              if (onOpenPressed != null)
+                TextButton(
+                  onPressed: onOpenPressed,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: compact ? 8 : 12,
+                      vertical: compact ? 4 : 8,
+                    ),
+                  ),
+                  child: Text(compact ? 'Открыть' : 'Открыть фото'),
+                ),
+              if (onRetryPressed != null)
+                TextButton(
+                  onPressed: onRetryPressed,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: compact ? 8 : 12,
+                      vertical: compact ? 4 : 8,
+                    ),
+                  ),
+                  child: const Text('Повторить'),
+                ),
+            ],
+          ),
         ],
       ),
+    );
+  }
+}
+
+/// Error fallback when a gallery image cannot be loaded (legacy alias).
+class GalleryImageErrorPlaceholder extends StatelessWidget {
+  const GalleryImageErrorPlaceholder({super.key, this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return GalleryImageLoadFailureFallback(
+      compact: compact,
+      isTimeout: false,
     );
   }
 }

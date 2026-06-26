@@ -30,6 +30,7 @@ from app.schemas import (
     PhotoshootJobStatusResponse,
 )
 from app.routes.health import router as health_router
+from app.routes.image_proxy import router as image_proxy_router
 from app.routes.payments import router as payments_router
 from app.services.balance_service import (
     add_paid_balance,
@@ -131,6 +132,7 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(payments_router)
+app.include_router(image_proxy_router)
 
 
 @app.on_event("startup")
