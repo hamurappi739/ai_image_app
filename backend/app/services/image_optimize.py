@@ -1,4 +1,4 @@
-"""Lossy re-encode for persisted single-photo generations (gallery-sized files)."""
+"""Lossy re-encode for persisted gallery images (generations and photoshoots)."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ def optimize_generated_image_bytes(
 ) -> tuple[bytes, str]:
     """Convert heavy PNG/WebP outputs to JPEG for faster gallery loads.
 
+    Used when persisting single photos and photoshoot frames to Storage.
     Keeps aspect ratio (including 3:4 portraits). Only downscales when the
     JPEG is still above the size target after quality reduction.
     """

@@ -76,12 +76,38 @@ class StorageImageOptimizeTests(unittest.TestCase):
         self.assertEqual(uploaded_type, "image/jpeg")
         self.assertLess(len(uploaded_content), len(png_bytes))
 
+    @patch.object(
+        storage_service,
+        "upload_bytes",
+        return_value="https://cdn.example/photoshoot.jpg",
+    )
+    def test_upload_decoded_image_uses_jpeg_for_photoshoots(
+        self,
+        mock_upload_bytes,
+    ) -> None:
+        png_bytes = _make_png_bytes(1536, 2048)
+
+        path, public_url = storage_service._upload_decoded_image(
+            "user-1",
+            png_bytes,
+            "image/png",
+            folder="photoshoots",
+        )
+
+        self.assertTrue(path.endswith(".jpg"))
+        self.assertEqual(public_url, "https://cdn.example/photoshoot.jpg")
+        mock_upload_bytes.assert_called_once()
+        uploaded_content = mock_upload_bytes.call_args.args[1]
+        uploaded_type = mock_upload_bytes.call_args.args[2]
+        self.assertEqual(uploaded_type, "image/jpeg")
+        self.assertLess(len(uploaded_content), len(png_bytes))
+
     @patch.object(storage_service, "upload_bytes", return_value="https://cdn.example/raw.png")
     @patch(
         "app.services.storage_service.optimize_generated_image_bytes",
         side_effect=lambda content, content_type: (content, content_type),
     )
-    def test_upload_decoded_image_skips_optimize_for_photoshoots(
+    def test_upload_decoded_image_skips_optimize_for_temp_inputs(
         self,
         _mock_optimize,
         mock_upload_bytes,
@@ -92,15 +118,40 @@ class StorageImageOptimizeTests(unittest.TestCase):
             "user-1",
             png_bytes,
             "image/png",
-            folder="photoshoots",
+            folder="kie-inputs",
         )
 
         self.assertTrue(path.endswith(".png"))
-        mock_upload_bytes.assert_called_once_with(
-            ANY,
-            png_bytes,
-            "image/png",
-        )
+        mock_upload_bytes.assert_called_once_with(ANY, png_bytes, "image/png")
+
+    @patch.object(storage_service, "create_signed_url", return_value="https://signed.example/temp")
+    @patch.object(storage_service, "_upload_bytes_to_bucket")
+    @patch(
+        "app.services.storage_service.optimize_generated_image_bytes",
+    )
+    def test_upload_temp_input_bytes_skips_optimize(
+        self,
+        mock_optimize,
+        mock_upload_bucket,
+        _mock_signed_url,
+    ) -> None:
+        png_bytes = _make_png_bytes(640, 853)
+
+        with patch.object(storage_service, "build_storage_path", return_value="kie-inputs/u1/x.png"):
+            path, _ = storage_service.upload_temp_input_bytes(
+                "user-1",
+                png_bytes,
+                "image/png",
+                ttl_seconds=3600,
+            )
+
+        self.assertTrue(path.endswith(".png"))
+        mock_optimize.assert_not_called()
+        mock_upload_bucket.assert_called_once()
+        uploaded_content = mock_upload_bucket.call_args.args[2]
+        uploaded_type = mock_upload_bucket.call_args.args[3]
+        self.assertEqual(uploaded_content, png_bytes)
+        self.assertEqual(uploaded_type, "image/png")
 
 
 if __name__ == "__main__":

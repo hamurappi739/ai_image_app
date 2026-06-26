@@ -237,7 +237,7 @@ class SupabaseStorageService:
         content_type: str,
         folder: str = "generations",
     ) -> tuple[str, str]:
-        if folder == "generations":
+        if folder in {"generations", "photoshoots"}:
             content, content_type = optimize_generated_image_bytes(
                 content, content_type
             )

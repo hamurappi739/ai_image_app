@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/gallery_display_item.dart';
 import '../models/generated_image_item.dart';
 import '../utils/gallery_item_key.dart';
-import '../utils/mock_image_url.dart';
 import '../widgets/app_screen_header.dart';
+import '../widgets/gallery_photoshoot_triplet_preview.dart';
 import '../widgets/gallery_result_image.dart';
 import '../widgets/gallery_viewer.dart';
 
@@ -847,7 +847,7 @@ class _GalleryPhotoshootCard extends StatelessWidget {
               onTap: () => _openViewer(context),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
-                child: _GalleryPhotoshootTripletPreview(
+                child: GalleryPhotoshootTripletPreview(
                   imageUrls: item.imageUrls,
                   description: item.description,
                 ),
@@ -950,6 +950,7 @@ class _GallerySinglePhotoCard extends StatelessWidget {
                     url: item.imageUrls.isNotEmpty ? item.imageUrls.first : '',
                     description: item.description,
                     compact: true,
+                    onOpenPressed: () => _openViewer(context),
                   ),
                 ),
               ),
@@ -1074,70 +1075,6 @@ class _GalleryChip extends StatelessWidget {
           fontWeight: FontWeight.w600,
           color: foreground,
         ),
-      ),
-    );
-  }
-}
-
-class _GalleryPhotoshootTripletPreview extends StatelessWidget {
-  const _GalleryPhotoshootTripletPreview({
-    required this.imageUrls,
-    required this.description,
-  });
-
-  final List<String> imageUrls;
-  final String description;
-
-  static const _previewAspectRatio = 16 / 9;
-
-  List<String> get _normalizedUrls {
-    if (imageUrls.isEmpty) {
-      return const ['', '', ''];
-    }
-    if (imageUrls.length >= 3) {
-      return imageUrls.take(3).toList();
-    }
-    final last = imageUrls.last;
-    return [
-      ...imageUrls,
-      for (var i = imageUrls.length; i < 3; i++) last,
-    ];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final urls = _normalizedUrls;
-    final allMock = urls.isNotEmpty &&
-        urls.every((url) => url.isEmpty || isMockPlaceholderImageUrl(url));
-
-    return AspectRatio(
-      aspectRatio: _previewAspectRatio,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: allMock
-            ? GalleryPhotoshootSeriesPreview(
-                imageUrls: urls.where((u) => u.isNotEmpty).toList(),
-                description: description,
-              )
-            : Row(
-                children: [
-                  for (var i = 0; i < 3; i++) ...[
-                    if (i > 0) const SizedBox(width: 4),
-                    Expanded(
-                      child: AspectRatio(
-                        aspectRatio: 1,
-                        child: GalleryResultImage(
-                          url: urls[i],
-                          description: description,
-                          seriesIndex: i,
-                          compact: true,
-                          photoshootSeries: true,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
       ),
     );
   }
