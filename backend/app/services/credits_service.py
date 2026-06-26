@@ -2,6 +2,7 @@ from app.services.balance_service import (
     consume_image_credits,
     determine_image_payment,
 )
+from app.services.generation_image_url import should_persist_generation_image_url
 from app.services.supabase_service import (
     create_generation_record,
     insert_credit_transaction,
@@ -38,6 +39,9 @@ def consume_generation(
     prompt: str,
     image_url: str,
 ) -> dict:
+    if not should_persist_generation_image_url(image_url):
+        raise RuntimeError("Generation image URL is not persistable")
+
     user_id = profile["id"]
     free_generations_used = int(profile.get("free_generations_used") or 0)
     payment_type = "free" if free_generations_used < free_limit else "paid"

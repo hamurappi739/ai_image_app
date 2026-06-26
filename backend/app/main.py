@@ -42,6 +42,10 @@ from app.services.catalog_service import (
     load_photoshoots_catalog,
     load_templates_catalog,
 )
+from app.services.generation_image_url import (
+    filter_persistable_generation_rows,
+    should_persist_generation_image_url,
+)
 from app.services.image_service import generate_image
 from app.services.image_provider_resolver import (
     resolve_photoshoot_image_provider,
@@ -232,6 +236,14 @@ def _save_generation_in_demo_mode(
         return
 
     user_id = record_user.id
+    if not should_persist_generation_image_url(image_url):
+        pipeline_log.warning(
+            "%s stage=db_insert_demo skipped reason=mock_url user_id=%s",
+            endpoint,
+            user_id,
+        )
+        return
+
     pipeline_log.info(
         "%s stage=db_insert_demo start user_id=%s",
         endpoint,
@@ -337,6 +349,7 @@ def list_generations(
         rows = get_generations_by_user_id(user.id, limit=limit)
     except RuntimeError:
         raise HTTPException(status_code=500, detail="Failed to fetch generations")
+    rows = filter_persistable_generation_rows(rows)
     newest_created_at = rows[0].get("created_at") if rows else None
     pipeline_log.info(
         "GET /generations user_id=%s count=%s newest_created_at=%s",
@@ -668,6 +681,9 @@ def generate(
     if not decision["allowed"]:
         raise HTTPException(status_code=402, detail=decision["reason"])
 
+    if not should_persist_generation_image_url(image_url):
+        raise HTTPException(status_code=500, detail="Failed to save generation")
+
     try:
         result = consume_generation(
             profile,
@@ -676,7 +692,7 @@ def generate(
             image_url,
         )
     except RuntimeError as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     updated_profile = result["profile"]
     return _build_generate_response_after_consume(
@@ -831,6 +847,14 @@ def generate_with_photo(
             image_url=image_url,
             prompt=prompt,
         )
+
+    if not should_persist_generation_image_url(image_url):
+        pipeline_log.warning(
+            "POST /generate-with-photo failed template_id=%s stage=db "
+            "reason=non_persistable_image_url",
+            normalized_template_id or "(none)",
+        )
+        raise HTTPException(status_code=500, detail="Failed to save generation")
 
     try:
         result = consume_generation(

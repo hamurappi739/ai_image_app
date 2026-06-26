@@ -236,6 +236,11 @@ def create_generation_record(
     photoshoot_id: str | None = None,
 ) -> dict:
     """Insert a row into ``generations`` without consuming credits."""
+    from app.services.generation_image_url import should_persist_generation_image_url
+
+    if not should_persist_generation_image_url(image_url):
+        raise RuntimeError("Generation image URL is not persistable")
+
     payload: dict = {
         "user_id": user_id,
         "prompt": prompt,
