@@ -12,14 +12,16 @@ class OnboardingScreen extends StatelessWidget {
 
   final Future<void> Function() onComplete;
 
+  static final welcomeStep = OnboardingStep(
+    title: 'Ваши фото — в красивые образы',
+    body:
+        'Выберите шаблон, загрузите фото — и получите портрет, '
+        'фотосессию или свою идею за пару минут.',
+    mockupBuilder: OnboardingMockups.welcomeShowcase,
+  );
+
   static final _steps = [
-    OnboardingStep(
-      title: 'Добро пожаловать',
-      body:
-          'Создавайте красивые фото по шаблонам, '
-          'фотосессии и свои идеи.',
-      mockupBuilder: OnboardingMockups.welcomeHome,
-    ),
+    welcomeStep,
     OnboardingStep(
       title: 'Выбирайте готовые идеи',
       body:
@@ -50,6 +52,10 @@ class OnboardingScreen extends StatelessWidget {
           'Попробуйте первые фото бесплатно. '
           'Обычное фото стоит 1 изображение, фотосессия — 3 изображения.',
       mockupBuilder: OnboardingMockups.freeBalance,
+      // TODO: link this note to the full privacy policy in Profile.
+      footerNote:
+          'Мы используем загруженные фото только для создания результата. '
+          'Полная политика конфиденциальности находится в разделе «Профиль».',
     ),
   ];
 

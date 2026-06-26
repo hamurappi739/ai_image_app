@@ -6,10 +6,10 @@ import '../models/catalog_entries.dart';
 import '../services/catalog_service.dart';
 import '../models/generated_image_item.dart';
 import '../models/user_balance.dart';
+import '../widgets/app_navigation_scope.dart';
 import '../services/api_service.dart';
 import '../widgets/category_filter_chips.dart';
 import '../widgets/template_create_sheet.dart';
-import '../widgets/app_screen_header.dart';
 import '../widgets/preview_asset_image.dart';
 import '../widgets/section_help_button.dart';
 import '../widgets/template_help_dialog.dart';
@@ -232,10 +232,12 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
   ];
 
   static const _gridGap = 12.0;
+  static const _minTwoColumnCardWidth = 145.0;
 
-  static int _columnCount(double width) {
-    if (width < 360) return 1;
-    if (width >= 900) return 3;
+  static int _columnCount(double gridWidth) {
+    if (gridWidth >= 900) return 3;
+    final twoColumnWidth = (gridWidth - _gridGap) / 2;
+    if (twoColumnWidth < _minTwoColumnCardWidth) return 1;
     return 2;
   }
 
@@ -244,16 +246,16 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
     return (gridWidth - _gridGap * (columns - 1)) / columns;
   }
 
-  static double _cardMainAxisExtent(double itemWidth, bool compact) {
+  static double _cardFooterHeight(bool compact) {
     const topPad = 8.0;
-    const titleHeight = 38.0;
+    final titleHeight = compact ? 34.0 : 38.0;
     const titleDescGap = 4.0;
-    final descriptionHeight = compact ? 18.0 : 34.0;
+    final descriptionHeight = compact ? 30.0 : 32.0;
     const descButtonGap = 8.0;
-    const buttonHeight = 36.0;
+    final buttonHeight = compact ? 34.0 : 36.0;
     const bottomPad = 12.0;
-    const safetyBuffer = 6.0;
-    final footerHeight = topPad +
+    final safetyBuffer = compact ? 14.0 : 10.0;
+    return topPad +
         titleHeight +
         titleDescGap +
         descriptionHeight +
@@ -261,7 +263,10 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
         buttonHeight +
         bottomPad +
         safetyBuffer;
-    return itemWidth + footerHeight;
+  }
+
+  static double _cardMainAxisExtent(double itemWidth, bool compact) {
+    return itemWidth + _cardFooterHeight(compact);
   }
 
   List<PhotoTemplate> _templatesForCategory(int index) {
@@ -298,7 +303,7 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
                 final templates = _templatesForCategory(_selectedCategoryIndex);
                 final itemWidth =
                     _gridItemWidth(constraints.maxWidth, columns);
-                final compactCard = itemWidth < 170;
+                final compactCard = itemWidth < 175;
                 final cardMainAxisExtent =
                     _cardMainAxisExtent(itemWidth, compactCard);
 
@@ -307,11 +312,7 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AppScreenHeader(
-                        title: 'Шаблоны фото',
-                        subtitle:
-                            'Выберите шаблон, добавьте фото и создайте '
-                            'результат.',
+                      _TemplatePhotoScreenHeader(
                         trailing: SectionHelpButton(
                           onPressed: () => TemplateHelpDialog.show(context),
                         ),
@@ -365,6 +366,72 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TemplatePhotoScreenHeader extends StatelessWidget {
+  const _TemplatePhotoScreenHeader({this.trailing});
+
+  static const _textPrimary = Color(0xFF1A1D26);
+  static const _textSecondary = Color(0xFF6B7280);
+  static const _subtitle =
+      'Выберите шаблон, добавьте фото и получите готовый результат.';
+
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final narrow = screenWidth < 400;
+    final titleFontSize = narrow ? 20.0 : 24.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            IconButton(
+              onPressed: AppNavigationScope.openDrawerOf(context),
+              icon: const Icon(Icons.menu, size: 26),
+              color: _textPrimary,
+              tooltip: 'Меню',
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.only(left: 0, right: 8),
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            ),
+            Expanded(
+              child: Text(
+                'Фото по шаблону',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontSize: titleFontSize,
+                  fontWeight: FontWeight.w700,
+                  color: _textPrimary,
+                  height: 1.15,
+                ),
+              ),
+            ),
+            ?trailing,
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 48, right: 4),
+          child: Text(
+            _subtitle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: narrow ? 13 : 14,
+              height: 1.35,
+              color: _textSecondary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -503,6 +570,13 @@ class _TemplateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final titleFontSize = compact ? 13.0 : 15.0;
+    final titleLineHeight = compact ? 1.2 : 1.22;
+    final titleBoxHeight = compact ? 34.0 : 38.0;
+    final descriptionFontSize = compact ? 11.0 : 12.0;
+    final descriptionLineHeight = compact ? 1.25 : 1.3;
+    final descriptionBoxHeight = compact ? 30.0 : 32.0;
+    final buttonHeight = compact ? 34.0 : 36.0;
 
     return Material(
       color: Colors.white,
@@ -539,35 +613,40 @@ class _TemplateCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
+            padding: EdgeInsets.fromLTRB(
+              compact ? 8 : 10,
+              8,
+              compact ? 8 : 10,
+              12,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
-                  height: 38,
+                  height: titleBoxHeight,
                   child: Text(
                     template.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: compact ? 14 : 15,
+                      fontSize: titleFontSize,
                       fontWeight: FontWeight.w700,
                       color: _textPrimary,
-                      height: 1.22,
+                      height: titleLineHeight,
                     ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 SizedBox(
-                  height: compact ? 18 : 34,
+                  height: descriptionBoxHeight,
                   child: Text(
                     template.description,
-                    maxLines: compact ? 1 : 2,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      fontSize: compact ? 11 : 12,
-                      height: 1.35,
+                      fontSize: descriptionFontSize,
+                      height: descriptionLineHeight,
                       color: _textSecondary,
                     ),
                   ),
@@ -575,21 +654,21 @@ class _TemplateCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
-                  height: 36,
+                  height: buttonHeight,
                   child: FilledButton(
                     onPressed: onTry,
                     style: FilledButton.styleFrom(
                       backgroundColor: _accentColor,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      textStyle: const TextStyle(
-                        fontSize: 13,
+                      textStyle: TextStyle(
+                        fontSize: compact ? 12 : 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

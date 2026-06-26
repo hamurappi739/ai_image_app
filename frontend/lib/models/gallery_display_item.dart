@@ -1,5 +1,9 @@
 import 'package:ai_image_generator/models/generated_image_item.dart';
+import 'package:ai_image_generator/utils/gallery_display_title.dart';
 import 'package:ai_image_generator/utils/gallery_item_key.dart';
+
+export 'package:ai_image_generator/utils/gallery_display_title.dart'
+    show galleryPhotoshootStyleTitle, gallerySinglePhotoTitle;
 
 /// One row in the Gallery grid: a single image or a photoshoot group.
 class GalleryDisplayItem {
@@ -19,23 +23,10 @@ class GalleryDisplayItem {
 
   bool get isPhotoshootGroup =>
       photoshootId != null && photoshootId!.isNotEmpty;
-}
 
-String? galleryPhotoshootStyleTitle(String description) {
-  const customPrefix = 'Своя фотосессия: ';
-  if (description.startsWith(customPrefix)) {
-    final body = description.substring(customPrefix.length).trim();
-    if (body.isEmpty) return 'Своя фотосессия';
-    const maxBody = 80;
-    if (body.length <= maxBody) return 'Своя фотосессия: $body';
-    return 'Своя фотосессия: ${body.substring(0, maxBody).trim()}…';
-  }
-  const prefix = 'Фотосессия: ';
-  if (description.startsWith(prefix)) {
-    final title = description.substring(prefix.length).trim();
-    return title.isEmpty ? null : title;
-  }
-  return null;
+  String get displayTitle => isPhotoshootGroup
+      ? galleryPhotoshootStyleTitle(description)
+      : gallerySinglePhotoTitle(description);
 }
 
 String galleryPhotoshootPhotoCountLabel(int count) => '$count фото';

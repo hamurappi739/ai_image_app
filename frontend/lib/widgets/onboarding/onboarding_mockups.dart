@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../preview_asset_image.dart';
-import 'onboarding_arrow.dart';
 
 /// Flutter mockups for onboarding and section help slides.
 class OnboardingMockups {
@@ -24,8 +23,63 @@ class OnboardingMockups {
       'assets/previews/photoshoots/studio_portrait_2.jpg';
   static const _studioPortrait3 =
       'assets/previews/photoshoots/studio_portrait_3.jpg';
+  static const _birthdayBalloons =
+      'assets/previews/templates/birthday_balloons.jpg';
+  static const _businessPhotoshoot1 =
+      'assets/previews/photoshoots/business_portrait_1.jpg';
+  static const _businessPhotoshoot2 =
+      'assets/previews/photoshoots/business_portrait_2.jpg';
+  static const _businessPhotoshoot3 =
+      'assets/previews/photoshoots/business_portrait_3.jpg';
 
   // —— First-run ———————————————————————————————————————————————————————————
+
+  static Widget welcomeShowcase({required bool compact}) {
+    final previewHeight = compact ? 108.0 : 132.0;
+    final gap = compact ? 6.0 : 8.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: previewHeight + (compact ? 10 : 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: _welcomeResultTile(
+                  assetPath: _beautifulPortrait,
+                  height: previewHeight - (compact ? 8 : 10),
+                  compact: compact,
+                ),
+              ),
+              SizedBox(width: gap),
+              Expanded(
+                child: Transform.translate(
+                  offset: Offset(0, compact ? -10 : -14),
+                  child: _welcomeResultTile(
+                    assetPath: _birthdayBalloons,
+                    height: previewHeight,
+                    compact: compact,
+                    highlighted: true,
+                  ),
+                ),
+              ),
+              SizedBox(width: gap),
+              Expanded(
+                child: _welcomePhotoshootStrip(
+                  height: previewHeight - (compact ? 8 : 10),
+                  compact: compact,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: compact ? 12 : 16),
+        _welcomeFlowRow(compact: compact),
+      ],
+    );
+  }
 
   static Widget welcomeHome({required bool compact}) {
     return _MockPhoneFrame(
@@ -111,112 +165,83 @@ class OnboardingMockups {
   }
 
   static Widget goodBadPhoto({required bool compact}) {
-    return Stack(
-      clipBehavior: Clip.none,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _photoQualityTile(isGood: true, compact: compact)),
-            SizedBox(width: compact ? 8 : 12),
-            Expanded(child: _photoQualityTile(isGood: false, compact: compact)),
-          ],
-        ),
-        Positioned(
-          top: compact ? -4 : 0,
-          left: compact ? 8 : 16,
-          child: OnboardingPointer(
-            label: 'Выберите чёткое фото',
-            direction: OnboardingArrowDirection.downLeft,
-            compact: compact,
-          ),
-        ),
+        Expanded(child: _photoQualityTile(isGood: true, compact: compact)),
+        SizedBox(width: compact ? 8 : 12),
+        Expanded(child: _photoQualityTile(isGood: false, compact: compact)),
       ],
     );
   }
 
   static Widget drawerMenu({required bool compact}) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        _MockPhoneFrame(
-          compact: compact,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    return _MockPhoneFrame(
+      compact: compact,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  _burgerIcon(compact: compact, highlighted: true),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Раздел',
-                      style: TextStyle(
-                        fontSize: compact ? 14 : 15,
-                        fontWeight: FontWeight.w700,
-                        color: _textPrimary,
-                      ),
-                    ),
+              _burgerIcon(compact: compact),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Раздел',
+                  style: TextStyle(
+                    fontSize: compact ? 14 : 15,
+                    fontWeight: FontWeight.w700,
+                    color: _textPrimary,
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEDE9FF),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Помощь',
-                      style: TextStyle(
-                        fontSize: compact ? 10 : 11,
-                        fontWeight: FontWeight.w700,
-                        color: _accent,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-              const SizedBox(height: 12),
-              ...['Главная', 'Фото по шаблону', 'Фотосессии', 'Готовые фото']
-                  .map(
-                (item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: compact ? 6 : 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFE8EAEF)),
-                    ),
-                    child: Text(
-                      item,
-                      style: TextStyle(
-                        fontSize: compact ? 11 : 12,
-                        fontWeight: FontWeight.w500,
-                        color: _textPrimary,
-                      ),
-                    ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDE9FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Помощь',
+                  style: TextStyle(
+                    fontSize: compact ? 10 : 11,
+                    fontWeight: FontWeight.w700,
+                    color: _accent,
                   ),
                 ),
               ),
             ],
           ),
-        ),
-        Positioned(
-          left: compact ? -2 : 4,
-          top: compact ? 28 : 36,
-          child: OnboardingPointer(
-            label: 'Меню',
-            direction: OnboardingArrowDirection.right,
-            compact: compact,
+          const SizedBox(height: 12),
+          ...['Главная', 'Фото по шаблону', 'Фотосессии', 'Готовые фото'].map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: compact ? 6 : 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE8EAEF)),
+                ),
+                child: Text(
+                  item,
+                  style: TextStyle(
+                    fontSize: compact ? 11 : 12,
+                    fontWeight: FontWeight.w500,
+                    color: _textPrimary,
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -487,6 +512,133 @@ class OnboardingMockups {
           ),
         ],
       ),
+    );
+  }
+
+  static Widget _welcomeResultTile({
+    required String assetPath,
+    required double height,
+    required bool compact,
+    bool highlighted = false,
+  }) {
+    final radius = compact ? 10.0 : 12.0;
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: highlighted ? 0.14 : 0.08,
+            ),
+            blurRadius: highlighted ? 14 : 10,
+            offset: Offset(0, highlighted ? 6 : 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: PreviewAssetImage(
+          assetPath: assetPath,
+          fit: BoxFit.cover,
+          placeholder: Container(color: const Color(0xFFE8EAEF)),
+        ),
+      ),
+    );
+  }
+
+  static Widget _welcomePhotoshootStrip({
+    required double height,
+    required bool compact,
+  }) {
+    const paths = [
+      _businessPhotoshoot1,
+      _businessPhotoshoot2,
+      _businessPhotoshoot3,
+    ];
+    final gap = compact ? 3.0 : 4.0;
+    final radius = compact ? 8.0 : 10.0;
+
+    return SizedBox(
+      height: height,
+      child: Row(
+        children: [
+          for (var i = 0; i < paths.length; i++) ...[
+            if (i > 0) SizedBox(width: gap),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(radius),
+                child: PreviewAssetImage(
+                  assetPath: paths[i],
+                  fit: BoxFit.cover,
+                  placeholder: Container(color: const Color(0xFFE8EAEF)),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  static Widget _welcomeFlowRow({required bool compact}) {
+    final iconSize = compact ? 18.0 : 20.0;
+    final fontSize = compact ? 11.0 : 12.0;
+
+    Widget step(IconData icon, String label) {
+      return Expanded(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: compact ? 34 : 38,
+              height: compact ? 34 : 38,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEDE9FF),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: iconSize, color: _accent),
+            ),
+            SizedBox(height: compact ? 4 : 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.w600,
+                color: _textPrimary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget dot() {
+      return Padding(
+        padding: EdgeInsets.only(top: compact ? 14 : 16),
+        child: Container(
+          width: compact ? 14 : 16,
+          height: 2,
+          decoration: BoxDecoration(
+            color: _accent.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        step(Icons.add_photo_alternate_outlined, 'Ваше фото'),
+        dot(),
+        step(Icons.auto_awesome_outlined, 'Идея'),
+        dot(),
+        step(Icons.image_outlined, 'Результат'),
+      ],
     );
   }
 

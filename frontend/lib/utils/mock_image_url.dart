@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/gallery_display_title.dart';
 import '../widgets/visual_placeholder.dart';
 
 /// Demo/mock placeholder hosts returned by backend mock providers.
@@ -59,10 +60,11 @@ String gallerySinglePreviewCaption({
   String? description,
 }) {
   const defaults = ['Фото готово', 'Портрет', 'Образ'];
-  final text = description?.trim();
-  if (text != null && text.isNotEmpty && seed % 4 == 0) {
-    if (text.length <= 24) return text;
-    return '${text.substring(0, 21).trim()}…';
+  if (description != null && description.trim().isNotEmpty) {
+    final title = gallerySinglePhotoTitle(description);
+    if (title != galleryDefaultPhotoLabel && title.length <= 28) {
+      return title;
+    }
   }
   return defaults[seed % defaults.length];
 }

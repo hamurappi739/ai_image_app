@@ -28,6 +28,7 @@ import 'services/create_help_service.dart';
 import 'services/free_generations_welcome_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/photoshoots_help_service.dart';
+import 'utils/gallery_display_title.dart';
 import 'utils/gallery_item_key.dart';
 import 'utils/mock_photoshoot_photo.dart';
 import 'widgets/app_balance_summary.dart';
@@ -2059,107 +2060,144 @@ class _CustomPhotoshootPromoBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFFF8F5), Color(0xFFEEF1FF)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFE8B4A0).withValues(alpha: 0.45),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: _accentColor.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow = constraints.maxWidth < 400;
+
+        Widget iconBadge({double size = 48}) {
+          return Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white,
+                  _accentColor.withValues(alpha: 0.12),
+                ],
+              ),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: _accentColor.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Icon(
+              Icons.auto_awesome_outlined,
+              size: size * 0.5,
+              color: _accentColor,
+            ),
+          );
+        }
+
+        final title = Text(
+          'Не нашли подходящий стиль?',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontSize: narrow ? 15 : 16,
+            fontWeight: FontWeight.w700,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.white,
-                      _accentColor.withValues(alpha: 0.12),
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: _accentColor.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: const Icon(
-                  Icons.auto_awesome_outlined,
-                  size: 24,
-                  color: _accentColor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Не нашли подходящий стиль?',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Опишите свой образ — мы подготовим фотосессию '
-                      'по вашей идее.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 14,
-                        height: 1.45,
-                        color: AiImageGeneratorApp.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        );
+
+        final description = Text(
+          'Опишите свой образ — мы подготовим фотосессию по вашей идее.',
+          maxLines: narrow ? 3 : 4,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: narrow ? 13 : 14,
+            height: 1.4,
+            color: AiImageGeneratorApp.textSecondary,
           ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: FilledButton(
-              onPressed: onAction,
-              style: FilledButton.styleFrom(
-                backgroundColor: _accentColor,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+        );
+
+        final button = SizedBox(
+          width: double.infinity,
+          height: narrow ? 42 : 44,
+          child: FilledButton(
+            onPressed: onAction,
+            style: FilledButton.styleFrom(
+              backgroundColor: _accentColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'Создать свой образ',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
+            ),
+            child: Text(
+              'Создать свой образ',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: narrow ? 14 : 15,
               ),
             ),
           ),
-        ],
-      ),
+        );
+
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(
+            narrow ? 14 : 18,
+            narrow ? 14 : 18,
+            narrow ? 14 : 18,
+            narrow ? 14 : 16,
+          ),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFF8F5), Color(0xFFEEF1FF)],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFFE8B4A0).withValues(alpha: 0.45),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _accentColor.withValues(alpha: 0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: narrow
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    iconBadge(size: 40),
+                    const SizedBox(height: 10),
+                    title,
+                    const SizedBox(height: 6),
+                    description,
+                    const SizedBox(height: 12),
+                    button,
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        iconBadge(),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              title,
+                              const SizedBox(height: 6),
+                              description,
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    button,
+                  ],
+                ),
+        );
+      },
     );
   }
 }
@@ -2704,7 +2742,6 @@ class _CustomPhotoshootFlow {
   static const styleId = 'custom_photoshoot';
   static const baseTitle = 'Своя фотосессия';
   static const minDescriptionLength = 10;
-  static const maxHistoryDescriptionLength = 1000;
 
   static final ideas = AppPrompts.customPhotoshootChips
       .map(
@@ -2712,24 +2749,11 @@ class _CustomPhotoshootFlow {
       )
       .toList();
 
-  static String galleryDescription(String description) {
-    final trimmed = description.trim();
-    final prefix = '$baseTitle: ';
-    final maxBody = maxHistoryDescriptionLength - prefix.length;
-    if (maxBody <= 0) return baseTitle;
-    if (trimmed.length <= maxBody) return '$prefix$trimmed';
-    return '$prefix${trimmed.substring(0, maxBody)}';
-  }
-
   static String galleryDescriptionFromResponse({
     required String userDescription,
     String? serverDescription,
   }) {
-    final normalized = serverDescription?.trim();
-    if (normalized != null && normalized.isNotEmpty) {
-      return galleryDescription(normalized);
-    }
-    return galleryDescription(userDescription);
+    return galleryCustomPhotoshootLabel;
   }
 }
 
@@ -3450,7 +3474,7 @@ class _CreateScreenState extends State<CreateScreen> {
       }
       widget.onImageGenerated(
         GeneratedImageItem(
-          description: text,
+          description: galleryCustomIdeaLabel,
           imageUrl: response.imageUrl,
           createdAt: DateTime.now(),
         ),
@@ -3544,7 +3568,9 @@ class _CreateScreenState extends State<CreateScreen> {
               TextButton.icon(
                 onPressed: _isLoading ? null : widget.onOpenTemplates,
                 icon: const Icon(Icons.dashboard_customize_outlined, size: 18),
-                label: const Text('Не знаете, что написать? Откройте шаблоны'),
+                label: const Text(
+                  'Не знаете, что написать? Откройте «Фото по шаблону»',
+                ),
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFF5B6CFF),
                   padding: EdgeInsets.zero,
@@ -4126,9 +4152,10 @@ class _ResultSection extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Создано по описанию: ${response.prompt}',
+          galleryCustomIdeaLabel,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AiImageGeneratorApp.textPrimary,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 16),

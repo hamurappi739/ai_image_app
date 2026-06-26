@@ -39,20 +39,34 @@ class CustomRequestFlow extends StatelessWidget {
 
   static const _photoIdeas = [
     (
-      label: 'Деловой портрет',
-      text: 'Сделай деловой портрет на светлом фоне, мягкий свет',
+      label: 'Постер фильма',
+      text:
+          'Сделай из моего фото кинематографичный постер фильма: '
+          'драматичный свет, выразительный фон, стильная композиция, '
+          'как обложка современного кино.',
+      suggestExtraPhotos: false,
     ),
     (
-      label: 'Фото для соцсетей',
-      text: 'Сделай фото для соцсетей, светлый фон, естественная улыбка',
+      label: 'Обложка журнала',
+      text:
+          'Сделай фото как обложку глянцевого журнала: красивый свет, '
+          'уверенная поза, аккуратный фон, модная editorial-обработка.',
+      suggestExtraPhotos: false,
     ),
     (
-      label: 'Светлый портрет',
-      text: 'Сделай светлый портрет с мягким освещением и чистым фоном',
+      label: 'Сказочный образ',
+      text:
+          'Создай сказочный образ по моему фото: мягкий волшебный свет, '
+          'красивый фон, нежная атмосфера, реалистично и без мультяшности.',
+      suggestExtraPhotos: false,
     ),
     (
-      label: 'Образ для резюме',
-      text: 'Сделай образ для резюме: спокойный фон, уверенный вид',
+      label: 'Фото с 3 людьми',
+      text:
+          'Создай общее фото с тремя людьми по загруженным фотографиям: '
+          'все выглядят естественно, стоят рядом, одинаковый свет '
+          'и единый фон.',
+      suggestExtraPhotos: true,
     ),
   ];
 
@@ -142,7 +156,7 @@ class CustomRequestFlow extends StatelessWidget {
                 child: CreateDescriptionTextField(
                   controller: descriptionController,
                   hintText:
-                      'Например: сделай деловой портрет на светлом фоне',
+                      'Например: сделай кинематографичный постер из моего фото',
                 ),
               ),
             ],
@@ -209,11 +223,46 @@ class CustomRequestFlow extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
+        _PhotoIdeaExamples(
+          ideas: _photoIdeas,
+          isBusy: isBusy,
+          onIdeaSelected: onIdeaSelected,
+        ),
+      ],
+    );
+  }
+}
+
+class _PhotoIdeaExamples extends StatefulWidget {
+  const _PhotoIdeaExamples({
+    required this.ideas,
+    required this.isBusy,
+    required this.onIdeaSelected,
+  });
+
+  final List<({String label, String text, bool suggestExtraPhotos})> ideas;
+  final bool isBusy;
+  final ValueChanged<String> onIdeaSelected;
+
+  @override
+  State<_PhotoIdeaExamples> createState() => _PhotoIdeaExamplesState();
+}
+
+class _PhotoIdeaExamplesState extends State<_PhotoIdeaExamples> {
+  bool _showMultiPhotoHint = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(
           'Примеры идей',
           style: theme.textTheme.titleMedium?.copyWith(
             fontSize: 16,
-            color: _textPrimary,
+            color: CustomRequestFlow._textPrimary,
           ),
         ),
         const SizedBox(height: 6),
@@ -221,7 +270,7 @@ class CustomRequestFlow extends StatelessWidget {
           'Нажмите — идея подставится в поле выше.',
           style: theme.textTheme.bodyMedium?.copyWith(
             fontSize: 13,
-            color: _textSecondary,
+            color: CustomRequestFlow._textSecondary,
             height: 1.35,
           ),
         ),
@@ -230,16 +279,23 @@ class CustomRequestFlow extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final idea in _photoIdeas)
+            for (final idea in widget.ideas)
               ActionChip(
                 label: Text(idea.label),
-                onPressed: isBusy ? null : () => onIdeaSelected(idea.text),
+                onPressed: widget.isBusy
+                    ? null
+                    : () {
+                        widget.onIdeaSelected(idea.text);
+                        setState(
+                          () => _showMultiPhotoHint = idea.suggestExtraPhotos,
+                        );
+                      },
                 backgroundColor: Colors.white,
                 side: const BorderSide(color: Color(0xFFE8EAEF)),
                 labelStyle: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: _textPrimary,
+                  color: CustomRequestFlow._textPrimary,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -247,6 +303,29 @@ class CustomRequestFlow extends StatelessWidget {
               ),
           ],
         ),
+        if (_showMultiPhotoHint) ...[
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF1FF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF5B6CFF).withValues(alpha: 0.18),
+              ),
+            ),
+            child: Text(
+              'Для этой идеи добавьте фото 2 и фото 3 — по одному снимку '
+              'на каждого человека.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 12,
+                height: 1.4,
+                color: CustomRequestFlow._textSecondary,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

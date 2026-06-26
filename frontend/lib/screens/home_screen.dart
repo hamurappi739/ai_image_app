@@ -41,8 +41,8 @@ class HomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   _HomeActionCard(
-                    title: 'Начать создавать',
-                    subtitle: 'Фото по готовому шаблону',
+                    title: 'Фото по шаблону',
+                    subtitle: 'Выберите шаблон и добавьте своё фото',
                     icon: Icons.dashboard_customize_outlined,
                     emphasized: true,
                     onTap: () => onNavigate(AppSection.templatePhoto),

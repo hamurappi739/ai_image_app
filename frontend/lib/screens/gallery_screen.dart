@@ -831,8 +831,7 @@ class _GalleryPhotoshootCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final styleTitle = galleryPhotoshootStyleTitle(item.description);
-    final title = styleTitle ?? 'Фотосессия';
+    final title = item.displayTitle;
     final countLabel = item.imageUrls.length == 3
         ? '3 фото'
         : galleryPhotoshootPhotoCountLabel(item.imageUrls.length);
@@ -931,6 +930,9 @@ class _GallerySinglePhotoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final title = item.displayTitle;
+
     return _GalleryResultCardShell(
       isNew: isNew,
       child: Column(
@@ -965,6 +967,17 @@ class _GallerySinglePhotoCard extends StatelessWidget {
                     const _GalleryChip(label: 'Фото'),
                     if (isNew) const _GalleryChip(label: 'Новое', isNew: true),
                   ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: _textPrimary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
                 SizedBox(

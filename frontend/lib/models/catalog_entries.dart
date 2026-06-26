@@ -84,6 +84,7 @@ class CatalogTemplateEntry {
     required this.shortDescription,
     required this.prompt,
     required this.previewAsset,
+    this.referenceAsset,
     required this.priceImages,
     required this.isActive,
     required this.sortOrder,
@@ -99,6 +100,7 @@ class CatalogTemplateEntry {
   final String shortDescription;
   final String prompt;
   final String previewAsset;
+  final String? referenceAsset;
   final String? previewUrl;
   final int priceImages;
   final bool isActive;
@@ -118,6 +120,7 @@ class CatalogTemplateEntry {
       shortDescription: json['shortDescription'] as String,
       prompt: json['prompt'] as String? ?? '',
       previewAsset: json['previewAsset'] as String,
+      referenceAsset: json['referenceAsset'] as String?,
       previewUrl: previewUrl is String && previewUrl.trim().isNotEmpty
           ? previewUrl.trim()
           : null,

@@ -178,11 +178,13 @@ class _OnboardingVisualShellState extends State<OnboardingVisualShell> {
                   },
                 ),
               ),
-              const SizedBox(height: 10),
-              _ProgressDots(
-                count: widget.steps.length,
-                index: _pageIndex,
-              ),
+              if (widget.steps.length > 1) ...[
+                const SizedBox(height: 10),
+                _ProgressDots(
+                  count: widget.steps.length,
+                  index: _pageIndex,
+                ),
+              ],
               SizedBox(height: isCompact ? 12 : 16),
               _NavigationRow(
                 isFirstPage: _isFirstPage,
@@ -241,24 +243,55 @@ class _OnboardingSlide extends StatelessWidget {
         ),
         SizedBox(height: isCompact ? 12 : 16),
         Expanded(
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(isFullscreen ? 24 : 20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.07),
-                  blurRadius: 28,
-                  offset: const Offset(0, 10),
+          child: Column(
+            children: [
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.circular(isFullscreen ? 24 : 20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.07),
+                        blurRadius: 28,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    padding: EdgeInsets.all(isCompact ? 14 : 20),
+                    child: step.mockupBuilder(compact: isCompact),
+                  ),
+                ),
+              ),
+              if (step.footerNote != null) ...[
+                SizedBox(height: isCompact ? 8 : 10),
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isCompact ? 10 : 12,
+                    vertical: isCompact ? 8 : 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0F2F8),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE8EAEF)),
+                  ),
+                  child: Text(
+                    step.footerNote!,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: isCompact ? 11 : 12,
+                      height: 1.35,
+                      color: const Color(0xFF6B7280),
+                    ),
+                  ),
                 ),
               ],
-            ),
-            child: SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              padding: EdgeInsets.all(isCompact ? 14 : 20),
-              child: step.mockupBuilder(compact: isCompact),
-            ),
+            ],
           ),
         ),
       ],

@@ -60,34 +60,31 @@ class GoodResultGuideCard extends StatelessWidget {
         const SizedBox(height: 14),
         LayoutBuilder(
           builder: (context, constraints) {
-            const minCardWidth = 148.0;
-            final fitsInRow =
-                constraints.maxWidth >= minCardWidth * 2 + 12;
+            const stackBreakpoint = 430.0;
+            final stackVertically = constraints.maxWidth < stackBreakpoint;
+            final compact = stackVertically;
 
-            const good = _GuidePhotoExampleCard(isGood: true);
-            const bad = _GuidePhotoExampleCard(isGood: false);
+            final good = _GuidePhotoExampleCard(isGood: true, compact: compact);
+            final bad = _GuidePhotoExampleCard(isGood: false, compact: compact);
 
-            if (fitsInRow) {
-              return const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            if (stackVertically) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(child: good),
-                  SizedBox(width: 12),
-                  Expanded(child: bad),
+                  good,
+                  SizedBox(height: compact ? 10 : 12),
+                  bad,
                 ],
               );
             }
 
-            return SizedBox(
-              height: 200,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: const [
-                  SizedBox(width: minCardWidth, child: good),
-                  SizedBox(width: 12),
-                  SizedBox(width: minCardWidth, child: bad),
-                ],
-              ),
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: good),
+                const SizedBox(width: 12),
+                Expanded(child: bad),
+              ],
             );
           },
         ),
@@ -97,7 +94,7 @@ class GoodResultGuideCard extends StatelessWidget {
     if (isSheet) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         decoration: BoxDecoration(
           color: const Color(0xFFF7F8FC),
           borderRadius: BorderRadius.circular(14),
@@ -152,9 +149,13 @@ class GoodResultGuideCard extends StatelessWidget {
 }
 
 class _GuidePhotoExampleCard extends StatelessWidget {
-  const _GuidePhotoExampleCard({required this.isGood});
+  const _GuidePhotoExampleCard({
+    required this.isGood,
+    this.compact = false,
+  });
 
   final bool isGood;
+  final bool compact;
 
   static const _goodColors = [Color(0xFFD4E0EE), Color(0xFF8EA4BE)];
   static const _badColors = [Color(0xFF3A3F4B), Color(0xFF6B7280)];
@@ -174,7 +175,7 @@ class _GuidePhotoExampleCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10),
+      padding: EdgeInsets.all(compact ? 8 : 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -186,7 +187,10 @@ class _GuidePhotoExampleCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 7 : 8,
+              vertical: compact ? 3 : 4,
+            ),
             decoration: BoxDecoration(
               color: statusBg,
               borderRadius: BorderRadius.circular(8),
@@ -194,19 +198,19 @@ class _GuidePhotoExampleCard extends StatelessWidget {
             child: Text(
               badgeLabel,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: compact ? 11 : 12,
                 fontWeight: FontWeight.w700,
                 color: statusColor,
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: compact ? 6 : 8),
           AspectRatio(
-            aspectRatio: 1,
+            aspectRatio: compact ? 4 / 3 : 1,
             child: PreviewAssetImage(
               assetPath: assetPath,
               fit: BoxFit.cover,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(compact ? 8 : 10),
               placeholder: VisualPlaceholder(
                 mood: isGood
                     ? VisualPlaceholderMood.portrait
@@ -215,18 +219,20 @@ class _GuidePhotoExampleCard extends StatelessWidget {
                 icon: isGood
                     ? Icons.face_retouching_natural_outlined
                     : Icons.face_outlined,
-                height: 120,
+                height: compact ? 90 : 120,
                 compact: true,
                 dimmed: !isGood,
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: compact ? 6 : 8),
           Text(
             hint,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 12,
-              height: 1.35,
+              fontSize: compact ? 11 : 12,
+              height: compact ? 1.25 : 1.35,
               color: const Color(0xFF6B7280),
             ),
           ),

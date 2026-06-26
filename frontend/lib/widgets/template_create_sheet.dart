@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../models/catalog_entries.dart';
 import '../models/generated_image_item.dart';
+import '../utils/gallery_display_title.dart';
 import '../models/user_balance.dart';
 import '../screens/template_photo_screen.dart';
 import '../services/api_service.dart';
@@ -310,7 +311,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
 
       widget.onImageGenerated(
         GeneratedImageItem(
-          description: prompt,
+          description: '$galleryTemplatePrefix${widget.template.title}',
           imageUrl: response.imageUrl,
           createdAt: DateTime.now(),
         ),

@@ -6,6 +6,7 @@ import '../widgets/home_help_dialog.dart';
 import '../widgets/packs_help_dialog.dart';
 import '../widgets/photoshoots_help_dialog.dart';
 import '../widgets/template_help_dialog.dart';
+import '../widgets/welcome_showcase_help_dialog.dart';
 
 class HelpHubScreen extends StatelessWidget {
   const HelpHubScreen({super.key});
@@ -38,6 +39,17 @@ class HelpHubScreen extends StatelessWidget {
                     subtitle: 'Краткие подсказки по разделам приложения.',
                   ),
                   const SizedBox(height: 20),
+                  _HelpTopicTile(
+                    icon: Icons.auto_awesome_outlined,
+                    title: 'Что можно сделать в приложении',
+                    subtitle:
+                        'Коротко покажем шаблоны, фотосессии и свои идеи.',
+                    onTap: () => _openDialog(
+                      context,
+                      const WelcomeShowcaseHelpDialog(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   _HelpTopicTile(
                     icon: Icons.home_outlined,
                     title: 'Главная',

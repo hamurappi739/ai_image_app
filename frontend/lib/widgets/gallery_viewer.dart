@@ -127,6 +127,7 @@ class GallerySingleImageViewer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final title = gallerySinglePhotoTitle(description);
     final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
 
     return Dialog(
@@ -148,11 +149,13 @@ class GallerySingleImageViewer extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Готовое фото',
+                      title,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         fontSize: 18,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   IconButton(
@@ -304,19 +307,17 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                             fontSize: 18,
                           ),
                         ),
-                        if (styleTitle != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            styleTitle,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF6B7280),
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                        const SizedBox(height: 4),
+                        Text(
+                          styleTitle,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF6B7280),
                           ),
-                        ],
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         const SizedBox(height: 6),
                         Row(
                           children: [
