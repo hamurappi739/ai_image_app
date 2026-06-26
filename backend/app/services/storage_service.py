@@ -26,6 +26,7 @@ import httpx
 from fastapi import HTTPException
 
 from app.config import settings
+from app.services.image_optimize import optimize_generated_image_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +237,13 @@ class SupabaseStorageService:
         content_type: str,
         folder: str = "generations",
     ) -> tuple[str, str]:
-        extension = _MIME_TO_EXTENSION[content_type]
+        if folder == "generations":
+            content, content_type = optimize_generated_image_bytes(
+                content, content_type
+            )
+        extension = _MIME_TO_EXTENSION.get(content_type)
+        if extension is None:
+            raise HTTPException(status_code=400, detail="Unsupported image format")
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         filename = f"generated-{timestamp}.{extension}"
         path = self.build_storage_path(
