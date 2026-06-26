@@ -95,6 +95,72 @@ def build_photo_edit_instruction(
     )
 
 
+TEMPLATE_REFERENCE_ROLE_BLOCK = (
+    "Reference image roles:\n"
+    "- The uploaded user image(s) are the identity and content references. "
+    "Preserve the real person, child, pet, object, facial features, age, "
+    "hairstyle, body shape, and important details from uploaded images.\n"
+    "- The last image is the selected template preview reference. Treat it as "
+    "the main visual blueprint for the final image.\n"
+    "- Match the template preview reference closely: same type of scene, camera "
+    "distance, subject placement, crop, pose direction, background structure, "
+    "prop placement, lighting mood, color palette, and overall composition.\n"
+    "- Replace only the people, child, pet, or main subject from the template "
+    "preview with the uploaded subject(s).\n"
+    "- Do not copy any face, identity, child, pet, or person from the template "
+    "preview reference.\n"
+    "- Do not ignore the template preview reference. The final image should "
+    "immediately look like the chosen preview card, but personalized with the "
+    "uploaded photo(s).\n"
+    "- Keep the final image photorealistic, high quality, and natural."
+)
+
+MULTI_INPUT_REFERENCE_EXTRA = (
+    "Multiple uploaded user images:\n"
+    "- Earlier uploaded images are identity/content references only.\n"
+    "- The last image is not an identity image. It is only the template "
+    "layout/style blueprint."
+)
+
+BIRTHDAY_BALLOONS_REFERENCE_EXTRA = (
+    "For this birthday template specifically:\n"
+    "- Use the template preview reference to place large metallic foil balloon "
+    "numbers clearly visible in the background.\n"
+    "- The age number must appear as metallic foil balloon numbers, not as a "
+    "cake topper, candle number, or printed number on the cake."
+)
+
+
+def append_template_reference_prompt_block(
+    prompt: str,
+    *,
+    template_id: str | None,
+    has_reference: bool,
+    user_image_count: int = 1,
+) -> str:
+    if not has_reference:
+        return prompt.strip()
+    block = TEMPLATE_REFERENCE_ROLE_BLOCK
+    if user_image_count > 1:
+        block = f"{block}\n\n{MULTI_INPUT_REFERENCE_EXTRA}"
+    if (template_id or "").strip() == "birthday_balloons":
+        block = f"{block}\n\n{BIRTHDAY_BALLOONS_REFERENCE_EXTRA}"
+    return f"{prompt.strip()}\n\n{block}"
+
+
+def build_template_provider_instruction(catalog_prompt: str) -> str:
+    prompt = catalog_prompt.strip()
+    return (
+        f"{prompt}\n\n"
+        f"{PHOTO_REALISM_RULES}\n"
+        f"{STANDALONE_SINGLE_IMAGE_RULES}\n"
+        f"{TEXT_ON_IMAGE_RULES}\n"
+        f"{REALISM_AND_COMPOSITION_RULES}\n\n"
+        "Return one high-quality photorealistic image only. "
+        "Do not create NSFW content. Return an image only."
+    )
+
+
 def build_custom_photoshoot_frame_instruction(
     user_description: str,
     *,

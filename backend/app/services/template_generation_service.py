@@ -9,6 +9,8 @@ from typing import Any
 from fastapi import HTTPException, UploadFile
 
 from app.services.catalog_service import get_template_catalog_item
+from app.services.gemini_quality_instructions import append_template_reference_prompt_block
+from app.services.template_reference_service import load_template_reference_for_catalog_item
 
 _ALLOWED_CONTENT_TYPES = {
     "image/jpeg",
@@ -41,6 +43,7 @@ class TemplateGenerationInputs:
     photo_bytes: bytes
     photo_content_type: str
     extra_photos: list[ExtraPhotoInput] = field(default_factory=list)
+    reference_photo: ExtraPhotoInput | None = None
 
 
 def _read_upload_file(photo: UploadFile) -> tuple[bytes, str]:
@@ -145,6 +148,39 @@ def _resolve_configured_fields(
     return resolved_cake_digit, resolved_age_number, resolved_child_name
 
 
+def _finalize_template_inputs(
+    template: dict[str, Any],
+    *,
+    prompt: str,
+    photo_bytes: bytes,
+    photo_content_type: str,
+    extra_photos: list[ExtraPhotoInput],
+) -> TemplateGenerationInputs:
+    template_id = str(template.get("id") or "").strip() or None
+    reference_data = load_template_reference_for_catalog_item(template)
+    reference_photo = (
+        ExtraPhotoInput(
+            photo_bytes=reference_data[0],
+            photo_content_type=reference_data[1],
+        )
+        if reference_data is not None
+        else None
+    )
+    final_prompt = append_template_reference_prompt_block(
+        prompt,
+        template_id=template_id,
+        has_reference=reference_photo is not None,
+        user_image_count=1 + len(extra_photos),
+    )
+    return TemplateGenerationInputs(
+        prompt=final_prompt,
+        photo_bytes=photo_bytes,
+        photo_content_type=photo_content_type,
+        extra_photos=extra_photos,
+        reference_photo=reference_photo,
+    )
+
+
 def _resolve_multi_input_template(
     template: dict[str, Any],
     *,
@@ -160,7 +196,8 @@ def _resolve_multi_input_template(
         prompt = (template.get("prompt") or description).strip()
         if not prompt:
             raise HTTPException(status_code=400, detail="Description cannot be empty")
-        return TemplateGenerationInputs(
+        return _finalize_template_inputs(
+            template,
             prompt=prompt,
             photo_bytes=file_bytes,
             photo_content_type=content_type,
@@ -232,7 +269,8 @@ def _resolve_multi_input_template(
             )
         )
 
-    return TemplateGenerationInputs(
+    return _finalize_template_inputs(
+        template,
         prompt=prompt,
         photo_bytes=primary_bytes,
         photo_content_type=primary_content_type,

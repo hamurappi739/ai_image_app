@@ -10,7 +10,10 @@ from google import genai
 from google.genai import types
 
 from app.config import settings
-from app.services.gemini_quality_instructions import build_photo_edit_instruction
+from app.services.gemini_quality_instructions import (
+    build_photo_edit_instruction,
+    build_template_provider_instruction,
+)
 from app.services.photoshoot_prompts import append_kie_vertical_portrait_instruction
 from app.services.image_provider_resolver import (
     KIE_IMAGE_PROVIDER,
@@ -58,6 +61,21 @@ def _photo_gemini_error_detail(exc: Exception) -> str:
     return "Gemini photo generation failed"
 
 
+def _photo_provider_instruction(
+    description: str,
+    *,
+    template_id: str | None,
+    extra_photos_count: int,
+) -> str:
+    normalized_template_id = (template_id or "").strip() or None
+    if normalized_template_id:
+        return build_template_provider_instruction(description)
+    return build_photo_edit_instruction(
+        description,
+        extra_photos_count=extra_photos_count,
+    )
+
+
 class MockPhotoGenerationProvider:
     def generate(
         self,
@@ -67,9 +85,17 @@ class MockPhotoGenerationProvider:
         *,
         user_id: str | None = None,
         extra_photos: list[ExtraPhotoInput] | None = None,
+        reference_photo: ExtraPhotoInput | None = None,
         template_id: str | None = None,
     ) -> str:
-        _ = photo_bytes, photo_content_type, user_id, extra_photos, template_id
+        _ = (
+            photo_bytes,
+            photo_content_type,
+            user_id,
+            extra_photos,
+            reference_photo,
+            template_id,
+        )
         return build_mock_photo_image_url(description)
 
 
@@ -82,9 +108,10 @@ class GeminiPhotoGenerationProvider:
         *,
         user_id: str | None = None,
         extra_photos: list[ExtraPhotoInput] | None = None,
+        reference_photo: ExtraPhotoInput | None = None,
         template_id: str | None = None,
     ) -> str:
-        _ = user_id, template_id
+        _ = user_id
         api_key = settings.gemini_api_key
         if not api_key or not api_key.strip():
             raise HTTPException(
@@ -92,9 +119,11 @@ class GeminiPhotoGenerationProvider:
                 detail="GEMINI_API_KEY is not configured",
             )
 
-        instruction = build_photo_edit_instruction(
+        user_extra_count = len(extra_photos or [])
+        instruction = _photo_provider_instruction(
             description,
-            extra_photos_count=len(extra_photos or []),
+            template_id=template_id,
+            extra_photos_count=user_extra_count,
         )
         parts: list[types.Part] = [
             types.Part.from_text(text=instruction),
@@ -108,6 +137,13 @@ class GeminiPhotoGenerationProvider:
                 types.Part.from_bytes(
                     data=extra.photo_bytes,
                     mime_type=extra.photo_content_type,
+                )
+            )
+        if reference_photo is not None:
+            parts.append(
+                types.Part.from_bytes(
+                    data=reference_photo.photo_bytes,
+                    mime_type=reference_photo.photo_content_type,
                 )
             )
         try:
@@ -164,6 +200,7 @@ class KiePhotoGenerationProvider:
         *,
         user_id: str | None = None,
         extra_photos: list[ExtraPhotoInput] | None = None,
+        reference_photo: ExtraPhotoInput | None = None,
         template_id: str | None = None,
     ) -> str:
         if not user_id or not str(user_id).strip():
@@ -175,14 +212,16 @@ class KiePhotoGenerationProvider:
         flow_started = time.monotonic()
         temp_paths: list[str] = []
         ttl_seconds = int(settings.kie_temp_signed_url_ttl_seconds)
+        user_extra_count = len(extra_photos or [])
         instruction = append_kie_vertical_portrait_instruction(
-            build_photo_edit_instruction(
+            _photo_provider_instruction(
                 description,
-                extra_photos_count=len(extra_photos or []),
+                template_id=template_id,
+                extra_photos_count=user_extra_count,
             )
         )
         normalized_template_id = (template_id or "").strip() or None
-        extra_count = len(extra_photos or [])
+        extra_count = user_extra_count
 
         pipeline_log.info(
             "Template Kie flow start: template_id=%s extra_photos_count=%s",
@@ -197,6 +236,10 @@ class KiePhotoGenerationProvider:
                 (extra.photo_bytes, extra.photo_content_type)
                 for extra in (extra_photos or [])
             )
+            if reference_photo is not None:
+                uploads.append(
+                    (reference_photo.photo_bytes, reference_photo.photo_content_type)
+                )
             for index, (upload_bytes, upload_content_type) in enumerate(uploads, start=1):
                 pipeline_log.info(
                     "Template Kie temp_upload queued: template_id=%s file_index=%s/%s",
@@ -317,6 +360,7 @@ class PhotoGenerationService:
         *,
         user_id: str | None = None,
         extra_photos: list[ExtraPhotoInput] | None = None,
+        reference_photo: ExtraPhotoInput | None = None,
         template_id: str | None = None,
     ) -> str:
         provider = self._get_provider()
@@ -326,6 +370,7 @@ class PhotoGenerationService:
             photo_content_type=photo_content_type,
             user_id=user_id,
             extra_photos=extra_photos,
+            reference_photo=reference_photo,
             template_id=template_id,
         )
 

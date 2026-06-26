@@ -9,7 +9,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 10,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/product_photo.jpg"
   },
   {
     "id": "clothing_photo",
@@ -21,7 +22,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 20,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/clothes_photo.jpg"
   },
   {
     "id": "jewelry_photo",
@@ -33,7 +35,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 30,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/jewelry_photo.jpg"
   },
   {
     "id": "interior_photo",
@@ -45,7 +48,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 40,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/interior_photo.jpg"
   },
   {
     "id": "business_portrait",
@@ -57,7 +61,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 10,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/business_portrait.jpg"
   },
   {
     "id": "resume_photo",
@@ -69,7 +74,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 20,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/resume_photo.jpg"
   },
   {
     "id": "profile_photo",
@@ -81,7 +87,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 30,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/profile_photo.jpg"
   },
   {
     "id": "expert_look",
@@ -93,7 +100,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 40,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/expert_look.jpg"
   },
   {
     "id": "beautiful_portrait",
@@ -105,7 +113,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 10,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/beautiful_portrait.jpg"
   },
   {
     "id": "social_photo",
@@ -117,7 +126,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 20,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/social_photo.jpg"
   },
   {
     "id": "winter_portrait",
@@ -129,7 +139,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 30,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/winter_portrait.jpg"
   },
   {
     "id": "summer_portrait",
@@ -141,7 +152,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 40,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/summer_portrait.jpg"
   },
   {
     "id": "tender_portrait",
@@ -153,7 +165,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 50,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/gentle_portrait.jpg"
   },
   {
     "id": "vibrant_look",
@@ -165,7 +178,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 60,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/bright_look.jpg"
   },
   {
     "id": "volcanic_gray_rock",
@@ -177,7 +191,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 70,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/volcanic_gray_rock.jpg"
   },
   {
     "id": "ocean_portrait",
@@ -189,7 +204,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 80,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/ocean_portrait.jpg"
   },
   {
     "id": "beach_sand_portrait",
@@ -201,7 +217,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 90,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/beach_sand_portrait.jpg"
   },
   {
     "id": "white_dress_yellow_meadow",
@@ -213,7 +230,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 100,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/white_dress_yellow_meadow.jpg"
   },
   {
     "id": "family_photo",
@@ -225,7 +243,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 10,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/family_photo.jpg"
   },
   {
     "id": "photo_with_child",
@@ -258,7 +277,8 @@
           "type": "cake_digit"
         }
       ]
-    }
+    },
+    "referenceAsset": "assets/previews/templates/child_photo.jpg"
   },
   {
     "id": "festive_look",
@@ -270,7 +290,8 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 30,
-    "previewUrl": null
+    "previewUrl": null,
+    "referenceAsset": "assets/previews/templates/holiday_look.jpg"
   },
   {
     "id": "woman_with_cat",
@@ -297,7 +318,8 @@
         }
       ],
       "fields": []
-    }
+    },
+    "referenceAsset": "assets/previews/templates/woman_with_cat.jpg"
   },
   {
     "id": "child_birthday_number",
@@ -325,7 +347,8 @@
           "type": "age_number"
         }
       ]
-    }
+    },
+    "referenceAsset": "assets/previews/templates/child_birthday_number.jpg"
   },
   {
     "id": "child_name_age",
@@ -358,7 +381,8 @@
           "type": "age_number"
         }
       ]
-    }
+    },
+    "referenceAsset": "assets/previews/templates/child_name_age.jpg"
   },
   {
     "id": "child_memory_birthday",
@@ -391,7 +415,8 @@
           "type": "age_number"
         }
       ]
-    }
+    },
+    "referenceAsset": "assets/previews/templates/child_memory_birthday.jpg"
   },
   {
     "id": "birthday_balloons",
@@ -419,6 +444,7 @@
           "type": "age_number"
         }
       ]
-    }
+    },
+    "referenceAsset": "assets/previews/templates/birthday_balloons.jpg"
   }
 ]
