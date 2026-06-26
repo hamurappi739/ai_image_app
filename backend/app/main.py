@@ -708,6 +708,7 @@ def generate_with_photo(
             photo_content_type=generation_inputs.photo_content_type,
             user_id=_resolve_user_for_image_storage(user, authorization).id,
             extra_photos=generation_inputs.extra_photos,
+            reference_photo=generation_inputs.reference_photo,
             template_id=normalized_template_id,
         )
     except HTTPException as exc:

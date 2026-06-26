@@ -397,6 +397,7 @@ class GenerateWithPhotoMultiInputEndpointTests(unittest.TestCase):
         mock_storage.upload_temp_input_bytes.side_effect = [
             ("temp/user.jpg", "https://signed.example.com/user?token=secret-a"),
             ("temp/pet.jpg", "https://signed.example.com/pet?token=secret-b"),
+            ("temp/reference.jpg", "https://signed.example.com/ref?token=secret-c"),
         ]
         mock_kie = MagicMock()
         mock_kie.generate_image_bytes.return_value = (b"\x89PNG\r\n", "image/png")
@@ -436,10 +437,11 @@ class GenerateWithPhotoMultiInputEndpointTests(unittest.TestCase):
         logged = "\n".join(record.getMessage() for record in captured)
         self.assertNotIn("secret-a", logged)
         self.assertNotIn("secret-b", logged)
+        self.assertNotIn("secret-c", logged)
         self.assertNotIn("super-secret-kie-key", logged)
         self.assertNotIn("test-user-id", logged)
         input_urls = mock_kie.generate_image_bytes.call_args.args[1]
-        self.assertEqual(len(input_urls), 2)
+        self.assertEqual(len(input_urls), 3)
 
 
 class GeminiPhotoGenerationProviderTests(unittest.TestCase):

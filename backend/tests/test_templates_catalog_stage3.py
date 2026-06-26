@@ -98,6 +98,7 @@ class TemplatesCatalogStage3Tests(unittest.TestCase):
             "shortDescription",
             "prompt",
             "previewAsset",
+            "referenceAsset",
             "inputRequirements",
         )
         for template_id in _STAGE3_TEMPLATE_IDS:

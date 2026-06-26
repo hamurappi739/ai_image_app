@@ -87,6 +87,7 @@ class TemplatesCatalogStage1Tests(unittest.TestCase):
             "shortDescription",
             "prompt",
             "previewAsset",
+            "referenceAsset",
             "priceImages",
             "isActive",
             "sortOrder",

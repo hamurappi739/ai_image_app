@@ -254,6 +254,7 @@ class CatalogTemplateItem(BaseModel):
     shortDescription: str
     prompt: str
     previewAsset: str
+    referenceAsset: str | None = None
     previewUrl: str | None = None
     priceImages: int = 1
     isActive: bool = True
