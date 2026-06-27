@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/catalog_entries.dart';
 import '../models/generated_image_item.dart';
 import '../utils/gallery_display_title.dart';
+import '../utils/template_generation_params.dart';
 import '../models/user_balance.dart';
 import '../screens/template_photo_screen.dart';
 import '../services/api_service.dart';
@@ -265,14 +266,21 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
       return;
     }
 
-    final requirements = _inputRequirements;
-    final primaryField = _isMultiInput &&
-            requirements != null &&
-            requirements.photos.isNotEmpty
-        ? requirements.photos.first.field
-        : 'photo';
+    final primaryField = templateGenerationPrimaryPhotoField(widget.template);
     final primaryPhoto = _photosByField[primaryField];
     if (primaryPhoto == null) return;
+
+    final templateId = templateGenerationTemplateId(widget.template);
+    final extraInputCount = templateGenerationExtraInputCount(
+      template: widget.template,
+      populatedPhotoFields: _photosByField.keys,
+    );
+    debugLogTemplateGeneration(
+      templateId: templateId,
+      templateTitle: widget.template.title,
+      primaryPhotoField: primaryField,
+      extraInputCount: extraInputCount,
+    );
 
     setState(() => _isCreating = true);
 
@@ -289,7 +297,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
           description: prompt,
           primaryPhotoFile: primaryPhoto.file,
           primaryPhotoField: primaryField,
-          templateId: _isMultiInput ? widget.template.id : null,
+          templateId: templateId,
           petPhotoFile: _optionalPhotoFile('pet_photo', primaryField: primaryField),
           childPhotoFile:
               _optionalPhotoFile('child_photo', primaryField: primaryField),

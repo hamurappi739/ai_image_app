@@ -193,31 +193,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ],
-                  if (!auth.isConfigured) ...[
-                    const SizedBox(height: 28),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: OutlinedButton(
-                        onPressed: () => _showSnackBar(
-                          'Документы будут добавлены перед релизом',
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton(
+                      onPressed: () => _showSnackBar(
+                        'Документ будет добавлен перед релизом',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _accentColor,
+                        side: BorderSide(
+                          color: _accentColor.withValues(alpha: 0.45),
                         ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: _accentColor,
-                          side: BorderSide(
-                            color: _accentColor.withValues(alpha: 0.45),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        child: const Text(
-                          'Политика конфиденциальности',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
+                      child: const Text(
+                        'Политика конфиденциальности',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                     ),
-                  ],
+                  ),
                   if (kDebugMode && widget.onResetOnboarding != null) ...[
                     const SizedBox(height: 16),
                     Center(

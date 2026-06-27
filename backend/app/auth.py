@@ -15,16 +15,21 @@ class CurrentUser:
 def get_current_user(authorization: str | None = Header(default=None)) -> CurrentUser:
     """Resolve current user from Bearer token or development TEST_USER_ID fallback.
 
-    Production (ENVIRONMENT != development): Bearer token required; no TEST_USER_ID fallback.
+    Production: Bearer token required; TEST_USER_ID is never used.
+    Development: optional TEST_USER_ID fallback when Authorization is absent.
     """
     if authorization:
         return _resolve_user_from_authorization_header(authorization)
 
-    if settings.environment.strip().lower() != "development":
+    if settings.is_production:
         raise HTTPException(status_code=401, detail="Authorization required")
 
-    if settings.test_user_id and settings.test_user_id.strip():
-        return CurrentUser(id=settings.test_user_id.strip(), email=None)
+    if not settings.is_development:
+        raise HTTPException(status_code=401, detail="Authorization required")
+
+    test_user_id = (settings.test_user_id or "").strip()
+    if test_user_id:
+        return CurrentUser(id=test_user_id, email=None)
 
     raise HTTPException(
         status_code=500,

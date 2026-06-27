@@ -34,6 +34,7 @@ import 'utils/mock_photoshoot_photo.dart';
 import 'widgets/app_balance_summary.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/app_navigation_scope.dart';
+import 'widgets/auth_required_screen.dart';
 import 'widgets/app_screen_header.dart';
 import 'widgets/category_filter_chips.dart';
 import 'widgets/coming_soon_dialog.dart';
@@ -159,6 +160,9 @@ class _MainShellState extends State<MainShell> {
   bool _demoWelcomeCheckScheduled = false;
   bool _demoWelcomePresentationStarted = false;
 
+  bool get _requiresSignIn =>
+      _authService.isConfigured && !_authService.isSignedIn;
+
   bool get _isDemoModeWithoutAuth => !_authService.isConfigured;
   bool get _canLoadUserBackendData {
     if (!_authService.isConfigured) {
@@ -223,7 +227,9 @@ class _MainShellState extends State<MainShell> {
     if (state.event == AuthChangeEvent.signedOut) {
       _clearSessionUserData();
     } else if (state.event == AuthChangeEvent.signedIn ||
-        state.event == AuthChangeEvent.tokenRefreshed) {
+        state.event == AuthChangeEvent.tokenRefreshed ||
+        state.event == AuthChangeEvent.initialSession ||
+        state.event == AuthChangeEvent.userUpdated) {
       _loadGenerationsFromBackend();
       _loadBalance();
     }
@@ -394,6 +400,13 @@ class _MainShellState extends State<MainShell> {
 
   void _goToGalleryTab() => _navigateToSection(AppSection.gallery);
 
+  void _goToProfileTab() => _navigateToSection(AppSection.profile);
+
+  Widget _authGatedScreen(Widget child) {
+    if (!_requiresSignIn) return child;
+    return AuthRequiredScreen(onOpenProfile: _goToProfileTab);
+  }
+
   void _goToPacksTab() {
     setState(() {
       _section = AppSection.buy;
@@ -458,68 +471,78 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final screens = <Widget>[
       HomeScreen(onNavigate: _navigateToSection),
-      TemplatePhotoScreen(
-        apiService: _apiService,
-        balance: _userBalance,
-        balanceLoading: _balanceLoading,
-        onImageGenerated: _onImageGenerated,
-        onBalanceUpdated: _updateBalance,
-        onRefreshBalance: _loadBalance,
-        onOpenGallery: _goToGalleryTab,
-        onOpenPacks: _goToBuyImages,
-        onShowMessage: _showShellSnackBar,
+      _authGatedScreen(
+        TemplatePhotoScreen(
+          apiService: _apiService,
+          balance: _userBalance,
+          balanceLoading: _balanceLoading,
+          onImageGenerated: _onImageGenerated,
+          onBalanceUpdated: _updateBalance,
+          onRefreshBalance: _loadBalance,
+          onOpenGallery: _goToGalleryTab,
+          onOpenPacks: _goToBuyImages,
+          onShowMessage: _showShellSnackBar,
+        ),
       ),
-      PhotoshootsScreen(
-        isActive: _section == AppSection.photoshoots,
-        scrollToTrending: _scrollPhotoshootsToTrending,
-        onTrendingScrollHandled: _onTrendingPhotoshootsScrollHandled,
-        apiService: _apiService,
-        balance: _userBalance,
-        balanceLoading: _balanceLoading,
-        onPhotoshootGenerated: _onPhotoshootGenerated,
-        onBalanceUpdated: _updateBalance,
-        onRefreshBalance: _loadBalance,
-        onOpenGallery: _goToGalleryTab,
-        onOpenPacks: _goToBuyPhotoshoots,
+      _authGatedScreen(
+        PhotoshootsScreen(
+          isActive: _section == AppSection.photoshoots,
+          scrollToTrending: _scrollPhotoshootsToTrending,
+          onTrendingScrollHandled: _onTrendingPhotoshootsScrollHandled,
+          apiService: _apiService,
+          balance: _userBalance,
+          balanceLoading: _balanceLoading,
+          onPhotoshootGenerated: _onPhotoshootGenerated,
+          onBalanceUpdated: _updateBalance,
+          onRefreshBalance: _loadBalance,
+          onOpenGallery: _goToGalleryTab,
+          onOpenPacks: _goToBuyPhotoshoots,
+        ),
       ),
-      CreateScreen(
-        key: const ValueKey('create_screen'),
-        isActive: _section == AppSection.customRequest,
-        apiService: _apiService,
-        balance: _userBalance,
-        balanceLoading: _balanceLoading,
-        onShowMessage: _showShellSnackBar,
-        onImageGenerated: _onImageGenerated,
-        onBalanceUpdated: _updateBalance,
-        onRefreshBalance: _loadBalance,
-        onOpenGallery: _goToGalleryTab,
-        onOpenPacks: _goToBuyImages,
-        onOpenTemplates: _goToTemplateTab,
+      _authGatedScreen(
+        CreateScreen(
+          key: const ValueKey('create_screen'),
+          isActive: _section == AppSection.customRequest,
+          apiService: _apiService,
+          balance: _userBalance,
+          balanceLoading: _balanceLoading,
+          onShowMessage: _showShellSnackBar,
+          onImageGenerated: _onImageGenerated,
+          onBalanceUpdated: _updateBalance,
+          onRefreshBalance: _loadBalance,
+          onOpenGallery: _goToGalleryTab,
+          onOpenPacks: _goToBuyImages,
+          onOpenTemplates: _goToTemplateTab,
+        ),
       ),
-      GalleryScreen(
-        images: _generatedImages,
-        hiddenImageKeys: _hiddenGalleryImageKeys,
-        hiddenPhotoshootIds: _hiddenPhotoshootIds,
-        onHideImage: _hideGalleryImage,
-        onHidePhotoshoot: _hidePhotoshoot,
-        onOpenTemplates: _goToTemplateTab,
-        onOpenPhotoshoots: _goToPhotoshootsTab,
-        onOpenBuy: _goToPacksTab,
-        onClearGallery: _clearGallery,
-        isLoading: _galleryLoading,
-        loadFailed: _backendHistoryUnavailable,
-        onRetry: _loadGenerationsFromBackend,
-        successKind: _gallerySuccessKind,
-        highlightItemKey: _galleryHighlightKey,
-        onDismissSuccess: _dismissGallerySuccessBanner,
+      _authGatedScreen(
+        GalleryScreen(
+          images: _generatedImages,
+          hiddenImageKeys: _hiddenGalleryImageKeys,
+          hiddenPhotoshootIds: _hiddenPhotoshootIds,
+          onHideImage: _hideGalleryImage,
+          onHidePhotoshoot: _hidePhotoshoot,
+          onOpenTemplates: _goToTemplateTab,
+          onOpenPhotoshoots: _goToPhotoshootsTab,
+          onOpenBuy: _goToPacksTab,
+          onClearGallery: _clearGallery,
+          isLoading: _galleryLoading,
+          loadFailed: _backendHistoryUnavailable,
+          onRetry: _loadGenerationsFromBackend,
+          successKind: _gallerySuccessKind,
+          highlightItemKey: _galleryHighlightKey,
+          onDismissSuccess: _dismissGallerySuccessBanner,
+        ),
       ),
-      PacksScreen(
-        paymentService: _paymentService,
-        balance: _userBalance,
-        balanceLoading: _balanceLoading,
-        balanceLoadFailed: _balanceLoadFailed,
-        onRefreshBalance: _loadBalance,
-        onBalanceUpdated: _updateBalance,
+      _authGatedScreen(
+        PacksScreen(
+          paymentService: _paymentService,
+          balance: _userBalance,
+          balanceLoading: _balanceLoading,
+          balanceLoadFailed: _balanceLoadFailed,
+          onRefreshBalance: _loadBalance,
+          onBalanceUpdated: _updateBalance,
+        ),
       ),
       ProfileScreen(
         authService: _authService,
