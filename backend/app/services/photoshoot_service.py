@@ -37,6 +37,7 @@ from app.services.photoshoot_prompts import (
     build_safe_frame0_fallback_prompt,
     resolve_prompt_source,
 )
+from app.services.photoshoot_style_locks import CUSTOM_PHOTOSHOOT_STYLE_ID
 from app.services.photoshoot_styles import PhotoshootStyle
 from app.services.storage_service import storage_service
 from app.services.supabase_service import (
@@ -668,12 +669,32 @@ def _extract_photoshoot_image_data_url(response) -> str:
     )
 
 
+def resolve_photoshoot_user_description(
+    client_style_id: str,
+    user_description: str | None,
+) -> str | None:
+    """Return user text only for custom_photoshoot; catalog styles ignore description."""
+    if client_style_id.strip() != CUSTOM_PHOTOSHOOT_STYLE_ID:
+        return None
+    trimmed = (user_description or "").strip()
+    return trimmed or None
+
+
 def _photoshoot_history_prompt(
     style: PhotoshootStyle,
     user_description: str | None = None,
+    *,
+    client_style_id: str | None = None,
 ) -> str:
-    if user_description:
-        return f"Своя фотосессия: {user_description}"
+    style_key = (client_style_id or style.id).strip()
+    effective_description = resolve_photoshoot_user_description(
+        style_key,
+        user_description,
+    )
+    if style_key == CUSTOM_PHOTOSHOOT_STYLE_ID:
+        if effective_description:
+            return f"Своя фотосессия: {effective_description}"
+        return "Своя фотосессия"
     return f"Фотосессия: {style.title}"
 
 
@@ -762,7 +783,11 @@ def _save_photoshoot_results_to_history(
             photoshoot_id=photoshoot_id,
         )
 
-    prompt = _photoshoot_history_prompt(style, user_description)
+    prompt = _photoshoot_history_prompt(
+        style,
+        user_description,
+        client_style_id=client_style_id,
+    )
     payment_type = _photoshoot_payment_type(style)
     batch_id = photoshoot_id or str(uuid4())
     saved_frames = 0

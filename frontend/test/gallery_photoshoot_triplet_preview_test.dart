@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('photoshoot triplet preview loads only first network image', (
+  testWidgets('photoshoot triplet preview loads all three network images', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -26,9 +26,35 @@ void main() {
       ),
     );
 
-    expect(find.byType(GalleryResultImage), findsOneWidget);
-    expect(find.byType(GalleryDeferredSeriesFrame), findsNWidgets(2));
-    expect(find.byIcon(Icons.photo_library_outlined), findsNWidgets(2));
+    expect(find.byType(GalleryResultImage), findsNWidgets(3));
+    expect(find.byType(GalleryDeferredSeriesFrame), findsNothing);
+  });
+
+  testWidgets('missing frame url shows local placeholder without breaking others', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 360,
+            height: 200,
+            child: GalleryPhotoshootTripletPreview(
+              imageUrls: const [
+                'https://example.com/frame-1.jpg',
+                '',
+                'https://example.com/frame-3.jpg',
+              ],
+              description: 'Фотосессия: Летняя фотосессия',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(GalleryResultImage), findsNWidgets(2));
+    expect(find.byType(GalleryDeferredSeriesFrame), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
   });
 
   testWidgets('photoshoot triplet preview keeps mock series preview for placeholders', (

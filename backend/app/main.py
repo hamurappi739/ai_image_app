@@ -58,13 +58,20 @@ from app.services.credits_service import (
     determine_generation_payment,
 )
 from app.services.photo_generation_service import photo_generation_service
-from app.services.template_generation_service import resolve_template_generation_inputs
+from app.services.template_generation_service import (
+    resolve_template_generation_inputs,
+    resolve_template_history_prompt,
+)
 from app.services.photoshoot_job_service import (
     get_photoshoot_job_status,
     start_photoshoot_job,
 )
+from app.services.photoshoot_service import (
+    photoshoot_service,
+    resolve_photoshoot_user_description,
+    rollback_persisted_photoshoot,
+)
 from app.services.photoshoot_styles import get_photoshoot_style
-from app.services.photoshoot_service import photoshoot_service, rollback_persisted_photoshoot
 from app.services.storage_service import storage_service
 from app.services.supabase_service import (
     check_supabase_connection,
@@ -832,10 +839,11 @@ def generate_with_photo(
             raise
 
     if not settings.enable_credit_consumption:
+        history_prompt = resolve_template_history_prompt(normalized_template_id)
         _save_generation_in_demo_mode(
             user=user,
             authorization=authorization,
-            prompt=prompt,
+            prompt=history_prompt,
             image_url=image_url,
             endpoint="POST /generate-with-photo",
         )
@@ -857,10 +865,11 @@ def generate_with_photo(
         raise HTTPException(status_code=500, detail="Failed to save generation")
 
     try:
+        history_prompt = resolve_template_history_prompt(normalized_template_id)
         result = consume_generation(
             profile,
             settings.free_generations_limit,
-            prompt,
+            history_prompt,
             image_url,
         )
     except RuntimeError as exc:
@@ -900,7 +909,10 @@ def generate_photoshoot(
 
     style = get_photoshoot_style(style_id)
     _ = style_title  # client hint; backend title from catalog is source of truth
-    user_description = _normalize_photoshoot_description(description)
+    user_description = resolve_photoshoot_user_description(
+        style_id,
+        _normalize_photoshoot_description(description),
+    )
 
     file_bytes, photo_content_type = _validate_upload_photo(photo)
 
@@ -1038,7 +1050,10 @@ def start_photoshoot_generation_job(
     )
 
     style = get_photoshoot_style(style_id)
-    user_description = _normalize_photoshoot_description(description)
+    user_description = resolve_photoshoot_user_description(
+        style_id,
+        _normalize_photoshoot_description(description),
+    )
     file_bytes, photo_content_type = _validate_upload_photo(photo)
 
     if not settings.enable_photoshoot_generation:

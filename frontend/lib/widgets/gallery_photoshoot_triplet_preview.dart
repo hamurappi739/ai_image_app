@@ -5,7 +5,7 @@ import 'gallery_result_image.dart';
 
 const _accentColor = Color(0xFF5B6CFF);
 
-/// Photoshoot card thumbnail: one real network frame + lightweight placeholders.
+/// Photoshoot card thumbnail: compact network frames for all 3 photos.
 class GalleryPhotoshootTripletPreview extends StatelessWidget {
   const GalleryPhotoshootTripletPreview({
     super.key,
@@ -54,15 +54,11 @@ class GalleryPhotoshootTripletPreview extends StatelessWidget {
                     Expanded(
                       child: AspectRatio(
                         aspectRatio: 1,
-                        child: i == 0
-                            ? GalleryResultImage(
-                                url: urls[i],
-                                description: description,
-                                seriesIndex: i,
-                                compact: true,
-                                photoshootSeries: true,
-                              )
-                            : GalleryDeferredSeriesFrame(index: i),
+                        child: GalleryPhotoshootTripletFrame(
+                          url: urls[i],
+                          description: description,
+                          seriesIndex: i,
+                        ),
                       ),
                     ),
                   ],
@@ -73,7 +69,36 @@ class GalleryPhotoshootTripletPreview extends StatelessWidget {
   }
 }
 
-/// Lightweight stand-in for frames 2–3 in gallery list cards.
+/// One compact thumbnail in a photoshoot gallery card; failures stay local.
+class GalleryPhotoshootTripletFrame extends StatelessWidget {
+  const GalleryPhotoshootTripletFrame({
+    super.key,
+    required this.url,
+    required this.description,
+    required this.seriesIndex,
+  });
+
+  final String url;
+  final String description;
+  final int seriesIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    if (url.trim().isEmpty || isMockPlaceholderImageUrl(url)) {
+      return GalleryDeferredSeriesFrame(index: seriesIndex);
+    }
+
+    return GalleryResultImage(
+      url: url,
+      description: description,
+      seriesIndex: seriesIndex,
+      compact: true,
+      photoshootSeries: true,
+    );
+  }
+}
+
+/// Lightweight stand-in when a series frame URL is missing or invalid.
 class GalleryDeferredSeriesFrame extends StatelessWidget {
   const GalleryDeferredSeriesFrame({super.key, required this.index});
 

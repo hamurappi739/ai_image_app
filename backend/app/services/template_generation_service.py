@@ -368,3 +368,21 @@ def resolve_template_generation_inputs(
         age_number=age_number,
         child_name=child_name,
     )
+
+
+TEMPLATE_GALLERY_PREFIX = "Шаблон: "
+CUSTOM_IDEA_GALLERY_LABEL = "Своя идея"
+
+
+def resolve_template_history_prompt(template_id: str | None) -> str:
+    """Short gallery/DB label for template generations (not the Kie provider prompt)."""
+    normalized = (template_id or "").strip()
+    if not normalized:
+        return CUSTOM_IDEA_GALLERY_LABEL
+    template = get_template_catalog_item(normalized)
+    if template is None:
+        return CUSTOM_IDEA_GALLERY_LABEL
+    title = str(template.get("title") or "").strip()
+    if not title:
+        return CUSTOM_IDEA_GALLERY_LABEL
+    return f"{TEMPLATE_GALLERY_PREFIX}{title}"

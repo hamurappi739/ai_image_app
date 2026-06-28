@@ -407,6 +407,29 @@ class PhotoshootPromptPackV1Tests(unittest.TestCase):
                     f"{style_id} frame {frame_index}",
                 )
 
+    def test_parallel_frames_include_anti_duplicate_instruction(self) -> None:
+        import json
+        from pathlib import Path
+
+        from app.services.photoshoot_prompts import resolve_frame_prompts
+        from app.services.photoshoot_styles import get_photoshoot_style
+
+        catalog_path = (
+            Path(__file__).resolve().parent.parent / "app" / "catalog" / "photoshoots.json"
+        )
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+        needle = "do not repeat the same pose, crop, camera distance"
+        for item in catalog:
+            style_id = item["id"]
+            style = get_photoshoot_style(style_id)
+            prompts = resolve_frame_prompts(style_id, style, output_count=3)
+            for frame_index in (1, 2):
+                self.assertIn(
+                    needle,
+                    prompts[frame_index].lower(),
+                    f"{style_id} frame {frame_index}",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

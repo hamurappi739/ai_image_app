@@ -43,6 +43,8 @@ import 'widgets/create_help_dialog.dart';
 import 'widgets/create_result_tips_card.dart';
 import 'widgets/free_generations_welcome_dialog.dart';
 import 'widgets/gallery_result_image.dart';
+import 'utils/photoshoot_frame_progress_display.dart';
+import 'utils/photoshoot_generate_params.dart';
 import 'widgets/generation_progress_dialog.dart';
 import 'widgets/good_result_guide_card.dart';
 import 'widgets/insufficient_balance_dialog.dart';
@@ -2282,14 +2284,16 @@ Future<PhotoshootGenerateResponse> _runPhotoshootGenerationWithProgress({
         photoFile: photoFile,
         description: description,
         onStatus: (status) {
-          frameProgress.value = status.frames
-              .map(
-                (frame) => PhotoshootFrameProgress(
-                  index: frame.index,
-                  status: frame.status,
-                ),
-              )
-              .toList();
+          frameProgress.value = displayPhotoshootFrameProgress(
+            status.frames
+                .map(
+                  (frame) => PhotoshootFrameProgress(
+                    index: frame.index,
+                    status: frame.status,
+                  ),
+                )
+                .toList(),
+          );
         },
       );
       frameProgress.value = List.generate(
@@ -2406,7 +2410,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
         styleId: widget.style.id,
         styleTitle: widget.style.title,
         photoFile: selectedPhotoFile,
-        description: widget.style.stylePrompt,
+        description: photoshootGenerateDescription(styleId: widget.style.id),
       );
       if (!mounted) return;
       if (result.imageUrls.length < result.outputCount) {
@@ -2924,7 +2928,10 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
         styleId: _CustomPhotoshootFlow.styleId,
         styleTitle: _CustomPhotoshootFlow.baseTitle,
         photoFile: selectedPhotoFile,
-        description: description,
+        description: photoshootGenerateDescription(
+          styleId: _CustomPhotoshootFlow.styleId,
+          userDescription: description,
+        ),
       );
       if (!mounted) return;
       if (result.imageUrls.length < result.outputCount) {

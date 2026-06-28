@@ -137,7 +137,7 @@ class DemoGenerationPersistTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         mock_create_record.assert_called_once_with(
             user_id=_TEST_USER.id,
-            prompt=_MOCK_PROMPT,
+            prompt="Своя идея",
             image_url=_SUPABASE_IMAGE_URL,
             payment_type="free",
         )
@@ -173,7 +173,7 @@ class DemoGenerationPersistTests(unittest.TestCase):
         mock_store.assert_called_once()
         mock_create_record.assert_called_once_with(
             user_id=_TEST_USER.id,
-            prompt=_MOCK_PROMPT,
+            prompt="Своя идея",
             image_url=_SUPABASE_IMAGE_URL,
             payment_type="free",
         )
