@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import '../models/gallery_display_item.dart';
 import '../models/generated_image_item.dart';
 import '../utils/gallery_item_key.dart';
 import '../widgets/app_screen_header.dart';
 import '../widgets/gallery_photoshoot_triplet_preview.dart';
 import '../widgets/gallery_result_image.dart';
+import '../widgets/gallery_clear_confirm_dialog.dart';
 import '../widgets/gallery_viewer.dart';
 
-const _scaffoldBackground = Color(0xFFF7F8FC);
-const _textPrimary = Color(0xFF1A1D26);
-const _textSecondary = Color(0xFF6B7280);
 const _accentColor = Color(0xFF5B6CFF);
 
 const _gallerySubtitle =
@@ -65,7 +64,9 @@ class GalleryScreen extends StatelessWidget {
     return item.hideKey == highlightItemKey;
   }
 
-  void _onClearPressed(BuildContext context) {
+  Future<void> _onClearPressed(BuildContext context) async {
+    final confirmed = await showGalleryClearConfirmDialog(context);
+    if (confirmed != true || !context.mounted) return;
     onClearGallery();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -78,6 +79,8 @@ class GalleryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
     final visibleImages = filterVisibleGalleryImages(
       images,
       hiddenImageKeys: hiddenImageKeys,
@@ -102,7 +105,7 @@ class GalleryScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: _scaffoldBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -130,7 +133,7 @@ class GalleryScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: _textPrimary,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -139,24 +142,25 @@ class GalleryScreen extends StatelessWidget {
                     onOpenPhotoshoots: onOpenPhotoshoots,
                     onOpenBuy: onOpenBuy,
                   ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () => _onClearPressed(context),
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      label: const Text(
-                        'Очистить',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: _textSecondary,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                  if (displayItems.isNotEmpty)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () => _onClearPressed(context),
+                        icon: const Icon(Icons.delete_outline, size: 20),
+                        label: const Text(
+                          'Очистить',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: colors.textSecondary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                   ..._GalleryChronologicalList.build(
                     displayItems: displayItems,
                     highlightItemKey: highlightItemKey,
@@ -245,6 +249,8 @@ class _GallerySectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,7 +260,7 @@ class _GallerySectionHeader extends StatelessWidget {
           style: theme.textTheme.titleMedium?.copyWith(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: _textPrimary,
+            color: textPrimary,
           ),
         ),
         const SizedBox(height: 4),
@@ -263,7 +269,7 @@ class _GallerySectionHeader extends StatelessWidget {
           style: theme.textTheme.bodyMedium?.copyWith(
             fontSize: 13,
             height: 1.35,
-            color: _textSecondary,
+            color: colors.textSecondary,
           ),
         ),
       ],
@@ -336,8 +342,11 @@ class _GalleryActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+
     return Material(
-      color: Colors.white,
+      color: colors.cardBackground,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -346,10 +355,14 @@ class _GalleryActionCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE8EAEF)),
+            border: Border.all(color: colors.borderColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
+                color: Colors.black.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.2
+                      : 0.03,
+                ),
                 blurRadius: 10,
                 offset: const Offset(0, 3),
               ),
@@ -357,7 +370,6 @@ class _GalleryActionCard extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
                 width: 34,
@@ -368,32 +380,36 @@ class _GalleryActionCard extends StatelessWidget {
                 ),
                 child: Icon(icon, size: 18, color: _accentColor),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              const SizedBox(height: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
                   Text(
                     title,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: _textPrimary,
+                      color: textPrimary,
                       height: 1.2,
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       height: 1.25,
-                      color: _textSecondary,
+                      color: colors.textSecondary,
                     ),
                   ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -409,9 +425,10 @@ class _GalleryLoadingState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
 
     return Scaffold(
-      backgroundColor: _scaffoldBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -443,7 +460,7 @@ class _GalleryLoadingState extends StatelessWidget {
                           'Загружаем готовые фото…',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontSize: 15,
-                            color: _textSecondary,
+                            color: colors.textSecondary,
                           ),
                         ),
                       ],
@@ -467,9 +484,10 @@ class _GalleryErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
 
     return Scaffold(
-      backgroundColor: _scaffoldBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -489,11 +507,16 @@ class _GalleryErrorState extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colors.cardBackground,
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: colors.borderColor),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
+                          color: Colors.black.withValues(
+                            alpha: Theme.of(context).brightness == Brightness.dark
+                                ? 0.2
+                                : 0.04,
+                          ),
                           blurRadius: 24,
                           offset: const Offset(0, 8),
                         ),
@@ -634,9 +657,10 @@ class _GalleryEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
 
     return Scaffold(
-      backgroundColor: _scaffoldBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -661,9 +685,9 @@ class _GalleryEmptyState extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colors.cardBackground,
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: const Color(0xFFE8EAEF)),
+                      border: Border.all(color: colors.borderColor),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.04),
@@ -691,7 +715,7 @@ class _GalleryEmptyState extends StatelessWidget {
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontSize: 14,
                             height: 1.45,
-                            color: _textSecondary,
+                            color: colors.textSecondary,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -831,6 +855,7 @@ class _GalleryPhotoshootCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final textPrimary = context.appTextPrimary;
     final title = item.displayTitle;
     final countLabel = item.imageUrls.length == 3
         ? '3 фото'
@@ -874,7 +899,7 @@ class _GalleryPhotoshootCard extends StatelessWidget {
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
-                    color: _textPrimary,
+                    color: textPrimary,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -931,6 +956,7 @@ class _GallerySinglePhotoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final textPrimary = context.appTextPrimary;
     final title = item.displayTitle;
 
     return _GalleryResultCardShell(
@@ -975,7 +1001,7 @@ class _GallerySinglePhotoCard extends StatelessWidget {
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
-                    color: _textPrimary,
+                    color: textPrimary,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -1020,13 +1046,15 @@ class _GalleryResultCardShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         border: isNew
             ? Border.all(color: _accentColor.withValues(alpha: 0.35), width: 1.5)
-            : Border.all(color: const Color(0xFFE8EAEF)),
+            : Border.all(color: colors.borderColor),
         boxShadow: [
           BoxShadow(
             color: isNew
@@ -1056,10 +1084,15 @@ class _GalleryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final (background, foreground) = switch ((isNew, emphasized)) {
       (true, _) => (const Color(0xFF5B6CFF), Colors.white),
-      (false, true) => (const Color(0xFFF0F2FF), const Color(0xFF5B6CFF)),
-      _ => (const Color(0xFFF7F8FC), _textSecondary),
+      (false, true) => (
+          isDark ? const Color(0xFF252B3D) : const Color(0xFFF0F2FF),
+          const Color(0xFF5B6CFF),
+        ),
+      _ => (colors.chipBackground, colors.textSecondary),
     };
 
     return Container(

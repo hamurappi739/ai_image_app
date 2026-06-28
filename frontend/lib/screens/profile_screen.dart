@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import '../models/user_balance.dart';
 import '../navigation/app_section.dart';
 import '../services/api_service.dart';
@@ -11,9 +12,6 @@ import '../widgets/profile/profile_auth_dialogs.dart';
 import '../widgets/profile/profile_email_auth_sheet.dart';
 import '../widgets/profile/profile_sign_in_prompt_card.dart';
 
-const _scaffoldBackground = Color(0xFFF7F8FC);
-const _textPrimary = Color(0xFF1A1D26);
-const _textSecondary = Color(0xFF6B7280);
 const _accentColor = Color(0xFF5B6CFF);
 
 class ProfileScreen extends StatefulWidget {
@@ -117,7 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final email = auth.currentUser?.email?.trim();
 
     return Scaffold(
-      backgroundColor: _scaffoldBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -297,7 +295,7 @@ class _SignedInAccountCard extends StatelessWidget {
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: _textPrimary,
+                    color: context.appTextPrimary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -306,7 +304,7 @@ class _SignedInAccountCard extends StatelessWidget {
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontSize: 14,
                     height: 1.45,
-                    color: _textSecondary,
+                    color: context.appColors.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -316,7 +314,7 @@ class _SignedInAccountCard extends StatelessWidget {
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontSize: 13,
                     height: 1.4,
-                    color: _textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
               ],
@@ -345,7 +343,7 @@ class _ProfileQuickActions extends StatelessWidget {
           style: theme.textTheme.titleMedium?.copyWith(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: _textPrimary,
+            color: context.appTextPrimary,
           ),
         ),
         const SizedBox(height: 12),
@@ -385,7 +383,7 @@ class _ProfileQuickActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: context.appColors.cardBackground,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
@@ -394,7 +392,7 @@ class _ProfileQuickActionTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE8EAEF)),
+            border: Border.all(color: context.appColors.borderColor),
           ),
           child: Row(
             children: [
@@ -411,16 +409,16 @@ class _ProfileQuickActionTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: _textPrimary,
+                    color: context.appTextPrimary,
                   ),
                 ),
               ),
               Icon(
                 Icons.chevron_right,
-                color: _textSecondary.withValues(alpha: 0.7),
+                color: context.appColors.textSecondary.withValues(alpha: 0.7),
               ),
             ],
           ),
@@ -482,7 +480,7 @@ class _ProfileDemoModeCard extends StatelessWidget {
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontSize: 14,
                     height: 1.45,
-                    color: _textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
               ],
@@ -539,14 +537,14 @@ class _UserBalanceProfileCard extends StatelessWidget {
     final rowStyle = theme.textTheme.bodyMedium?.copyWith(
       fontSize: 15,
       height: 1.45,
-      color: _textPrimary,
+      color: context.appTextPrimary,
     );
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appColors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -591,7 +589,7 @@ class _UserBalanceProfileCard extends StatelessWidget {
               'Загружаем баланс…',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 15,
-                color: _textSecondary,
+                color: context.appColors.textSecondary,
               ),
             )
           else if (hasError)
@@ -601,7 +599,7 @@ class _UserBalanceProfileCard extends StatelessWidget {
                 Text(
                   'Не удалось загрузить баланс.',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: _textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -631,7 +629,7 @@ class _UserBalanceProfileCard extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 13,
                 height: 1.4,
-                color: _textSecondary,
+                color: context.appColors.textSecondary,
               ),
             ),
             const SizedBox(height: 12),
@@ -640,7 +638,7 @@ class _UserBalanceProfileCard extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 13,
                 height: 1.4,
-                color: _textSecondary,
+                color: context.appColors.textSecondary,
               ),
             ),
             if (!balance!.consumptionEnabled) ...[
@@ -649,7 +647,7 @@ class _UserBalanceProfileCard extends StatelessWidget {
                 'Сейчас включён демо-режим — списание отключено.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontSize: 13,
-                  color: _textSecondary,
+                  color: context.appColors.textSecondary,
                 ),
               ),
             ],

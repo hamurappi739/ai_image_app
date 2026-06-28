@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import '../utils/create_description_text_field.dart';
 
 /// Step-based UI for «Свой запрос» — photos first, then description, then create.
@@ -34,8 +35,6 @@ class CustomRequestFlow extends StatelessWidget {
   final ValueChanged<String> onIdeaSelected;
 
   static const _accentColor = Color(0xFF5B6CFF);
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textSecondary = Color(0xFF6B7280);
 
   static const _photoIdeas = [
     (
@@ -89,7 +88,7 @@ class CustomRequestFlow extends StatelessWidget {
                 'Это необязательно.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontSize: 12,
-                  color: _textSecondary,
+                  color: context.appColors.textSecondary,
                   height: 1.4,
                 ),
               ),
@@ -140,7 +139,7 @@ class CustomRequestFlow extends StatelessWidget {
                 'Опишите, что хотите получить.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontSize: 12,
-                  color: _textSecondary,
+                  color: context.appColors.textSecondary,
                   height: 1.3,
                 ),
               ),
@@ -149,9 +148,9 @@ class CustomRequestFlow extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.appColors.cardBackground,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFD1D5DB)),
+                  border: Border.all(color: context.appColors.borderColor),
                 ),
                 child: CreateDescriptionTextField(
                   controller: descriptionController,
@@ -262,7 +261,7 @@ class _PhotoIdeaExamplesState extends State<_PhotoIdeaExamples> {
           'Примеры идей',
           style: theme.textTheme.titleMedium?.copyWith(
             fontSize: 16,
-            color: CustomRequestFlow._textPrimary,
+            color: context.appTextPrimary,
           ),
         ),
         const SizedBox(height: 6),
@@ -270,7 +269,7 @@ class _PhotoIdeaExamplesState extends State<_PhotoIdeaExamples> {
           'Нажмите — идея подставится в поле выше.',
           style: theme.textTheme.bodyMedium?.copyWith(
             fontSize: 13,
-            color: CustomRequestFlow._textSecondary,
+            color: context.appColors.textSecondary,
             height: 1.35,
           ),
         ),
@@ -290,12 +289,12 @@ class _PhotoIdeaExamplesState extends State<_PhotoIdeaExamples> {
                           () => _showMultiPhotoHint = idea.suggestExtraPhotos,
                         );
                       },
-                backgroundColor: Colors.white,
-                side: const BorderSide(color: Color(0xFFE8EAEF)),
-                labelStyle: const TextStyle(
+                backgroundColor: context.appColors.cardBackground,
+                side: BorderSide(color: context.appColors.borderColor),
+                labelStyle: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: CustomRequestFlow._textPrimary,
+                  color: context.appTextPrimary,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -321,7 +320,7 @@ class _PhotoIdeaExamplesState extends State<_PhotoIdeaExamples> {
               style: theme.textTheme.bodySmall?.copyWith(
                 fontSize: 12,
                 height: 1.4,
-                color: CustomRequestFlow._textSecondary,
+                color: context.appColors.textSecondary,
               ),
             ),
           ),
@@ -344,9 +343,6 @@ class _PhotoSlot extends StatelessWidget {
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textSecondary = Color(0xFF6B7280);
-
   final String title;
   final String subtitle;
   final String? optionalHint;
@@ -359,14 +355,15 @@ class _PhotoSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
     final hasPhoto = photoBytes != null;
 
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FC),
+        color: colors.subtleFill,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE8EAEF)),
+        border: Border.all(color: colors.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -383,7 +380,7 @@ class _PhotoSlot extends StatelessWidget {
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: _textPrimary,
+                        color: context.appTextPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -391,7 +388,7 @@ class _PhotoSlot extends StatelessWidget {
                       subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontSize: 12,
-                        color: _textSecondary,
+                        color: colors.textSecondary,
                         height: 1.3,
                       ),
                     ),
@@ -401,7 +398,7 @@ class _PhotoSlot extends StatelessWidget {
                         optionalHint!,
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontSize: 11,
-                          color: _textSecondary.withValues(alpha: 0.85),
+                          color: colors.textSecondary.withValues(alpha: 0.85),
                           height: 1.25,
                         ),
                       ),
@@ -471,7 +468,7 @@ class _PhotoSlot extends StatelessWidget {
                   icon: const Icon(Icons.close, size: 17),
                   label: const Text('Убрать'),
                   style: TextButton.styleFrom(
-                    foregroundColor: _textSecondary,
+                    foregroundColor: context.appColors.textSecondary,
                     padding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
                   ),
@@ -488,17 +485,16 @@ class _PhotoSlot extends StatelessWidget {
 class _WhatYouGetBlock extends StatelessWidget {
   const _WhatYouGetBlock();
 
-  static const _textPrimary = Color(0xFF1A1D26);
-
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FC),
+        color: colors.subtleFill,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE8EAEF)),
+        border: Border.all(color: colors.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -508,7 +504,7 @@ class _WhatYouGetBlock extends StatelessWidget {
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: _textPrimary,
+                  color: context.appTextPrimary,
                 ),
           ),
           const SizedBox(height: 8),
@@ -539,8 +535,6 @@ class _WhatYouGetLine extends StatelessWidget {
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
-  static const _textSecondary = Color(0xFF6B7280);
-
   final IconData icon;
   final String text;
 
@@ -553,10 +547,10 @@ class _WhatYouGetLine extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               height: 1.35,
-              color: _textSecondary,
+              color: context.appColors.textSecondary,
             ),
           ),
         ),
@@ -573,7 +567,6 @@ class _StepSection extends StatelessWidget {
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
-  static const _textPrimary = Color(0xFF1A1D26);
 
   final int stepNumber;
   final String title;
@@ -582,16 +575,20 @@ class _StepSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(
+              alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.04,
+            ),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -606,8 +603,8 @@ class _StepSection extends StatelessWidget {
                 width: 24,
                 height: 24,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEDE9FF),
+                  decoration: BoxDecoration(
+                  color: colors.selectedTile,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -626,7 +623,7 @@ class _StepSection extends StatelessWidget {
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: _textPrimary,
+                    color: context.appTextPrimary,
                   ),
                 ),
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/user_balance.dart';
 import '../navigation/app_section.dart';
+import '../theme/app_theme.dart';
 import 'app_balance_summary.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -9,7 +10,11 @@ class AppDrawer extends StatelessWidget {
     super.key,
     required this.currentSection,
     required this.onSectionSelected,
+    required this.themeMode,
+    required this.onThemeModeChanged,
     this.onTrendingPhotoshootsTap,
+    this.onShowOnboardingAgain,
+    this.onOpenHelpGuides,
     this.userEmail,
     this.userDisplayName,
     this.showUserBalance = false,
@@ -19,13 +24,13 @@ class AppDrawer extends StatelessWidget {
     this.onBuyTap,
   });
 
-  static const _accentColor = Color(0xFF5B6CFF);
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textSecondary = Color(0xFF6B7280);
-
   final AppSection currentSection;
   final ValueChanged<AppSection> onSectionSelected;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
   final VoidCallback? onTrendingPhotoshootsTap;
+  final VoidCallback? onShowOnboardingAgain;
+  final VoidCallback? onOpenHelpGuides;
   final String? userEmail;
   final String? userDisplayName;
   final bool showUserBalance;
@@ -56,6 +61,20 @@ class AppDrawer extends StatelessWidget {
     onSectionSelected(AppSection.buy);
   }
 
+  void _onShowOnboardingAgain(BuildContext context) {
+    Navigator.of(context).pop();
+    onShowOnboardingAgain?.call();
+  }
+
+  void _onOpenHelpGuides(BuildContext context) {
+    Navigator.of(context).pop();
+    onOpenHelpGuides?.call();
+  }
+
+  void _onDarkThemeChanged(bool enabled) {
+    onThemeModeChanged(enabled ? ThemeMode.dark : ThemeMode.light);
+  }
+
   IconData _iconFor(AppSection section) => switch (section) {
         AppSection.home => Icons.home_outlined,
         AppSection.templatePhoto => Icons.dashboard_customize_outlined,
@@ -73,21 +92,24 @@ class AppDrawer extends StatelessWidget {
     required String label,
     IconData? icon,
   }) {
+    final colors = context.appColors;
+    final accent = context.appAccent;
+    final textPrimary = context.appTextPrimary;
     final selected = currentSection == section;
     return ListTile(
       leading: Icon(
         icon ?? _iconFor(section),
-        color: selected ? _accentColor : _textSecondary,
+        color: selected ? accent : colors.textSecondary,
       ),
       title: Text(
         label,
         style: TextStyle(
           fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-          color: selected ? _accentColor : _textPrimary,
+          color: selected ? accent : textPrimary,
         ),
       ),
       selected: selected,
-      selectedTileColor: const Color(0xFFEDE9FF),
+      selectedTileColor: colors.selectedTile,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
       onTap: () => _goTo(context, section),
@@ -97,10 +119,14 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final accent = context.appAccent;
+    final textPrimary = context.appTextPrimary;
     final email = userEmail?.trim();
+    final isDark = themeMode == ThemeMode.dark;
 
     return Drawer(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.surface,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -111,14 +137,17 @@ class AppDrawer extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFFF5F7FF), Color(0xFFEDE9FF)],
+                    colors: [
+                      colors.drawerGradientStart,
+                      colors.drawerGradientEnd,
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: _accentColor.withValues(alpha: 0.15),
+                    color: accent.withValues(alpha: 0.15),
                   ),
                 ),
                 child: Column(
@@ -130,12 +159,12 @@ class AppDrawer extends StatelessWidget {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: colors.cardBackground.withValues(alpha: 0.9),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.person_outline,
-                            color: _accentColor,
+                            color: accent,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -145,7 +174,7 @@ class AppDrawer extends StatelessWidget {
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
-                              color: _textPrimary,
+                              color: textPrimary,
                             ),
                           ),
                         ),
@@ -157,7 +186,7 @@ class AppDrawer extends StatelessWidget {
                         email,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           fontSize: 13,
-                          color: _textSecondary,
+                          color: colors.textSecondary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -176,7 +205,7 @@ class AppDrawer extends StatelessWidget {
                 ),
               ),
             ),
-            const Divider(height: 1),
+            Divider(height: 1, color: colors.borderColor),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -193,15 +222,15 @@ class AppDrawer extends StatelessWidget {
                     label: 'Фотосессии',
                   ),
                   ListTile(
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.trending_up,
-                      color: _textSecondary,
+                      color: colors.textSecondary,
                     ),
-                    title: const Text(
+                    title: Text(
                       'Трендовые фотосессии',
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
-                        color: _textPrimary,
+                        color: textPrimary,
                       ),
                     ),
                     subtitle: Padding(
@@ -212,15 +241,15 @@ class AppDrawer extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF3F4F6),
+                          color: colors.mutedBadgeFill,
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Text(
+                        child: Text(
                           'В разработке',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: _textSecondary,
+                            color: colors.textSecondary,
                           ),
                         ),
                       ),
@@ -255,6 +284,68 @@ class AppDrawer extends StatelessWidget {
                 ],
               ),
             ),
+            Divider(height: 1, color: colors.borderColor),
+            ListTile(
+              leading: Icon(
+                isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                color: colors.textSecondary,
+              ),
+              title: Text(
+                'Тёмная тема',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: textPrimary,
+                ),
+              ),
+              trailing: Switch.adaptive(
+                value: isDark,
+                onChanged: _onDarkThemeChanged,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+              onTap: () => _onDarkThemeChanged(!isDark),
+            ),
+            if (onShowOnboardingAgain != null)
+              ListTile(
+                leading: Icon(
+                  Icons.replay_outlined,
+                  color: colors.textSecondary,
+                ),
+                title: Text(
+                  'Показать обучалку снова',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: textPrimary,
+                  ),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                onTap: () => _onShowOnboardingAgain(context),
+              ),
+            if (onOpenHelpGuides != null)
+              ListTile(
+                leading: Icon(
+                  Icons.menu_book_outlined,
+                  color: colors.textSecondary,
+                ),
+                title: Text(
+                  'Обучалки и подсказки',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: textPrimary,
+                  ),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                onTap: () => _onOpenHelpGuides(context),
+              ),
+            const SizedBox(height: 8),
           ],
         ),
       ),

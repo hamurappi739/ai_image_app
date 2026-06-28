@@ -1,3 +1,4 @@
+import '../theme/app_theme.dart';
 import 'package:ai_image_generator/models/gallery_display_item.dart';
 import 'package:ai_image_generator/utils/gallery_download.dart';
 import 'package:ai_image_generator/widgets/gallery_result_image.dart';
@@ -5,71 +6,99 @@ import 'package:flutter/material.dart';
 
 const _accentColor = Color(0xFF5B6CFF);
 
-Future<bool?> _confirmHideImage(BuildContext context) {
+Future<bool?> _confirmRemoveImage(BuildContext context) {
   return showDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text(
-        'Скрыть фото?',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-      ),
-      content: const Text(
-        'Оно исчезнет из готовых фото только на этом устройстве.',
-        style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Отмена'),
+    builder: (dialogContext) {
+      final screenWidth = MediaQuery.sizeOf(dialogContext).width;
+      return AlertDialog(
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: screenWidth < 360 ? 16 : 24,
+          vertical: 24,
         ),
-        FilledButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          style: FilledButton.styleFrom(
-            backgroundColor: _accentColor,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Удалить фото из галереи?',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        ),
+        content: SingleChildScrollView(
+          child: Text(
+            'Фото будет убрано из галереи приложения. '
+            'Это действие нельзя отменить.',
+            style: TextStyle(
+              fontSize: screenWidth < 360 ? 14 : 15,
+              height: 1.45,
+              color: const Color(0xFF6B7280),
             ),
           ),
-          child: const Text('Скрыть'),
         ),
-      ],
-    ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: _accentColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Удалить'),
+          ),
+        ],
+      );
+    },
   );
 }
 
-Future<bool?> _confirmHidePhotoshoot(BuildContext context) {
+Future<bool?> _confirmRemovePhotoshoot(BuildContext context) {
   return showDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text(
-        'Скрыть фотосессию?',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-      ),
-      content: const Text(
-        'Фотосессия исчезнет из готовых фото только на этом устройстве.',
-        style: TextStyle(fontSize: 15, height: 1.45, color: Color(0xFF6B7280)),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Отмена'),
+    builder: (dialogContext) {
+      final screenWidth = MediaQuery.sizeOf(dialogContext).width;
+      return AlertDialog(
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: screenWidth < 360 ? 16 : 24,
+          vertical: 24,
         ),
-        FilledButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          style: FilledButton.styleFrom(
-            backgroundColor: _accentColor,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Удалить фотосессию из галереи?',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        ),
+        content: SingleChildScrollView(
+          child: Text(
+            'Фотосессия будет убрана из галереи приложения. '
+            'Это действие нельзя отменить.',
+            style: TextStyle(
+              fontSize: screenWidth < 360 ? 14 : 15,
+              height: 1.45,
+              color: const Color(0xFF6B7280),
             ),
           ),
-          child: const Text('Скрыть'),
         ),
-      ],
-    ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: _accentColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Удалить'),
+          ),
+        ],
+      );
+    },
   );
 }
 
@@ -110,14 +139,14 @@ class GallerySingleImageViewer extends StatelessWidget {
   }
 
   Future<void> _onHidePressed(BuildContext context) async {
-    final confirmed = await _confirmHideImage(context);
+    final confirmed = await _confirmRemoveImage(context);
     if (confirmed != true || !context.mounted) return;
     onHide(hideKey);
     if (!context.mounted) return;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Фото скрыто из готовых фото'),
+        content: const Text('Фото удалено из галереи'),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -131,6 +160,7 @@ class GallerySingleImageViewer extends StatelessWidget {
     final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
 
     return Dialog(
+      backgroundColor: theme.colorScheme.surface,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       clipBehavior: Clip.antiAlias,
@@ -169,7 +199,7 @@ class GallerySingleImageViewer extends StatelessWidget {
             Expanded(
               child: Container(
                 width: double.infinity,
-                color: const Color(0xFFF0F2F8),
+                color: context.appColors.subtleFill,
                 child: InteractiveViewer(
                   minScale: 0.8,
                   maxScale: 3,
@@ -202,8 +232,8 @@ class GallerySingleImageViewer extends StatelessWidget {
                   ),
                   OutlinedButton.icon(
                     onPressed: () => _onHidePressed(context),
-                    icon: const Icon(Icons.visibility_off_outlined, size: 18),
-                    label: const Text('Скрыть'),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Удалить из галереи'),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -259,14 +289,14 @@ class GalleryPhotoshootViewer extends StatelessWidget {
     final photoshootId = item.photoshootId;
     if (photoshootId == null) return;
 
-    final confirmed = await _confirmHidePhotoshoot(context);
+    final confirmed = await _confirmRemovePhotoshoot(context);
     if (confirmed != true || !context.mounted) return;
     onHidePhotoshoot(photoshootId);
     if (!context.mounted) return;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Фотосессия скрыта из готовых фото'),
+        content: const Text('Фотосессия удалена из галереи'),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -283,6 +313,7 @@ class GalleryPhotoshootViewer extends StatelessWidget {
     final maxHeight = MediaQuery.sizeOf(context).height * 0.9;
 
     return Dialog(
+      backgroundColor: theme.colorScheme.surface,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       clipBehavior: Clip.antiAlias,
@@ -412,8 +443,8 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                 children: [
                   OutlinedButton.icon(
                     onPressed: () => _onHidePressed(context),
-                    icon: const Icon(Icons.visibility_off_outlined, size: 18),
-                    label: const Text('Скрыть фотосессию'),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Удалить фотосессию из галереи'),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.of(context).pop(),

@@ -26,13 +26,17 @@ import 'services/auth_service.dart';
 import 'services/payment_service.dart';
 import 'services/create_help_service.dart';
 import 'services/free_generations_welcome_service.dart';
+import 'services/gallery_hidden_preferences.dart';
 import 'services/onboarding_service.dart';
+import 'services/theme_preferences_service.dart';
+import 'theme/app_theme.dart';
 import 'services/photoshoots_help_service.dart';
 import 'utils/gallery_display_title.dart';
 import 'utils/gallery_item_key.dart';
 import 'utils/mock_photoshoot_photo.dart';
 import 'widgets/app_balance_summary.dart';
 import 'widgets/app_drawer.dart';
+import 'widgets/help_guides_sheet.dart';
 import 'widgets/app_navigation_scope.dart';
 import 'widgets/auth_required_screen.dart';
 import 'widgets/app_screen_header.dart';
@@ -76,16 +80,60 @@ Future<void> main() async {
   runApp(const AiImageGeneratorApp());
 }
 
-class AiImageGeneratorApp extends StatelessWidget {
+class AiImageGeneratorApp extends StatefulWidget {
   const AiImageGeneratorApp({super.key});
 
-  static const Color scaffoldBackground = Color(0xFFF7F8FC);
+  static const Color scaffoldBackground = AppTheme.lightScaffold;
   static const Color cardColor = Colors.white;
   static const Color textPrimary = Color(0xFF1A1D26);
   static const Color textSecondary = Color(0xFF6B7280);
 
   @override
+  State<AiImageGeneratorApp> createState() => _AiImageGeneratorAppState();
+}
+
+class _AiImageGeneratorAppState extends State<AiImageGeneratorApp> {
+  ThemeMode _themeMode = ThemeMode.light;
+  bool _themeLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadThemeMode());
+  }
+
+  Future<void> _loadThemeMode() async {
+    final mode = await ThemePreferencesService.loadThemeMode();
+    if (!mounted) return;
+    setState(() {
+      _themeMode = mode;
+      _themeLoaded = true;
+    });
+  }
+
+  Future<void> _setThemeMode(ThemeMode mode) async {
+    await ThemePreferencesService.saveThemeMode(mode);
+    if (!mounted) return;
+    setState(() => _themeMode = mode);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (!_themeLoaded) {
+      return MaterialApp(
+        theme: AppTheme.light,
+        home: const Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+          ),
+        ),
+      );
+    }
+
     return MaterialApp(
       title: 'AI Фотогенератор',
       debugShowCheckedModeBanner: false,
@@ -99,42 +147,28 @@ class AiImageGeneratorApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: scaffoldBackground,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF5B6CFF),
-          brightness: Brightness.light,
-          surface: cardColor,
-        ),
-        textTheme: const TextTheme(
-          headlineSmall: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w700,
-            color: textPrimary,
-            letterSpacing: -0.5,
-          ),
-          bodyMedium: TextStyle(
-            fontSize: 15,
-            color: textSecondary,
-            height: 1.4,
-          ),
-          titleMedium: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: textPrimary,
-          ),
-        ),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: _themeMode,
+      home: AppEntry(
+        themeMode: _themeMode,
+        onThemeModeChanged: _setThemeMode,
       ),
-      home: const AppEntry(),
     );
   }
 }
 
 class MainShell extends StatefulWidget {
-  const MainShell({super.key, this.onResetOnboarding});
+  const MainShell({
+    super.key,
+    this.onRestartOnboarding,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+  });
 
-  final VoidCallback? onResetOnboarding;
+  final VoidCallback? onRestartOnboarding;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -183,6 +217,7 @@ class _MainShellState extends State<MainShell> {
       _authSubscription = _authService.onAuthStateChange.listen(_onAuthStateChanged);
     }
     if (_canLoadUserBackendData) {
+      unawaited(_loadGalleryHiddenPreferences());
       _loadGenerationsFromBackend();
       _loadBalance();
     } else {
@@ -259,6 +294,26 @@ class _MainShellState extends State<MainShell> {
     setState(() {});
   }
 
+  Future<void> _loadGalleryHiddenPreferences() async {
+    final hidden = await GalleryHiddenPreferences.load();
+    if (!mounted) return;
+    setState(() {
+      _hiddenGalleryImageKeys
+        ..clear()
+        ..addAll(hidden.imageKeys);
+      _hiddenPhotoshootIds
+        ..clear()
+        ..addAll(hidden.photoshootIds);
+    });
+  }
+
+  Future<void> _persistGalleryHiddenPreferences() {
+    return GalleryHiddenPreferences.save(
+      imageKeys: _hiddenGalleryImageKeys,
+      photoshootIds: _hiddenPhotoshootIds,
+    );
+  }
+
   void _clearSessionUserData() {
     setState(() {
       _generatedImages.clear();
@@ -270,6 +325,7 @@ class _MainShellState extends State<MainShell> {
       _backendHistoryUnavailable = false;
       _galleryLoading = false;
     });
+    unawaited(GalleryHiddenPreferences.clear());
   }
 
   Future<void> _loadBalance() async {
@@ -361,6 +417,7 @@ class _MainShellState extends State<MainShell> {
         _backendHistoryUnavailable = false;
         _galleryLoading = false;
       });
+      unawaited(GalleryHiddenPreferences.clear());
       return;
     }
     if (!mounted) return;
@@ -459,14 +516,21 @@ class _MainShellState extends State<MainShell> {
       _hiddenGalleryImageKeys.clear();
       _hiddenPhotoshootIds.clear();
     });
+    unawaited(GalleryHiddenPreferences.clear());
   }
 
   void _hideGalleryImage(String hideKey) {
     setState(() => _hiddenGalleryImageKeys.add(hideKey));
+    unawaited(_persistGalleryHiddenPreferences());
   }
 
   void _hidePhotoshoot(String photoshootId) {
     setState(() => _hiddenPhotoshootIds.add(photoshootId));
+    unawaited(_persistGalleryHiddenPreferences());
+  }
+
+  void _openHelpGuides() {
+    HelpGuidesSheet.show(context);
   }
 
   @override
@@ -551,7 +615,7 @@ class _MainShellState extends State<MainShell> {
         apiService: _apiService,
         onAuthChanged: _onProfileAuthChanged,
         onNavigate: _navigateToSection,
-        onResetOnboarding: widget.onResetOnboarding,
+        onResetOnboarding: widget.onRestartOnboarding,
         balance: _userBalance,
         balanceLoading: _balanceLoading,
         balanceLoadFailed: _balanceLoadFailed,
@@ -567,6 +631,10 @@ class _MainShellState extends State<MainShell> {
         currentSection: _section,
         onSectionSelected: _navigateToSection,
         onTrendingPhotoshootsTap: _showTrendingComingSoon,
+        onShowOnboardingAgain: widget.onRestartOnboarding,
+        onOpenHelpGuides: _openHelpGuides,
+        themeMode: widget.themeMode,
+        onThemeModeChanged: widget.onThemeModeChanged,
         userEmail: _authService.currentUser?.email,
         userDisplayName: _userDisplayName(),
         showUserBalance: _showUserBalance,
@@ -591,7 +659,14 @@ class _MainShellState extends State<MainShell> {
 }
 
 class AppEntry extends StatefulWidget {
-  const AppEntry({super.key});
+  const AppEntry({
+    super.key,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+  });
+
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
 
   @override
   State<AppEntry> createState() => _AppEntryState();
@@ -618,7 +693,7 @@ class _AppEntryState extends State<AppEntry> {
     setState(() => _onboardingCompleted = true);
   }
 
-  Future<void> _resetOnboardingForDebug() async {
+  Future<void> _restartOnboarding() async {
     await OnboardingService.reset();
     if (!mounted) return;
     setState(() => _onboardingCompleted = false);
@@ -627,9 +702,9 @@ class _AppEntryState extends State<AppEntry> {
   @override
   Widget build(BuildContext context) {
     if (_onboardingCompleted == null) {
-      return const Scaffold(
-        backgroundColor: AiImageGeneratorApp.scaffoldBackground,
-        body: Center(
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: const Center(
           child: SizedBox(
             width: 32,
             height: 32,
@@ -644,7 +719,9 @@ class _AppEntryState extends State<AppEntry> {
     }
 
     return MainShell(
-      onResetOnboarding: kDebugMode ? _resetOnboardingForDebug : null,
+      onRestartOnboarding: () => unawaited(_restartOnboarding()),
+      themeMode: widget.themeMode,
+      onThemeModeChanged: widget.onThemeModeChanged,
     );
   }
 }
@@ -1115,7 +1192,7 @@ class _PacksScreenState extends State<PacksScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AiImageGeneratorApp.scaffoldBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -1184,17 +1261,18 @@ class _PackOfferingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
     final bannerLabel = offering.valueBadge ??
         (offering.featured ? 'Популярно' : null);
     final borderColor = offering.featured
         ? const Color(0xFF6B5CFF)
         : offering.bestValue
             ? const Color(0xFF9B7CFF)
-            : const Color(0xFFE8EAEF);
+            : colors.borderColor;
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: borderColor,
@@ -1805,7 +1883,7 @@ class _PhotoshootsScreenState extends State<PhotoshootsScreen> {
         widget.balance!.showPhotoshootDepletedWarning;
 
     return Scaffold(
-      backgroundColor: AiImageGeneratorApp.scaffoldBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -1891,15 +1969,16 @@ class _PhotoshootCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
 
     return Material(
-      color: Colors.white,
+      color: colors.cardBackground,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: BorderSide(
           color: style.isFree
-              ? const Color(0xFFE8EAEF)
+              ? colors.borderColor
               : _accentColor.withValues(alpha: 0.28),
         ),
       ),
@@ -2041,7 +2120,7 @@ class _PhotoshootsIntroHeader extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 0),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F2FF),
+              color: context.appColors.subtleFill,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: _accentColor.withValues(alpha: 0.2),
@@ -2051,7 +2130,7 @@ class _PhotoshootsIntroHeader extends StatelessWidget {
               'Демо-режим — фотосессии доступны без списания.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontSize: 13,
-                    color: AiImageGeneratorApp.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
             ),
           )
@@ -3578,7 +3657,7 @@ class _CreateScreenState extends State<CreateScreen> {
         widget.balance!.showImageDepletedWarning;
 
     return Scaffold(
-      backgroundColor: AiImageGeneratorApp.scaffoldBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(12, 16, 20, 32),
@@ -3662,14 +3741,15 @@ class _BalancePricingInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8EAEF)),
+        border: Border.all(color: colors.borderColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),

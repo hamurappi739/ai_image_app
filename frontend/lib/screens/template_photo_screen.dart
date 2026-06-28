@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import '../assets/preview_asset_paths.dart';
 import '../data/catalog_visuals.dart';
 import '../models/catalog_entries.dart';
@@ -152,8 +153,6 @@ class TemplatePhotoScreen extends StatefulWidget {
     required this.onShowMessage,
   });
 
-  static const _scaffoldBackground = Color(0xFFF7F8FC);
-
   final ApiService apiService;
   final UserBalance? balance;
   final bool balanceLoading;
@@ -280,9 +279,9 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
   @override
   Widget build(BuildContext context) {
     if (!CatalogService.instance.isLoaded) {
-      return const Scaffold(
-        backgroundColor: TemplatePhotoScreen._scaffoldBackground,
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -292,7 +291,7 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: TemplatePhotoScreen._scaffoldBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -373,7 +372,6 @@ class _TemplatePhotoScreenState extends State<TemplatePhotoScreen> {
 class _TemplatePhotoScreenHeader extends StatelessWidget {
   const _TemplatePhotoScreenHeader({this.trailing});
 
-  static const _textPrimary = Color(0xFF1A1D26);
   static const _textSecondary = Color(0xFF6B7280);
   static const _subtitle =
       'Выберите шаблон, добавьте фото и получите готовый результат.';
@@ -396,7 +394,7 @@ class _TemplatePhotoScreenHeader extends StatelessWidget {
             IconButton(
               onPressed: AppNavigationScope.openDrawerOf(context),
               icon: const Icon(Icons.menu, size: 26),
-              color: _textPrimary,
+              color: context.appTextPrimary,
               tooltip: 'Меню',
               visualDensity: VisualDensity.compact,
               padding: const EdgeInsets.only(left: 0, right: 8),
@@ -410,7 +408,7 @@ class _TemplatePhotoScreenHeader extends StatelessWidget {
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontSize: titleFontSize,
                   fontWeight: FontWeight.w700,
-                  color: _textPrimary,
+                  color: context.appTextPrimary,
                   height: 1.15,
                 ),
               ),
@@ -440,8 +438,6 @@ class _HowItWorksBanner extends StatelessWidget {
   const _HowItWorksBanner();
 
   static const _accentColor = Color(0xFF5B6CFF);
-  static const _textPrimary = Color(0xFF1A1D26);
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -455,12 +451,12 @@ class _HowItWorksBanner extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Как это работает',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: _textPrimary,
+              color: context.appTextPrimary,
             ),
           ),
           const SizedBox(height: 10),
@@ -560,7 +556,6 @@ class _TemplateCard extends StatelessWidget {
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
-  static const _textPrimary = Color(0xFF1A1D26);
   static const _textSecondary = Color(0xFF6B7280);
 
   final PhotoTemplate template;
@@ -579,11 +574,11 @@ class _TemplateCard extends StatelessWidget {
     final buttonHeight = compact ? 34.0 : 36.0;
 
     return Material(
-      color: Colors.white,
+      color: context.appColors.cardBackground,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
+        side: BorderSide(color: context.appColors.borderColor),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -632,7 +627,7 @@ class _TemplateCard extends StatelessWidget {
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontSize: titleFontSize,
                       fontWeight: FontWeight.w700,
-                      color: _textPrimary,
+                      color: context.appTextPrimary,
                       height: titleLineHeight,
                     ),
                   ),

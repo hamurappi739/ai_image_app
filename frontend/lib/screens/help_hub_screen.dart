@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import '../widgets/app_screen_header.dart';
 import '../widgets/create_help_dialog.dart';
 import '../widgets/home_help_dialog.dart';
@@ -11,9 +12,6 @@ import '../widgets/welcome_showcase_help_dialog.dart';
 class HelpHubScreen extends StatelessWidget {
   const HelpHubScreen({super.key});
 
-  static const _scaffoldBackground = Color(0xFFF7F8FC);
-  static const _textSecondary = Color(0xFF6B7280);
-
   void _openDialog(BuildContext context, Widget dialog) {
     showDialog<void>(context: context, builder: (_) => dialog);
   }
@@ -23,7 +21,7 @@ class HelpHubScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: _scaffoldBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -94,7 +92,7 @@ class HelpHubScreen extends StatelessWidget {
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: 13,
                       height: 1.4,
-                      color: _textSecondary,
+                      color: context.appColors.textSecondary,
                     ),
                   ),
                 ],
@@ -116,8 +114,6 @@ class _HelpTopicTile extends StatelessWidget {
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textSecondary = Color(0xFF6B7280);
 
   final IconData icon;
   final String title;
@@ -127,12 +123,14 @@ class _HelpTopicTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
 
     return Material(
-      color: Colors.white,
+      color: colors.cardBackground,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.black.withValues(alpha: 0.04)),
+        side: BorderSide(color: colors.borderColor),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -145,7 +143,7 @@ class _HelpTopicTile extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEDE9FF),
+                  color: colors.selectedTile,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: _accentColor),
@@ -158,7 +156,7 @@ class _HelpTopicTile extends StatelessWidget {
                     Text(
                       title,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        color: _textPrimary,
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -166,15 +164,15 @@ class _HelpTopicTile extends StatelessWidget {
                       subtitle,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontSize: 13,
-                        color: _textSecondary,
+                        color: colors.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
-                color: _textSecondary,
+                color: colors.textSecondary,
               ),
             ],
           ),

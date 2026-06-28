@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../models/catalog_entries.dart';
 import '../models/generated_image_item.dart';
+import '../theme/app_theme.dart';
 import '../utils/gallery_display_title.dart';
 import '../utils/template_generation_params.dart';
 import '../models/user_balance.dart';
@@ -568,14 +569,14 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                 _ => null,
               },
               filled: true,
-              fillColor: const Color(0xFFF7F8FC),
+              fillColor: context.appColors.subtleFill,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFFE8EAEF)),
+                borderSide: BorderSide(color: context.appColors.borderColor),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFFE8EAEF)),
+                borderSide: BorderSide(color: context.appColors.borderColor),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -597,6 +598,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
     final template = widget.template;
 
     return Padding(
@@ -609,7 +611,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
             maxWidth: 520,
           ),
           child: Material(
-            color: Colors.white,
+            color: colors.cardBackground,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             clipBehavior: Clip.antiAlias,
             child: SafeArea(
@@ -714,9 +716,9 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                         width: double.infinity,
                         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF7F8FC),
+                          color: colors.subtleFill,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE8EAEF)),
+                          border: Border.all(color: colors.borderColor),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

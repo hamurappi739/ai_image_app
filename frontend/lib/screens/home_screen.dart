@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import '../navigation/app_section.dart';
 import '../widgets/app_screen_header.dart';
 import '../widgets/home_help_dialog.dart';
@@ -11,17 +12,15 @@ class HomeScreen extends StatelessWidget {
     required this.onNavigate,
   });
 
-  static const _scaffoldBackground = Color(0xFFF7F8FC);
-  static const _textSecondary = Color(0xFF6B7280);
-
   final ValueChanged<AppSection> onNavigate;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
 
     return Scaffold(
-      backgroundColor: _scaffoldBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -68,7 +67,7 @@ class HomeScreen extends StatelessWidget {
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: 14,
                       height: 1.4,
-                      color: _textSecondary,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ],
@@ -91,8 +90,6 @@ class _HomeActionCard extends StatelessWidget {
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textSecondary = Color(0xFF6B7280);
 
   final String title;
   final String subtitle;
@@ -102,8 +99,11 @@ class _HomeActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+
     return Material(
-      color: emphasized ? _accentColor : Colors.white,
+      color: emphasized ? _accentColor : colors.cardBackground,
       borderRadius: BorderRadius.circular(18),
       elevation: 0,
       child: InkWell(
@@ -127,7 +127,11 @@ class _HomeActionCard extends StatelessWidget {
                   ]
                 : [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
+                      color: Colors.black.withValues(
+                        alpha: Theme.of(context).brightness == Brightness.dark
+                            ? 0.2
+                            : 0.04,
+                      ),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -161,7 +165,7 @@ class _HomeActionCard extends StatelessWidget {
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                         height: 1.25,
-                        color: emphasized ? Colors.white : _textPrimary,
+                        color: emphasized ? Colors.white : textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -172,7 +176,7 @@ class _HomeActionCard extends StatelessWidget {
                         height: 1.35,
                         color: emphasized
                             ? Colors.white.withValues(alpha: 0.88)
-                            : _textSecondary,
+                            : colors.textSecondary,
                       ),
                     ),
                   ],

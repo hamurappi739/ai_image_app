@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import 'app_balance_summary.dart';
 import 'app_navigation_scope.dart';
 
@@ -16,8 +17,6 @@ class AppScreenHeader extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final bool showBalanceIndicator;
-
-  static const _textPrimary = Color(0xFF1A1D26);
 
   Widget? _buildBalanceIndicator(BuildContext context, double maxWidth) {
     if (!showBalanceIndicator) return null;
@@ -63,7 +62,7 @@ class AppScreenHeader extends StatelessWidget {
         IconButton(
           onPressed: AppNavigationScope.openDrawerOf(context),
           icon: const Icon(Icons.menu, size: 26),
-          color: _textPrimary,
+          color: context.appTextPrimary,
           tooltip: 'Меню',
           visualDensity: VisualDensity.compact,
           padding: const EdgeInsets.only(left: 0, right: 8),

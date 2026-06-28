@@ -20,6 +20,9 @@ class OnboardingScreen extends StatelessWidget {
     mockupBuilder: OnboardingMockups.welcomeShowcase,
   );
 
+  static List<OnboardingStep> get tutorialSteps =>
+      List<OnboardingStep>.unmodifiable(_steps);
+
   static final _steps = [
     welcomeStep,
     OnboardingStep(
