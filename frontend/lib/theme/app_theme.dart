@@ -14,6 +14,9 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
     required this.drawerGradientEnd,
     required this.chipBackground,
     required this.mutedBadgeFill,
+    required this.infoBannerFill,
+    required this.accentTintFill,
+    required this.elevatedSurface,
   });
 
   final Color cardBackground;
@@ -25,6 +28,9 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
   final Color drawerGradientEnd;
   final Color chipBackground;
   final Color mutedBadgeFill;
+  final Color infoBannerFill;
+  final Color accentTintFill;
+  final Color elevatedSurface;
 
   static const light = AppThemeColors(
     cardBackground: Colors.white,
@@ -36,18 +42,24 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
     drawerGradientEnd: Color(0xFFEDE9FF),
     chipBackground: Color(0xFFF7F8FC),
     mutedBadgeFill: Color(0xFFF3F4F6),
+    infoBannerFill: Color(0xFFEEF1FF),
+    accentTintFill: Color(0xFFF0F2FF),
+    elevatedSurface: Colors.white,
   );
 
   static const dark = AppThemeColors(
     cardBackground: Color(0xFF171A22),
     borderColor: Color(0xFF2A2F3D),
-    textSecondary: Color(0xFFA7ADBD),
+    textSecondary: Color(0xFFB4BAC8),
     subtleFill: Color(0xFF1E2230),
     selectedTile: Color(0xFF252B3D),
-    drawerGradientStart: Color(0xFF1A1F2E),
-    drawerGradientEnd: Color(0xFF222838),
+    drawerGradientStart: Color(0xFF171A22),
+    drawerGradientEnd: Color(0xFF20263A),
     chipBackground: Color(0xFF1E2230),
     mutedBadgeFill: Color(0xFF252B3D),
+    infoBannerFill: Color(0xFF232A40),
+    accentTintFill: Color(0xFF252B3D),
+    elevatedSurface: Color(0xFF20263A),
   );
 
   @override
@@ -61,6 +73,9 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
     Color? drawerGradientEnd,
     Color? chipBackground,
     Color? mutedBadgeFill,
+    Color? infoBannerFill,
+    Color? accentTintFill,
+    Color? elevatedSurface,
   }) {
     return AppThemeColors(
       cardBackground: cardBackground ?? this.cardBackground,
@@ -72,6 +87,9 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
       drawerGradientEnd: drawerGradientEnd ?? this.drawerGradientEnd,
       chipBackground: chipBackground ?? this.chipBackground,
       mutedBadgeFill: mutedBadgeFill ?? this.mutedBadgeFill,
+      infoBannerFill: infoBannerFill ?? this.infoBannerFill,
+      accentTintFill: accentTintFill ?? this.accentTintFill,
+      elevatedSurface: elevatedSurface ?? this.elevatedSurface,
     );
   }
 
@@ -90,6 +108,9 @@ class AppThemeColors extends ThemeExtension<AppThemeColors> {
           Color.lerp(drawerGradientEnd, other.drawerGradientEnd, t)!,
       chipBackground: Color.lerp(chipBackground, other.chipBackground, t)!,
       mutedBadgeFill: Color.lerp(mutedBadgeFill, other.mutedBadgeFill, t)!,
+      infoBannerFill: Color.lerp(infoBannerFill, other.infoBannerFill, t)!,
+      accentTintFill: Color.lerp(accentTintFill, other.accentTintFill, t)!,
+      elevatedSurface: Color.lerp(elevatedSurface, other.elevatedSurface, t)!,
     );
   }
 }

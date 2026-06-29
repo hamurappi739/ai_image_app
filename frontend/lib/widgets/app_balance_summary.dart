@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../models/user_balance.dart';
+import '../theme/app_theme.dart';
 
 /// Shared balance copy for drawer, header, and profile-aligned labels.
 class AppBalanceSummary {
   const AppBalanceSummary._();
 
   static const accentColor = Color(0xFF5B6CFF);
-  static const textPrimary = Color(0xFF1A1D26);
-  static const textSecondary = Color(0xFF6B7280);
 
   static int imageCount(UserBalance balance) => balance.totalAvailableImages;
 
@@ -39,11 +38,14 @@ class AppDrawerBalanceBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+    final accent = context.appAccent;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Divider(height: 20, thickness: 1, color: Color(0xFFE5E7EB)),
+        Divider(height: 20, thickness: 1, color: colors.borderColor),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -53,7 +55,7 @@ class AppDrawerBalanceBlock extends StatelessWidget {
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: AppBalanceSummary.textPrimary,
+                  color: textPrimary,
                 ),
               ),
             ),
@@ -61,15 +63,19 @@ class AppDrawerBalanceBlock extends StatelessWidget {
               TextButton(
                 onPressed: onBuyTap,
                 style: TextButton.styleFrom(
-                  foregroundColor: AppBalanceSummary.accentColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  foregroundColor: accent,
+                  backgroundColor: accent.withValues(alpha: 0.16),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: const Text(
                   'Купить',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                 ),
               ),
           ],
@@ -80,7 +86,7 @@ class AppDrawerBalanceBlock extends StatelessWidget {
             'Загружаем баланс…',
             style: theme.textTheme.bodyMedium?.copyWith(
               fontSize: 13,
-              color: AppBalanceSummary.textSecondary,
+              color: colors.textSecondary,
             ),
           )
         else if (loadFailed)
@@ -88,7 +94,7 @@ class AppDrawerBalanceBlock extends StatelessWidget {
             'Баланс пока не загружен',
             style: theme.textTheme.bodyMedium?.copyWith(
               fontSize: 13,
-              color: AppBalanceSummary.textSecondary,
+              color: colors.textSecondary,
             ),
           )
         else if (balance != null) ...[
@@ -109,7 +115,7 @@ class AppDrawerBalanceBlock extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(
               fontSize: 12,
               height: 1.35,
-              color: AppBalanceSummary.textSecondary,
+              color: colors.textSecondary,
             ),
           ),
         ],
@@ -129,25 +135,28 @@ class _DrawerBalanceLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+
     return Row(
       children: [
         Expanded(
           child: Text(
             '$label:',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               height: 1.35,
-              color: AppBalanceSummary.textSecondary,
+              color: colors.textSecondary,
             ),
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             height: 1.35,
             fontWeight: FontWeight.w600,
-            color: AppBalanceSummary.textPrimary,
+            color: textPrimary,
           ),
         ),
       ],
@@ -171,21 +180,26 @@ class AppScreenBalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+    final isLight = theme.brightness == Brightness.light;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8EAEF)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: colors.borderColor),
+        boxShadow: isLight
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,7 +209,7 @@ class AppScreenBalanceCard extends StatelessWidget {
             style: theme.textTheme.titleSmall?.copyWith(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: AppBalanceSummary.textPrimary,
+              color: textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -204,7 +218,7 @@ class AppScreenBalanceCard extends StatelessWidget {
               'Загружаем баланс…',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 13,
-                color: AppBalanceSummary.textSecondary,
+                color: colors.textSecondary,
               ),
             )
           else if (balance != null) ...[
@@ -226,7 +240,7 @@ class AppScreenBalanceCard extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontSize: 12,
                   height: 1.35,
-                  color: AppBalanceSummary.textSecondary,
+                  color: colors.textSecondary,
                 ),
               ),
               const SizedBox(height: 4),
@@ -235,7 +249,7 @@ class AppScreenBalanceCard extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontSize: 12,
                   height: 1.35,
-                  color: AppBalanceSummary.textSecondary,
+                  color: colors.textSecondary,
                 ),
               ),
             ],
@@ -257,25 +271,28 @@ class _ScreenBalanceLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+
     return Row(
       children: [
         Expanded(
           child: Text(
             '$label:',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               height: 1.35,
-              color: AppBalanceSummary.textSecondary,
+              color: colors.textSecondary,
             ),
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             height: 1.35,
             fontWeight: FontWeight.w600,
-            color: AppBalanceSummary.textPrimary,
+            color: textPrimary,
           ),
         ),
       ],
@@ -313,6 +330,9 @@ class AppHeaderBalanceIndicator extends StatelessWidget {
       );
     }
 
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+    final accent = context.appAccent;
     final images = AppBalanceSummary.imageCount(balance!);
     final label = ultraCompact ? '$images' : 'Изображения: $images';
 
@@ -322,10 +342,10 @@ class AppHeaderBalanceIndicator extends StatelessWidget {
         vertical: ultraCompact ? 5 : 6,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F2FF),
+        color: colors.accentTintFill,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: AppBalanceSummary.accentColor.withValues(alpha: 0.2),
+          color: accent.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -334,7 +354,7 @@ class AppHeaderBalanceIndicator extends StatelessWidget {
           Icon(
             Icons.photo_outlined,
             size: ultraCompact ? 14 : 15,
-            color: AppBalanceSummary.accentColor,
+            color: accent,
           ),
           if (!compact) ...[
             const SizedBox(width: 4),
@@ -342,20 +362,20 @@ class AppHeaderBalanceIndicator extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppBalanceSummary.textPrimary,
+                color: textPrimary,
               ),
             ),
           ] else ...[
             const SizedBox(width: 3),
             Text(
               '$images',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AppBalanceSummary.textPrimary,
+                color: textPrimary,
               ),
             ),
           ],

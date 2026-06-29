@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
+import '../../theme/app_theme.dart';
 
 enum ProfileEmailAuthResult { signedIn, signedUp }
 
@@ -35,8 +36,6 @@ class ProfileEmailAuthSheet extends StatefulWidget {
 }
 
 class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
-  static const _accentColor = Color(0xFF5B6CFF);
-
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isSigningIn = false;
@@ -103,11 +102,14 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+    final accent = context.appAccent;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: colors.cardBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       child: SingleChildScrollView(
@@ -121,7 +123,7 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE5E7EB),
+                  color: colors.borderColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -134,12 +136,13 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
+                      color: textPrimary,
                     ),
                   ),
                 ),
                 IconButton(
                   onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, color: textPrimary),
                   tooltip: 'Закрыть',
                 ),
               ],
@@ -150,7 +153,7 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 14,
                 height: 1.4,
-                color: const Color(0xFF6B7280),
+                color: colors.textSecondary,
               ),
             ),
             const SizedBox(height: 20),
@@ -159,14 +162,18 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
               enabled: !_isLoading,
               keyboardType: TextInputType.emailAddress,
               autocorrect: false,
-              decoration: _inputDecoration('Email'),
+              style: TextStyle(color: textPrimary, fontSize: 15),
+              cursorColor: accent,
+              decoration: _inputDecoration(context, 'Email'),
             ),
             const SizedBox(height: 14),
             TextField(
               controller: _passwordController,
               enabled: !_isLoading,
               obscureText: true,
-              decoration: _inputDecoration('Пароль'),
+              style: TextStyle(color: textPrimary, fontSize: 15),
+              cursorColor: accent,
+              decoration: _inputDecoration(context, 'Пароль'),
             ),
             const SizedBox(height: 8),
             Align(
@@ -175,7 +182,7 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
                 'Забыли пароль? Скоро добавим восстановление.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontSize: 12,
-                  color: const Color(0xFF9CA3AF),
+                  color: colors.textSecondary.withValues(alpha: 0.85),
                 ),
               ),
             ),
@@ -189,7 +196,7 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
                       : const LinearGradient(
                           colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
                         ),
-                  color: _isLoading ? Colors.grey.shade300 : null,
+                  color: _isLoading ? colors.borderColor : null,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Material(
@@ -226,17 +233,20 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
               child: OutlinedButton(
                 onPressed: _isLoading ? null : _onSignUp,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: _accentColor,
-                  side: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
+                  foregroundColor: accent,
+                  side: BorderSide(color: accent.withValues(alpha: 0.5)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 child: _isSigningUp
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2.2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: accent,
+                        ),
                       )
                     : const Text(
                         'Создать аккаунт',
@@ -250,18 +260,45 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(BuildContext context, String label) {
+    final theme = Theme.of(context);
+    final colors = context.appColors;
+    final accent = context.appAccent;
+    final borderRadius = BorderRadius.circular(12);
+
     return InputDecoration(
       labelText: label,
+      labelStyle: TextStyle(color: colors.textSecondary, fontSize: 14),
+      floatingLabelStyle: TextStyle(
+        color: accent,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+      hintStyle: TextStyle(
+        color: colors.textSecondary.withValues(alpha: 0.75),
+        fontSize: 14,
+      ),
       filled: true,
-      fillColor: const Color(0xFFF7F8FC),
+      fillColor: colors.elevatedSurface,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade200),
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: colors.borderColor),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade200),
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: colors.borderColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: accent.withValues(alpha: 0.55)),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: theme.colorScheme.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: theme.colorScheme.error),
       ),
     );
   }

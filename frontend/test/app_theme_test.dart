@@ -1,3 +1,4 @@
+import 'package:ai_image_generator/models/user_balance.dart';
 import 'package:ai_image_generator/main.dart';
 import 'package:ai_image_generator/navigation/app_section.dart';
 import 'package:ai_image_generator/services/theme_preferences_service.dart';
@@ -86,6 +87,50 @@ void main() {
 
       final switchWidget = tester.widget<Switch>(find.byType(Switch));
       expect(switchWidget.value, isTrue);
+    });
+
+    testWidgets('dark drawer shows readable user and balance block', (tester) async {
+      const balance = UserBalance(
+        freeGenerationsLimit: 3,
+        freeGenerationsUsed: 0,
+        freeGenerationsRemaining: 2,
+        paidImageGenerations: 5,
+        paidPhotoshoots: 0,
+        totalAvailableImages: 7,
+        photoshootImageCost: 3,
+        availablePhotoshootsByImages: 2,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: ThemeMode.dark,
+          home: Scaffold(
+            drawer: AppDrawer(
+              currentSection: AppSection.home,
+              onSectionSelected: (_) {},
+              themeMode: ThemeMode.dark,
+              onThemeModeChanged: (_) {},
+              showUserBalance: true,
+              balance: balance,
+              userEmail: 'reader@example.com',
+              onBuyTap: () {},
+            ),
+            body: const SizedBox.shrink(),
+          ),
+        ),
+      );
+
+      tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Здравствуйте'), findsOneWidget);
+      expect(find.text('reader@example.com'), findsOneWidget);
+      expect(find.text('Ваш баланс'), findsOneWidget);
+      expect(find.text('Купить'), findsOneWidget);
+      expect(find.textContaining('Изображения'), findsOneWidget);
+      expect(find.text('7'), findsWidgets);
     });
   });
 

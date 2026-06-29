@@ -2163,6 +2163,9 @@ class _CustomPhotoshootPromoBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+    final isDark = theme.brightness == Brightness.dark;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -2173,15 +2176,18 @@ class _CustomPhotoshootPromoBanner extends StatelessWidget {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white,
-                  _accentColor.withValues(alpha: 0.12),
-                ],
-              ),
+              gradient: isDark
+                  ? null
+                  : LinearGradient(
+                      colors: [
+                        Colors.white,
+                        _accentColor.withValues(alpha: 0.12),
+                      ],
+                    ),
+              color: isDark ? colors.accentTintFill : null,
               shape: BoxShape.circle,
               border: Border.all(
-                color: _accentColor.withValues(alpha: 0.2),
+                color: _accentColor.withValues(alpha: isDark ? 0.35 : 0.2),
               ),
             ),
             child: Icon(
@@ -2199,6 +2205,7 @@ class _CustomPhotoshootPromoBanner extends StatelessWidget {
           style: theme.textTheme.titleMedium?.copyWith(
             fontSize: narrow ? 15 : 16,
             fontWeight: FontWeight.w700,
+            color: textPrimary,
           ),
         );
 
@@ -2209,7 +2216,7 @@ class _CustomPhotoshootPromoBanner extends StatelessWidget {
           style: theme.textTheme.bodyMedium?.copyWith(
             fontSize: narrow ? 13 : 14,
             height: 1.4,
-            color: AiImageGeneratorApp.textSecondary,
+            color: colors.textSecondary,
           ),
         );
 
@@ -2245,23 +2252,36 @@ class _CustomPhotoshootPromoBanner extends StatelessWidget {
             narrow ? 14 : 16,
           ),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFFFF8F5), Color(0xFFEEF1FF)],
-            ),
+            gradient: isDark
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      colors.drawerGradientStart,
+                      const Color(0xFF1E2433),
+                    ],
+                  )
+                : const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFFFF8F5), Color(0xFFEEF1FF)],
+                  ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: const Color(0xFFE8B4A0).withValues(alpha: 0.45),
+              color: isDark
+                  ? colors.borderColor
+                  : const Color(0xFFE8B4A0).withValues(alpha: 0.45),
               width: 1.5,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: _accentColor.withValues(alpha: 0.08),
-                blurRadius: 20,
-                offset: const Offset(0, 6),
-              ),
-            ],
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: _accentColor.withValues(alpha: 0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
           ),
           child: narrow
               ? Column(
@@ -2545,6 +2565,8 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
     final style = widget.style;
     final hasPhoto = _selectedPhotoBytes != null;
 
@@ -2558,7 +2580,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
             maxWidth: 520,
           ),
           child: Material(
-            color: Colors.white,
+            color: colors.cardBackground,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             clipBehavior: Clip.antiAlias,
             child: SafeArea(
@@ -2579,7 +2601,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: colors.borderColor,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -2594,6 +2616,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
+                              color: textPrimary,
                             ),
                           ),
                         ),
@@ -2601,7 +2624,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                           onPressed: _isPreparingPhotoshoot
                               ? null
                               : () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
+                          icon: Icon(Icons.close, color: textPrimary),
                           tooltip: 'Закрыть',
                         ),
                       ],
@@ -2621,6 +2644,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -2632,7 +2656,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0F2FF),
+                          color: colors.accentTintFill,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: _accentColor.withValues(alpha: 0.2),
@@ -2643,6 +2667,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontSize: 12,
                             height: 1.35,
+                            color: colors.textSecondary,
                           ),
                         ),
                       ),
@@ -2711,7 +2736,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                             icon: const Icon(Icons.close, size: 17),
                             label: const Text('Убрать фото'),
                             style: TextButton.styleFrom(
-                              foregroundColor: AiImageGeneratorApp.textSecondary,
+                              foregroundColor: colors.textSecondary,
                               padding: EdgeInsets.zero,
                               visualDensity: VisualDensity.compact,
                             ),
@@ -2729,6 +2754,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
+                              color: textPrimary,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -2751,7 +2777,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                                           ?.copyWith(
                                         fontSize: 13,
                                         height: 1.35,
-                                        color: AiImageGeneratorApp.textSecondary,
+                                        color: colors.textSecondary,
                                       ),
                                     ),
                                   ),
@@ -3075,6 +3101,8 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
     final hasPhoto = _selectedPhotoBytes != null;
 
     return Padding(
@@ -3087,7 +3115,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
             maxWidth: 520,
           ),
           child: Material(
-            color: Colors.white,
+            color: colors.cardBackground,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             clipBehavior: Clip.antiAlias,
             child: SafeArea(
@@ -3108,7 +3136,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: colors.borderColor,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -3119,6 +3147,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -3127,13 +3156,16 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                     'Мы создадим серию из 3 фото.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       height: 1.4,
-                      color: AiImageGeneratorApp.textSecondary,
+                      color: colors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Ваш образ',
-                    style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: 15,
+                      color: textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
@@ -3141,24 +3173,24 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                     minLines: 3,
                     maxLines: 5,
                     textCapitalization: TextCapitalization.sentences,
+                    style: TextStyle(color: textPrimary),
                     decoration: InputDecoration(
                       hintText:
                           'Например: деловая фотосессия в светлом костюме '
                           'на фоне города',
                       hintStyle: TextStyle(
-                        color: AiImageGeneratorApp.textSecondary
-                            .withValues(alpha: 0.85),
+                        color: colors.textSecondary.withValues(alpha: 0.85),
                         fontSize: 14,
                       ),
                       filled: true,
-                      fillColor: const Color(0xFFF7F8FC),
+                      fillColor: colors.subtleFill,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFFE8EAEF)),
+                        borderSide: BorderSide(color: colors.borderColor),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFFE8EAEF)),
+                        borderSide: BorderSide(color: colors.borderColor),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -3175,7 +3207,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AiImageGeneratorApp.textSecondary,
+                      color: colors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -3192,7 +3224,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                           onPressed: _isPreparingPhotoshoot
                               ? null
                               : () => _applyIdea(idea.text),
-                          backgroundColor: const Color(0xFFF0F2FF),
+                          backgroundColor: colors.accentTintFill,
                           side: BorderSide(
                             color: _accentColor.withValues(alpha: 0.2),
                           ),
@@ -3205,7 +3237,10 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                   const SizedBox(height: 16),
                   Text(
                     'Ваше фото',
-                    style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: 15,
+                      color: textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (!hasPhoto)
@@ -3253,7 +3288,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                         icon: const Icon(Icons.close, size: 18),
                         label: const Text('Убрать фото'),
                         style: TextButton.styleFrom(
-                          foregroundColor: AiImageGeneratorApp.textSecondary,
+                          foregroundColor: colors.textSecondary,
                           padding: const EdgeInsets.symmetric(horizontal: 4),
                         ),
                       ),
@@ -3264,7 +3299,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                     Text(
                       'Для проверки на эмуляторе используется тестовое фото.',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: AiImageGeneratorApp.textSecondary,
+                        color: colors.textSecondary,
                       ),
                     ),
                   ],
@@ -3278,6 +3313,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
+                            color: textPrimary,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -3303,7 +3339,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                                     style: theme.textTheme.bodyMedium?.copyWith(
                                       fontSize: 13,
                                       height: 1.35,
-                                      color: AiImageGeneratorApp.textSecondary,
+                                      color: colors.textSecondary,
                                     ),
                                   ),
                                 ),
@@ -4172,20 +4208,26 @@ class _SoftCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = context.appColors;
+    final isLight = theme.brightness == Brightness.light;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.subtleFill,
         borderRadius: BorderRadius.circular(20),
-        border: borderColor != null ? Border.all(color: borderColor!) : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        border: Border.all(color: borderColor ?? colors.borderColor),
+        boxShadow: isLight
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : null,
       ),
       child: child,
     );

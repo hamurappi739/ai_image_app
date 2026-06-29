@@ -244,27 +244,40 @@ class _SignedInAccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
     final displayEmail =
         (email != null && email!.isNotEmpty) ? email! : 'Аккаунт подключён';
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFF5F7FF), Color(0xFFEDE9FF), Color(0xFFE8EEFC)],
+          colors: isDark
+              ? [
+                  colors.drawerGradientStart,
+                  colors.drawerGradientEnd,
+                ]
+              : const [
+                  Color(0xFFF5F7FF),
+                  Color(0xFFEDE9FF),
+                  Color(0xFFE8EEFC),
+                ],
         ),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: _accentColor.withValues(alpha: 0.14)),
-        boxShadow: [
-          BoxShadow(
-            color: _accentColor.withValues(alpha: 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: _accentColor.withValues(alpha: 0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,7 +286,7 @@ class _SignedInAccountCard extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.92),
+              color: colors.elevatedSurface,
               shape: BoxShape.circle,
               border: Border.all(
                 color: _accentColor.withValues(alpha: 0.18),

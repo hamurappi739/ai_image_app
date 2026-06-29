@@ -437,16 +437,18 @@ class _TemplatePhotoScreenHeader extends StatelessWidget {
 class _HowItWorksBanner extends StatelessWidget {
   const _HowItWorksBanner();
 
-  static const _accentColor = Color(0xFF5B6CFF);
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final accent = context.appAccent;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEF1FF),
+        color: colors.infoBannerFill,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _accentColor.withValues(alpha: 0.12)),
+        border: Border.all(color: accent.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -501,14 +503,14 @@ class _HowItWorksBanner extends StatelessWidget {
 class _HowItWorksStep extends StatelessWidget {
   const _HowItWorksStep({required this.number, required this.text});
 
-  static const _accentColor = Color(0xFF5B6CFF);
-  static const _textSecondary = Color(0xFF6B7280);
-
   final String number;
   final String text;
 
   @override
   Widget build(BuildContext context) {
+    final accent = context.appAccent;
+    final colors = context.appColors;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -517,15 +519,15 @@ class _HowItWorksStep extends StatelessWidget {
           height: 24,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: _accentColor.withValues(alpha: 0.14),
+            color: accent.withValues(alpha: 0.14),
             shape: BoxShape.circle,
           ),
           child: Text(
             number,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: _accentColor,
+              color: accent,
             ),
           ),
         ),
@@ -535,10 +537,10 @@ class _HowItWorksStep extends StatelessWidget {
             padding: const EdgeInsets.only(top: 2),
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 height: 1.35,
-                color: _textSecondary,
+                color: colors.textSecondary,
               ),
             ),
           ),

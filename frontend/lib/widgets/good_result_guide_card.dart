@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../assets/preview_asset_paths.dart';
+import '../theme/app_theme.dart';
 import 'preview_asset_image.dart';
 import 'visual_placeholder.dart';
 
@@ -22,14 +23,12 @@ class GoodResultGuideCard extends StatelessWidget {
 
   final GoodResultGuideStyle style;
 
-  static const _accentColor = Color(0xFF5B6CFF);
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textSecondary = Color(0xFF6B7280);
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
     final isSheet = style == GoodResultGuideStyle.sheet;
+    final isLight = theme.brightness == Brightness.light;
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,21 +41,21 @@ class GoodResultGuideCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEDE9FF),
+                  color: colors.selectedTile,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.lightbulb_outline,
-                  color: _accentColor,
+                  color: context.appAccent,
                   size: 22,
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(child: _buildHeaderTexts(theme)),
+              Expanded(child: _buildHeaderTexts(theme, colors)),
             ],
           )
         else
-          _buildHeaderTexts(theme),
+          _buildHeaderTexts(theme, colors),
         const SizedBox(height: 14),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -96,9 +95,9 @@ class GoodResultGuideCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F8FC),
+          color: colors.subtleFill,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE8EAEF)),
+          border: Border.all(color: colors.borderColor),
         ),
         child: content,
       );
@@ -108,21 +107,24 @@ class GoodResultGuideCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        border: Border.all(color: colors.borderColor),
+        boxShadow: isLight
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : null,
       ),
       child: content,
     );
   }
 
-  Widget _buildHeaderTexts(ThemeData theme) {
+  Widget _buildHeaderTexts(ThemeData theme, AppThemeColors colors) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -131,7 +133,6 @@ class GoodResultGuideCard extends StatelessWidget {
           style: theme.textTheme.titleMedium?.copyWith(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: _textPrimary,
           ),
         ),
         const SizedBox(height: 4),
@@ -140,7 +141,7 @@ class GoodResultGuideCard extends StatelessWidget {
           style: theme.textTheme.bodyMedium?.copyWith(
             fontSize: 13,
             height: 1.35,
-            color: _textSecondary,
+            color: colors.textSecondary,
           ),
         ),
       ],
@@ -163,8 +164,17 @@ class _GuidePhotoExampleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final statusColor = isGood ? const Color(0xFF2E9B66) : const Color(0xFFC45C5C);
-    final statusBg = isGood ? const Color(0xFFE8F7EF) : const Color(0xFFFCEEEE);
+    final colors = context.appColors;
+    final isDark = theme.brightness == Brightness.dark;
+    final statusColor = isGood
+        ? (isDark ? const Color(0xFF6BCF9B) : const Color(0xFF2E9B66))
+        : (isDark ? const Color(0xFFF08A8A) : const Color(0xFFC45C5C));
+    final statusBg = isGood
+        ? (isDark ? const Color(0xFF1F3D32) : const Color(0xFFE8F7EF))
+        : (isDark ? const Color(0xFF3D2828) : const Color(0xFFFCEEEE));
+    final cardBorder = isGood
+        ? (isDark ? const Color(0xFF2D5A47) : const Color(0xFFB8E6CF))
+        : (isDark ? const Color(0xFF5A3838) : const Color(0xFFF0CACA));
     final badgeLabel = isGood ? 'Хорошее фото' : 'Плохое фото';
     final hint = isGood
         ? 'Лицо хорошо видно, свет ровный, фото не размыто.'
@@ -177,11 +187,9 @@ class _GuidePhotoExampleCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(compact ? 8 : 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.elevatedSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isGood ? const Color(0xFFB8E6CF) : const Color(0xFFF0CACA),
-        ),
+        border: Border.all(color: cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,7 +206,7 @@ class _GuidePhotoExampleCard extends StatelessWidget {
             child: Text(
               badgeLabel,
               style: TextStyle(
-                fontSize: compact ? 11 : 12,
+                fontSize: compact ? 12 : 13,
                 fontWeight: FontWeight.w700,
                 color: statusColor,
               ),
@@ -231,9 +239,9 @@ class _GuidePhotoExampleCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: compact ? 11 : 12,
-              height: compact ? 1.25 : 1.35,
-              color: const Color(0xFF6B7280),
+              fontSize: 13,
+              height: 1.3,
+              color: colors.textSecondary,
             ),
           ),
         ],

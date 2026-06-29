@@ -11,6 +11,7 @@ Future<bool?> _confirmRemoveImage(BuildContext context) {
     context: context,
     builder: (dialogContext) {
       final screenWidth = MediaQuery.sizeOf(dialogContext).width;
+      final colors = dialogContext.appColors;
       return AlertDialog(
         insetPadding: EdgeInsets.symmetric(
           horizontal: screenWidth < 360 ? 16 : 24,
@@ -28,7 +29,7 @@ Future<bool?> _confirmRemoveImage(BuildContext context) {
             style: TextStyle(
               fontSize: screenWidth < 360 ? 14 : 15,
               height: 1.45,
-              color: const Color(0xFF6B7280),
+              color: colors.textSecondary,
             ),
           ),
         ),
@@ -59,6 +60,7 @@ Future<bool?> _confirmRemovePhotoshoot(BuildContext context) {
     context: context,
     builder: (dialogContext) {
       final screenWidth = MediaQuery.sizeOf(dialogContext).width;
+      final colors = dialogContext.appColors;
       return AlertDialog(
         insetPadding: EdgeInsets.symmetric(
           horizontal: screenWidth < 360 ? 16 : 24,
@@ -76,7 +78,7 @@ Future<bool?> _confirmRemovePhotoshoot(BuildContext context) {
             style: TextStyle(
               fontSize: screenWidth < 360 ? 14 : 15,
               height: 1.45,
-              color: const Color(0xFF6B7280),
+              color: colors.textSecondary,
             ),
           ),
         ),
@@ -156,6 +158,7 @@ class GallerySingleImageViewer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final textPrimary = context.appTextPrimary;
     final title = gallerySinglePhotoTitle(description);
     final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
 
@@ -183,6 +186,7 @@ class GallerySingleImageViewer extends StatelessWidget {
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         fontSize: 18,
+                        color: textPrimary,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -190,7 +194,7 @@ class GallerySingleImageViewer extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close, color: textPrimary),
                     tooltip: 'Закрыть',
                   ),
                 ],
@@ -306,6 +310,8 @@ class GalleryPhotoshootViewer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
     final styleTitle = galleryPhotoshootStyleTitle(item.description);
     final countLabel = item.imageUrls.length == 3
         ? '3 фото'
@@ -337,6 +343,7 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                             fontSize: 18,
+                            color: textPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -345,7 +352,7 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6B7280),
+                            color: colors.textSecondary,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -359,7 +366,7 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF0F2FF),
+                                color: colors.accentTintFill,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -378,7 +385,7 @@ class GalleryPhotoshootViewer extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close, color: textPrimary),
                     tooltip: 'Закрыть',
                   ),
                 ],

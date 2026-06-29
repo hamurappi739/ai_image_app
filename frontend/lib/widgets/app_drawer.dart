@@ -159,8 +159,11 @@ class AppDrawer extends StatelessWidget {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: colors.cardBackground.withValues(alpha: 0.9),
+                            color: colors.elevatedSurface,
                             shape: BoxShape.circle,
+                            border: Border.all(
+                              color: colors.borderColor.withValues(alpha: 0.6),
+                            ),
                           ),
                           child: Icon(
                             Icons.person_outline,
@@ -186,6 +189,7 @@ class AppDrawer extends StatelessWidget {
                         email,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           fontSize: 13,
+                          fontWeight: FontWeight.w500,
                           color: colors.textSecondary,
                         ),
                         maxLines: 1,

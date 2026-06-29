@@ -349,6 +349,9 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
   }
 
   Widget _buildSinglePhotoSection(ThemeData theme) {
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -357,6 +360,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
           style: theme.textTheme.titleMedium?.copyWith(
             fontSize: 16,
             fontWeight: FontWeight.w700,
+            color: textPrimary,
           ),
         ),
         const SizedBox(height: 10),
@@ -419,7 +423,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                 icon: const Icon(Icons.close, size: 17),
                 label: const Text('Убрать фото'),
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF6B7280),
+                  foregroundColor: colors.textSecondary,
                   padding: EdgeInsets.zero,
                   visualDensity: VisualDensity.compact,
                 ),
@@ -432,6 +436,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
   }
 
   Widget _buildMultiPhotoSlot(CatalogTemplatePhotoInput photoInput) {
+    final colors = context.appColors;
     final field = photoInput.field;
     final selected = _photosByField[field];
     final isPicking = _pickingField == field;
@@ -499,7 +504,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                   icon: const Icon(Icons.close, size: 17),
                   label: const Text('Убрать фото'),
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF6B7280),
+                    foregroundColor: colors.textSecondary,
                     padding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
                   ),
@@ -632,7 +637,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: colors.borderColor,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -647,6 +652,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
+                              color: context.appTextPrimary,
                             ),
                           ),
                         ),
@@ -654,7 +660,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                           onPressed: _isCreating
                               ? null
                               : () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
+                          icon: Icon(Icons.close, color: context.appTextPrimary),
                           tooltip: 'Закрыть',
                         ),
                       ],
@@ -702,7 +708,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontSize: 15,
                             height: 1.45,
-                            color: const Color(0xFF374151),
+                            color: colors.textSecondary,
                           ),
                         ),
                       ),
@@ -728,6 +734,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                               style: theme.textTheme.titleSmall?.copyWith(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
+                                color: context.appTextPrimary,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -816,22 +823,25 @@ class _OutcomeLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final accent = context.appAccent;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(
           Icons.check_circle_outline,
           size: 16,
-          color: const Color(0xFF5B6CFF).withValues(alpha: 0.85),
+          color: accent.withValues(alpha: 0.85),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               height: 1.35,
-              color: Color(0xFF6B7280),
+              color: colors.textSecondary,
             ),
           ),
         ),
