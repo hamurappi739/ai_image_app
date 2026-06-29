@@ -767,24 +767,31 @@ class _DemoPurchaseNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final isDark = theme.brightness == Brightness.dark;
+    final accent = context.appAccent;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F7FF),
+        color: isDark ? colors.infoBannerFill : const Color(0xFFF5F7FF),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFDDE3FF)),
+        border: Border.all(
+          color: isDark
+              ? accent.withValues(alpha: 0.28)
+              : const Color(0xFFDDE3FF),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
             child: Icon(
               Icons.info_outline_rounded,
               size: 18,
-              color: Color(0xFF5B6CFF),
+              color: accent,
             ),
           ),
           const SizedBox(width: 10),
@@ -794,7 +801,7 @@ class _DemoPurchaseNotice extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 13,
                 height: 1.4,
-                color: AiImageGeneratorApp.textSecondary,
+                color: colors.textSecondary,
               ),
             ),
           ),
@@ -3778,21 +3785,25 @@ class _BalancePricingInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       decoration: BoxDecoration(
-        color: colors.cardBackground,
+        color: isDark ? colors.elevatedSurface : colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: colors.borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3802,6 +3813,7 @@ class _BalancePricingInfoCard extends StatelessWidget {
             style: theme.textTheme.titleMedium?.copyWith(
               fontSize: 16,
               fontWeight: FontWeight.w700,
+              color: textPrimary,
             ),
           ),
           const SizedBox(height: 10),
@@ -3814,7 +3826,7 @@ class _BalancePricingInfoCard extends StatelessWidget {
             style: theme.textTheme.bodyMedium?.copyWith(
               fontSize: 12,
               height: 1.35,
-              color: AiImageGeneratorApp.textSecondary,
+              color: colors.textSecondary,
             ),
           ),
         ],
@@ -3830,15 +3842,18 @@ class _BalancePricingLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textPrimary = context.appTextPrimary;
+    final accent = context.appAccent;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 6),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
           child: Icon(
             Icons.circle,
             size: 6,
-            color: Color(0xFF5B6CFF),
+            color: accent,
           ),
         ),
         const SizedBox(width: 10),
@@ -3848,7 +3863,7 @@ class _BalancePricingLine extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontSize: 14,
                   height: 1.4,
-                  color: AiImageGeneratorApp.textPrimary,
+                  color: textPrimary,
                 ),
           ),
         ),
@@ -3865,8 +3880,6 @@ class _UserBalancePacksBanner extends StatelessWidget {
     required this.onRefresh,
   });
 
-  static const _accentColor = Color(0xFF5B6CFF);
-
   final UserBalance? balance;
   final bool isLoading;
   final bool hasError;
@@ -3875,25 +3888,44 @@ class _UserBalancePacksBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+    final accent = context.appAccent;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF5F7FF), Color(0xFFEEF1FF)],
-        ),
+        gradient: isDark
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  colors.drawerGradientStart,
+                  colors.drawerGradientEnd,
+                ],
+              )
+            : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFF5F7FF), Color(0xFFEEF1FF)],
+              ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _accentColor.withValues(alpha: 0.22)),
-        boxShadow: [
-          BoxShadow(
-            color: _accentColor.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        border: Border.all(
+          color: isDark
+              ? colors.borderColor
+              : accent.withValues(alpha: 0.22),
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3906,6 +3938,7 @@ class _UserBalancePacksBanner extends StatelessWidget {
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
+                    color: textPrimary,
                   ),
                 ),
               ),
@@ -3914,7 +3947,7 @@ class _UserBalancePacksBanner extends StatelessWidget {
                   onPressed: onRefresh,
                   style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact,
-                    foregroundColor: _accentColor,
+                    foregroundColor: accent,
                   ),
                   child: const Text('Обновить'),
                 ),
@@ -3934,7 +3967,7 @@ class _UserBalancePacksBanner extends StatelessWidget {
                 Text(
                   'Загружаем баланс…',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AiImageGeneratorApp.textSecondary,
+                    color: colors.textSecondary,
                   ),
                 ),
               ],
@@ -3945,7 +3978,7 @@ class _UserBalancePacksBanner extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 14,
                 height: 1.35,
-                color: AiImageGeneratorApp.textSecondary,
+                color: colors.textSecondary,
               ),
             )
           else if (balance != null) ...[
@@ -3958,17 +3991,23 @@ class _UserBalancePacksBanner extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8E1),
+                    color: isDark
+                        ? const Color(0xFF3D3520)
+                        : const Color(0xFFFFF8E1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: const Color(0xFFFFE082).withValues(alpha: 0.8),
+                      color: isDark
+                          ? const Color(0xFFE6B800).withValues(alpha: 0.45)
+                          : const Color(0xFFFFE082).withValues(alpha: 0.8),
                     ),
                   ),
                   child: Text(
                     'Демо-режим: списание отключено.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: 12,
-                      color: const Color(0xFF8D6E00),
+                      color: isDark
+                          ? const Color(0xFFFFD666)
+                          : const Color(0xFF8D6E00),
                     ),
                   ),
                 ),
@@ -4014,7 +4053,7 @@ class _UserBalancePacksBanner extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 12,
                 height: 1.35,
-                color: AiImageGeneratorApp.textSecondary,
+                color: colors.textSecondary,
               ),
             ),
           ],
@@ -4036,14 +4075,21 @@ class _PacksBalanceStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.72),
+        color: isDark
+            ? colors.elevatedSurface
+            : Colors.white.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white),
+        border: Border.all(
+          color: isDark ? colors.borderColor : Colors.white,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -4052,7 +4098,7 @@ class _PacksBalanceStat extends StatelessWidget {
             '$label:',
             style: theme.textTheme.bodyMedium?.copyWith(
               fontSize: 12,
-              color: AiImageGeneratorApp.textSecondary,
+              color: colors.textSecondary,
             ),
           ),
           const SizedBox(height: 2),
@@ -4062,6 +4108,7 @@ class _PacksBalanceStat extends StatelessWidget {
               fontSize: 20,
               fontWeight: FontWeight.w800,
               height: 1.1,
+              color: textPrimary,
             ),
           ),
         ],

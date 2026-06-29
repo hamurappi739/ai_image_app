@@ -1,5 +1,7 @@
 import 'package:ai_image_generator/main.dart';
+import 'package:ai_image_generator/models/user_balance.dart';
 import 'package:ai_image_generator/services/api_service.dart';
+import 'package:ai_image_generator/services/payment_service.dart';
 import 'package:ai_image_generator/services/auth_service.dart';
 import 'package:ai_image_generator/theme/app_theme.dart';
 import 'package:ai_image_generator/widgets/profile/profile_email_auth_sheet.dart';
@@ -78,6 +80,49 @@ void main() {
 
     expect(find.text('Не нашли подходящий стиль?'), findsOneWidget);
     expect(find.text('Создать свой образ'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('PacksScreen renders in dark theme at narrow width', (tester) async {
+    const balance = UserBalance(
+      freeGenerationsLimit: 3,
+      freeGenerationsUsed: 1,
+      freeGenerationsRemaining: 0,
+      paidImageGenerations: 55,
+      paidPhotoshoots: 0,
+      totalAvailableImages: 55,
+      photoshootImageCost: 3,
+      availablePhotoshootsByImages: 18,
+      consumptionEnabled: false,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.dark,
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 320,
+              child: PacksScreen(
+                paymentService: PaymentService(apiService: ApiService()),
+                balance: balance,
+                balanceLoading: false,
+                balanceLoadFailed: false,
+                onRefreshBalance: () {},
+                onBalanceUpdated: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ваш баланс'), findsOneWidget);
+    expect(find.text('1 фото = 1 изображение'), findsOneWidget);
+    expect(find.textContaining('фотосессия = 3 изображения'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
