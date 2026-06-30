@@ -29,9 +29,13 @@ class PhotoshootTripletPreview extends StatelessWidget {
   final double outerRadius;
   final double innerRadius;
 
-  bool get _useNetworkUrls =>
-      previewUrls.length >= 3 &&
-      previewUrls.take(3).every(isHttpPreviewUrl);
+  String? _networkUrlForIndex(int index) {
+    if (index < 0 || index >= previewUrls.length) {
+      return null;
+    }
+    final url = previewUrls[index];
+    return isHttpPreviewUrl(url) ? url.trim() : null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +43,6 @@ class PhotoshootTripletPreview extends StatelessWidget {
     final assets = previewAssets.length >= 3
         ? previewAssets
         : PreviewAssetPaths.photoshootPreviewAssetsForId(styleId);
-    final urls = _useNetworkUrls ? previewUrls.take(3).toList() : const <String>[];
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(outerRadius),
@@ -53,7 +56,7 @@ class PhotoshootTripletPreview extends StatelessWidget {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final assetPath = i < assets.length ? assets[i] : null;
-                    final networkUrl = i < urls.length ? urls[i] : null;
+                    final networkUrl = _networkUrlForIndex(i);
                     return PreviewAssetImage(
                       assetPath: assetPath,
                       networkUrl: networkUrl,

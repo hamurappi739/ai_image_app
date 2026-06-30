@@ -41,10 +41,11 @@ assets:
 ### 2. Remote catalog на backend (обновление без APK)
 
 1. Отредактируйте `backend/app/catalog/templates.json` или `photoshoots.json`
-2. Для новых preview используйте **публичные URL** в полях `previewUrl` / `previewUrls` (например Supabase Storage)
-3. Убедитесь, что `isActive: true` и задан `sortOrder`
-4. Задеплойте или перезапустите backend
-5. Пользователь **перезапускает приложение** — `CatalogService` подтянет каталог с API
+2. Для preview используйте **публичные URL** в полях `previewUrl` / `previewUrls` (Supabase bucket `catalog-previews`) или задайте только `SUPABASE_URL` — backend соберёт URL по шаблону пути при ответе API
+3. Загрузка preview в Storage: `python backend/tools/upload_catalog_previews.py --write-json` (нужны `SUPABASE_URL` + service role key)
+4. Убедитесь, что `isActive: true` и задан `sortOrder`
+5. Задеплойте или перезапустите backend
+6. Приложение подтянет каталог с API; при смене `catalogVersion` / `updatedAt` в `catalog_meta.json` — обновление при возврате в приложение
 
 Картинки по URL не входят в APK: их можно менять на сервере без пересборки.
 

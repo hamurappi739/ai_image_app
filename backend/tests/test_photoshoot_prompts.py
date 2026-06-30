@@ -6,6 +6,7 @@ import unittest
 
 from app.services.photoshoot_prompts import (
     build_identity_only_fallback_prompt_suffix,
+    build_kie_photoshoot_frame_prompt,
     build_photoshoot_frame_prompt,
     build_safe_a_only_batch_frame_prompt,
     build_safe_continuation_fallback_prompt_suffix,
@@ -13,6 +14,7 @@ from app.services.photoshoot_prompts import (
     build_series_anti_duplicate_rules,
     build_series_continuation_frame_composition,
     build_series_continuation_reference_prompt,
+    build_universal_photoshoot_diversity_rules,
     resolve_base_prompt,
     resolve_prompt_source,
 )
@@ -51,7 +53,9 @@ class PhotoshootContinuationPromptTests(unittest.TestCase):
         )
 
         self.assertIn("style anchor only", prompt.lower())
-        self.assertIn("do not copy pose, crop, camera angle", prompt.lower())
+        self.assertIn("image 3", prompt.lower())
+        self.assertIn("avoid-copy reference only", prompt.lower())
+        self.assertIn("do not copy its pose, crop, body angle", prompt.lower())
         self.assertIn("change at least 3 visual elements", prompt.lower())
 
     def test_frame_one_and_two_have_different_composition_instructions(self) -> None:
@@ -103,6 +107,40 @@ class PhotoshootContinuationPromptTests(unittest.TestCase):
 
         self.assertIn("Image 2 is a style reference only", identity_rules)
         self.assertIn("Image 1 is a style reference only", anchor_rules)
+
+    def test_universal_diversity_rules_differ_by_frame_index(self) -> None:
+        frame_zero = build_universal_photoshoot_diversity_rules(0, 3)
+        frame_one = build_universal_photoshoot_diversity_rules(1, 3)
+        frame_two = build_universal_photoshoot_diversity_rules(2, 3)
+
+        self.assertIn("frame 1 of 3", frame_zero.lower())
+        self.assertIn("three-quarter", frame_one.lower())
+        self.assertIn("frame 3 of 3", frame_two.lower())
+        self.assertIn("must differ from both frame 1 and frame 2", frame_two.lower())
+        self.assertNotEqual(frame_zero, frame_one)
+        self.assertNotEqual(frame_one, frame_two)
+
+    def test_built_prompts_include_universal_diversity_for_any_style(self) -> None:
+        for style_id in PHOTOSHOOT_STYLES:
+            style = PHOTOSHOOT_STYLES[style_id]
+            for frame_index in range(3):
+                prompt = build_kie_photoshoot_frame_prompt(
+                    style_id,
+                    style,
+                    frame_index=frame_index,
+                    output_count=3,
+                    series_reference_mode="identity_anchor",
+                )
+                self.assertIn(
+                    "Universal photoshoot diversity rules",
+                    prompt,
+                    f"{style_id} frame {frame_index}",
+                )
+                self.assertIn(
+                    "vertical portrait photo in 3:4 aspect ratio",
+                    prompt.lower(),
+                    f"{style_id} frame {frame_index}",
+                )
 
 
 class SafeFrame0FallbackPromptTests(unittest.TestCase):

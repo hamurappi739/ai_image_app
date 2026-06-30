@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     supabase_anon_key: str | None = None
     supabase_service_role_key: str | None = None
     supabase_storage_bucket: str = "generated-images"
+    supabase_catalog_previews_bucket: str = "catalog-previews"
     test_user_id: str | None = None
     enable_credit_consumption: bool = False
     enable_mock_payments: bool = Field(

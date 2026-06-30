@@ -1,10 +1,8 @@
-"""Kie API photoshoot provider (parallel frames 1/2 after anchor frame 0)."""
+"""Kie API photoshoot provider (sequential frames with duplicate guards)."""
 
 from __future__ import annotations
 
-import threading
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TypeAlias
 
 from fastapi import HTTPException
@@ -20,12 +18,17 @@ from app.services.photoshoot_prompts import (
     build_kie_photoshoot_frame_prompt,
     resolve_prompt_source,
 )
+from app.services.photoshoot_similarity import (
+    KIE_DUPLICATE_RETRY_PROMPT_SUFFIX,
+    find_generated_frame_duplicate,
+)
 from app.services.photoshoot_styles import PhotoshootStyle
 from app.services.storage_service import storage_service
 
 FrameStatusCallback: TypeAlias = Callable[[int, str], None]
 
 _PHOTOSHOOT_FAILURE_MESSAGE = "Photoshoot generation failed, please retry"
+_KIE_DUPLICATE_MAX_ATTEMPTS = 2
 
 
 def _raise_kie_photoshoot_failure(
@@ -146,20 +149,23 @@ class KiePhotoshootProvider:
 
             data_urls: list[str | None] = [None] * self._output_count
             anchor_path: str | None = None
+            previous_frame_path: str | None = None
 
-            data_urls[0] = self._generate_frame_data_url(
+            data_urls[0] = self._generate_unique_frame_data_url(
                 frame_index=0,
                 style=style,
                 client_style_id=client_style_id,
                 photoshoot_id=photoshoot_id,
+                user_id=user_id,
                 user_description=user_description,
                 series_mode=series_mode,
                 identity_path=identity_path,
                 anchor_path=anchor_path,
+                previous_frame_path=previous_frame_path,
+                existing_data_urls=[],
                 ttl_seconds=ttl_seconds,
                 kie_client=kie_client,
                 task_cap=task_cap,
-                has_generated_frames=False,
                 on_frame_status=on_frame_status,
             )
 
@@ -199,75 +205,62 @@ class KiePhotoshootProvider:
                     0,
                 )
 
-            parallel_indices = list(range(1, self._output_count))
-            if len(parallel_indices) == 1:
-                index = parallel_indices[0]
-                data_urls[index] = self._generate_frame_data_url(
-                    frame_index=index,
+            for frame_index in range(1, self._output_count):
+                existing = [url for url in data_urls[:frame_index] if url]
+                data_urls[frame_index] = self._generate_unique_frame_data_url(
+                    frame_index=frame_index,
                     style=style,
                     client_style_id=client_style_id,
                     photoshoot_id=photoshoot_id,
+                    user_id=user_id,
                     user_description=user_description,
                     series_mode=series_mode,
                     identity_path=identity_path,
                     anchor_path=anchor_path,
+                    previous_frame_path=previous_frame_path,
+                    existing_data_urls=existing,
                     ttl_seconds=ttl_seconds,
                     kie_client=kie_client,
                     task_cap=task_cap,
-                    has_generated_frames=True,
                     on_frame_status=on_frame_status,
                 )
-            else:
-                kie_log.info(
-                    "Kie parallel batch start: style_id=%s photoshoot_id=%s frame_indices=%s",
-                    client_style_id,
-                    photoshoot_id,
-                    parallel_indices,
-                )
-                errors: list[BaseException] = []
-                with ThreadPoolExecutor(max_workers=2) as executor:
-                    futures = {
-                        executor.submit(
-                            self._generate_frame_data_url,
-                            frame_index=index,
-                            style=style,
-                            client_style_id=client_style_id,
-                            photoshoot_id=photoshoot_id,
-                            user_description=user_description,
-                            series_mode=series_mode,
-                            identity_path=identity_path,
-                            anchor_path=anchor_path,
-                            ttl_seconds=ttl_seconds,
-                            kie_client=kie_client,
-                            task_cap=task_cap,
-                            has_generated_frames=True,
-                            on_frame_status=on_frame_status,
-                        ): index
-                        for index in parallel_indices
-                    }
-                    for future in as_completed(futures):
-                        index = futures[future]
-                        try:
-                            data_urls[index] = future.result()
-                        except BaseException as exc:
-                            errors.append(exc)
-                if errors:
-                    if isinstance(errors[0], HTTPException):
-                        raise errors[0]
-                    if isinstance(errors[0], KieImageGenerationError):
-                        _raise_kie_photoshoot_failure(
-                            style_id=client_style_id,
-                            stage="kie_batch",
-                            reason=str(errors[0]),
-                            photoshoot_id=photoshoot_id,
+
+                if (
+                    frame_index == 1
+                    and self._output_count > 2
+                    and series_mode != "legacy"
+                    and data_urls[frame_index] is not None
+                ):
+                    kie_log.info(
+                        "Kie temp previous-frame upload start: style_id=%s photoshoot_id=%s "
+                        "frame_index=%s",
+                        client_style_id,
+                        photoshoot_id,
+                        frame_index,
+                    )
+                    try:
+                        previous_frame_path, _previous_signed = (
+                            storage_service.upload_temp_input_data_url(
+                                user_id,
+                                data_urls[frame_index],
+                                ttl_seconds=ttl_seconds,
+                            )
                         )
-                    raise errors[0]
-                kie_log.info(
-                    "Kie parallel batch done: style_id=%s photoshoot_id=%s frames=%s",
-                    client_style_id,
-                    photoshoot_id,
-                    parallel_indices,
-                )
+                    except HTTPException as exc:
+                        _map_storage_http_failure(
+                            exc,
+                            style_id=client_style_id,
+                            photoshoot_id=photoshoot_id,
+                            stage="kie_temp_upload_previous",
+                        )
+                    temp_paths.append(previous_frame_path)
+                    kie_log.info(
+                        "Kie temp previous-frame upload done: style_id=%s photoshoot_id=%s "
+                        "frame_index=%s",
+                        client_style_id,
+                        photoshoot_id,
+                        frame_index,
+                    )
 
             return self._finalize_data_urls(
                 data_urls,
@@ -283,6 +276,71 @@ class KiePhotoshootProvider:
                 photoshoot_id,
                 len(temp_paths),
             )
+
+    def _generate_unique_frame_data_url(
+        self,
+        *,
+        frame_index: int,
+        style: PhotoshootStyle,
+        client_style_id: str,
+        photoshoot_id: str,
+        user_id: str,
+        user_description: str | None,
+        series_mode: str,
+        identity_path: str,
+        anchor_path: str | None,
+        previous_frame_path: str | None,
+        existing_data_urls: list[str],
+        ttl_seconds: int,
+        kie_client: KieImageTaskClient,
+        task_cap: int,
+        on_frame_status: FrameStatusCallback | None,
+    ) -> str:
+        for attempt in range(_KIE_DUPLICATE_MAX_ATTEMPTS):
+            prompt_suffix = (
+                f"\n\n{KIE_DUPLICATE_RETRY_PROMPT_SUFFIX}"
+                if attempt > 0
+                else ""
+            )
+            data_url = self._generate_frame_data_url(
+                frame_index=frame_index,
+                style=style,
+                client_style_id=client_style_id,
+                photoshoot_id=photoshoot_id,
+                user_description=user_description,
+                series_mode=series_mode,
+                identity_path=identity_path,
+                anchor_path=anchor_path,
+                previous_frame_path=previous_frame_path,
+                ttl_seconds=ttl_seconds,
+                kie_client=kie_client,
+                task_cap=task_cap,
+                has_generated_frames=frame_index > 0,
+                prompt_suffix=prompt_suffix,
+                on_frame_status=on_frame_status,
+            )
+            duplicate_match = find_generated_frame_duplicate(data_url, existing_data_urls)
+            if duplicate_match is None:
+                return data_url
+
+            kie_log.warning(
+                "Kie duplicate frame detected: style_id=%s photoshoot_id=%s frame_index=%s "
+                "attempt=%s duplicate_check=%s duplicate_frame_index=%s duplicate_distance=%s",
+                client_style_id,
+                photoshoot_id,
+                frame_index,
+                attempt + 1,
+                duplicate_match.kind,
+                duplicate_match.duplicate_frame_index,
+                duplicate_match.perceptual_distance,
+            )
+
+        _raise_kie_photoshoot_failure(
+            style_id=client_style_id,
+            stage="kie_batch",
+            reason="duplicate_frame_persists",
+            photoshoot_id=photoshoot_id,
+        )
 
     def _finalize_data_urls(
         self,
@@ -322,10 +380,12 @@ class KiePhotoshootProvider:
         series_mode: str,
         identity_path: str,
         anchor_path: str | None,
+        previous_frame_path: str | None,
         ttl_seconds: int,
         kie_client: KieImageTaskClient,
         task_cap: int,
         has_generated_frames: bool,
+        prompt_suffix: str = "",
         on_frame_status: FrameStatusCallback | None,
     ) -> str:
         self._notify_frame_status(on_frame_status, frame_index, "generating")
@@ -338,11 +398,15 @@ class KiePhotoshootProvider:
             user_description=user_description,
             series_reference_mode=series_mode,
         )
+        if prompt_suffix:
+            instruction = f"{instruction}{prompt_suffix}"
+
         input_urls = self._build_input_urls(
             series_mode=series_mode,
             frame_index=frame_index,
             identity_path=identity_path,
             anchor_path=anchor_path,
+            previous_frame_path=previous_frame_path,
             ttl_seconds=ttl_seconds,
             client_style_id=client_style_id,
             photoshoot_id=photoshoot_id,
@@ -403,28 +467,31 @@ class KiePhotoshootProvider:
         frame_index: int,
         identity_path: str,
         anchor_path: str | None,
+        previous_frame_path: str | None,
         ttl_seconds: int,
         client_style_id: str,
         photoshoot_id: str,
         has_frames: bool,
     ) -> list[str]:
         bucket = settings.supabase_temp_storage_bucket
-        try:
-            identity_signed = storage_service.create_signed_url(
-                identity_path,
-                ttl_seconds=ttl_seconds,
-                bucket=bucket,
-            )
-        except HTTPException as exc:
-            _map_storage_http_failure(
-                exc,
-                style_id=client_style_id,
-                photoshoot_id=photoshoot_id,
-                stage="kie_signed_url",
-            )
+
+        def signed_url(path: str, *, stage: str) -> str:
+            try:
+                return storage_service.create_signed_url(
+                    path,
+                    ttl_seconds=ttl_seconds,
+                    bucket=bucket,
+                )
+            except HTTPException as exc:
+                _map_storage_http_failure(
+                    exc,
+                    style_id=client_style_id,
+                    photoshoot_id=photoshoot_id,
+                    stage=stage,
+                )
 
         if frame_index == 0 or series_mode == "legacy":
-            return [identity_signed]
+            return [signed_url(identity_path, stage="kie_signed_url")]
 
         if not has_frames or anchor_path is None:
             _raise_kie_photoshoot_failure(
@@ -434,26 +501,22 @@ class KiePhotoshootProvider:
                 photoshoot_id=photoshoot_id,
             )
 
-        try:
-            if series_mode == "anchor_only":
-                anchor_signed = storage_service.create_signed_url(
-                    anchor_path,
-                    ttl_seconds=ttl_seconds,
-                    bucket=bucket,
+        if series_mode == "anchor_only":
+            anchor_signed = signed_url(anchor_path, stage="kie_signed_url")
+            if frame_index >= 2 and previous_frame_path is not None:
+                previous_signed = signed_url(
+                    previous_frame_path,
+                    stage="kie_signed_url_previous",
                 )
-                return [anchor_signed]
+                return [anchor_signed, previous_signed]
+            return [anchor_signed]
 
-            anchor_signed = storage_service.create_signed_url(
-                anchor_path,
-                ttl_seconds=ttl_seconds,
-                bucket=bucket,
+        identity_signed = signed_url(identity_path, stage="kie_signed_url")
+        anchor_signed = signed_url(anchor_path, stage="kie_signed_url")
+        if frame_index >= 2 and previous_frame_path is not None:
+            previous_signed = signed_url(
+                previous_frame_path,
+                stage="kie_signed_url_previous",
             )
-        except HTTPException as exc:
-            _map_storage_http_failure(
-                exc,
-                style_id=client_style_id,
-                photoshoot_id=photoshoot_id,
-                stage="kie_signed_url",
-            )
-
+            return [identity_signed, anchor_signed, previous_signed]
         return [identity_signed, anchor_signed]

@@ -91,14 +91,36 @@ class AiImageGeneratorApp extends StatefulWidget {
   State<AiImageGeneratorApp> createState() => _AiImageGeneratorAppState();
 }
 
-class _AiImageGeneratorAppState extends State<AiImageGeneratorApp> {
+class _AiImageGeneratorAppState extends State<AiImageGeneratorApp>
+    with WidgetsBindingObserver {
   ThemeMode _themeMode = ThemeMode.light;
   bool _themeLoaded = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(_loadThemeMode());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_refreshCatalogIfNeeded());
+    }
+  }
+
+  Future<void> _refreshCatalogIfNeeded() async {
+    final changed = await CatalogService.instance.refreshIfCatalogChanged();
+    if (changed && mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadThemeMode() async {

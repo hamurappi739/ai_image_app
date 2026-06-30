@@ -462,6 +462,11 @@ def build_photoshoot_frame_prompt(
     )
     safe_index = min(max(frame_index, 0), len(frame_prompts) - 1)
     prompt = build_photoshoot_prompt(base_prompt, frame_prompts[safe_index])
+    if output_count > 1:
+        prompt = (
+            f"{prompt}\n\n"
+            f"{build_universal_photoshoot_diversity_rules(frame_index, output_count)}"
+        )
     if frame_index == 0 and series_reference_mode in {"identity_anchor", "anchor_only"}:
         prompt = f"{prompt}\n\n{build_series_anchor_frame_prompt()}"
     if frame_index > 0 and series_reference_mode in {"identity_anchor", "anchor_only"}:
@@ -515,8 +520,46 @@ def build_series_anchor_frame_prompt() -> str:
     )
 
 
-def build_series_anti_duplicate_rules(*, style_image_label: str) -> str:
-    """Rules to prevent copying pose/composition from the style anchor frame."""
+def build_universal_photoshoot_diversity_rules(
+    frame_index: int,
+    output_count: int,
+) -> str:
+    """Shared composition diversity rules applied to every photoshoot style."""
+    _ = output_count
+    if frame_index <= 0:
+        return (
+            "Universal photoshoot diversity rules (frame 1 of 3):\n"
+            "Close or chest-up identity anchor. Calm or direct gaze. Establish outfit, location, "
+            "lighting, and color grading for the series. This frame is the style anchor."
+        )
+    if frame_index == 1:
+        return (
+            "Universal photoshoot diversity rules (frame 2 of 3):\n"
+            "Medium portrait with a clear three-quarter body turn. Different head angle from "
+            "frame 1. Different hand and arm position. Slightly different crop and camera distance. "
+            "Must not mirror frame 1 pose, gaze, or composition."
+        )
+    return (
+        "Universal photoshoot diversity rules (frame 3 of 3):\n"
+        "Wider waist-up or lifestyle portrait with more environment visible. Different body "
+        "orientation from frames 1 and 2. Different gaze and clearly different hand/arm position. "
+        "Critical: frame 3 must differ from both frame 1 and frame 2. Do not reuse the pose, "
+        "crop, body angle, hands, gaze, or background framing from frame 2."
+    )
+
+
+def build_series_anti_duplicate_rules(
+    *,
+    style_image_label: str,
+    previous_image_label: str | None = None,
+) -> str:
+    """Rules to prevent copying pose/composition from reference frames."""
+    previous_block = ""
+    if previous_image_label:
+        previous_block = (
+            f"8. {previous_image_label} is an avoid-copy reference only — do not repeat its pose, "
+            "crop, body angle, hands, gaze, or background framing.\n"
+        )
     return (
         "Anti-duplicate rules (critical):\n"
         f"1. {style_image_label} is a style reference only, not a pose/composition reference.\n"
@@ -533,6 +576,7 @@ def build_series_anti_duplicate_rules(*, style_image_label: str) -> str:
         "   - background framing\n"
         "7. The result must look like another shot from the same professional photoshoot, "
         "not a duplicate.\n"
+        f"{previous_block}"
         "One photoshoot, three different shots — not three different looks or outfits."
     )
 
@@ -567,12 +611,50 @@ def build_series_continuation_reference_prompt(
     composition_block = f"\n\n{composition}" if composition else ""
 
     if series_reference_mode == "anchor_only":
+        if frame_index >= 2:
+            anti_duplicate = build_series_anti_duplicate_rules(
+                style_image_label="Image 1",
+                previous_image_label="Image 2",
+            )
+            return (
+                "Reference image roles for this request:\n"
+                "Image 1: The first generated frame of this photoshoot series. Use it only as a "
+                "style anchor — preserve wardrobe, background, location, lighting, color grading, "
+                "and processing. Do NOT copy its pose, crop, camera angle, or facial expression.\n"
+                "Image 2: The immediately previous generated frame (frame 2). Avoid-copy reference "
+                "only — do NOT copy its pose, crop, body angle, hands, gaze, or background framing.\n"
+                "Generate exactly ONE new frame of the same photoshoot.\n\n"
+                f"{anti_duplicate}"
+                f"{composition_block}\n\n"
+                f"{build_style_lock_prompt_block(client_style_id)}"
+            )
         anti_duplicate = build_series_anti_duplicate_rules(style_image_label="Image 1")
         return (
             "Reference image roles for this request:\n"
             "Image 1: The first generated frame of this photoshoot series. Use it only as a "
             "style anchor — preserve wardrobe, background, location, lighting, color grading, "
             "and processing. Do NOT copy its pose, crop, camera angle, or facial expression.\n"
+            "Generate exactly ONE new frame of the same photoshoot.\n\n"
+            f"{anti_duplicate}"
+            f"{composition_block}\n\n"
+            f"{build_style_lock_prompt_block(client_style_id)}"
+        )
+
+    if frame_index >= 2:
+        anti_duplicate = build_series_anti_duplicate_rules(
+            style_image_label="Image 2",
+            previous_image_label="Image 3",
+        )
+        return (
+            "Reference image roles for this request:\n"
+            "Image 1: The original user photo. Identity reference only — preserve face, age, facial "
+            "features, skin tone, hair, and recognizability. Do not copy pose or composition from "
+            "Image 1 unless needed for identity.\n"
+            "Image 2: The first generated frame of this photoshoot series. Style anchor only — "
+            "preserve wardrobe, background, location, lighting, color grading, and processing. "
+            "Do NOT copy pose, crop, camera angle, or facial expression from Image 2.\n"
+            "Image 3: The immediately previous generated frame (frame 2). Avoid-copy reference only — "
+            "do NOT copy its pose, crop, body angle, hands, gaze, or background framing.\n"
             "Generate exactly ONE new frame of the same photoshoot.\n\n"
             f"{anti_duplicate}"
             f"{composition_block}\n\n"

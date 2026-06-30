@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/catalog_fallback.dart';
 import '../models/catalog_entries.dart';
@@ -20,6 +21,8 @@ class CatalogService {
   static const _templatesAsset = 'assets/catalog/templates.json';
   static const _photoshootsAsset = 'assets/catalog/photoshoots.json';
   static const _remoteTimeout = Duration(seconds: 4);
+  static const _catalogVersionKey = 'catalog_version';
+  static const _catalogUpdatedAtKey = 'catalog_updated_at';
 
   List<CatalogTemplateEntry> _templates =
       List.unmodifiable(CatalogFallback.templates);
@@ -30,24 +33,51 @@ class CatalogService {
   bool _usedFallback = false;
   CatalogSource _catalogSource = CatalogSource.embeddedFallback;
   String? _loadError;
+  String? _catalogVersion;
+  String? _catalogUpdatedAt;
 
   bool get isLoaded => _isLoaded;
   bool get usedFallback => _usedFallback;
   CatalogSource get catalogSource => _catalogSource;
   String? get loadError => _loadError;
+  String? get catalogVersion => _catalogVersion;
+  String? get catalogUpdatedAt => _catalogUpdatedAt;
 
   List<CatalogTemplateEntry> get templates => _templates;
   List<CatalogPhotoshootEntry> get photoshoots => _photoshoots;
 
-  Future<void> load() async {
-    final remoteLoaded = await _tryLoadRemote();
+  Future<void> load({bool forceRemote = false}) async {
+    final remoteLoaded = await _tryLoadRemote(force: forceRemote);
     if (!remoteLoaded) {
       await _loadFromAssets();
     }
     _isLoaded = true;
   }
 
-  Future<bool> _tryLoadRemote() async {
+  /// Reload remote catalog when backend [catalogVersion] changed.
+  Future<bool> refreshIfCatalogChanged() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedVersion = prefs.getString(_catalogVersionKey);
+    final storedUpdatedAt = prefs.getString(_catalogUpdatedAtKey);
+
+    if (!await _tryLoadRemote(persistMetadata: false)) {
+      return false;
+    }
+
+    final changed = (_catalogVersion != null && _catalogVersion != storedVersion) ||
+        (_catalogUpdatedAt != null && _catalogUpdatedAt != storedUpdatedAt);
+
+    if (changed) {
+      await _persistCatalogMetadata(prefs);
+      _isLoaded = true;
+    }
+    return changed;
+  }
+
+  Future<bool> _tryLoadRemote({
+    bool force = false,
+    bool persistMetadata = true,
+  }) async {
     final client = http.Client();
     try {
       final baseUrl = ApiService.baseUrl;
@@ -74,6 +104,8 @@ class CatalogService {
           _parseTemplatesPayload(jsonDecode(responses[0].body));
       final parsedPhotoshoots =
           _parsePhotoshootsPayload(jsonDecode(responses[1].body));
+      final templatesMeta = _parseCatalogMetadata(jsonDecode(responses[0].body));
+      final photoshootsMeta = _parseCatalogMetadata(jsonDecode(responses[1].body));
 
       if (parsedTemplates.isEmpty && parsedPhotoshoots.isEmpty) {
         return false;
@@ -87,15 +119,26 @@ class CatalogService {
             ? CatalogFallback.photoshoots
             : parsedPhotoshoots,
       );
+      _catalogVersion =
+          templatesMeta.catalogVersion ?? photoshootsMeta.catalogVersion;
+      _catalogUpdatedAt = _latestUpdatedAt(
+        templatesMeta.updatedAt,
+        photoshootsMeta.updatedAt,
+      );
       _usedFallback =
           parsedTemplates.isEmpty || parsedPhotoshoots.isEmpty;
       _catalogSource = CatalogSource.remote;
       _loadError = null;
 
+      if (persistMetadata) {
+        await _persistCatalogMetadata(await SharedPreferences.getInstance());
+      }
+
       if (kDebugMode) {
         debugPrint(
           'CatalogService: loaded remote catalog '
-          '(${_templates.length} templates, ${_photoshoots.length} photoshoots)',
+          '(${_templates.length} templates, ${_photoshoots.length} photoshoots, '
+          'version=${_catalogVersion ?? 'unknown'})',
         );
       }
       return true;
@@ -219,4 +262,48 @@ class CatalogService {
     }
     throw FormatException('$label catalog payload must contain an items array');
   }
+
+  Future<void> _persistCatalogMetadata(SharedPreferences prefs) async {
+    final version = _catalogVersion;
+    final updatedAt = _catalogUpdatedAt;
+    if (version != null && version.isNotEmpty) {
+      await prefs.setString(_catalogVersionKey, version);
+    }
+    if (updatedAt != null && updatedAt.isNotEmpty) {
+      await prefs.setString(_catalogUpdatedAtKey, updatedAt);
+    }
+  }
+
+  _CatalogMetadata _parseCatalogMetadata(Object? decoded) {
+    if (decoded is! Map<String, dynamic>) {
+      return const _CatalogMetadata();
+    }
+    final catalogVersion = decoded['catalogVersion'];
+    final updatedAt = decoded['updatedAt'];
+    return _CatalogMetadata(
+      catalogVersion: catalogVersion is String && catalogVersion.trim().isNotEmpty
+          ? catalogVersion.trim()
+          : null,
+      updatedAt: updatedAt is String && updatedAt.trim().isNotEmpty
+          ? updatedAt.trim()
+          : null,
+    );
+  }
+
+  String? _latestUpdatedAt(String? first, String? second) {
+    if (first == null || first.isEmpty) {
+      return second;
+    }
+    if (second == null || second.isEmpty) {
+      return first;
+    }
+    return first.compareTo(second) >= 0 ? first : second;
+  }
+}
+
+class _CatalogMetadata {
+  const _CatalogMetadata({this.catalogVersion, this.updatedAt});
+
+  final String? catalogVersion;
+  final String? updatedAt;
 }

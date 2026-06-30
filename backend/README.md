@@ -162,6 +162,26 @@ Backend обращается к Supabase через **REST API** (`httpx`), бе
 
 **Текущий статус:** bucket `generated-images` создан; upload через backend проверен (`POST /debug/storage-test`, `POST /debug/storage-image-test`).
 
+### Bucket `catalog-previews` (карточки каталога)
+
+1. **Storage → New bucket** → имя **`catalog-previews`** (или `SUPABASE_CATALOG_PREVIEWS_BUCKET` в `.env`).
+2. Bucket **public** — Flutter грузит preview по HTTP без signed URL.
+3. Загрузите JPG из `frontend/assets/previews/`:
+
+```powershell
+cd backend
+python tools/upload_catalog_previews.py --write-json
+```
+
+Пути в Storage:
+
+- `templates/{template_id}_v1.jpg`
+- `photoshoots/{style_id}_1_v1.jpg` … `_3_v1.jpg`
+
+После upload скрипт с `--write-json` запишет `previewUrl` / `previewUrls` / `referenceUrl` в `backend/app/catalog/` и обновит `catalog_meta.json` (`catalogVersion`, `updatedAt`).
+
+Без upload backend всё равно отдаёт URL в API, если задан `SUPABASE_URL` (сборка по шаблону пути). Для генерации reference image backend сначала пробует явный `referenceUrl` из JSON, иначе локальный `referenceAsset`.
+
 ### POST /debug/storage-test (development only)
 
 Внутренний тест **backend → Supabase Storage**: загружает маленький файл `b"storage test"` (`text/plain`) без приёма файла от клиента.

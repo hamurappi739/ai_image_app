@@ -663,5 +663,58 @@ class SupabaseStorageService:
         )
         return public_url, path
 
+    def upload_catalog_preview_bytes(
+        self,
+        path: str,
+        content: bytes,
+        content_type: str = "image/jpeg",
+    ) -> str:
+        """Upload a catalog preview object to the public catalog-previews bucket."""
+        try:
+            base_url = _require_storage_config()
+        except RuntimeError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+        bucket = (settings.supabase_catalog_previews_bucket or "").strip()
+        if not bucket:
+            raise HTTPException(
+                status_code=500,
+                detail="SUPABASE_CATALOG_PREVIEWS_BUCKET is not configured",
+            )
+
+        object_path = _encode_object_path(path)
+        url = f"{base_url}/storage/v1/object/{quote(bucket, safe='')}/{object_path}"
+
+        headers = {
+            "apikey": settings.supabase_service_role_key,
+            "Authorization": f"Bearer {settings.supabase_service_role_key}",
+            "Content-Type": content_type,
+            "x-upsert": "true",
+        }
+
+        try:
+            response = httpx.put(
+                url, headers=headers, content=content, timeout=60.0
+            )
+        except httpx.HTTPError as exc:
+            _raise_storage_unavailable(exc)
+
+        if response.status_code not in _UPLOAD_SUCCESS_STATUSES:
+            _raise_storage_upload_failed(response)
+
+        return self.get_catalog_preview_public_url(path)
+
+    def get_catalog_preview_public_url(self, path: str) -> str:
+        base_url = _require_storage_config()
+        bucket = (settings.supabase_catalog_previews_bucket or "").strip()
+        if not bucket:
+            raise RuntimeError("SUPABASE_CATALOG_PREVIEWS_BUCKET is not configured")
+
+        object_path = _encode_object_path(path)
+        return (
+            f"{base_url}/storage/v1/object/public/"
+            f"{quote(bucket, safe='')}/{object_path}"
+        )
+
 
 storage_service = SupabaseStorageService()

@@ -38,6 +38,26 @@ _RESULT_IMAGE_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 _RESULT_URL = "https://cdn.example.com/result.png"
 _SIGNED_URL_A = "https://supabase.example.com/signed/a"
 _SIGNED_URL_B = "https://supabase.example.com/signed/b"
+_SIGNED_URL_C = "https://supabase.example.com/signed/c"
+
+
+def _distinct_result_image_bytes(frame_index: int) -> bytes:
+    return _RESULT_IMAGE_BYTES + bytes([frame_index % 256])
+
+
+def _sequential_kie_temp_uploads() -> list[tuple[str, str]]:
+    return [
+        ("temp/b", _SIGNED_URL_B),
+        ("temp/c", _SIGNED_URL_C),
+    ]
+
+
+def _download_response_for_frame(frame_index: int) -> httpx.Response:
+    return httpx.Response(
+        200,
+        content=_distinct_result_image_bytes(frame_index),
+        request=httpx.Request("GET", _RESULT_URL),
+    )
 
 
 def _kie_settings_patch(mock_settings: MagicMock) -> None:
@@ -506,19 +526,21 @@ class KiePhotoshootAtomicityTests(unittest.TestCase):
     ) -> None:
         mock_resolve_provider.return_value = "kie_gpt_image_2"
         mock_upload_bytes.return_value = ("temp/a", _SIGNED_URL_A)
-        mock_upload_data_url.return_value = ("temp/b", _SIGNED_URL_B)
-        mock_signed_url.side_effect = [
-            _SIGNED_URL_A,
-            _SIGNED_URL_A,
-            _SIGNED_URL_B,
-            _SIGNED_URL_A,
-            _SIGNED_URL_B,
-        ]
+        mock_upload_data_url.side_effect = _sequential_kie_temp_uploads()
+        mock_signed_url.side_effect = lambda path, **kwargs: {
+            "temp/a": _SIGNED_URL_A,
+            "temp/b": _SIGNED_URL_B,
+            "temp/c": _SIGNED_URL_C,
+        }.get(path, _SIGNED_URL_A)
 
         kie_client = MagicMock()
         kie_client.http_calls_count = 0
         kie_client.created_tasks_count = 0
-        kie_client.generate_image_bytes.return_value = (_RESULT_IMAGE_BYTES, "image/png")
+        kie_client.generate_image_bytes.side_effect = [
+            (_distinct_result_image_bytes(0), "image/png"),
+            (_distinct_result_image_bytes(1), "image/png"),
+            (_distinct_result_image_bytes(2), "image/png"),
+        ]
         mock_kie_client_cls.return_value = kie_client
 
         provider = KiePhotoshootProvider(output_count=3)
@@ -545,6 +567,7 @@ class KiePhotoshootAtomicityTests(unittest.TestCase):
         deleted_paths = mock_delete_temp.call_args.args[0]
         self.assertIn("temp/a", deleted_paths)
         self.assertIn("temp/b", deleted_paths)
+        self.assertIn("temp/c", deleted_paths)
 
     @patch("app.services.photoshoot_service.resolve_photoshoot_image_provider")
     @patch.object(storage_service, "upload_temp_input_bytes")
@@ -581,17 +604,21 @@ class KiePhotoshootAtomicityTests(unittest.TestCase):
         mock_provider_settings.photoshoot_output_count = 3
         mock_resolve_provider.return_value = "kie_gpt_image_2"
         mock_upload_bytes.return_value = ("temp/a", _SIGNED_URL_A)
-        mock_upload_data_url.return_value = ("temp/b", _SIGNED_URL_B)
-        mock_signed_url.side_effect = (
-            lambda *args, **kwargs: _SIGNED_URL_B
-            if args and args[0] == "temp/b"
-            else _SIGNED_URL_A
-        )
+        mock_upload_data_url.side_effect = _sequential_kie_temp_uploads()
+        mock_signed_url.side_effect = lambda path, **kwargs: {
+            "temp/a": _SIGNED_URL_A,
+            "temp/b": _SIGNED_URL_B,
+            "temp/c": _SIGNED_URL_C,
+        }.get(path, _SIGNED_URL_A)
         mock_post.return_value = _create_task_response()
         mock_get.side_effect = [
             _poll_response("success"),
-            _download_response(),
-        ] * 3
+            _download_response_for_frame(0),
+            _poll_response("success"),
+            _download_response_for_frame(1),
+            _poll_response("success"),
+            _download_response_for_frame(2),
+        ]
         mock_upload_frames.return_value = (
             ["https://public/1", "https://public/2", "https://public/3"],
             ["p1", "p2", "p3"],

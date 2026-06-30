@@ -268,6 +268,7 @@ class CatalogTemplateItem(BaseModel):
     previewAsset: str
     referenceAsset: str | None = None
     previewUrl: str | None = None
+    referenceUrl: str | None = None
     priceImages: int = 1
     isActive: bool = True
     sortOrder: int = 0
@@ -296,9 +297,13 @@ class CatalogTemplatesResponse(BaseModel):
     items: list[CatalogTemplateItem]
     source: str = "backend"
     version: str = "1"
+    catalogVersion: str = "1"
+    updatedAt: str | None = None
 
 
 class CatalogPhotoshootsResponse(BaseModel):
     items: list[CatalogPhotoshootItem]
     source: str = "backend"
     version: str = "1"
+    catalogVersion: str = "1"
+    updatedAt: str | None = None

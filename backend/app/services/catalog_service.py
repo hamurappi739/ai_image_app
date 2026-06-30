@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.services.catalog_preview_urls import (
+    enrich_photoshoot_catalog_item,
+    enrich_template_catalog_item,
+)
+
 _CATALOG_DIR = Path(__file__).resolve().parent.parent / "catalog"
-_CATALOG_VERSION = "1"
+_CATALOG_META_PATH = _CATALOG_DIR / "catalog_meta.json"
+_DEFAULT_CATALOG_VERSION = "1"
 
 
 def _catalog_path(filename: str) -> Path:
@@ -41,21 +48,75 @@ def _active_sorted(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return active
 
 
+def _read_catalog_meta() -> dict[str, Any]:
+    if not _CATALOG_META_PATH.is_file():
+        return {
+            "catalogVersion": _DEFAULT_CATALOG_VERSION,
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+        }
+
+    try:
+        raw = _CATALOG_META_PATH.read_text(encoding="utf-8")
+        data = json.loads(raw)
+    except (OSError, json.JSONDecodeError):
+        return {
+            "catalogVersion": _DEFAULT_CATALOG_VERSION,
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+        }
+
+    if not isinstance(data, dict):
+        return {
+            "catalogVersion": _DEFAULT_CATALOG_VERSION,
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+        }
+
+    catalog_version = data.get("catalogVersion")
+    updated_at = data.get("updatedAt")
+    return {
+        "catalogVersion": (
+            str(catalog_version).strip()
+            if isinstance(catalog_version, str) and catalog_version.strip()
+            else _DEFAULT_CATALOG_VERSION
+        ),
+        "updatedAt": (
+            str(updated_at).strip()
+            if isinstance(updated_at, str) and updated_at.strip()
+            else datetime.now(timezone.utc).isoformat()
+        ),
+    }
+
+
+def _catalog_response_meta() -> dict[str, str]:
+    meta = _read_catalog_meta()
+    return {
+        "catalogVersion": meta["catalogVersion"],
+        "updatedAt": meta["updatedAt"],
+    }
+
+
 def load_templates_catalog() -> dict[str, Any]:
-    items = _active_sorted(_read_catalog_array("templates.json"))
+    items = [
+        enrich_template_catalog_item(item)
+        for item in _active_sorted(_read_catalog_array("templates.json"))
+    ]
     return {
         "items": items,
         "source": "backend",
-        "version": _CATALOG_VERSION,
+        "version": _DEFAULT_CATALOG_VERSION,
+        **_catalog_response_meta(),
     }
 
 
 def load_photoshoots_catalog() -> dict[str, Any]:
-    items = _active_sorted(_read_catalog_array("photoshoots.json"))
+    items = [
+        enrich_photoshoot_catalog_item(item)
+        for item in _active_sorted(_read_catalog_array("photoshoots.json"))
+    ]
     return {
         "items": items,
         "source": "backend",
-        "version": _CATALOG_VERSION,
+        "version": _DEFAULT_CATALOG_VERSION,
+        **_catalog_response_meta(),
     }
 
 

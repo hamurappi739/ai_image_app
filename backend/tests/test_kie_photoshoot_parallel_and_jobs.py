@@ -1,10 +1,8 @@
-"""Tests for parallel Kie photoshoot, job progress, and createTask rate limiting."""
+"""Tests for sequential Kie photoshoot, job progress, and createTask rate limiting."""
 
 from __future__ import annotations
 
 import io
-import threading
-import time
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -43,23 +41,24 @@ _SIGNED_URL_A = "https://supabase.example.com/signed/a"
 _SIGNED_URL_B = "https://supabase.example.com/signed/b"
 
 
-class KieParallelPipelineTests(unittest.TestCase):
-    def test_frame_zero_runs_before_parallel_batch(self) -> None:
+_SIGNED_URL_C = "https://supabase.example.com/signed/c"
+
+
+class KieSequentialPipelineTests(unittest.TestCase):
+    def test_frames_generate_in_order_zero_one_two(self) -> None:
         provider = KiePhotoshootProvider(output_count=3)
         call_log: list[int] = []
-        lock = threading.Lock()
-
-        original = provider._generate_frame_data_url
 
         def tracking_generate(*, frame_index: int, **kwargs):
-            with lock:
-                call_log.append(frame_index)
-            time.sleep(0.05 if frame_index > 0 else 0.0)
+            call_log.append(frame_index)
             return f"data:image/png;base64,FRAME{frame_index}"
 
-        with patch.object(provider, "_generate_frame_data_url", side_effect=tracking_generate):
+        with patch.object(provider, "_generate_unique_frame_data_url", side_effect=tracking_generate):
             with patch.object(storage_service, "upload_temp_input_bytes", return_value=("temp/a", _SIGNED_URL_A)):
-                with patch.object(storage_service, "upload_temp_input_data_url", return_value=("temp/b", _SIGNED_URL_B)):
+                with patch.object(storage_service, "upload_temp_input_data_url", side_effect=[
+                    ("temp/b", _SIGNED_URL_B),
+                    ("temp/c", _SIGNED_URL_C),
+                ]):
                     with patch.object(storage_service, "create_signed_url", return_value=_SIGNED_URL_A):
                         with patch.object(storage_service, "delete_temp_objects_best_effort"):
                             with patch("app.services.kie_photoshoot_provider.settings") as mock_settings:
@@ -73,65 +72,46 @@ class KieParallelPipelineTests(unittest.TestCase):
                                     _TEST_PHOTO_BYTES,
                                     _TEST_PHOTO_TYPE,
                                     client_style_id="studio_portrait",
-                                    photoshoot_id="ps-parallel",
+                                    photoshoot_id="ps-sequential",
                                     user_id="user-1",
                                 )
 
         self.assertEqual(len(result), 3)
-        self.assertEqual(call_log[0], 0)
-        self.assertEqual(set(call_log[1:]), {1, 2})
+        self.assertEqual(call_log, [0, 1, 2])
 
-    @patch("app.services.kie_photoshoot_provider.as_completed")
-    @patch("app.services.kie_photoshoot_provider.ThreadPoolExecutor")
-    def test_frames_one_and_two_use_thread_pool(
-        self,
-        mock_executor_cls: MagicMock,
-        mock_as_completed: MagicMock,
-    ) -> None:
+    def test_frame_two_receives_previous_frame_path(self) -> None:
         provider = KiePhotoshootProvider(output_count=3)
-        mock_executor = MagicMock()
-        mock_executor_cls.return_value.__enter__.return_value = mock_executor
+        captured: list[tuple[int, str | None]] = []
 
-        submitted_indices: list[int] = []
+        def stub_unique(**kwargs):
+            captured.append((kwargs["frame_index"], kwargs.get("previous_frame_path")))
+            return f"data:image/png;base64,UNIQUE{kwargs['frame_index']}"
 
-        def submit_stub(fn, **kwargs):
-            future = MagicMock()
-            future.result.return_value = f"data:image/png;base64,FRAME{kwargs['frame_index']}"
-            submitted_indices.append(kwargs["frame_index"])
-            return future
-
-        mock_executor.submit.side_effect = submit_stub
-        mock_as_completed.side_effect = lambda futures: list(futures.keys())
-
-        with patch.object(
-            provider,
-            "_generate_frame_data_url",
-            return_value="data:image/png;base64,FRAME0",
-        ) as mock_generate:
+        with patch.object(provider, "_generate_unique_frame_data_url", side_effect=stub_unique):
             with patch.object(storage_service, "upload_temp_input_bytes", return_value=("temp/a", _SIGNED_URL_A)):
-                with patch.object(storage_service, "upload_temp_input_data_url", return_value=("temp/b", _SIGNED_URL_B)):
-                    with patch.object(storage_service, "create_signed_url", return_value=_SIGNED_URL_A):
-                        with patch.object(storage_service, "delete_temp_objects_best_effort"):
-                            with patch("app.services.kie_photoshoot_provider.settings") as mock_settings:
-                                mock_settings.photoshoot_series_reference_mode = "identity_anchor"
-                                mock_settings.kie_max_photoshoot_tasks = 5
-                                mock_settings.kie_temp_signed_url_ttl_seconds = 3600
-                                mock_settings.supabase_temp_storage_bucket = "ai-temp-inputs"
-                                mock_settings.kie_image_model = "gpt-image-2-image-to-image"
-                                provider.generate(
-                                    get_photoshoot_style("studio_portrait"),
-                                    _TEST_PHOTO_BYTES,
-                                    _TEST_PHOTO_TYPE,
-                                    client_style_id="studio_portrait",
-                                    photoshoot_id="ps-threadpool",
-                                    user_id="user-1",
-                                )
+                with patch.object(storage_service, "upload_temp_input_data_url", side_effect=[
+                    ("temp/b", _SIGNED_URL_B),
+                    ("temp/c", _SIGNED_URL_C),
+                ]):
+                    with patch.object(storage_service, "delete_temp_objects_best_effort"):
+                        with patch("app.services.kie_photoshoot_provider.settings") as mock_settings:
+                            mock_settings.photoshoot_series_reference_mode = "identity_anchor"
+                            mock_settings.kie_max_photoshoot_tasks = 5
+                            mock_settings.kie_temp_signed_url_ttl_seconds = 3600
+                            mock_settings.supabase_temp_storage_bucket = "ai-temp-inputs"
+                            mock_settings.kie_image_model = "gpt-image-2-image-to-image"
+                            provider.generate(
+                                get_photoshoot_style("studio_portrait"),
+                                _TEST_PHOTO_BYTES,
+                                _TEST_PHOTO_TYPE,
+                                client_style_id="studio_portrait",
+                                photoshoot_id="ps-frame2-ref",
+                                user_id="user-1",
+                            )
 
-        mock_executor_cls.assert_called_once_with(max_workers=2)
-        self.assertEqual(mock_executor.submit.call_count, 2)
-        self.assertEqual(set(submitted_indices), {1, 2})
-        self.assertEqual(mock_generate.call_count, 1)
-        self.assertEqual(mock_generate.call_args.kwargs["frame_index"], 0)
+        self.assertEqual(captured[0], (0, None))
+        self.assertEqual(captured[1], (1, None))
+        self.assertEqual(captured[2], (2, "temp/c"))
 
 
 class KieRateLimiterTests(unittest.TestCase):
@@ -356,7 +336,7 @@ class KieParallelFailureAtomicityTests(unittest.TestCase):
     @patch.object(storage_service, "delete_temp_objects_best_effort")
     @patch("app.services.photoshoot_service._upload_photoshoot_frames_to_storage")
     @patch("app.services.photoshoot_service._save_photoshoot_results_to_history")
-    def test_parallel_frame_two_failure_skips_persist(
+    def test_sequential_frame_two_failure_skips_persist(
         self,
         mock_save_history: MagicMock,
         mock_upload_frames: MagicMock,

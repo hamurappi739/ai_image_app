@@ -7,7 +7,6 @@ import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from io import BytesIO
 from typing import TypeAlias
 from uuid import uuid4
 
@@ -15,7 +14,6 @@ import httpx
 from fastapi import HTTPException
 from google import genai
 from google.genai import types
-from PIL import Image
 
 from app.config import settings
 from app.services.image_service import (
@@ -36,6 +34,11 @@ from app.services.photoshoot_prompts import (
     build_safe_continuation_fallback_prompt_suffix,
     build_safe_frame0_fallback_prompt,
     resolve_prompt_source,
+)
+from app.services.photoshoot_similarity import (
+    DuplicateFrameMatch,
+    find_generated_frame_duplicate as _find_generated_frame_duplicate,
+    is_duplicate_photoshoot_frame as _is_duplicate_photoshoot_frame,
 )
 from app.services.photoshoot_style_locks import CUSTOM_PHOTOSHOOT_STYLE_ID
 from app.services.photoshoot_styles import PhotoshootStyle
@@ -85,16 +88,6 @@ _NON_FALLBACK_400_HINTS = (
     "blocked",
     "policy",
 )
-_PERCEPTUAL_DHASH_WIDTH = 9
-_PERCEPTUAL_DHASH_HEIGHT = 8
-_PERCEPTUAL_DUPLICATE_MAX_HAMMING = 5
-
-
-@dataclass(frozen=True, slots=True)
-class DuplicateFrameMatch:
-    kind: str
-    duplicate_frame_index: int
-    perceptual_distance: int | None = None
 
 
 class _PhotoshootFrameFailure(Exception):
@@ -323,22 +316,6 @@ def _decode_generated_image_data_url(data_url: str) -> ReferenceImage:
     return content, content_type
 
 
-def _normalize_data_url_payload(data_url: str) -> str:
-    match = re.match(
-        r"^data:(?P<mime>[^;]+);base64,(?P<payload>.+)$",
-        data_url.strip(),
-        flags=re.DOTALL,
-    )
-    if not match:
-        return data_url.strip()
-    return re.sub(r"\s+", "", match.group("payload"))
-
-
-def _data_url_image_bytes(data_url: str) -> bytes:
-    image_bytes, _mime = _decode_generated_image_data_url(data_url)
-    return image_bytes
-
-
 def _exception_detail_text(exc: Exception) -> str:
     if isinstance(exc, HTTPException):
         detail = exc.detail
@@ -349,91 +326,6 @@ def _exception_detail_text(exc: Exception) -> str:
     if message:
         return message
     return str(exc)
-
-
-def _compute_dhash(image_bytes: bytes) -> int | None:
-    try:
-        image = Image.open(BytesIO(image_bytes)).convert("L")
-        image = image.resize(
-            (_PERCEPTUAL_DHASH_WIDTH, _PERCEPTUAL_DHASH_HEIGHT),
-            Image.Resampling.LANCZOS,
-        )
-        pixels = list(image.getdata())
-        hash_value = 0
-        for row in range(_PERCEPTUAL_DHASH_HEIGHT):
-            row_offset = row * _PERCEPTUAL_DHASH_WIDTH
-            for col in range(_PERCEPTUAL_DHASH_WIDTH - 1):
-                left = pixels[row_offset + col]
-                right = pixels[row_offset + col + 1]
-                hash_value = (hash_value << 1) | (1 if left > right else 0)
-        return hash_value
-    except Exception:
-        return None
-
-
-def _hamming_distance(left: int, right: int) -> int:
-    return (left ^ right).bit_count()
-
-
-def _find_perceptual_near_duplicate(
-    data_url: str,
-    existing_data_urls: list[str],
-) -> DuplicateFrameMatch | None:
-    try:
-        candidate_bytes = _data_url_image_bytes(data_url)
-    except HTTPException:
-        return None
-
-    candidate_hash = _compute_dhash(candidate_bytes)
-    if candidate_hash is None:
-        return None
-
-    for index, previous in enumerate(existing_data_urls):
-        try:
-            previous_bytes = _data_url_image_bytes(previous)
-        except HTTPException:
-            continue
-        previous_hash = _compute_dhash(previous_bytes)
-        if previous_hash is None:
-            continue
-        distance = _hamming_distance(candidate_hash, previous_hash)
-        if distance <= _PERCEPTUAL_DUPLICATE_MAX_HAMMING:
-            return DuplicateFrameMatch(
-                kind="perceptual",
-                duplicate_frame_index=index,
-                perceptual_distance=distance,
-            )
-    return None
-
-
-def _find_generated_frame_duplicate(
-    data_url: str,
-    existing_data_urls: list[str],
-) -> DuplicateFrameMatch | None:
-    if not existing_data_urls:
-        return None
-
-    normalized = _normalize_data_url_payload(data_url)
-    try:
-        candidate_bytes = _data_url_image_bytes(data_url)
-    except HTTPException:
-        candidate_bytes = None
-
-    for index, previous in enumerate(existing_data_urls):
-        if _normalize_data_url_payload(previous) == normalized:
-            return DuplicateFrameMatch(kind="exact", duplicate_frame_index=index)
-        if candidate_bytes is not None:
-            try:
-                if _data_url_image_bytes(previous) == candidate_bytes:
-                    return DuplicateFrameMatch(kind="exact", duplicate_frame_index=index)
-            except HTTPException:
-                continue
-
-    return _find_perceptual_near_duplicate(data_url, existing_data_urls)
-
-
-def _is_duplicate_photoshoot_frame(data_url: str, existing_data_urls: list[str]) -> bool:
-    return _find_generated_frame_duplicate(data_url, existing_data_urls) is not None
 
 
 def _is_multi_image_fallback_eligible(exc: Exception) -> bool:
