@@ -488,6 +488,7 @@ class KiePhotoshootAtomicityTests(unittest.TestCase):
             (_RESULT_IMAGE_BYTES, "image/png"),
             KieImageGenerationError("kie_task_failed"),
             KieImageGenerationError("kie_task_failed"),
+            KieImageGenerationError("kie_task_failed"),
         ]
         mock_kie_client_cls.return_value = kie_client
 

@@ -20,6 +20,7 @@ from app.services.photoshoot_prompts import (
 )
 from app.services.photoshoot_similarity import (
     KIE_DUPLICATE_RETRY_PROMPT_SUFFIX,
+    KIE_FRAME_SIMPLIFIED_REF_FALLBACK_PROMPT_SUFFIX,
     find_generated_frame_duplicate,
     kie_frame_fail_retry_prompt_suffix,
     kie_generation_error_reason,
@@ -338,6 +339,46 @@ class KiePhotoshootProvider:
                     last_reason,
                 )
 
+        if frame_index >= 1 and series_mode != "legacy":
+            original_reference_count = self._standard_reference_count(
+                series_mode=series_mode,
+                frame_index=frame_index,
+                previous_frame_path=previous_frame_path,
+            )
+            kie_log.warning(
+                "Kie frame multi-reference failed, retrying with simplified references: "
+                "style_id=%s photoshoot_id=%s frame_index=%s "
+                "original_reference_count=%s",
+                client_style_id,
+                photoshoot_id,
+                frame_index,
+                original_reference_count,
+            )
+            try:
+                return self._generate_unique_frame_data_url(
+                    frame_index=frame_index,
+                    style=style,
+                    client_style_id=client_style_id,
+                    photoshoot_id=photoshoot_id,
+                    user_id=user_id,
+                    user_description=user_description,
+                    series_mode=series_mode,
+                    identity_path=identity_path,
+                    anchor_path=anchor_path,
+                    previous_frame_path=previous_frame_path,
+                    existing_data_urls=existing_data_urls,
+                    ttl_seconds=ttl_seconds,
+                    kie_client=kie_client,
+                    task_cap=task_cap,
+                    on_frame_status=on_frame_status,
+                    extra_prompt_suffix=(
+                        f"\n\n{KIE_FRAME_SIMPLIFIED_REF_FALLBACK_PROMPT_SUFFIX}"
+                    ),
+                    reference_mode="identity_only",
+                )
+            except KieImageGenerationError as exc:
+                last_reason = kie_generation_error_reason(exc)
+
         self._notify_frame_status(on_frame_status, frame_index, "error")
         _raise_kie_photoshoot_failure(
             style_id=client_style_id,
@@ -365,6 +406,7 @@ class KiePhotoshootProvider:
         task_cap: int,
         on_frame_status: FrameStatusCallback | None,
         extra_prompt_suffix: str = "",
+        reference_mode: str = "standard",
     ) -> str:
         for attempt in range(_KIE_DUPLICATE_MAX_ATTEMPTS):
             prompt_suffix = extra_prompt_suffix
@@ -387,6 +429,7 @@ class KiePhotoshootProvider:
                     has_generated_frames=frame_index > 0,
                     prompt_suffix=prompt_suffix,
                     on_frame_status=on_frame_status,
+                    reference_mode=reference_mode,
                 )
             except KieImageGenerationError:
                 raise
@@ -458,6 +501,7 @@ class KiePhotoshootProvider:
         has_generated_frames: bool,
         prompt_suffix: str = "",
         on_frame_status: FrameStatusCallback | None,
+        reference_mode: str = "standard",
     ) -> str:
         self._notify_frame_status(on_frame_status, frame_index, "generating")
 
@@ -482,6 +526,7 @@ class KiePhotoshootProvider:
             client_style_id=client_style_id,
             photoshoot_id=photoshoot_id,
             has_frames=has_generated_frames,
+            reference_mode=reference_mode,
         )
         kie_log.info(
             "Kie frame start: style_id=%s photoshoot_id=%s frame_index=%s "
@@ -526,6 +571,23 @@ class KiePhotoshootProvider:
             return
         callback(frame_index, status)
 
+    @staticmethod
+    def _standard_reference_count(
+        *,
+        series_mode: str,
+        frame_index: int,
+        previous_frame_path: str | None,
+    ) -> int:
+        if frame_index == 0 or series_mode == "legacy":
+            return 1
+        if series_mode == "anchor_only":
+            if frame_index >= 2 and previous_frame_path is not None:
+                return 2
+            return 1
+        if frame_index >= 2 and previous_frame_path is not None:
+            return 3
+        return 2
+
     def _build_input_urls(
         self,
         *,
@@ -538,6 +600,7 @@ class KiePhotoshootProvider:
         client_style_id: str,
         photoshoot_id: str,
         has_frames: bool,
+        reference_mode: str = "standard",
     ) -> list[str]:
         bucket = settings.supabase_temp_storage_bucket
 
@@ -555,6 +618,9 @@ class KiePhotoshootProvider:
                     photoshoot_id=photoshoot_id,
                     stage=stage,
                 )
+
+        if reference_mode == "identity_only":
+            return [signed_url(identity_path, stage="kie_signed_url")]
 
         if frame_index == 0 or series_mode == "legacy":
             return [signed_url(identity_path, stage="kie_signed_url")]

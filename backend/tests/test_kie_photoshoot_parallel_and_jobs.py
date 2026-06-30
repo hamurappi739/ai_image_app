@@ -370,7 +370,7 @@ class KieParallelFailureAtomicityTests(unittest.TestCase):
         def generate_side_effect(*args, **kwargs):
             nonlocal call_count
             call_count += 1
-            if call_count in (3, 4):
+            if call_count in (3, 4, 5):
                 raise KieImageGenerationError("kie_task_failed")
             return (_distinct_result_bytes(call_count), "image/png")
 

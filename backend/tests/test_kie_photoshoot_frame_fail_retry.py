@@ -16,6 +16,7 @@ from app.services.kie_photoshoot_provider import KiePhotoshootProvider
 from app.services.photoshoot_similarity import (
     KIE_FRAME_FAIL_RETRY_PROMPT_SUFFIX,
     KIE_FRAME_FAIL_RETRY_PROMPT_SUFFIX_FRAME0,
+    KIE_FRAME_SIMPLIFIED_REF_FALLBACK_PROMPT_SUFFIX,
     kie_frame_fail_retry_prompt_suffix,
 )
 from app.services.photoshoot_service import PhotoshootGenerateResult, PhotoshootService
@@ -61,6 +62,27 @@ def _kie_pipeline_patches(testcase: unittest.TestCase):
         patch("app.services.photoshoot_service._upload_photoshoot_frames_to_storage"),
         patch("app.services.photoshoot_service._save_photoshoot_results_to_history"),
     )
+
+
+def _apply_kie_pipeline_settings() -> dict[str, object]:
+    saved = {
+        "photoshoot_series_reference_mode": settings.photoshoot_series_reference_mode,
+        "kie_temp_signed_url_ttl_seconds": settings.kie_temp_signed_url_ttl_seconds,
+        "supabase_temp_storage_bucket": settings.supabase_temp_storage_bucket,
+        "kie_image_model": settings.kie_image_model,
+        "kie_max_photoshoot_tasks": settings.kie_max_photoshoot_tasks,
+    }
+    settings.photoshoot_series_reference_mode = "identity_anchor"
+    settings.kie_temp_signed_url_ttl_seconds = 3600
+    settings.supabase_temp_storage_bucket = "temp-bucket"
+    settings.kie_image_model = "test-model"
+    settings.kie_max_photoshoot_tasks = 5
+    return saved
+
+
+def _restore_kie_pipeline_settings(saved: dict[str, object]) -> None:
+    for key, value in saved.items():
+        setattr(settings, key, value)
 
 
 def _configure_kie_pipeline_mocks(
@@ -204,9 +226,16 @@ class KieFrameFailRetryPipelineTests(unittest.TestCase):
     def _run_three_frame_photoshoot(
         self,
         generate_side_effect,
-    ) -> tuple[int, PhotoshootGenerateResult | None, HTTPException | None]:
-        patches = _kie_pipeline_patches(self)
-        decorators = [p.start() for p in patches]
+    ) -> tuple[
+        int,
+        list[int],
+        PhotoshootGenerateResult | None,
+        HTTPException | None,
+    ]:
+        reference_counts: list[int] = []
+        saved_settings = _apply_kie_pipeline_settings()
+        patchers = _kie_pipeline_patches(self)
+        mocks = [patcher.start() for patcher in patchers]
         try:
             (
                 mock_resolve_provider,
@@ -217,7 +246,7 @@ class KieFrameFailRetryPipelineTests(unittest.TestCase):
                 mock_delete_temp,
                 mock_upload_frames,
                 mock_save_history,
-            ) = decorators
+            ) = mocks
 
             _configure_kie_pipeline_mocks(
                 mock_resolve_provider,
@@ -231,7 +260,12 @@ class KieFrameFailRetryPipelineTests(unittest.TestCase):
             kie_client = MagicMock()
             kie_client.http_calls_count = 0
             kie_client.created_tasks_count = 0
-            kie_client.generate_image_bytes.side_effect = generate_side_effect
+
+            def _track_refs(instruction, input_urls, **kwargs):
+                reference_counts.append(len(input_urls))
+                return generate_side_effect(instruction, input_urls, **kwargs)
+
+            kie_client.generate_image_bytes.side_effect = _track_refs
             mock_kie_client_cls.return_value = kie_client
 
             service = PhotoshootService()
@@ -243,12 +277,23 @@ class KieFrameFailRetryPipelineTests(unittest.TestCase):
                     photo_content_type=_TEST_PHOTO_TYPE,
                     client_style_id="studio_portrait",
                 )
-                return kie_client.generate_image_bytes.call_count, result, None
+                return (
+                    kie_client.generate_image_bytes.call_count,
+                    reference_counts,
+                    result,
+                    None,
+                )
             except HTTPException as exc:
-                return kie_client.generate_image_bytes.call_count, None, exc
+                return (
+                    kie_client.generate_image_bytes.call_count,
+                    reference_counts,
+                    None,
+                    exc,
+                )
         finally:
-            for patcher in reversed(decorators):
+            for patcher in reversed(patchers):
                 patcher.stop()
+            _restore_kie_pipeline_settings(saved_settings)
 
     def test_frame_zero_fail_once_then_success_completes_photoshoot(self) -> None:
         call_count = 0
@@ -260,7 +305,7 @@ class KieFrameFailRetryPipelineTests(unittest.TestCase):
                 raise KieImageGenerationError("kie_task_failed")
             return (_distinct_result_bytes(call_count), "image/png")
 
-        count, result, exc = self._run_three_frame_photoshoot(generate_side_effect)
+        count, _refs, result, exc = self._run_three_frame_photoshoot(generate_side_effect)
         self.assertIsNone(exc)
         assert result is not None
         self.assertEqual(len(result.image_urls), 3)
@@ -274,7 +319,7 @@ class KieFrameFailRetryPipelineTests(unittest.TestCase):
             call_count += 1
             raise KieImageGenerationError("kie_task_failed")
 
-        count, result, exc = self._run_three_frame_photoshoot(generate_side_effect)
+        count, _refs, result, exc = self._run_three_frame_photoshoot(generate_side_effect)
         self.assertIsNone(result)
         assert exc is not None
         self.assertEqual(exc.status_code, 502)
@@ -290,7 +335,7 @@ class KieFrameFailRetryPipelineTests(unittest.TestCase):
                 raise KieImageGenerationError("kie_task_failed")
             return (_distinct_result_bytes(call_count), "image/png")
 
-        count, result, exc = self._run_three_frame_photoshoot(generate_side_effect)
+        count, _refs, result, exc = self._run_three_frame_photoshoot(generate_side_effect)
         self.assertIsNone(exc)
         assert result is not None
         self.assertEqual(len(result.image_urls), 3)
@@ -306,11 +351,149 @@ class KieFrameFailRetryPipelineTests(unittest.TestCase):
                 raise KieImageGenerationError("kie_task_failed")
             return (_distinct_result_bytes(call_count), "image/png")
 
-        count, result, exc = self._run_three_frame_photoshoot(generate_side_effect)
+        count, _refs, result, exc = self._run_three_frame_photoshoot(generate_side_effect)
         self.assertIsNone(exc)
         assert result is not None
         self.assertEqual(len(result.image_urls), 3)
         self.assertEqual(count, 4)
+
+
+class KieSimplifiedReferenceFallbackTests(unittest.TestCase):
+    def _run_three_frame_photoshoot(
+        self,
+        generate_side_effect,
+    ) -> tuple[
+        int,
+        list[int],
+        PhotoshootGenerateResult | None,
+        HTTPException | None,
+    ]:
+        return KieFrameFailRetryPipelineTests()._run_three_frame_photoshoot(
+            generate_side_effect
+        )
+
+    def test_frame_one_fails_twice_then_simplified_ref_success(self) -> None:
+        call_count = 0
+
+        def generate_side_effect(_instruction, input_urls, **_kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count in {2, 3}:
+                self.assertEqual(len(input_urls), 2)
+                raise KieImageGenerationError("kie_task_failed")
+            if call_count == 4:
+                self.assertEqual(len(input_urls), 1)
+                return (_distinct_result_bytes(call_count), "image/png")
+            return (_distinct_result_bytes(call_count), "image/png")
+
+        count, refs, result, exc = self._run_three_frame_photoshoot(generate_side_effect)
+        self.assertIsNone(exc)
+        assert result is not None
+        self.assertEqual(len(result.image_urls), 3)
+        self.assertEqual(count, 5)
+        self.assertEqual(refs[:4], [1, 2, 2, 1])
+
+    def test_frame_two_fails_twice_then_simplified_ref_success(self) -> None:
+        call_count = 0
+
+        def generate_side_effect(_instruction, input_urls, **_kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count in {3, 4}:
+                self.assertEqual(len(input_urls), 3)
+                raise KieImageGenerationError("kie_task_failed")
+            if call_count == 5:
+                self.assertEqual(len(input_urls), 1)
+                return (_distinct_result_bytes(call_count), "image/png")
+            return (_distinct_result_bytes(call_count), "image/png")
+
+        count, refs, result, exc = self._run_three_frame_photoshoot(generate_side_effect)
+        self.assertIsNone(exc)
+        assert result is not None
+        self.assertEqual(len(result.image_urls), 3)
+        self.assertEqual(count, 5)
+        self.assertEqual(refs[2:5], [3, 3, 1])
+
+    def test_simplified_fallback_failure_aborts(self) -> None:
+        call_count = 0
+
+        def generate_side_effect(_instruction, input_urls, **_kwargs):
+            nonlocal call_count
+            call_count += 1
+            raise KieImageGenerationError("kie_task_failed")
+
+        count, refs, result, exc = self._run_three_frame_photoshoot(generate_side_effect)
+        self.assertIsNone(result)
+        assert exc is not None
+        self.assertEqual(exc.status_code, 502)
+        # frame0 fail, retry, then frame1 would not run - wait all fail
+        # frame0: calls 1-2 fail -> abort before frame1
+        self.assertEqual(count, 2)
+        self.assertEqual(refs, [1, 1])
+
+    def test_frame_one_simplified_fallback_failure_aborts_without_later_frames(self) -> None:
+        call_count = 0
+
+        def generate_side_effect(_instruction, input_urls, **_kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return (_distinct_result_bytes(call_count), "image/png")
+            raise KieImageGenerationError("kie_task_failed")
+
+        count, refs, result, exc = self._run_three_frame_photoshoot(generate_side_effect)
+        self.assertIsNone(result)
+        assert exc is not None
+        self.assertEqual(exc.status_code, 502)
+        self.assertEqual(count, 4)
+        self.assertEqual(refs, [1, 2, 2, 1])
+
+    def test_simplified_fallback_uses_prompt_suffix(self) -> None:
+        provider = KiePhotoshootProvider(output_count=3)
+        prompts: list[str] = []
+        call_index = 0
+
+        def capture_generate(*, extra_prompt_suffix: str = "", reference_mode: str = "standard", **kwargs):
+            nonlocal call_index
+            call_index += 1
+            prompts.append((reference_mode, extra_prompt_suffix))
+            if call_index <= 2:
+                raise KieImageGenerationError("kie_task_failed")
+            return "data:image/png;base64,NEW"
+
+        with patch.object(provider, "_generate_unique_frame_data_url", side_effect=capture_generate):
+            with self.assertLogs("uvicorn.error", level="WARNING") as logs:
+                result = provider._generate_frame_with_fail_retry(
+                    frame_index=1,
+                    style=get_photoshoot_style("studio_portrait"),
+                    client_style_id="studio_portrait",
+                    photoshoot_id="ps-fallback",
+                    user_id="user-1",
+                    user_description=None,
+                    series_mode="identity_anchor",
+                    identity_path="temp/a",
+                    anchor_path="temp/b",
+                    previous_frame_path=None,
+                    existing_data_urls=["data:image/png;base64,FRAME0"],
+                    ttl_seconds=3600,
+                    kie_client=MagicMock(),
+                    task_cap=5,
+                    on_frame_status=None,
+                )
+
+        self.assertEqual(result, "data:image/png;base64,NEW")
+        self.assertEqual(prompts[2][0], "identity_only")
+        self.assertIn(KIE_FRAME_SIMPLIFIED_REF_FALLBACK_PROMPT_SUFFIX, prompts[2][1])
+        self.assertTrue(
+            any(
+                "Kie frame multi-reference failed, retrying with simplified references"
+                in message
+                and "frame_index=1" in message
+                and "original_reference_count=2" in message
+                for message in logs.output
+            ),
+            logs.output,
+        )
 
 
 class KieFrameFailRetryDebitTests(unittest.TestCase):
@@ -368,6 +551,46 @@ class KieFrameFailRetryDebitTests(unittest.TestCase):
             _TEST_USER_ID,
             {"paid_image_generations": 0},
         )
+
+    @patch("app.main.consume_photoshoot")
+    @patch("app.main.photoshoot_service.generate_photoshoot")
+    @patch("app.main.ensure_profile_exists")
+    @patch("app.main.settings")
+    def test_simplified_fallback_fail_no_debit(
+        self,
+        mock_settings: MagicMock,
+        mock_ensure_profile: MagicMock,
+        mock_generate: MagicMock,
+        mock_consume: MagicMock,
+    ) -> None:
+        mock_settings.enable_photoshoot_generation = True
+        mock_settings.enable_credit_consumption = True
+        mock_settings.free_generations_limit = 3
+        mock_ensure_profile.return_value = {
+            "paid_image_generations": 3,
+            "free_generations_used": 3,
+        }
+        mock_generate.side_effect = HTTPException(
+            status_code=502,
+            detail=_PHOTOSHOOT_FAILURE_MESSAGE,
+        )
+
+        with patch.object(settings, "enable_credit_consumption", True):
+            with patch.object(settings, "test_user_id", _TEST_USER_ID):
+                response = self.client.post(
+                    "/photoshoots/generate",
+                    data={"style_id": "business_brand"},
+                    files={
+                        "photo": (
+                            "photo.jpg",
+                            io.BytesIO(_TEST_JPEG_BYTES),
+                            "image/jpeg",
+                        ),
+                    },
+                )
+
+        self.assertEqual(response.status_code, 502)
+        mock_consume.assert_not_called()
 
     @patch("app.main.consume_photoshoot")
     @patch("app.main.photoshoot_service.generate_photoshoot")
