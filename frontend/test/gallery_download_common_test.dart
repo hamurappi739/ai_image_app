@@ -38,4 +38,26 @@ void main() {
     expect(isGalleryDownloadSaveSuccess({'isSuccess': false}), isFalse);
     expect(isGalleryDownloadSaveSuccess(null), isFalse);
   });
+
+  test('resolveGalleryDownloadUrl unwraps image-proxy', () {
+    expect(
+      resolveGalleryDownloadUrl(
+        'https://api.example.com/image-proxy?url='
+        'https%3A%2F%2Fstorage.example.com%2Fphoto.jpg',
+      ),
+      'https://storage.example.com/photo.jpg',
+    );
+  });
+
+  test('resolveGalleryDownloadUrl returns direct url unchanged', () {
+    const url = 'https://storage.example.com/photo.png';
+    expect(resolveGalleryDownloadUrl(url), url);
+  });
+
+  test('isGalleryDownloadSaveSuccess accepts filePath map', () {
+    expect(
+      isGalleryDownloadSaveSuccess({'filePath': '/storage/emulated/0/x.jpg'}),
+      isTrue,
+    );
+  });
 }

@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 
 import '../preview_asset_image.dart';
+import 'onboarding_mockup_palette.dart';
 
 /// Flutter mockups for onboarding and section help slides.
 class OnboardingMockups {
   OnboardingMockups._();
 
   static const _accent = Color(0xFF5B6CFF);
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _surface = Color(0xFFF7F8FC);
+
+  static Widget _palette(
+    Widget Function(OnboardingMockupPalette palette) builder,
+  ) {
+    return Builder(
+      builder: (context) =>
+          builder(OnboardingMockupPaletteScope.of(context)),
+    );
+  }
 
   static const _businessPortrait =
       'assets/previews/templates/business_portrait.jpg';
@@ -35,6 +42,8 @@ class OnboardingMockups {
   // —— First-run ———————————————————————————————————————————————————————————
 
   static Widget welcomeShowcase({required bool compact}) {
+    return _palette((palette) {
+
     final previewHeight = compact ? 108.0 : 132.0;
     final gap = compact ? 6.0 : 8.0;
 
@@ -76,42 +85,50 @@ class OnboardingMockups {
           ),
         ),
         SizedBox(height: compact ? 12 : 16),
-        _welcomeFlowRow(compact: compact),
+        _welcomeFlowRow(palette: palette, compact: compact),
       ],
     );
+  
+    });
   }
 
   static Widget welcomeHome({required bool compact}) {
+    return _palette((palette) {
+
     return _MockPhoneFrame(
       compact: compact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _mockHeader(compact: compact, title: 'Главная'),
+          _mockHeader(palette: palette, compact: compact, title: 'Главная'),
           const SizedBox(height: 10),
           _gradientButton('Начать создавать', compact: compact),
           SizedBox(height: compact ? 8 : 10),
-          _outlineButton('Сделать фотосессию', compact: compact),
+          _outlineButton('Сделать фотосессию', compact: compact, palette: palette),
           SizedBox(height: compact ? 8 : 10),
-          _outlineButton('Готовые фото', compact: compact),
+          _outlineButton('Готовые фото', compact: compact, palette: palette),
         ],
       ),
     );
+  
+    });
   }
 
   static Widget templateCardTry({required bool compact}) {
+    return _palette((palette) {
+
     return _MockPhoneFrame(
       compact: compact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _mockHeader(compact: compact, title: 'Шаблоны фото'),
+          _mockHeader(palette: palette, compact: compact, title: 'Шаблоны фото'),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _mockTemplateCard(
+                child: _mockTemplateCard(palette: palette, 
                   compact: compact,
                   highlightButton: true,
                   title: 'Деловой портрет',
@@ -120,7 +137,7 @@ class OnboardingMockups {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _mockTemplateCard(
+                child: _mockTemplateCard(palette: palette, 
                   compact: compact,
                   title: 'Красивый портрет',
                   previewAsset: _beautifulPortrait,
@@ -131,22 +148,26 @@ class OnboardingMockups {
         ],
       ),
     );
+  
+    });
   }
 
   static Widget photoshootTriplet({required bool compact}) {
+    return _palette((palette) {
+
     return _MockPhoneFrame(
       compact: compact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _mockHeader(compact: compact, title: 'Фотосессии'),
+          _mockHeader(palette: palette, compact: compact, title: 'Фотосессии'),
           const SizedBox(height: 8),
-          _mockPhotoshootCard(compact: compact),
+          _mockPhotoshootCard(palette: palette, compact: compact),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFEDE9FF),
+              color: palette.accentTint,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -162,20 +183,28 @@ class OnboardingMockups {
         ],
       ),
     );
+  
+    });
   }
 
   static Widget goodBadPhoto({required bool compact}) {
+    return _palette((palette) {
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _photoQualityTile(isGood: true, compact: compact)),
+        Expanded(child: _photoQualityTile(palette: palette, isGood: true, compact: compact)),
         SizedBox(width: compact ? 8 : 12),
-        Expanded(child: _photoQualityTile(isGood: false, compact: compact)),
+        Expanded(child: _photoQualityTile(palette: palette, isGood: false, compact: compact)),
       ],
     );
+  
+    });
   }
 
   static Widget drawerMenu({required bool compact}) {
+    return _palette((palette) {
+
     return _MockPhoneFrame(
       compact: compact,
       child: Column(
@@ -183,7 +212,7 @@ class OnboardingMockups {
         children: [
           Row(
             children: [
-              _burgerIcon(compact: compact),
+              _burgerIcon(palette: palette, compact: compact),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -191,7 +220,7 @@ class OnboardingMockups {
                   style: TextStyle(
                     fontSize: compact ? 14 : 15,
                     fontWeight: FontWeight.w700,
-                    color: _textPrimary,
+                    color: palette.textPrimary,
                   ),
                 ),
               ),
@@ -201,7 +230,7 @@ class OnboardingMockups {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEDE9FF),
+                  color: palette.accentTint,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -225,16 +254,16 @@ class OnboardingMockups {
                   vertical: compact ? 6 : 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: palette.card,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE8EAEF)),
+                  border: Border.all(color: palette.border),
                 ),
                 child: Text(
                   item,
                   style: TextStyle(
                     fontSize: compact ? 11 : 12,
                     fontWeight: FontWeight.w500,
-                    color: _textPrimary,
+                    color: palette.textPrimary,
                   ),
                 ),
               ),
@@ -243,30 +272,34 @@ class OnboardingMockups {
         ],
       ),
     );
+  
+    });
   }
 
   static Widget freeBalance({required bool compact}) {
+    return _palette((palette) {
+
     return _MockPhoneFrame(
       compact: compact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _mockHeader(compact: compact, title: 'Ваш баланс'),
+          _mockHeader(palette: palette, compact: compact, title: 'Ваш баланс'),
           const SizedBox(height: 10),
-          _balanceTile(
+          _balanceTile(palette: palette, 
             label: 'Бесплатные генерации',
             value: '3',
             accent: true,
             compact: compact,
           ),
           SizedBox(height: compact ? 8 : 10),
-          _balanceTile(
+          _balanceTile(palette: palette, 
             label: 'Фотосессия',
             value: '= 3 изображения',
             compact: compact,
           ),
           SizedBox(height: compact ? 8 : 10),
-          _balanceTile(
+          _balanceTile(palette: palette, 
             label: 'Обычное фото',
             value: '= 1 изображение',
             compact: compact,
@@ -274,27 +307,31 @@ class OnboardingMockups {
         ],
       ),
     );
+  
+    });
   }
 
   // —— Template help ————————————————————————————————————————————————————————
 
   static Widget templateCategories({required bool compact}) {
+    return _palette((palette) {
+
     return _MockPhoneFrame(
       compact: compact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _mockHeader(compact: compact, title: 'Шаблоны фото'),
+          _mockHeader(palette: palette, compact: compact, title: 'Шаблоны фото'),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _chip('Для себя', selected: true, compact: compact),
+                _chip('Для себя', selected: true, compact: compact, palette: palette),
                 const SizedBox(width: 6),
-                _chip('Для работы', compact: compact),
+                _chip('Для работы', compact: compact, palette: palette),
                 const SizedBox(width: 6),
-                _chip('Для семьи', compact: compact),
+                _chip('Для семьи', compact: compact, palette: palette),
               ],
             ),
           ),
@@ -303,7 +340,7 @@ class OnboardingMockups {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _mockTemplateCard(
+                child: _mockTemplateCard(palette: palette, 
                   compact: compact,
                   title: 'Деловой портрет',
                   previewAsset: _businessPortrait,
@@ -311,7 +348,7 @@ class OnboardingMockups {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _mockTemplateCard(
+                child: _mockTemplateCard(palette: palette, 
                   compact: compact,
                   title: 'Красивый портрет',
                   previewAsset: _beautifulPortrait,
@@ -322,11 +359,15 @@ class OnboardingMockups {
         ],
       ),
     );
+  
+    });
   }
 
   static Widget templateOpen({required bool compact}) => templateCardTry(compact: compact);
 
   static Widget templateAddPhoto({required bool compact}) {
+    return _palette((palette) {
+
     return _MockPhoneFrame(
       compact: compact,
       child: Column(
@@ -337,13 +378,14 @@ class OnboardingMockups {
             style: TextStyle(
               fontSize: compact ? 14 : 15,
               fontWeight: FontWeight.w700,
-              color: _textPrimary,
+              color: palette.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
           _assetThumb(
             _businessPortrait,
             compact: compact,
+            palette: palette,
             aspectRatio: 1,
           ),
           const SizedBox(height: 10),
@@ -352,7 +394,7 @@ class OnboardingMockups {
             style: TextStyle(
               fontSize: compact ? 12 : 13,
               fontWeight: FontWeight.w700,
-              color: _textPrimary,
+              color: palette.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -363,6 +405,7 @@ class OnboardingMockups {
                 child: _assetThumb(
                   _goodPhoto,
                   compact: compact,
+                  palette: palette,
                   aspectRatio: 1,
                 ),
               ),
@@ -379,21 +422,26 @@ class OnboardingMockups {
         ],
       ),
     );
+  
+    });
   }
 
   static Widget templateResult({required bool compact}) {
+    return _palette((palette) {
+
     return _MockPhoneFrame(
       compact: compact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _mockHeader(compact: compact, title: 'Готовые фото'),
+          _mockHeader(palette: palette, compact: compact, title: 'Готовые фото'),
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: _assetThumb(
               _beautifulPortrait,
               compact: compact,
+              palette: palette,
               aspectRatio: 1,
               borderRadius: BorderRadius.circular(12),
             ),
@@ -418,42 +466,50 @@ class OnboardingMockups {
         ],
       ),
     );
+  
+    });
   }
 
   // —— Photoshoot help ——————————————————————————————————————————————————————
 
   static Widget photoshootStylePick({required bool compact}) {
+    return _palette((palette) {
+
     return _MockPhoneFrame(
       compact: compact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _mockHeader(compact: compact, title: 'Фотосессии'),
+          _mockHeader(palette: palette, compact: compact, title: 'Фотосессии'),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _chip('Популярное', selected: true, compact: compact),
+                _chip('Популярное', selected: true, compact: compact, palette: palette),
                 const SizedBox(width: 6),
-                _chip('Для себя', compact: compact),
+                _chip('Для себя', compact: compact, palette: palette),
               ],
             ),
           ),
           const SizedBox(height: 10),
-          _mockPhotoshootCard(compact: compact),
+          _mockPhotoshootCard(palette: palette, compact: compact),
         ],
       ),
     );
+  
+    });
   }
 
   static Widget photoshootThreeResults({required bool compact}) {
+    return _palette((palette) {
+
     return _MockPhoneFrame(
       compact: compact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _photoshootThumbRow(compact: compact),
+          _photoshootThumbRow(palette: palette, compact: compact),
           const SizedBox(height: 8),
           Text(
             '3 готовых фото в одном стиле',
@@ -461,14 +517,14 @@ class OnboardingMockups {
             style: TextStyle(
               fontSize: compact ? 11 : 12,
               fontWeight: FontWeight.w600,
-              color: _textPrimary,
+              color: palette.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFEDE9FF),
+              color: palette.accentTint,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -484,35 +540,41 @@ class OnboardingMockups {
         ],
       ),
     );
+  
+    });
   }
 
   static Widget photoshootAddPhoto({required bool compact}) =>
       templateAddPhoto(compact: compact);
 
   static Widget photoshootGallery({required bool compact}) {
+    return _palette((palette) {
+
     return _MockPhoneFrame(
       compact: compact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _mockHeader(compact: compact, title: 'Готовые фото'),
+          _mockHeader(palette: palette, compact: compact, title: 'Готовые фото'),
           const SizedBox(height: 8),
           Text(
             'Фотосессия · 3 фото',
             style: TextStyle(
               fontSize: compact ? 11 : 12,
               fontWeight: FontWeight.w600,
-              color: _textSecondary,
+              color: palette.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
-          _photoshootThumbRow(
+          _photoshootThumbRow(palette: palette, 
             compact: compact,
             showPhotoLabels: true,
           ),
         ],
       ),
     );
+  
+    });
   }
 
   static Widget _welcomeResultTile({
@@ -581,7 +643,7 @@ class OnboardingMockups {
     );
   }
 
-  static Widget _welcomeFlowRow({required bool compact}) {
+  static Widget _welcomeFlowRow({required bool compact, required OnboardingMockupPalette palette}) {
     final iconSize = compact ? 18.0 : 20.0;
     final fontSize = compact ? 11.0 : 12.0;
 
@@ -594,7 +656,7 @@ class OnboardingMockups {
               width: compact ? 34 : 38,
               height: compact ? 34 : 38,
               decoration: BoxDecoration(
-                color: const Color(0xFFEDE9FF),
+                color: palette.accentTint,
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: iconSize, color: _accent),
@@ -608,7 +670,7 @@ class OnboardingMockups {
               style: TextStyle(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w600,
-                color: _textPrimary,
+                color: palette.textPrimary,
               ),
             ),
           ],
@@ -647,6 +709,7 @@ class OnboardingMockups {
   static Widget _assetThumb(
     String assetPath, {
     required bool compact,
+    required OnboardingMockupPalette palette,
     double aspectRatio = 4 / 3,
     BorderRadius borderRadius = const BorderRadius.all(Radius.circular(10)),
     bool dimmed = false,
@@ -655,11 +718,11 @@ class OnboardingMockups {
       assetPath: assetPath,
       fit: BoxFit.cover,
       placeholder: Container(
-        color: const Color(0xFFE8EAEF),
+        color: palette.border,
         alignment: Alignment.center,
         child: Icon(
           Icons.image_outlined,
-          color: _textSecondary,
+          color: palette.textSecondary,
           size: compact ? 20 : 24,
         ),
       ),
@@ -679,7 +742,7 @@ class OnboardingMockups {
     );
   }
 
-  static Widget _photoshootThumbRow({
+  static Widget _photoshootThumbRow({required OnboardingMockupPalette palette, 
     required bool compact,
     bool showPhotoLabels = false,
   }) {
@@ -694,6 +757,7 @@ class OnboardingMockups {
                 _assetThumb(
                   paths[i],
                   compact: compact,
+                  palette: palette,
                   aspectRatio: 3 / 4,
                   borderRadius: BorderRadius.circular(compact ? 8 : 10),
                 ),
@@ -704,7 +768,7 @@ class OnboardingMockups {
                     style: TextStyle(
                       fontSize: compact ? 9 : 10,
                       fontWeight: FontWeight.w500,
-                      color: _textSecondary,
+                      color: palette.textSecondary,
                     ),
                   ),
                 ],
@@ -716,13 +780,13 @@ class OnboardingMockups {
     );
   }
 
-  static Widget _mockHeader({
+  static Widget _mockHeader({required OnboardingMockupPalette palette, 
     required bool compact,
     required String title,
   }) {
     return Row(
       children: [
-        _burgerIcon(compact: compact),
+        _burgerIcon(palette: palette, compact: compact),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
@@ -730,7 +794,7 @@ class OnboardingMockups {
             style: TextStyle(
               fontSize: compact ? 13 : 14,
               fontWeight: FontWeight.w700,
-              color: _textPrimary,
+              color: palette.textPrimary,
             ),
           ),
         ),
@@ -738,7 +802,7 @@ class OnboardingMockups {
     );
   }
 
-  static Widget _burgerIcon({
+  static Widget _burgerIcon({required OnboardingMockupPalette palette, 
     required bool compact,
     bool highlighted = false,
   }) {
@@ -746,10 +810,10 @@ class OnboardingMockups {
       width: compact ? 32 : 36,
       height: compact ? 32 : 36,
       decoration: BoxDecoration(
-        color: highlighted ? const Color(0xFFEDE9FF) : Colors.white,
+        color: highlighted ? palette.accentTint : palette.card,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: highlighted ? _accent : const Color(0xFFE8EAEF),
+          color: highlighted ? _accent : palette.border,
           width: highlighted ? 1.5 : 1,
         ),
         boxShadow: highlighted
@@ -765,7 +829,7 @@ class OnboardingMockups {
       child: Icon(
         Icons.menu,
         size: compact ? 18 : 20,
-        color: highlighted ? _accent : _textPrimary,
+        color: highlighted ? _accent : palette.textPrimary,
       ),
     );
   }
@@ -795,12 +859,12 @@ class OnboardingMockups {
     );
   }
 
-  static Widget _outlineButton(String label, {required bool compact}) {
+  static Widget _outlineButton(String label, {required bool compact, required OnboardingMockupPalette palette}) {
     return Container(
       height: compact ? 36 : 40,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _accent.withValues(alpha: 0.35)),
       ),
@@ -818,6 +882,7 @@ class OnboardingMockups {
   static Widget _chip(
     String label, {
     required bool compact,
+    required OnboardingMockupPalette palette,
     bool selected = false,
   }) {
     return Container(
@@ -826,10 +891,10 @@ class OnboardingMockups {
         vertical: compact ? 6 : 7,
       ),
       decoration: BoxDecoration(
-        color: selected ? const Color(0xFFEDE9FF) : Colors.white,
+        color: selected ? palette.accentTint : palette.card,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: selected ? _accent.withValues(alpha: 0.45) : const Color(0xFFE8EAEF),
+          color: selected ? _accent.withValues(alpha: 0.45) : palette.border,
         ),
       ),
       child: Text(
@@ -837,13 +902,13 @@ class OnboardingMockups {
         style: TextStyle(
           fontSize: compact ? 11 : 12,
           fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-          color: selected ? _accent : _textPrimary,
+          color: selected ? _accent : palette.textPrimary,
         ),
       ),
     );
   }
 
-  static Widget _mockTemplateCard({
+  static Widget _mockTemplateCard({required OnboardingMockupPalette palette, 
     required bool compact,
     bool highlightButton = false,
     String title = 'Деловой портрет',
@@ -852,9 +917,9 @@ class OnboardingMockups {
     return Container(
       padding: EdgeInsets.all(compact ? 8 : 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE8EAEF)),
+        border: Border.all(color: palette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -864,6 +929,7 @@ class OnboardingMockups {
             child: _assetThumb(
               previewAsset,
               compact: compact,
+              palette: palette,
               aspectRatio: 1,
             ),
           ),
@@ -875,7 +941,7 @@ class OnboardingMockups {
             style: TextStyle(
               fontSize: compact ? 12 : 13,
               fontWeight: FontWeight.w700,
-              color: _textPrimary,
+              color: palette.textPrimary,
             ),
           ),
           SizedBox(height: compact ? 6 : 8),
@@ -901,7 +967,7 @@ class OnboardingMockups {
             child: Text(
               'Попробовать',
               style: TextStyle(
-                color: highlightButton ? Colors.white : _accent,
+                color: highlightButton ? palette.card : _accent,
                 fontSize: compact ? 11 : 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -912,25 +978,25 @@ class OnboardingMockups {
     );
   }
 
-  static Widget _mockPhotoshootCard({required bool compact}) {
+  static Widget _mockPhotoshootCard({required bool compact, required OnboardingMockupPalette palette}) {
     return Container(
       padding: EdgeInsets.all(compact ? 8 : 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE8EAEF)),
+        border: Border.all(color: palette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _photoshootThumbRow(compact: compact),
+          _photoshootThumbRow(palette: palette, compact: compact),
           SizedBox(height: compact ? 6 : 8),
           Text(
             'Студийный портрет',
             style: TextStyle(
               fontSize: compact ? 12 : 13,
               fontWeight: FontWeight.w700,
-              color: _textPrimary,
+              color: palette.textPrimary,
             ),
           ),
         ],
@@ -938,20 +1004,20 @@ class OnboardingMockups {
     );
   }
 
-  static Widget _photoQualityTile({
+  static Widget _photoQualityTile({required OnboardingMockupPalette palette, 
     required bool isGood,
     required bool compact,
   }) {
     final statusColor = isGood ? const Color(0xFF2E9B66) : const Color(0xFFC45C5C);
-    final statusBg = isGood ? const Color(0xFFE8F7EF) : const Color(0xFFFCEEEE);
+    final statusBg = isGood ? palette.goodStatusBg() : palette.badStatusBg();
 
     return Container(
       padding: EdgeInsets.all(compact ? 8 : 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isGood ? const Color(0xFFB8E6CF) : const Color(0xFFF0CACA),
+          color: isGood ? palette.goodStatusBorder() : palette.badStatusBorder(),
         ),
       ),
       child: Column(
@@ -977,6 +1043,7 @@ class OnboardingMockups {
           _assetThumb(
             isGood ? _goodPhoto : _badPhoto,
             compact: compact,
+            palette: palette,
             aspectRatio: 1,
             dimmed: !isGood,
           ),
@@ -985,7 +1052,7 @@ class OnboardingMockups {
     );
   }
 
-  static Widget _balanceTile({
+  static Widget _balanceTile({required OnboardingMockupPalette palette, 
     required String label,
     required String value,
     required bool compact,
@@ -997,10 +1064,10 @@ class OnboardingMockups {
         vertical: compact ? 10 : 12,
       ),
       decoration: BoxDecoration(
-        color: accent ? const Color(0xFFEDE9FF) : Colors.white,
+        color: accent ? palette.accentTint : palette.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: accent ? _accent.withValues(alpha: 0.3) : const Color(0xFFE8EAEF),
+          color: accent ? _accent.withValues(alpha: 0.3) : palette.border,
         ),
       ),
       child: Row(
@@ -1011,7 +1078,7 @@ class OnboardingMockups {
               style: TextStyle(
                 fontSize: compact ? 11 : 12,
                 fontWeight: FontWeight.w600,
-                color: _textPrimary,
+                color: palette.textPrimary,
               ),
             ),
           ),
@@ -1020,7 +1087,7 @@ class OnboardingMockups {
             style: TextStyle(
               fontSize: compact ? 12 : 13,
               fontWeight: FontWeight.w700,
-              color: accent ? _accent : _textSecondary,
+              color: accent ? _accent : palette.textSecondary,
             ),
           ),
         ],
@@ -1040,13 +1107,14 @@ class _MockPhoneFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = OnboardingMockupPaletteScope.of(context);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(compact ? 12 : 16),
       decoration: BoxDecoration(
-        color: OnboardingMockups._surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8EAEF)),
+        border: Border.all(color: palette.border),
       ),
       child: child,
     );

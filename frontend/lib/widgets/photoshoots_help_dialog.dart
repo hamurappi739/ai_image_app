@@ -11,6 +11,13 @@ class PhotoshootsHelpDialog extends StatelessWidget {
 
   final Future<void> Function()? onDismissed;
 
+  static void show(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => const PhotoshootsHelpDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PagedHelpDialog(

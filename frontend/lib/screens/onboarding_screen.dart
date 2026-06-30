@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import '../widgets/onboarding/onboarding_mockups.dart';
 import '../widgets/onboarding/onboarding_step.dart';
 import '../widgets/onboarding/onboarding_visual_shell.dart';
@@ -64,8 +65,10 @@ class OnboardingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: colors.subtleFill,
       body: OnboardingVisualShell(
         steps: _steps,
         presentation: OnboardingPresentation.fullscreen,

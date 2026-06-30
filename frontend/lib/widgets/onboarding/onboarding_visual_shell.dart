@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/app_theme.dart';
+import 'onboarding_mockup_palette.dart';
 import 'onboarding_step.dart';
 
 enum OnboardingPresentation {
@@ -80,9 +82,10 @@ class _OnboardingVisualShellState extends State<OnboardingVisualShell> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     final screenSize = MediaQuery.sizeOf(context);
     final isCompact = screenSize.height < 720 || screenSize.width < 400;
-    final content = _buildContent(context, isCompact);
+    final content = _buildContent(context, isCompact, colors);
 
     if (_isFullscreen) return content;
 
@@ -91,7 +94,7 @@ class _OnboardingVisualShellState extends State<OnboardingVisualShell> {
         horizontal: isCompact ? 12 : 20,
         vertical: isCompact ? 12 : 20,
       ),
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: colors.subtleFill,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -103,15 +106,21 @@ class _OnboardingVisualShellState extends State<OnboardingVisualShell> {
     );
   }
 
-  Widget _buildContent(BuildContext context, bool isCompact) {
+  Widget _buildContent(
+    BuildContext context,
+    bool isCompact,
+    AppThemeColors colors,
+  ) {
     final theme = Theme.of(context);
+    final textPrimary = context.appTextPrimary;
+    final accent = context.appAccent;
     final horizontalPadding = isCompact ? 16.0 : 20.0;
     final verticalPadding = _isFullscreen
         ? (isCompact ? 16.0 : 24.0)
         : (isCompact ? 14.0 : 18.0);
 
     return ColoredBox(
-      color: const Color(0xFFF7F8FC),
+      color: colors.subtleFill,
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(
@@ -131,6 +140,7 @@ class _OnboardingVisualShellState extends State<OnboardingVisualShell> {
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
+                          color: textPrimary,
                         ),
                       ),
                     ),
@@ -138,7 +148,7 @@ class _OnboardingVisualShellState extends State<OnboardingVisualShell> {
                       onPressed: _isBusy ? null : _finish,
                       icon: const Icon(Icons.close, size: 22),
                       tooltip: 'Закрыть',
-                      color: const Color(0xFF6B7280),
+                      color: colors.textSecondary,
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(
@@ -153,12 +163,12 @@ class _OnboardingVisualShellState extends State<OnboardingVisualShell> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: _isBusy ? null : _finish,
-                    child: const Text(
+                    child: Text(
                       'Пропустить',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF6B7280),
+                        color: colors.textSecondary,
                       ),
                     ),
                   ),
@@ -183,6 +193,7 @@ class _OnboardingVisualShellState extends State<OnboardingVisualShell> {
                 _ProgressDots(
                   count: widget.steps.length,
                   index: _pageIndex,
+                  accent: accent,
                 ),
               ],
               SizedBox(height: isCompact ? 12 : 16),
@@ -194,6 +205,8 @@ class _OnboardingVisualShellState extends State<OnboardingVisualShell> {
                 onBack: _goBack,
                 onNext: _goNext,
                 buttonHeight: isCompact ? 50.0 : 54.0,
+                accent: accent,
+                colors: colors,
               ),
             ],
           ),
@@ -217,6 +230,9 @@ class _OnboardingSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+    final palette = OnboardingMockupPalette.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -227,7 +243,7 @@ class _OnboardingSlide extends StatelessWidget {
           style: theme.textTheme.headlineSmall?.copyWith(
             fontSize: isCompact ? 22 : 26,
             fontWeight: FontWeight.w800,
-            color: const Color(0xFF1A1D26),
+            color: textPrimary,
             height: 1.15,
           ),
         ),
@@ -238,7 +254,7 @@ class _OnboardingSlide extends StatelessWidget {
           style: theme.textTheme.bodyMedium?.copyWith(
             fontSize: isCompact ? 14 : 16,
             height: 1.4,
-            color: const Color(0xFF6B7280),
+            color: colors.textSecondary,
           ),
         ),
         SizedBox(height: isCompact ? 12 : 16),
@@ -249,21 +265,27 @@ class _OnboardingSlide extends StatelessWidget {
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: colors.elevatedSurface,
                     borderRadius:
                         BorderRadius.circular(isFullscreen ? 24 : 20),
+                    border: Border.all(color: colors.borderColor),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.07),
+                        color: Colors.black.withValues(
+                          alpha: theme.brightness == Brightness.dark ? 0.35 : 0.07,
+                        ),
                         blurRadius: 28,
                         offset: const Offset(0, 10),
                       ),
                     ],
                   ),
-                  child: SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    padding: EdgeInsets.all(isCompact ? 14 : 20),
-                    child: step.mockupBuilder(compact: isCompact),
+                  child: OnboardingMockupPaletteScope(
+                    palette: palette,
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      padding: EdgeInsets.all(isCompact ? 14 : 20),
+                      child: step.mockupBuilder(compact: isCompact),
+                    ),
                   ),
                 ),
               ),
@@ -276,9 +298,9 @@ class _OnboardingSlide extends StatelessWidget {
                     vertical: isCompact ? 8 : 10,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0F2F8),
+                    color: colors.infoBannerFill,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE8EAEF)),
+                    border: Border.all(color: colors.borderColor),
                   ),
                   child: Text(
                     step.footerNote!,
@@ -286,7 +308,7 @@ class _OnboardingSlide extends StatelessWidget {
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontSize: isCompact ? 11 : 12,
                       height: 1.35,
-                      color: const Color(0xFF6B7280),
+                      color: colors.textSecondary,
                     ),
                   ),
                 ),
@@ -300,12 +322,15 @@ class _OnboardingSlide extends StatelessWidget {
 }
 
 class _ProgressDots extends StatelessWidget {
-  const _ProgressDots({required this.count, required this.index});
+  const _ProgressDots({
+    required this.count,
+    required this.index,
+    required this.accent,
+  });
 
   final int count;
   final int index;
-
-  static const _accentColor = Color(0xFF5B6CFF);
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
@@ -319,9 +344,7 @@ class _ProgressDots extends StatelessWidget {
           width: active ? 22 : 8,
           height: 8,
           decoration: BoxDecoration(
-            color: active
-                ? _accentColor
-                : _accentColor.withValues(alpha: 0.25),
+            color: active ? accent : accent.withValues(alpha: 0.25),
             borderRadius: BorderRadius.circular(999),
           ),
         );
@@ -339,6 +362,8 @@ class _NavigationRow extends StatelessWidget {
     required this.onBack,
     required this.onNext,
     required this.buttonHeight,
+    required this.accent,
+    required this.colors,
   });
 
   final bool isFirstPage;
@@ -348,11 +373,13 @@ class _NavigationRow extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onNext;
   final double buttonHeight;
-
-  static const _accentColor = Color(0xFF5B6CFF);
+  final Color accent;
+  final AppThemeColors colors;
 
   @override
   Widget build(BuildContext context) {
+    final textPrimary = context.appTextPrimary;
+
     return Row(
       children: [
         if (!isFirstPage) ...[
@@ -360,11 +387,12 @@ class _NavigationRow extends StatelessWidget {
             height: buttonHeight,
             child: TextButton(
               onPressed: isBusy ? null : onBack,
-              child: const Text(
+              child: Text(
                 'Назад',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
+                  color: textPrimary,
                 ),
               ),
             ),
@@ -381,13 +409,13 @@ class _NavigationRow extends StatelessWidget {
                     : const LinearGradient(
                         colors: [Color(0xFF7C5CFF), Color(0xFF4A7CFF)],
                       ),
-                color: isBusy ? Colors.grey.shade300 : null,
+                color: isBusy ? colors.mutedBadgeFill : null,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: isBusy
                     ? null
                     : [
                         BoxShadow(
-                          color: _accentColor.withValues(alpha: 0.28),
+                          color: accent.withValues(alpha: 0.28),
                           blurRadius: 14,
                           offset: const Offset(0, 5),
                         ),
@@ -400,12 +428,12 @@ class _NavigationRow extends StatelessWidget {
                   onTap: isBusy ? null : onNext,
                   child: Center(
                     child: isBusy
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
-                              color: Colors.white,
+                              color: colors.textSecondary,
                             ),
                           )
                         : Text(

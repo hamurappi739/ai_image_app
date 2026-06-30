@@ -3,22 +3,24 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_screen_header.dart';
 import '../widgets/create_help_dialog.dart';
-import '../widgets/home_help_dialog.dart';
-import '../widgets/packs_help_dialog.dart';
+import '../widgets/gallery_help_dialog.dart';
+import '../widgets/good_photo_help_dialog.dart';
 import '../widgets/photoshoots_help_dialog.dart';
+import '../widgets/quick_start_help_dialog.dart';
 import '../widgets/template_help_dialog.dart';
-import '../widgets/welcome_showcase_help_dialog.dart';
 
 class HelpHubScreen extends StatelessWidget {
-  const HelpHubScreen({super.key});
+  const HelpHubScreen({
+    super.key,
+    this.onRestartOnboarding,
+  });
 
-  void _openDialog(BuildContext context, Widget dialog) {
-    showDialog<void>(context: context, builder: (_) => dialog);
-  }
+  final VoidCallback? onRestartOnboarding;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -34,56 +36,65 @@ class HelpHubScreen extends StatelessWidget {
                 children: [
                   const AppScreenHeader(
                     title: 'Помощь',
-                    subtitle: 'Краткие подсказки по разделам приложения.',
+                    subtitle:
+                        'Обучалки и подсказки по всем разделам приложения.',
                   ),
                   const SizedBox(height: 20),
                   _HelpTopicTile(
-                    icon: Icons.auto_awesome_outlined,
-                    title: 'Что можно сделать в приложении',
+                    icon: Icons.rocket_launch_outlined,
+                    title: 'Быстрый старт',
                     subtitle:
-                        'Коротко покажем шаблоны, фотосессии и свои идеи.',
-                    onTap: () => _openDialog(
-                      context,
-                      const WelcomeShowcaseHelpDialog(),
+                        'Полная обучалка: шаблоны, фотосессии, галерея и баланс.',
+                    onTap: () => QuickStartHelpDialog.show(context),
+                  ),
+                  if (onRestartOnboarding != null) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: onRestartOnboarding,
+                        icon: const Icon(Icons.replay_outlined, size: 18),
+                        label: const Text('Пройти заново'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: context.appAccent,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _HelpTopicTile(
-                    icon: Icons.home_outlined,
-                    title: 'Главная',
-                    subtitle: 'Меню и кнопка «Начать создавать».',
-                    onTap: () => _openDialog(context, const HomeHelpDialog()),
-                  ),
+                  ],
                   const SizedBox(height: 12),
                   _HelpTopicTile(
                     icon: Icons.dashboard_customize_outlined,
                     title: 'Фото по шаблону',
                     subtitle: 'Как выбрать шаблон и создать фото.',
-                    onTap: () =>
-                        _openDialog(context, const TemplateHelpDialog()),
+                    onTap: () => TemplateHelpDialog.show(context),
                   ),
                   const SizedBox(height: 12),
                   _HelpTopicTile(
                     icon: Icons.photo_camera_outlined,
                     title: 'Фотосессии',
                     subtitle: 'Как выбрать стиль и получить 3 фото.',
-                    onTap: () =>
-                        _openDialog(context, const PhotoshootsHelpDialog()),
+                    onTap: () => PhotoshootsHelpDialog.show(context),
                   ),
                   const SizedBox(height: 12),
                   _HelpTopicTile(
                     icon: Icons.edit_outlined,
                     title: 'Своя идея',
                     subtitle: 'Как описать свою идею и добавить фото.',
-                    onTap: () =>
-                        _openDialog(context, const CreateHelpDialog()),
+                    onTap: () => CreateHelpDialog.show(context),
                   ),
                   const SizedBox(height: 12),
                   _HelpTopicTile(
-                    icon: Icons.shopping_bag_outlined,
-                    title: 'Купить',
-                    subtitle: 'Как пополнить баланс фото и фотосессий.',
-                    onTap: () => _openDialog(context, const PacksHelpDialog()),
+                    icon: Icons.face_retouching_natural_outlined,
+                    title: 'Как выбрать хорошее фото',
+                    subtitle: 'Примеры удачных и неудачных исходников.',
+                    onTap: () => GoodPhotoHelpDialog.show(context),
+                  ),
+                  const SizedBox(height: 12),
+                  _HelpTopicTile(
+                    icon: Icons.photo_library_outlined,
+                    title: 'Галерея и скачивание',
+                    subtitle: 'Где найти результаты и как сохранить на устройство.',
+                    onTap: () => GalleryHelpDialog.show(context),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -92,7 +103,7 @@ class HelpHubScreen extends StatelessWidget {
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: 13,
                       height: 1.4,
-                      color: context.appColors.textSecondary,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ],
@@ -113,8 +124,6 @@ class _HelpTopicTile extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _accentColor = Color(0xFF5B6CFF);
-
   final IconData icon;
   final String title;
   final String subtitle;
@@ -125,6 +134,7 @@ class _HelpTopicTile extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = context.appColors;
     final textPrimary = context.appTextPrimary;
+    final accent = context.appAccent;
 
     return Material(
       color: colors.cardBackground,
@@ -146,7 +156,7 @@ class _HelpTopicTile extends StatelessWidget {
                   color: colors.selectedTile,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: _accentColor),
+                child: Icon(icon, color: accent),
               ),
               const SizedBox(width: 14),
               Expanded(

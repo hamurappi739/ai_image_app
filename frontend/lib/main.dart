@@ -36,7 +36,6 @@ import 'utils/gallery_item_key.dart';
 import 'utils/mock_photoshoot_photo.dart';
 import 'widgets/app_balance_summary.dart';
 import 'widgets/app_drawer.dart';
-import 'widgets/help_guides_sheet.dart';
 import 'widgets/app_navigation_scope.dart';
 import 'widgets/auth_required_screen.dart';
 import 'widgets/app_screen_header.dart';
@@ -529,10 +528,6 @@ class _MainShellState extends State<MainShell> {
     unawaited(_persistGalleryHiddenPreferences());
   }
 
-  void _openHelpGuides() {
-    HelpGuidesSheet.show(context);
-  }
-
   @override
   Widget build(BuildContext context) {
     final screens = <Widget>[
@@ -622,7 +617,9 @@ class _MainShellState extends State<MainShell> {
         onRefreshBalance: _loadBalance,
         showUserBalance: _showUserBalance,
       ),
-      const HelpHubScreen(),
+      HelpHubScreen(
+        onRestartOnboarding: widget.onRestartOnboarding,
+      ),
     ];
 
     return Scaffold(
@@ -631,8 +628,6 @@ class _MainShellState extends State<MainShell> {
         currentSection: _section,
         onSectionSelected: _navigateToSection,
         onTrendingPhotoshootsTap: _showTrendingComingSoon,
-        onShowOnboardingAgain: widget.onRestartOnboarding,
-        onOpenHelpGuides: _openHelpGuides,
         themeMode: widget.themeMode,
         onThemeModeChanged: widget.onThemeModeChanged,
         userEmail: _authService.currentUser?.email,

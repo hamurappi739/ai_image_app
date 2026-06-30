@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -5,7 +7,8 @@ import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 
 import 'gallery_download_common.dart';
 
-const _galleryImageAcceptHeader = 'image/jpeg,image/png,image/webp,image/*,*/*;q=0.8';
+const _galleryImageAcceptHeader =
+    'image/jpeg,image/png,image/webp,image/*,*/*;q=0.8';
 
 Future<bool> downloadGalleryImage(
   BuildContext context,
@@ -40,18 +43,17 @@ Future<bool> downloadGalleryImage(
         ? '${suggestedFileName!.trim()}.$extension'
         : buildGalleryDownloadFileName(extension: extension);
 
-    final result = await ImageGallerySaverPlus.saveImage(
-      bytes,
-      name: fileName,
-      quality: 100,
-    );
-    if (!isGalleryDownloadSaveSuccess(result)) {
+    final saved = await _saveBytesToGallery(bytes, fileName);
+    if (!saved) {
       throw StateError('Gallery save rejected');
     }
 
     if (kDebugMode) {
       final host = Uri.tryParse(downloadUrl)?.host ?? 'unknown';
-      debugPrint('Gallery download saved: host=$host bytes=${bytes.length}');
+      debugPrint(
+        'Gallery download saved: platform=${Platform.operatingSystem} '
+        'host=$host bytes=${bytes.length}',
+      );
     }
 
     if (!context.mounted) return true;
@@ -60,14 +62,45 @@ Future<bool> downloadGalleryImage(
   } catch (error) {
     if (kDebugMode) {
       final host = Uri.tryParse(downloadUrl)?.host ?? 'unknown';
+      final statusCode = error is StateError && error.message.startsWith('HTTP ')
+          ? error.message.replaceFirst('HTTP ', '')
+          : null;
       debugPrint(
-        'Gallery download failed: host=$host errorType=${error.runtimeType}',
+        'Gallery download failed: platform=${Platform.operatingSystem} '
+        'host=$host errorType=${error.runtimeType}'
+        '${statusCode != null ? ' statusCode=$statusCode' : ''}',
       );
     }
     if (!context.mounted) return false;
     _showGalleryDownloadSnackBar(context, galleryDownloadFailureMessage);
     return false;
   }
+}
+
+Future<bool> _saveBytesToGallery(Uint8List bytes, String fileName) async {
+  final baseName = fileName.replaceAll(
+    RegExp(r'\.(jpe?g|png|webp)$', caseSensitive: false),
+    '',
+  );
+
+  final imageResult = await ImageGallerySaverPlus.saveImage(
+    bytes,
+    name: baseName,
+    quality: 100,
+  );
+  if (isGalleryDownloadSaveSuccess(imageResult)) {
+    return true;
+  }
+
+  final tempFile = File('${Directory.systemTemp.path}/$fileName');
+  await tempFile.writeAsBytes(bytes, flush: true);
+
+  final fileResult = await ImageGallerySaverPlus.saveFile(tempFile.path);
+  if (isGalleryDownloadSaveSuccess(fileResult)) {
+    return true;
+  }
+
+  return false;
 }
 
 void _showGalleryDownloadSnackBar(BuildContext context, String message) {

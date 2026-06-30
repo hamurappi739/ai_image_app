@@ -13,8 +13,6 @@ class AppDrawer extends StatelessWidget {
     required this.themeMode,
     required this.onThemeModeChanged,
     this.onTrendingPhotoshootsTap,
-    this.onShowOnboardingAgain,
-    this.onOpenHelpGuides,
     this.userEmail,
     this.userDisplayName,
     this.showUserBalance = false,
@@ -29,8 +27,6 @@ class AppDrawer extends StatelessWidget {
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final VoidCallback? onTrendingPhotoshootsTap;
-  final VoidCallback? onShowOnboardingAgain;
-  final VoidCallback? onOpenHelpGuides;
   final String? userEmail;
   final String? userDisplayName;
   final bool showUserBalance;
@@ -59,16 +55,6 @@ class AppDrawer extends StatelessWidget {
       return;
     }
     onSectionSelected(AppSection.buy);
-  }
-
-  void _onShowOnboardingAgain(BuildContext context) {
-    Navigator.of(context).pop();
-    onShowOnboardingAgain?.call();
-  }
-
-  void _onOpenHelpGuides(BuildContext context) {
-    Navigator.of(context).pop();
-    onOpenHelpGuides?.call();
   }
 
   void _onDarkThemeChanged(bool enabled) {
@@ -311,44 +297,6 @@ class AppDrawer extends StatelessWidget {
               contentPadding: const EdgeInsets.symmetric(horizontal: 20),
               onTap: () => _onDarkThemeChanged(!isDark),
             ),
-            if (onShowOnboardingAgain != null)
-              ListTile(
-                leading: Icon(
-                  Icons.replay_outlined,
-                  color: colors.textSecondary,
-                ),
-                title: Text(
-                  'Показать обучалку снова',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: textPrimary,
-                  ),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                onTap: () => _onShowOnboardingAgain(context),
-              ),
-            if (onOpenHelpGuides != null)
-              ListTile(
-                leading: Icon(
-                  Icons.menu_book_outlined,
-                  color: colors.textSecondary,
-                ),
-                title: Text(
-                  'Обучалки и подсказки',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: textPrimary,
-                  ),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                onTap: () => _onOpenHelpGuides(context),
-              ),
             const SizedBox(height: 8),
           ],
         ),
