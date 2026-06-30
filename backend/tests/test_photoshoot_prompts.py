@@ -414,7 +414,7 @@ class StyleLockPromptTests(unittest.TestCase):
 
 
 class PhotoshootPromptPackV1Tests(unittest.TestCase):
-    def test_pack_v1_frame_zero_includes_uploaded_user_photo_intro(self) -> None:
+    def test_pack_v1_frame_zero_includes_identity_and_opening_frame_language(self) -> None:
         from app.services.photoshoot_prompts import (
             PHOTOSHOOT_PROMPT_PACK_V1_STYLE_IDS,
             resolve_frame_prompts,
@@ -424,10 +424,14 @@ class PhotoshootPromptPackV1Tests(unittest.TestCase):
         for style_id in sorted(PHOTOSHOOT_PROMPT_PACK_V1_STYLE_IDS):
             style = get_photoshoot_style(style_id)
             prompts = resolve_frame_prompts(style_id, style, output_count=3)
-            self.assertIn("uploaded user photo", prompts[0].lower(), style_id)
-            self.assertIn("identity reference", prompts[0].lower(), style_id)
+            lower = prompts[0].lower()
+            self.assertIn("keep the same identity", lower, style_id)
+            self.assertTrue(
+                "opening" in lower or "first frame" in lower or "frame 1" in lower,
+                style_id,
+            )
 
-    def test_pack_v1_continuation_frames_include_dual_reference_intro(self) -> None:
+    def test_pack_v1_continuation_frames_include_independent_diversity_rules(self) -> None:
         from app.services.photoshoot_prompts import (
             PHOTOSHOOT_PROMPT_PACK_V1_STYLE_IDS,
             resolve_frame_prompts,
@@ -439,17 +443,15 @@ class PhotoshootPromptPackV1Tests(unittest.TestCase):
             prompts = resolve_frame_prompts(style_id, style, output_count=3)
             for frame_index, prompt in enumerate(prompts[1:], start=1):
                 lower = prompt.lower()
-                self.assertIn("image 1", lower, f"{style_id} frame {frame_index}")
-                self.assertIn("image 2", lower, f"{style_id} frame {frame_index}")
-                self.assertIn("style anchor", lower, f"{style_id} frame {frame_index}")
+                self.assertIn("keep the same identity", lower, f"{style_id} frame {frame_index}")
                 self.assertTrue(
                     any(
                         phrase in lower
                         for phrase in (
-                            "not a copy",
-                            "distinct",
-                            "different",
-                            "change",
+                            "clearly differ",
+                            "no duplicate",
+                            "do not duplicate",
+                            "do not repeat",
                         )
                     ),
                     f"{style_id} frame {frame_index}",
@@ -466,15 +468,19 @@ class PhotoshootPromptPackV1Tests(unittest.TestCase):
             Path(__file__).resolve().parent.parent / "app" / "catalog" / "photoshoots.json"
         )
         catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
-        needle = "do not repeat the same pose, crop, camera distance"
+        needles = (
+            "do not duplicate",
+            "no duplicate",
+            "do not repeat",
+        )
         for item in catalog:
             style_id = item["id"]
             style = get_photoshoot_style(style_id)
             prompts = resolve_frame_prompts(style_id, style, output_count=3)
-            for frame_index in (1, 2):
-                self.assertIn(
-                    needle,
-                    prompts[frame_index].lower(),
+            for frame_index in range(3):
+                lower = prompts[frame_index].lower()
+                self.assertTrue(
+                    any(needle in lower for needle in needles),
                     f"{style_id} frame {frame_index}",
                 )
 
