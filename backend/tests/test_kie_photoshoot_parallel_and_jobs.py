@@ -59,10 +59,7 @@ class KieSequentialPipelineTests(unittest.TestCase):
 
         with patch.object(provider, "_generate_unique_frame_data_url", side_effect=tracking_generate):
             with patch.object(storage_service, "upload_temp_input_bytes", return_value=("temp/a", _SIGNED_URL_A)):
-                with patch.object(storage_service, "upload_temp_input_data_url", side_effect=[
-                    ("temp/b", _SIGNED_URL_B),
-                    ("temp/c", _SIGNED_URL_C),
-                ]):
+                with patch.object(storage_service, "upload_temp_input_data_url") as mock_upload_data_url:
                     with patch.object(storage_service, "create_signed_url", return_value=_SIGNED_URL_A):
                         with patch.object(storage_service, "delete_temp_objects_best_effort"):
                             with patch("app.services.kie_photoshoot_provider.settings") as mock_settings:
@@ -82,21 +79,19 @@ class KieSequentialPipelineTests(unittest.TestCase):
 
         self.assertEqual(len(result), 3)
         self.assertEqual(call_log, [0, 1, 2])
+        mock_upload_data_url.assert_not_called()
 
-    def test_frame_two_receives_previous_frame_path(self) -> None:
+    def test_independent_frames_do_not_upload_generated_temp_refs(self) -> None:
         provider = KiePhotoshootProvider(output_count=3)
-        captured: list[tuple[int, str | None]] = []
+        captured: list[int] = []
 
-        def stub_unique(**kwargs):
-            captured.append((kwargs["frame_index"], kwargs.get("previous_frame_path")))
-            return f"data:image/png;base64,UNIQUE{kwargs['frame_index']}"
+        def stub_unique(*, frame_index: int, **kwargs):
+            captured.append(frame_index)
+            return f"data:image/png;base64,UNIQUE{frame_index}"
 
         with patch.object(provider, "_generate_unique_frame_data_url", side_effect=stub_unique):
             with patch.object(storage_service, "upload_temp_input_bytes", return_value=("temp/a", _SIGNED_URL_A)):
-                with patch.object(storage_service, "upload_temp_input_data_url", side_effect=[
-                    ("temp/b", _SIGNED_URL_B),
-                    ("temp/c", _SIGNED_URL_C),
-                ]):
+                with patch.object(storage_service, "upload_temp_input_data_url") as mock_upload_data_url:
                     with patch.object(storage_service, "delete_temp_objects_best_effort"):
                         with patch("app.services.kie_photoshoot_provider.settings") as mock_settings:
                             mock_settings.photoshoot_series_reference_mode = "identity_anchor"
@@ -113,9 +108,8 @@ class KieSequentialPipelineTests(unittest.TestCase):
                                 user_id="user-1",
                             )
 
-        self.assertEqual(captured[0], (0, None))
-        self.assertEqual(captured[1], (1, None))
-        self.assertEqual(captured[2], (2, "temp/c"))
+        self.assertEqual(captured, [0, 1, 2])
+        mock_upload_data_url.assert_not_called()
 
 
 class KieRateLimiterTests(unittest.TestCase):
@@ -355,14 +349,8 @@ class KieParallelFailureAtomicityTests(unittest.TestCase):
 
         mock_resolve_provider.return_value = KIE_IMAGE_PROVIDER
         mock_upload_bytes.return_value = ("temp/a", _SIGNED_URL_A)
-        mock_upload_data_url.side_effect = [
-            ("temp/b", _SIGNED_URL_B),
-            ("temp/c", _SIGNED_URL_C),
-        ]
         mock_signed_url.side_effect = lambda path, **kwargs: {
             "temp/a": _SIGNED_URL_A,
-            "temp/b": _SIGNED_URL_B,
-            "temp/c": _SIGNED_URL_C,
         }.get(path, _SIGNED_URL_A)
 
         call_count = 0
@@ -370,7 +358,7 @@ class KieParallelFailureAtomicityTests(unittest.TestCase):
         def generate_side_effect(*args, **kwargs):
             nonlocal call_count
             call_count += 1
-            if call_count in (3, 4, 5):
+            if call_count in (3, 4):
                 raise KieImageGenerationError("kie_task_failed")
             return (_distinct_result_bytes(call_count), "image/png")
 

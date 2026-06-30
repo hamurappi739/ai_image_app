@@ -15,8 +15,6 @@ from app.services.photoshoot_similarity import (
 from app.services.photoshoot_styles import get_photoshoot_style
 from app.services.storage_service import storage_service
 
-_TEST_PHOTO_BYTES = b"fake-photo"
-_TEST_PHOTO_TYPE = "image/jpeg"
 _SIGNED_URL = "https://supabase.example.com/signed/a"
 
 
@@ -45,12 +43,9 @@ class KiePhotoshootDuplicateGuardTests(unittest.TestCase):
                     style=get_photoshoot_style("studio_portrait"),
                     client_style_id="studio_portrait",
                     photoshoot_id="ps-dup-retry",
-                    user_id="user-1",
                     user_description=None,
                     series_mode="identity_anchor",
                     identity_path="temp/a",
-                    anchor_path="temp/b",
-                    previous_frame_path=None,
                     existing_data_urls=["data:image/png;base64,OLD"],
                     ttl_seconds=3600,
                     kie_client=MagicMock(),
@@ -86,12 +81,9 @@ class KiePhotoshootDuplicateGuardTests(unittest.TestCase):
                         style=get_photoshoot_style("studio_portrait"),
                         client_style_id="studio_portrait",
                         photoshoot_id="ps-dup-fail",
-                        user_id="user-1",
                         user_description=None,
                         series_mode="identity_anchor",
                         identity_path="temp/a",
-                        anchor_path="temp/b",
-                        previous_frame_path="temp/c",
                         existing_data_urls=[
                             "data:image/png;base64,A",
                             "data:image/png;base64,B",
@@ -104,33 +96,21 @@ class KiePhotoshootDuplicateGuardTests(unittest.TestCase):
 
         self.assertEqual(ctx.exception.status_code, 502)
 
-    def test_build_input_urls_frame_two_includes_three_references(self) -> None:
+    def test_build_input_urls_always_returns_identity_only(self) -> None:
         provider = KiePhotoshootProvider(output_count=3)
-        with patch.object(storage_service, "create_signed_url", side_effect=[
-            "https://signed/identity",
-            "https://signed/anchor",
-            "https://signed/previous",
-        ]):
+        with patch.object(
+            storage_service,
+            "create_signed_url",
+            return_value="https://signed/identity",
+        ):
             urls = provider._build_input_urls(
-                series_mode="identity_anchor",
-                frame_index=2,
                 identity_path="temp/a",
-                anchor_path="temp/b",
-                previous_frame_path="temp/c",
                 ttl_seconds=3600,
                 client_style_id="studio_portrait",
                 photoshoot_id="ps-urls",
-                has_frames=True,
             )
 
-        self.assertEqual(
-            urls,
-            [
-                "https://signed/identity",
-                "https://signed/anchor",
-                "https://signed/previous",
-            ],
-        )
+        self.assertEqual(urls, ["https://signed/identity"])
 
 
 if __name__ == "__main__":

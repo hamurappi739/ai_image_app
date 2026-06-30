@@ -488,7 +488,6 @@ class KiePhotoshootAtomicityTests(unittest.TestCase):
             (_RESULT_IMAGE_BYTES, "image/png"),
             KieImageGenerationError("kie_task_failed"),
             KieImageGenerationError("kie_task_failed"),
-            KieImageGenerationError("kie_task_failed"),
         ]
         mock_kie_client_cls.return_value = kie_client
 
@@ -567,8 +566,9 @@ class KiePhotoshootAtomicityTests(unittest.TestCase):
         mock_delete_temp.assert_called()
         deleted_paths = mock_delete_temp.call_args.args[0]
         self.assertIn("temp/a", deleted_paths)
-        self.assertIn("temp/b", deleted_paths)
-        self.assertIn("temp/c", deleted_paths)
+        self.assertNotIn("temp/b", deleted_paths)
+        self.assertNotIn("temp/c", deleted_paths)
+        mock_upload_data_url.assert_not_called()
 
     @patch("app.services.photoshoot_service.resolve_photoshoot_image_provider")
     @patch.object(storage_service, "upload_temp_input_bytes")
@@ -919,8 +919,13 @@ class KiePhotoshootPromptFormatTests(unittest.TestCase):
             self.assertIn("3:4", prompt, msg=f"frame_index={frame_index}")
             self.assertIn("horizontal", lower, msg=f"frame_index={frame_index}")
             self.assertIn(
-                "do not create a horizontal",
-                lower,
+                "use image 1 only as the identity reference",
+                prompt.lower(),
+                msg=f"frame_index={frame_index}",
+            )
+            self.assertNotIn(
+                "image 2: the first generated frame",
+                prompt.lower(),
                 msg=f"frame_index={frame_index}",
             )
 

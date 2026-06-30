@@ -483,10 +483,36 @@ KIE_VERTICAL_PORTRAIT_FORMAT_INSTRUCTION = (
     "Keep the person fully framed for the requested crop."
 )
 
+KIE_IDENTITY_ONLY_REFERENCE_INSTRUCTION = (
+    "Use Image 1 only as the identity reference. Do not copy the source photo pose, "
+    "crop, background, clothes, or lighting. Create a new photo in the selected style."
+)
+
 
 def append_kie_vertical_portrait_instruction(prompt: str) -> str:
     """Kie image-to-image format guard (vertical 3:4 portrait)."""
     return f"{prompt}\n\n{KIE_VERTICAL_PORTRAIT_FORMAT_INSTRUCTION}"
+
+
+def build_kie_independent_frame_composition(frame_index: int) -> str:
+    """Frame-specific shot targets when Kie uses identity-only references."""
+    if frame_index <= 0:
+        return (
+            "Independent frame shot (frame 1 of 3):\n"
+            "Close-up or chest-up opening portrait. Calm or direct gaze. Establish outfit, "
+            "location, lighting, and color grading for the series through prompt and style only."
+        )
+    if frame_index == 1:
+        return (
+            "Independent frame shot (frame 2 of 3):\n"
+            "Medium portrait with a clear three-quarter body turn. Different head angle, "
+            "hand and arm position, gaze, crop, and camera distance from frame 1."
+        )
+    return (
+        "Independent frame shot (frame 3 of 3):\n"
+        "Wider waist-up or lifestyle portrait with more environment visible. Different body "
+        "orientation, gaze, and hand/arm position from frames 1 and 2."
+    )
 
 
 def build_kie_photoshoot_frame_prompt(
@@ -498,16 +524,30 @@ def build_kie_photoshoot_frame_prompt(
     user_description: str | None = None,
     series_reference_mode: str = "legacy",
 ) -> str:
-    """Build Kie photoshoot instruction for one frame (vertical 3:4 portrait)."""
-    prompt = build_photoshoot_frame_prompt(
+    """Build Kie photoshoot instruction for one frame (identity-only references)."""
+    base_prompt = resolve_base_prompt(
         client_style_id,
         style,
-        frame_index=frame_index,
-        output_count=output_count,
         user_description=user_description,
-        series_reference_mode=series_reference_mode,
     )
-    return append_kie_vertical_portrait_instruction(prompt)
+    frame_prompts = resolve_frame_prompts(
+        client_style_id,
+        style,
+        output_count=output_count,
+    )
+    safe_index = min(max(frame_index, 0), len(frame_prompts) - 1)
+    prompt = build_photoshoot_prompt(base_prompt, frame_prompts[safe_index])
+    if output_count > 1:
+        prompt = (
+            f"{prompt}\n\n"
+            f"{build_universal_photoshoot_diversity_rules(frame_index, output_count)}"
+        )
+    mode = series_reference_mode.strip().lower()
+    if mode in {"identity_anchor", "anchor_only", "legacy"}:
+        prompt = f"{prompt}\n\n{KIE_IDENTITY_ONLY_REFERENCE_INSTRUCTION}"
+        if output_count > 1:
+            prompt = f"{prompt}\n\n{build_kie_independent_frame_composition(frame_index)}"
+    return append_kie_vertical_portrait_instruction(_append_style_locks(prompt, client_style_id))
 
 
 def build_series_anchor_frame_prompt() -> str:

@@ -32,13 +32,6 @@ KIE_FRAME_FAIL_RETRY_PROMPT_SUFFIX_FRAME0 = (
     "natural pose, clear face, and photorealistic result."
 )
 
-KIE_FRAME_SIMPLIFIED_REF_FALLBACK_PROMPT_SUFFIX = (
-    "Fallback mode: use only the uploaded identity photo as visual reference. "
-    "Create a new distinct frame in the selected photoshoot style. Keep identity, "
-    "but do not copy pose/crop from previous frames. Use a clearly different camera "
-    "distance, pose, and composition."
-)
-
 
 def kie_frame_fail_retry_prompt_suffix(frame_index: int) -> str:
     if frame_index <= 0:

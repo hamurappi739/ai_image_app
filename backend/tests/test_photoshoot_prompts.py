@@ -141,6 +141,16 @@ class PhotoshootContinuationPromptTests(unittest.TestCase):
                     prompt.lower(),
                     f"{style_id} frame {frame_index}",
                 )
+                self.assertIn(
+                    "Use Image 1 only as the identity reference",
+                    prompt,
+                    f"{style_id} frame {frame_index}",
+                )
+                self.assertNotIn(
+                    "Image 2: The first generated frame",
+                    prompt,
+                    f"{style_id} frame {frame_index}",
+                )
 
 
 class SafeFrame0FallbackPromptTests(unittest.TestCase):
