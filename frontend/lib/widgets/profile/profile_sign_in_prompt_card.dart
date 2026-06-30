@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/app_theme.dart';
+
 /// Sign-in call-to-action when the user is not logged in.
 class ProfileSignInPromptCard extends StatelessWidget {
   const ProfileSignInPromptCard({
     super.key,
     required this.isAuthAvailable,
     required this.onEmailTap,
-    required this.onVkTap,
-    required this.onYandexTap,
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
 
   final bool isAuthAvailable;
   final VoidCallback onEmailTap;
-  final VoidCallback onVkTap;
-  final VoidCallback onYandexTap;
 
   @override
   Widget build(BuildContext context) {
@@ -101,14 +99,16 @@ class ProfileSignInPromptCard extends StatelessWidget {
             label: 'Продолжить с VK ID',
             badgeText: 'VK',
             badgeColor: const Color(0xFF0077FF),
-            onTap: onVkTap,
+            enabled: false,
+            soonLabel: 'Скоро',
           ),
           const SizedBox(height: 10),
           _SocialAuthButton(
             label: 'Продолжить с Яндекс ID',
             badgeText: 'Я',
             badgeColor: const Color(0xFFFF4433),
-            onTap: onYandexTap,
+            enabled: false,
+            soonLabel: 'Скоро',
           ),
           const SizedBox(height: 14),
           Text(
@@ -181,25 +181,32 @@ class _SocialAuthButton extends StatelessWidget {
     required this.label,
     required this.badgeText,
     required this.badgeColor,
-    required this.onTap,
+    this.enabled = true,
+    this.soonLabel,
   });
 
   final String label;
   final String badgeText;
   final Color badgeColor;
-  final VoidCallback onTap;
+  final bool enabled;
+  final String? soonLabel;
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return SizedBox(
       height: 52,
       width: double.infinity,
       child: OutlinedButton(
-        onPressed: onTap,
+        onPressed: null,
         style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF1F2937),
-          backgroundColor: Colors.white.withValues(alpha: 0.85),
-          side: const BorderSide(color: Color(0xFFE5E7EB)),
+          foregroundColor: enabled
+              ? context.appTextPrimary
+              : colors.textSecondary,
+          backgroundColor: colors.elevatedSurface,
+          disabledForegroundColor: colors.textSecondary,
+          side: BorderSide(color: colors.borderColor),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -212,7 +219,7 @@ class _SocialAuthButton extends StatelessWidget {
               height: 28,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: badgeColor,
+                color: badgeColor.withValues(alpha: enabled ? 1 : 0.45),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -235,6 +242,24 @@ class _SocialAuthButton extends StatelessWidget {
                 ),
               ),
             ),
+            if (soonLabel != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: colors.mutedBadgeFill,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  soonLabel!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

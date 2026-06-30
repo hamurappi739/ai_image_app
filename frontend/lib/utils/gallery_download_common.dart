@@ -1,8 +1,27 @@
 /// Shared helpers for gallery image download across platforms.
 library;
 
-const galleryDownloadSuccessMessage = 'Фото сохранено';
+const galleryDownloadSuccessMessage = 'Фото сохранено в галерею';
 const galleryDownloadFailureMessage = 'Не удалось сохранить фото';
+
+/// Resolves a direct image URL for download (unwraps backend image-proxy if needed).
+String resolveGalleryDownloadUrl(String url) {
+  final trimmed = url.trim();
+  if (trimmed.isEmpty) return trimmed;
+
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null) return trimmed;
+
+  final path = uri.path;
+  if (path.endsWith('/image-proxy') || path.endsWith('image-proxy')) {
+    final original = uri.queryParameters['url']?.trim();
+    if (original != null && original.isNotEmpty) {
+      return original;
+    }
+  }
+
+  return trimmed;
+}
 
 String buildGalleryDownloadFileName({
   required String extension,
@@ -55,6 +74,9 @@ bool isGalleryDownloadSaveSuccess(Object? result) {
   if (result is Map) {
     final success = result['isSuccess'];
     if (success is bool) return success;
+    final filePath = result['filePath'];
+    if (filePath is String && filePath.trim().isNotEmpty) return true;
   }
+  if (result is String && result.trim().isNotEmpty) return true;
   return false;
 }

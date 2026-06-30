@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 
 enum ProfileEmailAuthResult { signedIn, signedUp }
 
-/// Bottom sheet with email/password sign-in and sign-up.
+enum _ProfileEmailAuthMode { signIn, signUp, passwordRecovery }
+
+/// Bottom sheet with email/password sign-in, sign-up, and password recovery.
 class ProfileEmailAuthSheet extends StatefulWidget {
   const ProfileEmailAuthSheet({
     super.key,
@@ -38,10 +41,11 @@ class ProfileEmailAuthSheet extends StatefulWidget {
 class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isSigningIn = false;
-  bool _isSigningUp = false;
+  _ProfileEmailAuthMode _mode = _ProfileEmailAuthMode.signIn;
+  bool _isSubmitting = false;
 
-  bool get _isLoading => _isSigningIn || _isSigningUp;
+  bool get _isLoading => _isSubmitting;
+  bool get _needsPassword => _mode != _ProfileEmailAuthMode.passwordRecovery;
 
   @override
   void dispose() {
@@ -49,6 +53,27 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
     _passwordController.dispose();
     super.dispose();
   }
+
+  String get _title => switch (_mode) {
+        _ProfileEmailAuthMode.signIn => 'Вход по почте',
+        _ProfileEmailAuthMode.signUp => 'Создать аккаунт',
+        _ProfileEmailAuthMode.passwordRecovery => 'Восстановить пароль',
+      };
+
+  String get _subtitle => switch (_mode) {
+        _ProfileEmailAuthMode.signIn =>
+          'Введите email и пароль от вашего аккаунта.',
+        _ProfileEmailAuthMode.signUp =>
+          'Укажите email и пароль для нового аккаунта.',
+        _ProfileEmailAuthMode.passwordRecovery =>
+          'Мы отправим ссылку для сброса пароля на вашу почту.',
+      };
+
+  String get _primaryActionLabel => switch (_mode) {
+        _ProfileEmailAuthMode.signIn => 'Войти',
+        _ProfileEmailAuthMode.signUp => 'Создать аккаунт',
+        _ProfileEmailAuthMode.passwordRecovery => 'Отправить ссылку',
+      };
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -60,42 +85,82 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
     );
   }
 
-  Future<void> _onSignIn() async {
-    if (_isLoading) return;
-    setState(() => _isSigningIn = true);
-    try {
-      await widget.authService.signInWithEmailPassword(
-        _emailController.text,
-        _passwordController.text,
-      );
-      if (!mounted) return;
-      Navigator.of(context).pop(ProfileEmailAuthResult.signedIn);
-    } catch (_) {
-      if (!mounted) return;
-      _showMessage('Не удалось войти. Проверьте почту и пароль.');
-    } finally {
-      if (mounted) setState(() => _isSigningIn = false);
-    }
+  void _setMode(_ProfileEmailAuthMode mode) {
+    if (_isLoading || _mode == mode) return;
+    setState(() => _mode = mode);
   }
 
-  Future<void> _onSignUp() async {
+  String _errorMessage(Object error) {
+    if (error is AuthNotConfiguredException) {
+      return error.message;
+    }
+    if (error is AuthException) {
+      final message = error.message.toLowerCase();
+      if (message.contains('invalid login credentials')) {
+        return 'Не удалось войти. Проверьте почту и пароль.';
+      }
+      if (message.contains('user already registered')) {
+        return 'Такая почта уже используется. Попробуйте войти.';
+      }
+      if (message.contains('password')) {
+        return 'Пароль слишком короткий или не подходит.';
+      }
+      if (message.contains('email')) {
+        return 'Проверьте правильность email.';
+      }
+    }
+    return switch (_mode) {
+      _ProfileEmailAuthMode.signIn =>
+        'Не удалось войти. Проверьте почту и пароль.',
+      _ProfileEmailAuthMode.signUp =>
+        'Не удалось создать аккаунт. Попробуйте другую почту.',
+      _ProfileEmailAuthMode.passwordRecovery =>
+        'Не удалось отправить ссылку. Попробуйте позже.',
+    };
+  }
+
+  Future<void> _onPrimaryAction() async {
     if (_isLoading) return;
-    setState(() => _isSigningUp = true);
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _showMessage('Введите email.');
+      return;
+    }
+    if (_needsPassword && _passwordController.text.isEmpty) {
+      _showMessage('Введите пароль.');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
     try {
-      await widget.authService.signUpWithEmailPassword(
-        _emailController.text,
-        _passwordController.text,
-      );
+      switch (_mode) {
+        case _ProfileEmailAuthMode.signIn:
+          await widget.authService.signInWithEmailPassword(
+            email,
+            _passwordController.text,
+          );
+          if (!mounted) return;
+          Navigator.of(context).pop(ProfileEmailAuthResult.signedIn);
+        case _ProfileEmailAuthMode.signUp:
+          await widget.authService.signUpWithEmailPassword(
+            email,
+            _passwordController.text,
+          );
+          if (!mounted) return;
+          Navigator.of(context).pop(ProfileEmailAuthResult.signedUp);
+        case _ProfileEmailAuthMode.passwordRecovery:
+          await widget.authService.resetPasswordForEmail(email);
+          if (!mounted) return;
+          _showMessage(
+            'Если аккаунт существует, мы отправили ссылку для восстановления.',
+          );
+          setState(() => _mode = _ProfileEmailAuthMode.signIn);
+      }
+    } catch (error) {
       if (!mounted) return;
-      Navigator.of(context).pop(ProfileEmailAuthResult.signedUp);
-    } catch (_) {
-      if (!mounted) return;
-      _showMessage(
-        'Не удалось создать аккаунт. '
-        'Возможно, такая почта уже используется.',
-      );
+      _showMessage(_errorMessage(error));
     } finally {
-      if (mounted) setState(() => _isSigningUp = false);
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -132,7 +197,7 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    'Вход по почте',
+                    _title,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -149,7 +214,7 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Введите email и пароль от вашего аккаунта.',
+              _subtitle,
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 14,
                 height: 1.4,
@@ -166,26 +231,38 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
               cursorColor: accent,
               decoration: _inputDecoration(context, 'Email'),
             ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _passwordController,
-              enabled: !_isLoading,
-              obscureText: true,
-              style: TextStyle(color: textPrimary, fontSize: 15),
-              cursorColor: accent,
-              decoration: _inputDecoration(context, 'Пароль'),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Забыли пароль? Скоро добавим восстановление.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 12,
-                  color: colors.textSecondary.withValues(alpha: 0.85),
+            if (_needsPassword) ...[
+              const SizedBox(height: 14),
+              TextField(
+                controller: _passwordController,
+                enabled: !_isLoading,
+                obscureText: true,
+                style: TextStyle(color: textPrimary, fontSize: 15),
+                cursorColor: accent,
+                decoration: _inputDecoration(context, 'Пароль'),
+              ),
+            ],
+            if (_mode == _ProfileEmailAuthMode.signIn) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () => _setMode(_ProfileEmailAuthMode.passwordRecovery),
+                  style: TextButton.styleFrom(
+                    foregroundColor: accent,
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Забыли пароль?',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: 20),
             SizedBox(
               height: 52,
@@ -202,10 +279,10 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: _isLoading ? null : _onSignIn,
+                    onTap: _isLoading ? null : _onPrimaryAction,
                     borderRadius: BorderRadius.circular(14),
                     child: Center(
-                      child: _isSigningIn
+                      child: _isSubmitting
                           ? const SizedBox(
                               width: 24,
                               height: 24,
@@ -214,9 +291,9 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text(
-                              'Войти',
-                              style: TextStyle(
+                          : Text(
+                              _primaryActionLabel,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -227,33 +304,25 @@ class _ProfileEmailAuthSheetState extends State<ProfileEmailAuthSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 52,
-              child: OutlinedButton(
-                onPressed: _isLoading ? null : _onSignUp,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: accent,
-                  side: BorderSide(color: accent.withValues(alpha: 0.5)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+            const SizedBox(height: 14),
+            if (_mode != _ProfileEmailAuthMode.signUp)
+              Center(
+                child: TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () => _setMode(_ProfileEmailAuthMode.signUp),
+                  child: const Text('Создать аккаунт'),
                 ),
-                child: _isSigningUp
-                    ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.2,
-                          color: accent,
-                        ),
-                      )
-                    : const Text(
-                        'Создать аккаунт',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
               ),
-            ),
+            if (_mode != _ProfileEmailAuthMode.signIn)
+              Center(
+                child: TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () => _setMode(_ProfileEmailAuthMode.signIn),
+                  child: const Text('Уже есть аккаунт? Войти'),
+                ),
+              ),
           ],
         ),
       ),

@@ -558,7 +558,6 @@ class _TemplateCard extends StatelessWidget {
   });
 
   static const _accentColor = Color(0xFF5B6CFF);
-  static const _textSecondary = Color(0xFF6B7280);
 
   final PhotoTemplate template;
   final VoidCallback onTry;
@@ -569,10 +568,7 @@ class _TemplateCard extends StatelessWidget {
     final theme = Theme.of(context);
     final titleFontSize = compact ? 13.0 : 15.0;
     final titleLineHeight = compact ? 1.2 : 1.22;
-    final titleBoxHeight = compact ? 34.0 : 38.0;
-    final descriptionFontSize = compact ? 11.0 : 12.0;
-    final descriptionLineHeight = compact ? 1.25 : 1.3;
-    final descriptionBoxHeight = compact ? 30.0 : 32.0;
+    final titleBoxHeight = compact ? 32.0 : 36.0;
     final buttonHeight = compact ? 34.0 : 36.0;
 
     return Material(
@@ -612,9 +608,9 @@ class _TemplateCard extends StatelessWidget {
           Padding(
             padding: EdgeInsets.fromLTRB(
               compact ? 8 : 10,
-              8,
+              compact ? 6 : 8,
               compact ? 8 : 10,
-              12,
+              compact ? 8 : 10,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -634,21 +630,7 @@ class _TemplateCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  height: descriptionBoxHeight,
-                  child: Text(
-                    template.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontSize: descriptionFontSize,
-                      height: descriptionLineHeight,
-                      color: _textSecondary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
+                SizedBox(height: compact ? 6 : 8),
                 SizedBox(
                   width: double.infinity,
                   height: buttonHeight,

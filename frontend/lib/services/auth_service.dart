@@ -82,6 +82,15 @@ class AuthService {
     );
   }
 
+  Future<void> resetPasswordForEmail(String email) async {
+    _ensureConfigured();
+    final client = _client;
+    if (client == null) {
+      throw AuthNotConfiguredException(_authUnavailableMessage);
+    }
+    await client.auth.resetPasswordForEmail(email.trim());
+  }
+
   Future<void> signOut() async {
     _ensureConfigured();
     final client = _client;

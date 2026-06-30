@@ -7,6 +7,7 @@ import '../models/generated_image_item.dart';
 import '../theme/app_theme.dart';
 import '../utils/gallery_display_title.dart';
 import '../utils/template_generation_params.dart';
+import '../utils/template_photo_reminders.dart';
 import '../models/user_balance.dart';
 import '../screens/template_photo_screen.dart';
 import '../services/api_service.dart';
@@ -348,6 +349,46 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
     }
   }
 
+  Widget _buildPhotoUploadReminder(ThemeData theme) {
+    final reminder = templatePhotoUploadReminder(widget.template.id);
+    if (reminder == null) return const SizedBox.shrink();
+
+    final colors = context.appColors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        decoration: BoxDecoration(
+          color: colors.infoBannerFill,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: colors.borderColor),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 18,
+              color: context.appAccent,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                reminder,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: 13,
+                  height: 1.35,
+                  color: colors.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSinglePhotoSection(ThemeData theme) {
     final colors = context.appColors;
     final textPrimary = context.appTextPrimary;
@@ -364,6 +405,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
           ),
         ),
         const SizedBox(height: 10),
+        _buildPhotoUploadReminder(theme),
         if (!_hasPhoto)
           SizedBox(
             height: 44,
@@ -531,9 +573,11 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
           style: theme.textTheme.titleMedium?.copyWith(
             fontSize: 16,
             fontWeight: FontWeight.w700,
+            color: context.appTextPrimary,
           ),
         ),
         const SizedBox(height: 10),
+        _buildPhotoUploadReminder(theme),
         for (final photoInput in requirements.photos)
           _buildMultiPhotoSlot(photoInput),
         for (final fieldInput in requirements.fields) ...[

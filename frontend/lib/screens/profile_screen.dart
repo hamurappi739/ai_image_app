@@ -137,10 +137,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ProfileSignInPromptCard(
                       isAuthAvailable: auth.isConfigured,
                       onEmailTap: _onEmailTap,
-                      onVkTap: () =>
-                          ProfileAuthDialogs.showVkComingSoon(context),
-                      onYandexTap: () =>
-                          ProfileAuthDialogs.showYandexComingSoon(context),
                     ),
                   if (!auth.isConfigured) ...[
                     const SizedBox(height: 16),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-Future<void> downloadGalleryImage(
+Future<bool> downloadGalleryImage(
   BuildContext context,
   String imageUrl, {
   String? suggestedFileName,
@@ -15,4 +15,5 @@ Future<void> downloadGalleryImage(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
   );
+  return false;
 }

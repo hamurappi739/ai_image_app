@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'gallery_download_mobile.dart' as mobile;
 import 'gallery_download_stub.dart' as stub;
 
-Future<void> downloadGalleryImage(
+Future<bool> downloadGalleryImage(
   BuildContext context,
   String imageUrl, {
   String? suggestedFileName,

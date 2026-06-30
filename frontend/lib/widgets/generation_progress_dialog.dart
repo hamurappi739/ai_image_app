@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 /// Per-frame photoshoot progress for UI display.
 class PhotoshootFrameProgress {
   const PhotoshootFrameProgress({
@@ -128,6 +130,9 @@ class _GenerationProgressDialogState extends State<GenerationProgressDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final textPrimary = context.appTextPrimary;
+    final isDark = theme.brightness == Brightness.dark;
     final countdownText = _secondsLeft > 0
         ? 'Осталось примерно: $_secondsLeft сек.'
         : 'Почти готово, ждём результат...';
@@ -135,6 +140,7 @@ class _GenerationProgressDialogState extends State<GenerationProgressDialog> {
     return PopScope(
       canPop: false,
       child: Dialog(
+        backgroundColor: theme.colorScheme.surface,
         insetPadding: const EdgeInsets.symmetric(horizontal: 32),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: ConstrainedBox(
@@ -159,6 +165,7 @@ class _GenerationProgressDialogState extends State<GenerationProgressDialog> {
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
+                    color: textPrimary,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -168,7 +175,7 @@ class _GenerationProgressDialogState extends State<GenerationProgressDialog> {
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontSize: 15,
                     height: 1.4,
-                    color: const Color(0xFF6B7280),
+                    color: colors.textSecondary,
                   ),
                 ),
                 if (widget.frameProgressListenable != null) ...[
@@ -183,21 +190,13 @@ class _GenerationProgressDialogState extends State<GenerationProgressDialog> {
                         children: [
                           for (final frame in frames)
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  frame.label,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontSize: 15,
-                                    fontWeight: frame.status == 'generating'
-                                        ? FontWeight.w600
-                                        : FontWeight.w500,
-                                    color: frame.status == 'done'
-                                        ? const Color(0xFF16A34A)
-                                        : const Color(0xFF374151),
-                                  ),
-                                ),
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _PhotoshootFrameProgressRow(
+                                frame: frame,
+                                isDark: isDark,
+                                textPrimary: textPrimary,
+                                textSecondary: colors.textSecondary,
+                                errorColor: theme.colorScheme.error,
                               ),
                             ),
                         ],
@@ -221,6 +220,76 @@ class _GenerationProgressDialogState extends State<GenerationProgressDialog> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PhotoshootFrameProgressRow extends StatelessWidget {
+  const _PhotoshootFrameProgressRow({
+    required this.frame,
+    required this.isDark,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.errorColor,
+  });
+
+  final PhotoshootFrameProgress frame;
+  final bool isDark;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color errorColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = frame.status;
+    final doneColor = isDark ? const Color(0xFF6BCF9B) : const Color(0xFF16A34A);
+
+    final Color dotColor;
+    final IconData? icon;
+    switch (status) {
+      case 'done':
+        dotColor = doneColor;
+        icon = Icons.check_circle;
+      case 'generating':
+        dotColor = context.appAccent;
+        icon = Icons.autorenew;
+      case 'error':
+        dotColor = errorColor;
+        icon = Icons.error_outline;
+      default:
+        dotColor = textSecondary.withValues(alpha: 0.55);
+        icon = Icons.radio_button_unchecked;
+    }
+
+    final textColor = switch (status) {
+      'done' => doneColor,
+      'generating' => textPrimary,
+      'error' => errorColor,
+      _ => textSecondary,
+    };
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: dotColor,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            frame.label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: 15,
+                  height: 1.35,
+                  fontWeight:
+                      status == 'generating' ? FontWeight.w600 : FontWeight.w500,
+                  color: textColor,
+                ),
+          ),
+        ),
+      ],
     );
   }
 }

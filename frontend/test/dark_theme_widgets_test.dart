@@ -29,15 +29,17 @@ void main() {
     expect(find.text('Введите email и пароль от вашего аккаунта.'), findsOneWidget);
     expect(find.text('Email'), findsOneWidget);
     expect(find.text('Пароль'), findsOneWidget);
+    expect(find.text('Забыли пароль?'), findsOneWidget);
+    expect(find.text('Создать аккаунт'), findsWidgets);
 
-    await tester.enterText(
-      find.byType(TextField).at(0),
-      'reader@example.com',
-    );
-    await tester.enterText(
-      find.byType(TextField).at(1),
-      'secret123',
-    );
+    await tester.tap(find.text('Забыли пароль?'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Восстановить пароль'), findsOneWidget);
+    expect(find.text('Отправить ссылку'), findsOneWidget);
+    expect(find.text('Пароль'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'reader@example.com');
     await tester.pump();
 
     expect(find.text('reader@example.com'), findsOneWidget);

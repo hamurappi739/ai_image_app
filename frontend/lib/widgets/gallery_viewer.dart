@@ -225,14 +225,9 @@ class GallerySingleImageViewer extends StatelessWidget {
                 runSpacing: 8,
                 alignment: WrapAlignment.end,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: () => downloadGalleryImage(
-                      context,
-                      imageUrl,
-                      suggestedFileName: 'image',
-                    ),
-                    icon: const Icon(Icons.download_outlined, size: 18),
-                    label: const Text('Скачать'),
+                  _GalleryDownloadButton(
+                    imageUrl: imageUrl,
+                    suggestedFileName: 'image',
                   ),
                   OutlinedButton.icon(
                     onPressed: () => _onHidePressed(context),
@@ -256,6 +251,74 @@ class GallerySingleImageViewer extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _GalleryDownloadButton extends StatefulWidget {
+  const _GalleryDownloadButton({
+    required this.imageUrl,
+    this.suggestedFileName,
+  }) : _style = _GalleryDownloadButtonStyle.outlined;
+
+  const _GalleryDownloadButton.text({
+    required this.imageUrl,
+    this.suggestedFileName,
+  }) : _style = _GalleryDownloadButtonStyle.text;
+
+  final String imageUrl;
+  final String? suggestedFileName;
+  final _GalleryDownloadButtonStyle _style;
+
+  @override
+  State<_GalleryDownloadButton> createState() => _GalleryDownloadButtonState();
+}
+
+enum _GalleryDownloadButtonStyle { outlined, text }
+
+class _GalleryDownloadButtonState extends State<_GalleryDownloadButton> {
+  bool _downloading = false;
+
+  Future<void> _onPressed() async {
+    if (_downloading) return;
+    setState(() => _downloading = true);
+    try {
+      await downloadGalleryImage(
+        context,
+        widget.imageUrl,
+        suggestedFileName: widget.suggestedFileName,
+      );
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = _downloading
+        ? const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : const Icon(Icons.download_outlined, size: 18);
+
+    if (widget._style == _GalleryDownloadButtonStyle.text) {
+      return TextButton.icon(
+        onPressed: _downloading ? null : _onPressed,
+        icon: icon,
+        label: const Text('Скачать'),
+        style: TextButton.styleFrom(
+          foregroundColor: _accentColor,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+        ),
+      );
+    }
+
+    return OutlinedButton.icon(
+      onPressed: _downloading ? null : _onPressed,
+      icon: icon,
+      label: const Text('Скачать'),
     );
   }
 }
@@ -519,18 +582,9 @@ class _PhotoshootPhotoTile extends StatelessWidget {
                 ),
               ),
             ),
-            TextButton.icon(
-              onPressed: () => downloadGalleryImage(
-                context,
-                imageUrl,
-                suggestedFileName: label.replaceAll(' ', '_').toLowerCase(),
-              ),
-              icon: const Icon(Icons.download_outlined, size: 18),
-              label: const Text('Скачать'),
-              style: TextButton.styleFrom(
-                foregroundColor: _accentColor,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-              ),
+            _GalleryDownloadButton.text(
+              imageUrl: imageUrl,
+              suggestedFileName: label.replaceAll(' ', '_').toLowerCase(),
             ),
           ],
         ),

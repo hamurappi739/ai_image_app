@@ -4,23 +4,27 @@ import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
 
-Future<void> downloadGalleryImage(
+import 'gallery_download_common.dart';
+
+Future<bool> downloadGalleryImage(
   BuildContext context,
   String imageUrl, {
   String? suggestedFileName,
 }) async {
   final fileName = suggestedFileName ?? 'image';
+  final downloadUrl = resolveGalleryDownloadUrl(imageUrl);
   try {
-    final anchor = html.AnchorElement(href: imageUrl)
+    final anchor = html.AnchorElement(href: downloadUrl)
       ..download = fileName
       ..target = '_blank'
       ..rel = 'noopener';
     html.document.body?.append(anchor);
     anchor.click();
     anchor.remove();
+    return true;
   } catch (_) {
-    html.window.open(imageUrl, '_blank');
-    if (!context.mounted) return;
+    html.window.open(downloadUrl, '_blank');
+    if (!context.mounted) return false;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Фото открыто в новой вкладке.'),
@@ -28,5 +32,6 @@ Future<void> downloadGalleryImage(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+    return false;
   }
 }
