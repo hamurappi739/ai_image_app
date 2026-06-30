@@ -15,7 +15,11 @@
     "sortOrder": 20,
     "badge": "Популярно",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/studio_portrait_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/studio_portrait_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/studio_portrait_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression.\n\nGenerate a photorealistic premium studio portrait: warm gray-beige backdrop, soft volumetric light, neutral elegant outfit. Close chest-up framing, direct gaze, calm light smile. Clean high-end studio mood.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate frame 2 of this studio portrait session.\n\nMedium chest-up portrait, head tilted slightly, shoulders angled three-quarters, soft smile, one hand resting near collar or lapels. Same gray-beige studio, same outfit and soft light.\n\nMust differ from frame 0: medium distance, three-quarter shoulders, head tilt, hand visible. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -38,7 +42,11 @@
     "sortOrder": 10,
     "badge": "Для работы",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_portrait_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_portrait_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_portrait_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression.\n\nGenerate a photorealistic business portrait: shoulders-up, direct confident gaze, light neutral background, soft professional studio light, light blouse or restrained blazer. Resume/profile quality.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate frame 2 of this business portrait session.\n\nMedium chest-up portrait, three-quarter head turn, calm professional expression, hands not visible. Same outfit, background and soft business light.\n\nMust differ from frame 0: medium crop, three-quarter angle, no direct frontal gaze. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -61,7 +69,11 @@
     "sortOrder": 30,
     "badge": "Для соцсетей",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/urban_portrait_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/urban_portrait_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/urban_portrait_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into an elegant city portrait in a soft beige urban look.\n\nGenerate a photorealistic portrait on a quiet city sidewalk near a light stone building facade with columns and large windows. The person wears a light cream blouse or knit top, beige cardigan or light trench-style layer, and beige trousers. Chest-up to half-body framing, relaxed posture, looking gently into the camera, soft natural daylight, premium clean city atmosphere.\n\nKeep the outfit light beige/cream, keep the background as an elegant city street facade, no studio background, no office blazer, no evening look, no black clothing, no crowd, no cars dominating the frame.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a new photo of the same person in the same city photoshoot, not a copy of Image 2.\n\nCreate a medium portrait near the same stone city facade, with the body turned slightly three-quarters to the camera. The person stands closer to a doorway or column, one hand relaxed near the cardigan or pocket, gaze softly into camera or slightly off-camera. Same beige outfit, same soft daylight, same elegant urban palette.\n\nChange the crop and pose from the first frame: different body angle, different hand position, slightly different background framing. Do not change the outfit color or location. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -84,7 +96,11 @@
     "sortOrder": 40,
     "badge": "Для себя",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/evening_look_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/evening_look_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/evening_look_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression.\n\nGenerate an elegant evening-style portrait: shoulders or chest-up, warm soft interior light, closed elegant blouse or jacket, blurred neutral background, minimal jewelry, natural skin.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate frame 2 of this evening portrait session.\n\nMedium portrait, body turned three-quarters, confident calm pose, gaze slightly off-camera. Same elegant outfit, warm interior light and soft background.\n\nMust differ from frame 0: medium distance, three-quarter body, off-camera gaze. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -107,7 +123,11 @@
     "sortOrder": 10,
     "badge": "Для себя",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/tender_photoshoot_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/tender_photoshoot_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/tender_photoshoot_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a gentle cozy indoor portrait.\n\nGenerate a photorealistic soft beige interior photoshoot: the person sits on a cream sofa, wearing a light beige or cream knit sweater and soft neutral pants. Warm daylight through sheer curtains, pampas grass or soft dried flowers in the background, calm gentle smile, close half-body framing.\n\nKeep the palette cream, beige and warm white. No dark dramatic lighting, no business jacket, no outdoor park, no black clothes, no glamour evening mood.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a new photo from the same tender indoor photoshoot.\n\nCreate a medium seated portrait on the same cream sofa. The person leans slightly forward, one elbow resting on the knee or sofa arm, one hand gently near the chin or cheek. Same cream knit sweater, same soft beige interior, same window daylight and calm warm color grading.\n\nMake it a different composition from the first frame: different hand placement, different head tilt, slightly closer or more centered crop. Do not change the room, outfit or light. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -130,7 +150,11 @@
     "sortOrder": 20,
     "badge": "Для себя",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/summer_photoshoot_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/summer_photoshoot_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/summer_photoshoot_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a bright summer portrait.\n\nGenerate a photorealistic close head-and-shoulders summer portrait in soft golden-hour sunlight. Light summer dress or airy white/cream blouse, park greenery or sunny terrace softly blurred behind. Direct gentle gaze into camera, relaxed smile, warm vibrant natural colors, fresh vacation mood.\n\nFrame 0 is the identity and style anchor: closest crop, frontal chest-up, main summer look.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate frame 2 of this summer photoshoot.\n\nCreate a medium chest-up portrait, body turned three-quarters to the camera, one hand visible resting naturally or touching hair/sunhat strap. Gaze slightly off-camera or over the shoulder. Same summer outfit, same park/terrace location, same warm sunlight and color palette.\n\nMust differ from frame 0: medium camera distance, three-quarter body angle, visible hand pose, off-center gaze. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -153,7 +177,11 @@
     "sortOrder": 30,
     "badge": "Для себя",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/winter_photoshoot_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/winter_photoshoot_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/winter_photoshoot_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression.\n\nGenerate a cozy winter close portrait: warm coat or wool jacket, soft snow blurred behind, calm daylight, natural skin, closest head-and-shoulders crop, gentle smile.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate frame 2 of this winter photoshoot.\n\nMedium portrait on a winter park path, body turned three-quarters, hands in pockets or holding coat collar, cozy atmosphere, same winter outfit and soft snow light.\n\nMust differ from frame 0: medium distance, outdoor path context, three-quarter turn, hand pose. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -176,7 +204,11 @@
     "sortOrder": 40,
     "badge": "Для себя",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/home_portrait_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/home_portrait_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/home_portrait_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a warm home portrait.\n\nGenerate a photorealistic portrait in a bright cozy living room. The person sits on a sofa near a window, wearing a soft cream cardigan over a white top, relaxed and approachable. Background includes warm neutral home decor, a blanket, vase or plants, soft daylight, clean natural color palette.\n\nKeep it realistic and simple: no studio backdrop, no formal suit, no dark evening light, no cluttered room, no luxury hotel look.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a second home portrait in the same living room.\n\nCreate a medium seated portrait with the person sitting more centered on the sofa, hands relaxed on knees or folded naturally, looking into the camera with a soft friendly expression. Same cream cardigan, white top, warm window daylight, neutral home decor.\n\nChange the pose and crop from the first frame. Keep the same room, outfit and cozy natural mood. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -199,7 +231,11 @@
     "sortOrder": 10,
     "badge": "Для работы",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/expert_photoshoot_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/expert_photoshoot_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/expert_photoshoot_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression.\n\nGenerate a trustworthy expert portrait: shoulders-up, smart casual or business-casual, neutral background, soft professional light, calm confident direct gaze.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate frame 2 of this expert photoshoot.\n\nMedium chest-up portrait, slight head turn, approachable specialist expression, same outfit and backdrop.\n\nMust differ from frame 0: medium crop, three-quarter angle, softer expression. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -222,7 +258,11 @@
     "sortOrder": 20,
     "badge": "Для работы",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_brand_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_brand_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_brand_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a clean business brand portrait.\n\nGenerate a photorealistic professional portrait on a warm neutral gray or beige studio background. The person wears a light beige, gray or cream textured blazer over a white top. Chest-up framing, calm confident expression, soft professional daylight, clean personal-brand style.\n\nKeep the outfit light and professional. No black top, no off-shoulder clothes, no floral wallpaper, no park, no evening glamour, no corporate office clutter.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a second business brand portrait in the same studio session.\n\nCreate a medium portrait with the person standing or seated, hands lightly joined at waist level or resting naturally, body facing the camera more directly. Same light textured blazer, white top, neutral gray-beige background and soft professional light.\n\nChange the crop and hand position from the first frame. Keep the same clean professional mood and outfit. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -245,7 +285,11 @@
     "sortOrder": 30,
     "badge": "Для работы",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/personal_brand_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/personal_brand_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/personal_brand_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression.\n\nGenerate a personal-brand portrait: close crop, modern confident look, pleasant background, soft light, open natural expression, social-media ready.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate frame 2 of this personal-brand session.\n\nMedium chest-up portrait, three-quarter angle, confident pose, engaging eye contact or slight off-camera look. Same outfit, location and warm grading.\n\nMust differ from frame 0: medium distance, angled body, different gaze. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -268,7 +312,11 @@
     "sortOrder": 10,
     "badge": "Атмосфера",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/travel_portrait_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/travel_portrait_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/travel_portrait_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a warm travel portrait.\n\nGenerate a photorealistic portrait in a charming old European town street with stone walls, warm beige buildings, cobblestone path and soft daylight. The person wears a beige linen jacket, cardigan or light trench over a white top. Chest-up framing, relaxed smile, travel lifestyle mood.\n\nKeep the location as old town/travel street. No studio, no business blazer look, no modern office, no beach, no winter clothing.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a second photo from the same travel portrait session.\n\nCreate a medium portrait in the same narrow street, body turned slightly three-quarters, one hand gently touching the lapel/cardigan or holding a small strap. Same beige travel outfit, white top, cobblestone street and warm old-town background.\n\nChange the pose and gaze from the first frame. Keep the same travel location and warm color palette. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -291,7 +339,11 @@
     "sortOrder": 20,
     "badge": "Атмосфера",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/cafe_city_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/cafe_city_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/cafe_city_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a cafe and city portrait.\n\nGenerate a photorealistic portrait at a small cafe table near a large window. The person wears an olive, sage or beige jacket over a crisp white blouse or shirt. A coffee cup is on the table, warm cafe lamps and city street visible through the window, calm confident expression, elegant lifestyle mood.\n\nKeep the outfit olive/beige plus white shirt. Keep cafe-window-city atmosphere. No studio gray background, no black evening dress, no office desk, no crowded restaurant.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a second photo in the same cafe and city photoshoot.\n\nCreate a closer portrait by the cafe window with the coffee cup slightly visible in the foreground. The person sits or leans naturally, body turned three-quarters, gaze into camera or softly toward the window. Same olive/beige jacket, white shirt, warm cafe light and street-through-window background.\n\nChange the pose, crop and gaze from the first frame. Do not change the outfit, cafe location or warm color grading. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -314,7 +366,11 @@
     "sortOrder": 30,
     "badge": "Атмосфера",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/park_walk_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/park_walk_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/park_walk_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression. Transform this person into a calm park walk portrait.\n\nGenerate a photorealistic portrait in a green park with trees and a soft path in the background. The person wears a mint, pale green or light pastel cardigan over a white top. Chest-up framing, relaxed natural smile, soft daylight, fresh calm spring/summer palette.\n\nKeep the outfit mint/white and the location green park. No black clothes, no studio, no business suit, no evening light, no winter snow.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate a second photo from the same park walk session.\n\nCreate a medium portrait by a park bench or railing, the person leaning lightly or resting hands naturally, possibly holding a light tote bag or cardigan edge. Same mint cardigan, white top, green trees and soft park daylight.\n\nChange hand position, crop and body angle from the first frame. Keep the same outfit and fresh green park mood. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",
@@ -337,7 +393,11 @@
     "sortOrder": 40,
     "badge": "Для себя",
     "isFree": true,
-    "previewUrls": [],
+    "previewUrls": [
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/premium_portrait_1_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/premium_portrait_2_v1.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/premium_portrait_3_v1.jpg"
+    ],
     "framePrompts": [
       "You are given one uploaded user photo. Use it only as the identity reference. Keep the same face, age, facial proportions, skin tone, hairstyle direction and natural expression.\n\nGenerate a premium studio portrait: dark gray/graphite backdrop, soft volumetric light, graphite jacket over light closed blouse, closest chest-up crop, elegant restrained high-end mood.",
       "You are given Image 1 and Image 2. Image 1 is the original user photo and must be used for identity. Image 2 is the first generated photo and must be used as the style anchor for outfit, location, lighting, color grading and overall look. Generate frame 2 of this premium portrait session.\n\nMedium chest-up portrait, subtle body turn, calm confident gaze, minimalist magazine quality. Same graphite outfit and studio light.\n\nMust differ from frame 0: medium distance, body turn, different head angle. Do not repeat the same pose, crop, camera distance, arm position, gaze direction, background framing, or composition from the other frames.",

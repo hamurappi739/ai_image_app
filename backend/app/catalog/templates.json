@@ -9,8 +9,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 10,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/product_photo.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/product_photo_v1.jpg",
+    "referenceAsset": "assets/previews/templates/product_photo.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/product_photo_v1.jpg"
   },
   {
     "id": "clothing_photo",
@@ -22,8 +23,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 20,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/clothes_photo.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/clothing_photo_v1.jpg",
+    "referenceAsset": "assets/previews/templates/clothes_photo.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/clothing_photo_v1.jpg"
   },
   {
     "id": "jewelry_photo",
@@ -35,8 +37,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 30,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/jewelry_photo.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/jewelry_photo_v1.jpg",
+    "referenceAsset": "assets/previews/templates/jewelry_photo.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/jewelry_photo_v1.jpg"
   },
   {
     "id": "interior_photo",
@@ -48,8 +51,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 40,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/interior_photo.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/interior_photo_v1.jpg",
+    "referenceAsset": "assets/previews/templates/interior_photo.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/interior_photo_v1.jpg"
   },
   {
     "id": "business_portrait",
@@ -61,8 +65,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 10,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/business_portrait.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/business_portrait_v1.jpg",
+    "referenceAsset": "assets/previews/templates/business_portrait.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/business_portrait_v1.jpg"
   },
   {
     "id": "resume_photo",
@@ -74,8 +79,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 20,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/resume_photo.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/resume_photo_v1.jpg",
+    "referenceAsset": "assets/previews/templates/resume_photo.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/resume_photo_v1.jpg"
   },
   {
     "id": "profile_photo",
@@ -87,8 +93,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 30,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/profile_photo.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/profile_photo_v1.jpg",
+    "referenceAsset": "assets/previews/templates/profile_photo.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/profile_photo_v1.jpg"
   },
   {
     "id": "expert_look",
@@ -100,8 +107,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 40,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/expert_look.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/expert_look_v1.jpg",
+    "referenceAsset": "assets/previews/templates/expert_look.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/expert_look_v1.jpg"
   },
   {
     "id": "beautiful_portrait",
@@ -113,8 +121,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 10,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/beautiful_portrait.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/beautiful_portrait_v1.jpg",
+    "referenceAsset": "assets/previews/templates/beautiful_portrait.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/beautiful_portrait_v1.jpg"
   },
   {
     "id": "social_photo",
@@ -126,8 +135,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 20,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/social_photo.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/social_photo_v1.jpg",
+    "referenceAsset": "assets/previews/templates/social_photo.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/social_photo_v1.jpg"
   },
   {
     "id": "winter_portrait",
@@ -139,8 +149,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 30,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/winter_portrait.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/winter_portrait_v1.jpg",
+    "referenceAsset": "assets/previews/templates/winter_portrait.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/winter_portrait_v1.jpg"
   },
   {
     "id": "summer_portrait",
@@ -152,8 +163,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 40,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/summer_portrait.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/summer_portrait_v1.jpg",
+    "referenceAsset": "assets/previews/templates/summer_portrait.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/summer_portrait_v1.jpg"
   },
   {
     "id": "tender_portrait",
@@ -165,8 +177,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 50,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/gentle_portrait.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/tender_portrait_v1.jpg",
+    "referenceAsset": "assets/previews/templates/gentle_portrait.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/tender_portrait_v1.jpg"
   },
   {
     "id": "vibrant_look",
@@ -178,8 +191,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 60,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/bright_look.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/vibrant_look_v1.jpg",
+    "referenceAsset": "assets/previews/templates/bright_look.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/vibrant_look_v1.jpg"
   },
   {
     "id": "volcanic_gray_rock",
@@ -191,8 +205,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 70,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/volcanic_gray_rock.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/volcanic_gray_rock_v1.jpg",
+    "referenceAsset": "assets/previews/templates/volcanic_gray_rock.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/volcanic_gray_rock_v1.jpg"
   },
   {
     "id": "ocean_portrait",
@@ -204,8 +219,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 80,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/ocean_portrait.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/ocean_portrait_v1.jpg",
+    "referenceAsset": "assets/previews/templates/ocean_portrait.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/ocean_portrait_v1.jpg"
   },
   {
     "id": "beach_sand_portrait",
@@ -217,8 +233,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 90,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/beach_sand_portrait.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/beach_sand_portrait_v1.jpg",
+    "referenceAsset": "assets/previews/templates/beach_sand_portrait.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/beach_sand_portrait_v1.jpg"
   },
   {
     "id": "white_dress_yellow_meadow",
@@ -230,8 +247,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 100,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/white_dress_yellow_meadow.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/white_dress_yellow_meadow_v1.jpg",
+    "referenceAsset": "assets/previews/templates/white_dress_yellow_meadow.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/white_dress_yellow_meadow_v1.jpg"
   },
   {
     "id": "family_photo",
@@ -243,8 +261,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 10,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/family_photo.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/family_photo_v1.jpg",
+    "referenceAsset": "assets/previews/templates/family_photo.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/family_photo_v1.jpg"
   },
   {
     "id": "photo_with_child",
@@ -256,7 +275,7 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 20,
-    "previewUrl": null,
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/photo_with_child_v1.jpg",
     "inputRequirements": {
       "photos": [
         {
@@ -278,7 +297,8 @@
         }
       ]
     },
-    "referenceAsset": "assets/previews/templates/child_photo.jpg"
+    "referenceAsset": "assets/previews/templates/child_photo.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/photo_with_child_v1.jpg"
   },
   {
     "id": "festive_look",
@@ -290,8 +310,9 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 30,
-    "previewUrl": null,
-    "referenceAsset": "assets/previews/templates/holiday_look.jpg"
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/festive_look_v1.jpg",
+    "referenceAsset": "assets/previews/templates/holiday_look.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/festive_look_v1.jpg"
   },
   {
     "id": "woman_with_cat",
@@ -303,7 +324,7 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 35,
-    "previewUrl": null,
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/woman_with_cat_v1.jpg",
     "inputRequirements": {
       "photos": [
         {
@@ -319,7 +340,8 @@
       ],
       "fields": []
     },
-    "referenceAsset": "assets/previews/templates/woman_with_cat.jpg"
+    "referenceAsset": "assets/previews/templates/woman_with_cat.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/woman_with_cat_v1.jpg"
   },
   {
     "id": "child_birthday_number",
@@ -331,7 +353,7 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 36,
-    "previewUrl": null,
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/child_birthday_number_v1.jpg",
     "inputRequirements": {
       "photos": [
         {
@@ -348,7 +370,8 @@
         }
       ]
     },
-    "referenceAsset": "assets/previews/templates/child_birthday_number.jpg"
+    "referenceAsset": "assets/previews/templates/child_birthday_number.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/child_birthday_number_v1.jpg"
   },
   {
     "id": "child_name_age",
@@ -360,7 +383,7 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 37,
-    "previewUrl": null,
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/child_name_age_v1.jpg",
     "inputRequirements": {
       "photos": [
         {
@@ -382,7 +405,8 @@
         }
       ]
     },
-    "referenceAsset": "assets/previews/templates/child_name_age.jpg"
+    "referenceAsset": "assets/previews/templates/child_name_age.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/child_name_age_v1.jpg"
   },
   {
     "id": "child_memory_birthday",
@@ -394,7 +418,7 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 38,
-    "previewUrl": null,
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/child_memory_birthday_v1.jpg",
     "inputRequirements": {
       "photos": [
         {
@@ -416,7 +440,8 @@
         }
       ]
     },
-    "referenceAsset": "assets/previews/templates/child_memory_birthday.jpg"
+    "referenceAsset": "assets/previews/templates/child_memory_birthday.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/child_memory_birthday_v1.jpg"
   },
   {
     "id": "birthday_balloons",
@@ -428,7 +453,7 @@
     "priceImages": 1,
     "isActive": true,
     "sortOrder": 105,
-    "previewUrl": null,
+    "previewUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/birthday_balloons_v1.jpg",
     "inputRequirements": {
       "photos": [
         {
@@ -445,6 +470,7 @@
         }
       ]
     },
-    "referenceAsset": "assets/previews/templates/birthday_balloons.jpg"
+    "referenceAsset": "assets/previews/templates/birthday_balloons.jpg",
+    "referenceUrl": "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/templates/birthday_balloons_v1.jpg"
   }
 ]
