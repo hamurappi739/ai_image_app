@@ -305,7 +305,7 @@ class _GalleryQuickActions extends StatelessWidget {
       ),
       _GalleryActionCard(
         icon: Icons.shopping_bag_outlined,
-        title: 'Купить изображения',
+        title: 'Купить',
         subtitle: 'Пополнить баланс',
         onTap: onOpenBuy,
       ),

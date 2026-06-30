@@ -370,6 +370,7 @@ class _MainShellState extends State<MainShell> {
       _scrollPhotoshootsToTrending = false;
     });
     if (section == AppSection.photoshoots ||
+        section == AppSection.templatePhoto ||
         section == AppSection.customRequest ||
         section == AppSection.buy ||
         section == AppSection.profile) {
@@ -749,7 +750,7 @@ class _PackOffering {
 
 String _formatMockPaymentAddedSummary(int images) {
   if (images <= 0) return 'Баланс обновлён.';
-  return 'На баланс добавлено $images изображений.';
+  return 'На баланс добавлено $images фото.';
 }
 
 const _demoPurchaseNotice =
@@ -1067,18 +1068,11 @@ class _PacksScreenState extends State<PacksScreen> {
 
   String _purchaseConfirmMessage(_PackOffering offering) {
     return 'Вы получите ${offering.imageCount} '
-        '${_imagesWord(offering.imageCount)} за ${offering.priceRub} ₽.\n\n'
+        '${_photosWord(offering.imageCount)} за ${offering.priceRub} ₽.\n\n'
         'В демо-режиме деньги не списываются.';
   }
 
-  static String _imagesWord(int count) {
-    final mod10 = count % 10;
-    final mod100 = count % 100;
-    if (mod100 >= 11 && mod100 <= 14) return 'изображений';
-    if (mod10 == 1) return 'изображение';
-    if (mod10 >= 2 && mod10 <= 4) return 'изображения';
-    return 'изображений';
-  }
+  static String _photosWord(int count) => 'фото';
 
   Future<void> _onPackSelected(_PackOffering offering) async {
     if (_processingPackageId != null) return;
@@ -1208,7 +1202,7 @@ class _PacksScreenState extends State<PacksScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AppScreenHeader(
-                        title: 'Купить изображения',
+                        title: 'Купить',
                         subtitle:
                             'Пополните баланс, чтобы создавать фото '
                             'и фотосессии.',
@@ -1531,7 +1525,7 @@ class _PhotoshootStyle {
 
   List<String> get effectivePreviewUrls => previewUrls ?? const [];
 
-  String get priceLabel => isFree ? 'Бесплатно' : '3 изображения';
+  String get priceLabel => isFree ? 'Бесплатно' : '3 фото';
 
   factory _PhotoshootStyle.fromCatalog(CatalogPhotoshootEntry entry) {
     final visuals = CatalogVisuals.photoshootFor(entry.id);
@@ -2022,7 +2016,7 @@ class _PhotoshootCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Стоимость: 3 изображения',
+              'Стоимость: 3 фото',
               style: theme.textTheme.bodySmall?.copyWith(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -2145,8 +2139,8 @@ class _PhotoshootsIntroHeader extends StatelessWidget {
         if (showDepletedWarning) ...[
           const SizedBox(height: 12),
           InsufficientBalanceHint(
-            message: 'Для фотосессии нужно 3 изображения.',
-            actionLabel: 'Купить изображения',
+            message: 'Для фотосессии нужно 3 фото.',
+            actionLabel: 'Купить',
             onOpenPacks: onOpenPacks,
           ),
         ],
@@ -2436,7 +2430,7 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
 
   static const _outcomes = [
     '3 готовых фото',
-    'Стоимость: 3 изображения',
+    'Стоимость: 3 фото',
     'Фотосессия сохранится в готовых фото',
   ];
 
@@ -2500,6 +2494,8 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
       await InsufficientBalanceDialog.showInsufficientPhotoshoots(
         context,
         onOpenPacks: widget.onOpenPacks,
+        imageCost: widget.balance?.photoshootImageCost ??
+            UserBalance.defaultPhotoshootImageCost,
       );
       return;
     }
@@ -2552,6 +2548,8 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
       await InsufficientBalanceDialog.showInsufficientPhotoshoots(
         context,
         onOpenPacks: widget.onOpenPacks,
+        imageCost: widget.balance?.photoshootImageCost ??
+            UserBalance.defaultPhotoshootImageCost,
       );
     } on PhotoshootGenerationFailedException {
       if (!mounted) return;
@@ -3022,6 +3020,8 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
       await InsufficientBalanceDialog.showInsufficientPhotoshoots(
         context,
         onOpenPacks: widget.onOpenPacks,
+        imageCost: widget.balance?.photoshootImageCost ??
+            UserBalance.defaultPhotoshootImageCost,
       );
       return;
     }
@@ -3088,6 +3088,8 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
       await InsufficientBalanceDialog.showInsufficientPhotoshoots(
         context,
         onOpenPacks: widget.onOpenPacks,
+        imageCost: widget.balance?.photoshootImageCost ??
+            UserBalance.defaultPhotoshootImageCost,
       );
     } on PhotoshootGenerationFailedException {
       if (!mounted) return;
@@ -3321,7 +3323,7 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                         const SizedBox(height: 8),
                         ...const [
                           '3 готовых фото',
-                          'Стоимость: 3 изображения',
+                          'Стоимость: 3 фото',
                           'Фотосессия сохранится в готовых фото',
                         ].map(
                           (line) => Padding(
@@ -3732,8 +3734,8 @@ class _CreateScreenState extends State<CreateScreen> {
               const SizedBox(height: 20),
               if (showImagesDepleted) ...[
                 InsufficientBalanceHint(
-                  message: 'Изображения на балансе закончились.',
-                  actionLabel: 'Купить изображения',
+                  message: 'Фото на балансе закончились.',
+                  actionLabel: 'Купить',
                   onOpenPacks: widget.onOpenPacks,
                 ),
                 const SizedBox(height: 12),
@@ -3812,9 +3814,9 @@ class _BalancePricingInfoCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          const _BalancePricingLine(text: '1 фото = 1 изображение'),
+          const _BalancePricingLine(text: '1 генерация = 1 фото'),
           const SizedBox(height: 6),
-          const _BalancePricingLine(text: '1 фотосессия = 3 изображения'),
+          const _BalancePricingLine(text: 'Фотосессия = 3 фото'),
           const SizedBox(height: 8),
           Text(
             'Все созданные результаты сохраняются в готовых фото.',
@@ -4012,7 +4014,7 @@ class _UserBalancePacksBanner extends StatelessWidget {
                 final compact = constraints.maxWidth < 420;
                 final stats = [
                   _PacksBalanceStat(
-                    label: 'Изображения',
+                    label: 'Фото',
                     value: '${balance!.totalAvailableImages}',
                   ),
                   _PacksBalanceStat(
@@ -4044,7 +4046,7 @@ class _UserBalancePacksBanner extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Фотосессия стоит 3 изображения',
+              'Фотосессия стоит 3 фото',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 12,
                 height: 1.35,
@@ -4182,7 +4184,7 @@ class _CreateBalanceInfoCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Изображения закончились',
+              'Фото закончились',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,

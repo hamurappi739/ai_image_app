@@ -620,7 +620,7 @@ class _UserBalanceProfileCard extends StatelessWidget {
             )
           else if (balance != null) ...[
             _ProfileBalanceLine(
-              label: 'Изображения',
+              label: 'Фото',
               value: '${balance!.totalAvailableImages}',
               rowStyle: rowStyle,
             ),
@@ -634,7 +634,7 @@ class _UserBalanceProfileCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Фотосессия стоит ${balance!.photoshootImageCost} изображения',
+              'Фотосессия стоит ${balance!.photoshootImageCost} фото',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 13,
                 height: 1.4,

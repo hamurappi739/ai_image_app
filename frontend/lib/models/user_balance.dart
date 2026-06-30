@@ -26,7 +26,8 @@ class UserBalance {
   factory UserBalance.fromJson(Map<String, dynamic> json) {
     final freeRemaining = json['free_generations_remaining'] as int? ?? 0;
     final paidImages = json['paid_image_generations'] as int? ?? 0;
-    final totalFromApi = json['total_available_images'] as int?;
+    final totalFromApi = json['available_photos'] as int? ??
+        json['total_available_images'] as int?;
     final photoshootCost =
         json['photoshoot_image_cost'] as int? ?? defaultPhotoshootImageCost;
     final availablePhotoshoots =
@@ -51,11 +52,11 @@ class UserBalance {
       !consumptionEnabled || totalAvailableImages >= 1;
 
   bool get isPhotoshootBalanceAvailable =>
-      !consumptionEnabled || totalAvailableImages >= photoshootImageCost;
+      !consumptionEnabled || paidImageGenerations >= photoshootImageCost;
 
   bool get showImageDepletedWarning =>
       consumptionEnabled && totalAvailableImages < 1;
 
   bool get showPhotoshootDepletedWarning =>
-      consumptionEnabled && totalAvailableImages < photoshootImageCost;
+      consumptionEnabled && paidImageGenerations < photoshootImageCost;
 }

@@ -214,6 +214,11 @@ def _store_generated_image_if_needed(user_id: str, image_url: str) -> str:
     )
 
 
+def _rollback_stored_generation_image(image_url: str) -> None:
+    """Best-effort cleanup when billing fails after storage upload."""
+    storage_service.delete_public_url_best_effort(image_url)
+
+
 def _resolve_user_for_image_storage(
     user: CurrentUser | None,
     authorization: str | None,
@@ -659,6 +664,17 @@ def generate(
 
     user = _optional_user_for_generation(authorization)
 
+    if settings.enable_credit_consumption:
+        if user is None:
+            raise HTTPException(status_code=500, detail="User id resolution failed")
+        try:
+            profile = ensure_profile_exists(user.id, user.email)
+        except RuntimeError:
+            raise HTTPException(status_code=500, detail="Failed to ensure user profile")
+        decision = determine_generation_payment(profile, settings.free_generations_limit)
+        if not decision["allowed"]:
+            raise HTTPException(status_code=402, detail=decision["reason"])
+
     image_url = generate_image(prompt)
     if image_url.startswith("data:image/"):
         storage_user = _resolve_user_for_image_storage(user, authorization)
@@ -677,17 +693,6 @@ def generate(
             prompt=prompt,
         )
 
-    if user is None:
-        raise HTTPException(status_code=500, detail="User id resolution failed")
-    try:
-        profile = ensure_profile_exists(user.id, user.email)
-    except RuntimeError:
-        raise HTTPException(status_code=500, detail="Failed to ensure user profile")
-
-    decision = determine_generation_payment(profile, settings.free_generations_limit)
-    if not decision["allowed"]:
-        raise HTTPException(status_code=402, detail=decision["reason"])
-
     if not should_persist_generation_image_url(image_url):
         raise HTTPException(status_code=500, detail="Failed to save generation")
 
@@ -699,6 +704,7 @@ def generate(
             image_url,
         )
     except RuntimeError as exc:
+        _rollback_stored_generation_image(image_url)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     updated_profile = result["profile"]
@@ -873,6 +879,7 @@ def generate_with_photo(
             image_url,
         )
     except RuntimeError as exc:
+        _rollback_stored_generation_image(image_url)
         pipeline_log.warning(
             "POST /generate-with-photo failed template_id=%s stage=db "
             "error_type=RuntimeError reason=%s",

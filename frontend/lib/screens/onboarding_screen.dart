@@ -54,7 +54,7 @@ class OnboardingScreen extends StatelessWidget {
       title: '3 генерации бесплатно',
       body:
           'Попробуйте первые фото бесплатно. '
-          'Обычное фото стоит 1 изображение, фотосессия — 3 изображения.',
+          'Обычное фото стоит 1 фото, фотосессия — 3 фото.',
       mockupBuilder: OnboardingMockups.freeBalance,
       // TODO: link this note to the full privacy policy in Profile.
       footerNote:

@@ -49,7 +49,7 @@ class PacksHelpDialog extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Здесь можно пополнить баланс изображений для фото и фотосессий.',
+                'Здесь можно пополнить баланс фото для генераций и фотосессий.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontSize: 15,
@@ -58,9 +58,9 @@ class PacksHelpDialog extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               ...const [
-                _HelpLine('1 обычное фото = 1 изображение'),
-                _HelpLine('1 фотосессия = 3 изображения'),
-                _HelpLine('Фотосессия создаёт 3 фото'),
+                _HelpLine('1 генерация = 1 фото'),
+                _HelpLine('Фотосессия = 3 фото'),
+                _HelpLine('Фотосессия создаёт 3 готовых фото'),
                 _HelpLine('В демо-режиме деньги не списываются'),
               ],
               const SizedBox(height: 24),

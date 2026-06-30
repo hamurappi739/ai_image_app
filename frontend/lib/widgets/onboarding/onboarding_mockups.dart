@@ -171,7 +171,7 @@ class OnboardingMockups {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              'Стоимость: 3 изображения',
+              'Стоимость: 3 фото',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: compact ? 11 : 12,
@@ -295,13 +295,13 @@ class OnboardingMockups {
           SizedBox(height: compact ? 8 : 10),
           _balanceTile(palette: palette, 
             label: 'Фотосессия',
-            value: '= 3 изображения',
+            value: '= 3 фото',
             compact: compact,
           ),
           SizedBox(height: compact ? 8 : 10),
           _balanceTile(palette: palette, 
             label: 'Обычное фото',
-            value: '= 1 изображение',
+            value: '= 1 фото',
             compact: compact,
           ),
         ],
@@ -528,7 +528,7 @@ class OnboardingMockups {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              'Стоимость: 3 изображения',
+              'Стоимость: 3 фото',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: compact ? 11 : 12,

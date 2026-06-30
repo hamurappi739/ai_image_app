@@ -129,7 +129,7 @@ void main() {
       expect(find.text('reader@example.com'), findsOneWidget);
       expect(find.text('Ваш баланс'), findsOneWidget);
       expect(find.text('Купить'), findsOneWidget);
-      expect(find.textContaining('Изображения'), findsOneWidget);
+      expect(find.text('Фото:'), findsOneWidget);
       expect(find.text('7'), findsWidgets);
     });
   });

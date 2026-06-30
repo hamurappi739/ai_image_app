@@ -116,6 +116,64 @@ void main() {
     expect(find.text('Повторить'), findsOneWidget);
   });
 
+  testWidgets('thumbnail fallback is minimal without retry or long text', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 90,
+            height: 90,
+            child: GalleryImageLoadFailureFallback(
+              compact: true,
+              fallbackMode: GalleryImageFallbackMode.thumbnail,
+              isTimeout: true,
+              onOpenPressed: () {},
+              onRetryPressed: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
+    expect(find.text('Не загрузилось'), findsOneWidget);
+    expect(find.text('Фото сохранено, но не загрузилось'), findsNothing);
+    expect(find.text('Повторить'), findsNothing);
+    expect(find.text('Открыть'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('thumbnail network image error uses compact fallback', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 90,
+            height: 90,
+            child: GalleryResultImage(
+              url: 'https://example.com/broken-gallery-image.jpg',
+              compact: true,
+              fallbackMode: GalleryImageFallbackMode.thumbnail,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.text('Не загрузилось'), findsOneWidget);
+    expect(find.text('Фото сохранено, но не загрузилось'), findsNothing);
+    expect(find.text('Повторить'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   test('galleryImageUrlWithRetry appends cache-busting query param', () {
     expect(
       galleryImageUrlWithRetry('https://example.com/a.jpg', 0),

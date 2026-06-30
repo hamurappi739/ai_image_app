@@ -82,4 +82,71 @@ void main() {
     expect(find.byType(GalleryResultImage), findsNothing);
     expect(find.byType(GalleryPhotoshootSeriesPreview), findsOneWidget);
   });
+
+  testWidgets(
+    'failed thumbnails on narrow width use compact fallback without overflow',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.light(),
+          darkTheme: ThemeData.dark(),
+          home: Scaffold(
+            body: SizedBox(
+              width: 320,
+              child: GalleryPhotoshootTripletPreview(
+                imageUrls: const [
+                  'https://example.com/broken-frame-1.jpg',
+                  'https://example.com/broken-frame-2.jpg',
+                  'https://example.com/broken-frame-3.jpg',
+                ],
+                description: 'Фотосессия: Тест',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Фото сохранено, но не загрузилось'), findsNothing);
+      expect(find.text('Повторить'), findsNothing);
+      expect(find.text('Не загрузилось'), findsNWidgets(3));
+    },
+  );
+
+  testWidgets(
+    'failed thumbnails in dark theme have no overflow',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.light(),
+          darkTheme: ThemeData.dark(),
+          themeMode: ThemeMode.dark,
+          home: Scaffold(
+            body: SizedBox(
+              width: 320,
+              child: GalleryPhotoshootTripletPreview(
+                imageUrls: const [
+                  'https://example.com/broken-frame-1.jpg',
+                  'https://example.com/broken-frame-2.jpg',
+                  'https://example.com/broken-frame-3.jpg',
+                ],
+                description: 'Фотосессия: Тест',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Не загрузилось'), findsNWidgets(3));
+    },
+  );
 }

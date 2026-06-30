@@ -21,6 +21,7 @@ class BalanceResponse(BaseModel):
     paid_image_generations: int
     paid_photoshoots: int
     total_available_images: int = 0
+    available_photos: int = 0
     photoshoot_image_cost: int = 3
     available_photoshoots_by_images: int = 0
     consumption_enabled: bool = False

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../models/user_balance.dart';
+
 /// Понятные сообщения при 402 / нулевом балансе с переходом в раздел «Купить».
 class InsufficientBalanceDialog {
   InsufficientBalanceDialog._();
@@ -12,9 +14,9 @@ class InsufficientBalanceDialog {
   }) {
     return _show(
       context,
-      title: 'Изображения закончились',
+      title: 'Недостаточно фото',
       message: 'Чтобы создать новое фото, пополните баланс.',
-      buyButtonLabel: 'Купить изображения',
+      buyButtonLabel: 'Купить',
       onOpenPacks: onOpenPacks,
     );
   }
@@ -22,14 +24,15 @@ class InsufficientBalanceDialog {
   static Future<void> showInsufficientPhotoshoots(
     BuildContext context, {
     required VoidCallback onOpenPacks,
+    int imageCost = UserBalance.defaultPhotoshootImageCost,
   }) {
     return _show(
       context,
-      title: 'Нужно 3 изображения',
+      title: 'Для фотосессии нужно $imageCost фото',
       message:
-          'Фотосессия создаёт 3 фото, поэтому для неё нужно 3 изображения '
-          'на балансе.',
-      buyButtonLabel: 'Купить изображения',
+          'Фотосессия создаёт $imageCost фото, поэтому на балансе должно быть '
+          'не меньше $imageCost фото.',
+      buyButtonLabel: 'Купить',
       onOpenPacks: onOpenPacks,
     );
   }
@@ -122,7 +125,7 @@ class InsufficientBalanceHint extends StatelessWidget {
     super.key,
     required this.message,
     required this.onOpenPacks,
-    this.actionLabel = 'Купить изображения',
+    this.actionLabel = 'Купить',
   });
 
   final String message;

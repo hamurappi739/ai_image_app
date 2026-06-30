@@ -315,6 +315,23 @@ class SupabaseStorageService:
         for path in paths:
             self.delete_object_best_effort(path)
 
+    def storage_path_from_public_url(self, public_url: str) -> str | None:
+        trimmed = (public_url or "").strip()
+        if not trimmed:
+            return None
+        bucket = (self._bucket or "").strip()
+        if not bucket:
+            return None
+        path_prefix = f"/object/public/{bucket}/"
+        if path_prefix not in trimmed:
+            return None
+        return trimmed.split(path_prefix, 1)[1]
+
+    def delete_public_url_best_effort(self, public_url: str) -> None:
+        path = self.storage_path_from_public_url(public_url)
+        if path:
+            self.delete_object_best_effort(path)
+
     def upload_temp_input_bytes(
         self,
         user_id: str,

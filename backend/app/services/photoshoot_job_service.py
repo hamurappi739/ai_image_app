@@ -10,6 +10,7 @@ from fastapi import HTTPException
 
 from app.config import settings
 from app.services.balance_service import (
+    build_balance_response,
     consume_photoshoot,
     determine_photoshoot_payment,
 )
@@ -186,6 +187,8 @@ def _photoshoot_job_error_message(exc: HTTPException) -> str:
 
 
 def _balance_to_dict(profile: dict) -> dict:
-    from app.schemas import BalanceResponse
-
-    return BalanceResponse.model_validate(profile).model_dump()
+    return build_balance_response(
+        profile,
+        settings.free_generations_limit,
+        consumption_enabled=settings.enable_credit_consumption,
+    )

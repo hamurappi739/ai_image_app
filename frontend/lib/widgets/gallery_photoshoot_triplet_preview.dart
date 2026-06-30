@@ -93,6 +93,7 @@ class GalleryPhotoshootTripletFrame extends StatelessWidget {
       description: description,
       seriesIndex: seriesIndex,
       compact: true,
+      fallbackMode: GalleryImageFallbackMode.thumbnail,
       photoshootSeries: true,
     );
   }

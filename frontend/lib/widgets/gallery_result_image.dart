@@ -23,6 +23,15 @@ Duration galleryNetworkImageLoadingTimeout = const Duration(seconds: 12);
 @visibleForTesting
 Duration galleryNetworkImageSlowLoadHintDelay = const Duration(seconds: 3);
 
+/// How error/timeout fallback is rendered inside [GalleryResultImage].
+enum GalleryImageFallbackMode {
+  /// Full message and action buttons (gallery cards, viewer).
+  standard,
+
+  /// Minimal icon + short label for small thumbnails (no retry / open).
+  thumbnail,
+}
+
 /// Gallery / viewer image: real URL via network; mock/demo via rich Flutter preview.
 class GalleryResultImage extends StatelessWidget {
   const GalleryResultImage({
@@ -31,6 +40,7 @@ class GalleryResultImage extends StatelessWidget {
     this.description,
     this.seriesIndex,
     this.compact = false,
+    this.fallbackMode = GalleryImageFallbackMode.standard,
     this.photoshootSeries = false,
     this.fit = BoxFit.cover,
     this.fullQuality = false,
@@ -41,6 +51,7 @@ class GalleryResultImage extends StatelessWidget {
   final String? description;
   final int? seriesIndex;
   final bool compact;
+  final GalleryImageFallbackMode fallbackMode;
   final bool photoshootSeries;
   final BoxFit fit;
 
@@ -75,6 +86,7 @@ class GalleryResultImage extends StatelessWidget {
     return _GalleryNetworkImage(
       url: url,
       compact: compact,
+      fallbackMode: fallbackMode,
       fit: fit,
       fullQuality: fullQuality,
       onOpenPressed: onOpenPressed,
@@ -123,6 +135,7 @@ class _GalleryNetworkImage extends StatefulWidget {
   const _GalleryNetworkImage({
     required this.url,
     required this.compact,
+    required this.fallbackMode,
     required this.fit,
     required this.fullQuality,
     this.onOpenPressed,
@@ -130,9 +143,13 @@ class _GalleryNetworkImage extends StatefulWidget {
 
   final String url;
   final bool compact;
+  final GalleryImageFallbackMode fallbackMode;
   final BoxFit fit;
   final bool fullQuality;
   final VoidCallback? onOpenPressed;
+
+  bool get _thumbnailFallback =>
+      fallbackMode == GalleryImageFallbackMode.thumbnail;
 
   @override
   State<_GalleryNetworkImage> createState() => _GalleryNetworkImageState();
@@ -230,9 +247,11 @@ class _GalleryNetworkImageState extends State<_GalleryNetworkImage> {
         _phase == _GalleryImageLoadPhase.error) {
       return GalleryImageLoadFailureFallback(
         compact: widget.compact,
+        fallbackMode: widget.fallbackMode,
         isTimeout: _phase == _GalleryImageLoadPhase.timeout,
-        onOpenPressed: widget.onOpenPressed,
-        onRetryPressed: _retry,
+        onOpenPressed:
+            widget._thumbnailFallback ? null : widget.onOpenPressed,
+        onRetryPressed: widget._thumbnailFallback ? null : _retry,
       );
     }
 
@@ -269,7 +288,9 @@ class _GalleryNetworkImageState extends State<_GalleryNetworkImage> {
             }
             return GalleryImageLoadingPlaceholder(
               compact: widget.compact,
-              showSlowMessage: _showSlowLoadingMessage,
+              fallbackMode: widget.fallbackMode,
+              showSlowMessage:
+                  !widget._thumbnailFallback && _showSlowLoadingMessage,
             );
           },
           errorBuilder: (context, error, stackTrace) {
@@ -278,9 +299,11 @@ class _GalleryNetworkImageState extends State<_GalleryNetworkImage> {
             });
             return GalleryImageLoadFailureFallback(
               compact: widget.compact,
+              fallbackMode: widget.fallbackMode,
               isTimeout: false,
-              onOpenPressed: widget.onOpenPressed,
-              onRetryPressed: _retry,
+              onOpenPressed:
+                  widget._thumbnailFallback ? null : widget.onOpenPressed,
+              onRetryPressed: widget._thumbnailFallback ? null : _retry,
             );
           },
         );
@@ -321,29 +344,35 @@ class GalleryImageLoadingPlaceholder extends StatelessWidget {
   const GalleryImageLoadingPlaceholder({
     super.key,
     this.compact = false,
+    this.fallbackMode = GalleryImageFallbackMode.standard,
     this.showSlowMessage = false,
   });
 
   final bool compact;
+  final GalleryImageFallbackMode fallbackMode;
   final bool showSlowMessage;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final thumbnail =
+        fallbackMode == GalleryImageFallbackMode.thumbnail;
 
     return Container(
       color: const Color(0xFFF0F2F8),
       alignment: Alignment.center,
-      padding: EdgeInsets.all(compact ? 12 : 16),
+      padding: EdgeInsets.all(thumbnail ? 4 : (compact ? 12 : 16)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: compact ? 22 : 28,
-            height: compact ? 22 : 28,
-            child: const CircularProgressIndicator(strokeWidth: 2.5),
+            width: thumbnail ? 18 : (compact ? 22 : 28),
+            height: thumbnail ? 18 : (compact ? 22 : 28),
+            child: CircularProgressIndicator(
+              strokeWidth: thumbnail ? 2 : 2.5,
+            ),
           ),
-          if (showSlowMessage) ...[
+          if (showSlowMessage && !thumbnail) ...[
             SizedBox(height: compact ? 8 : 10),
             Text(
               'Загружаем фото…',
@@ -365,18 +394,24 @@ class GalleryImageLoadFailureFallback extends StatelessWidget {
   const GalleryImageLoadFailureFallback({
     super.key,
     required this.compact,
+    this.fallbackMode = GalleryImageFallbackMode.standard,
     required this.isTimeout,
     this.onOpenPressed,
     this.onRetryPressed,
   });
 
   final bool compact;
+  final GalleryImageFallbackMode fallbackMode;
   final bool isTimeout;
   final VoidCallback? onOpenPressed;
   final VoidCallback? onRetryPressed;
 
   @override
   Widget build(BuildContext context) {
+    if (fallbackMode == GalleryImageFallbackMode.thumbnail) {
+      return _ThumbnailFailureFallback(compact: compact);
+    }
+
     final theme = Theme.of(context);
     final title = isTimeout
         ? 'Фото сохранено, но не загрузилось'
@@ -438,6 +473,48 @@ class GalleryImageLoadFailureFallback extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ThumbnailFailureFallback extends StatelessWidget {
+  const _ThumbnailFailureFallback({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      color: const Color(0xFFF0F2F8),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.broken_image_outlined,
+              size: compact ? 20 : 22,
+              color: const Color(0xFF9CA3AF),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Не загрузилось',
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 9,
+                height: 1.1,
+                color: const Color(0xFF6B7280),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

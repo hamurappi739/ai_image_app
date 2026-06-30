@@ -123,8 +123,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ваш баланс'), findsOneWidget);
-    expect(find.text('1 фото = 1 изображение'), findsOneWidget);
-    expect(find.textContaining('фотосессия = 3 изображения'), findsOneWidget);
+    expect(find.text('1 генерация = 1 фото'), findsOneWidget);
+    expect(find.textContaining('Фотосессия = 3 фото'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -18,7 +18,7 @@ class AppBalanceSummary {
       balance.freeGenerationsRemaining > 0;
 
   static String photoshootCostNote(UserBalance balance) =>
-      'Фотосессия = ${balance.photoshootImageCost} изображения';
+      'Фотосессия = ${balance.photoshootImageCost} фото';
 }
 
 class AppDrawerBalanceBlock extends StatelessWidget {
@@ -99,13 +99,13 @@ class AppDrawerBalanceBlock extends StatelessWidget {
           )
         else if (balance != null) ...[
           _DrawerBalanceLine(
-            label: 'Изображения',
+            label: 'Фото',
             value: '${AppBalanceSummary.imageCount(balance!)}',
           ),
           if (AppBalanceSummary.showFreePhotos(balance!)) ...[
             const SizedBox(height: 4),
             _DrawerBalanceLine(
-              label: 'Бесплатные',
+              label: 'Бесплатные генерации',
               value: '${AppBalanceSummary.freePhotoCount(balance!)}',
             ),
           ],
@@ -223,7 +223,7 @@ class AppScreenBalanceCard extends StatelessWidget {
             )
           else if (balance != null) ...[
             _ScreenBalanceLine(
-              label: 'Изображения',
+              label: 'Фото',
               value: '${AppBalanceSummary.imageCount(balance!)}',
             ),
             if (AppBalanceSummary.showFreePhotos(balance!)) ...[
@@ -245,7 +245,7 @@ class AppScreenBalanceCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Доступно изображений: ${AppBalanceSummary.imageCount(balance!)}',
+                'Доступно фото: ${AppBalanceSummary.imageCount(balance!)}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontSize: 12,
                   height: 1.35,
@@ -334,7 +334,7 @@ class AppHeaderBalanceIndicator extends StatelessWidget {
     final textPrimary = context.appTextPrimary;
     final accent = context.appAccent;
     final images = AppBalanceSummary.imageCount(balance!);
-    final label = ultraCompact ? '$images' : 'Изображения: $images';
+    final label = ultraCompact ? '$images' : 'Фото: $images';
 
     return Container(
       padding: EdgeInsets.symmetric(

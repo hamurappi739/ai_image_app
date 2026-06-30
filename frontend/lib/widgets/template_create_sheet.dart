@@ -784,7 +784,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
                             const SizedBox(height: 8),
                             const _OutcomeLine(text: '1 готовое фото'),
                             const SizedBox(height: 4),
-                            const _OutcomeLine(text: 'Стоимость: 1 изображение'),
+                            const _OutcomeLine(text: 'Стоимость: 1 фото'),
                             const SizedBox(height: 4),
                             const _OutcomeLine(
                               text: 'Сохранится в готовых фото',
