@@ -131,6 +131,32 @@ class MockPaymentAddedBalance {
   }
 }
 
+class MockPhotoPackResponse {
+  const MockPhotoPackResponse({
+    required this.status,
+    required this.packageId,
+    required this.photosAdded,
+    this.balance,
+  });
+
+  final String status;
+  final String packageId;
+  final int photosAdded;
+  final UserBalance? balance;
+
+  factory MockPhotoPackResponse.fromJson(Map<String, dynamic> json) {
+    final rawBalance = json['balance'];
+    return MockPhotoPackResponse(
+      status: json['status'] as String? ?? '',
+      packageId: json['package_id'] as String? ?? '',
+      photosAdded: json['photos_added'] as int? ?? 0,
+      balance: rawBalance is Map<String, dynamic>
+          ? UserBalance.fromJson(rawBalance)
+          : null,
+    );
+  }
+}
+
 class MockVerifyRuStorePaymentResponse {
   const MockVerifyRuStorePaymentResponse({
     required this.status,
@@ -654,6 +680,19 @@ class ApiService {
     }
 
     throw const MockPaymentServiceUnavailableException();
+  }
+
+  Future<MockPhotoPackResponse> mockPurchasePhotoPack({
+    required String packageId,
+  }) async {
+    final response = await _postMockPaymentWithRetry(
+      uri: Uri.parse('$baseUrl/payments/mock/photo-pack'),
+      body: {
+        'package_id': packageId,
+      },
+    );
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    return MockPhotoPackResponse.fromJson(json);
   }
 
   Future<MockVerifyRuStorePaymentResponse> mockVerifyRuStorePayment({

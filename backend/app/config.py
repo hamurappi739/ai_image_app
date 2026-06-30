@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -56,6 +56,13 @@ class Settings(BaseSettings):
     supabase_storage_bucket: str = "generated-images"
     test_user_id: str | None = None
     enable_credit_consumption: bool = False
+    enable_mock_payments: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "ENABLE_MOCK_PAYMENTS",
+            "MOCK_PAYMENTS_ENABLED",
+        ),
+    )
     enable_photoshoot_generation: bool = False
     photoshoot_output_count: int = _PHOTOSHOOT_OUTPUT_COUNT_DEFAULT
     photoshoot_series_reference_mode: str = _PHOTOSHOOT_SERIES_REFERENCE_MODE_DEFAULT
@@ -131,6 +138,12 @@ class Settings(BaseSettings):
             return True
         return not self._env_value_configured(self.test_user_id)
 
+    def mock_payments_allowed(self) -> bool:
+        """Mock photo-pack purchases: non-production or explicit flag."""
+        if self.enable_mock_payments:
+            return True
+        return not self.is_production
+
 
 settings = Settings()
 
@@ -160,7 +173,7 @@ def log_settings_diagnostics(logger: logging.Logger | None = None) -> None:
         "Settings diagnostics: image_provider=%s environment=%s "
         "env_file=%s env_file_exists=%s env_file_IMAGE_PROVIDER=%s "
         "os.environ_IMAGE_PROVIDER=%s enable_photoshoot_generation=%s "
-        "enable_credit_consumption=%s",
+        "enable_credit_consumption=%s enable_mock_payments=%s",
         settings.image_provider,
         settings.environment.strip().lower(),
         ENV_FILE_PATH,
@@ -169,6 +182,7 @@ def log_settings_diagnostics(logger: logging.Logger | None = None) -> None:
         os_image_provider,
         settings.enable_photoshoot_generation,
         settings.enable_credit_consumption,
+        settings.enable_mock_payments,
     )
     if (
         env_file_image_provider is not None

@@ -22,6 +22,15 @@ ACTIVE_IMAGE_PACKAGE_IDS: tuple[str, ...] = (
     "package_999_50_images",
 )
 
+# Short aliases for POST /payments/mock/photo-pack (tests / admin tools).
+MOCK_PHOTO_PACK_ALIASES: dict[str, str] = {
+    "photos_1": "package_39_1_image",
+    "photos_3": "package_99_3_images",
+    "photos_9": "package_249_9_images",
+    "photos_20": "package_499_20_images",
+    "photos_50": "package_999_50_images",
+}
+
 
 @dataclass(frozen=True, slots=True)
 class PaymentPackage:
@@ -108,6 +117,22 @@ def get_payment_package(package_id: str) -> PaymentPackage:
     if package is None:
         raise HTTPException(status_code=400, detail="Unknown package_id")
     return package
+
+
+def resolve_active_image_package_id(package_id: str) -> str:
+    """Map mock alias or catalog id to an active UI package id."""
+    normalized = package_id.strip()
+    if not normalized:
+        raise HTTPException(status_code=400, detail="Unknown package_id")
+    canonical = MOCK_PHOTO_PACK_ALIASES.get(normalized, normalized)
+    if canonical not in ACTIVE_IMAGE_PACKAGE_IDS:
+        raise HTTPException(status_code=400, detail="Unknown package_id")
+    return canonical
+
+
+def get_active_image_package(package_id: str) -> PaymentPackage:
+    canonical_id = resolve_active_image_package_id(package_id)
+    return PAYMENT_PACKAGES[canonical_id]
 
 
 def list_active_image_packages() -> list[PaymentPackage]:

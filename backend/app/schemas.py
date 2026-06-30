@@ -201,6 +201,17 @@ class RuStoreVerifyResponse(BaseModel):
     balance: BalanceResponse
 
 
+class MockPhotoPackRequest(BaseModel):
+    package_id: str
+
+
+class MockPhotoPackResponse(BaseModel):
+    status: Literal["credited"] = "credited"
+    package_id: str
+    photos_added: int
+    balance: BalanceResponse
+
+
 class DebugConfigResponse(BaseModel):
     """Safe subset of settings for GET /debug/config (development only)."""
 

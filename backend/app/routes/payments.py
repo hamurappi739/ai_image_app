@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.auth import CurrentUser, get_current_user
 from app.config import settings
 from app.schemas import (
+    MockPhotoPackRequest,
+    MockPhotoPackResponse,
     PaymentAddedBalance,
     RuStoreMockVerifyCustomRequest,
     RuStoreMockVerifyCustomResponse,
@@ -21,14 +23,41 @@ from app.services.payment_service import (
     mock_verify_rustore_purchase,
     verify_real_rustore_payment,
 )
+from app.services.payment_verification import mock_credit_photo_pack
 
 router = APIRouter(tags=["payments"])
 
 
+def _require_mock_payments_enabled() -> None:
+    """404 when mock photo-pack purchases are disabled (production without flag)."""
+    if not settings.mock_payments_allowed():
+        raise HTTPException(status_code=404)
+
+
 def _require_development_for_payment_mock() -> None:
-    """404 unless ENVIRONMENT is ``development`` (mock RuStore verify only)."""
+    """404 unless ENVIRONMENT is ``development`` (legacy mock RuStore verify only)."""
     if settings.environment.strip().lower() != "development":
         raise HTTPException(status_code=404)
+
+
+@router.post("/payments/mock/photo-pack", response_model=MockPhotoPackResponse)
+def mock_purchase_photo_pack(
+    body: MockPhotoPackRequest,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Mock photo-pack top-up for credit-mode testing (no real payment)."""
+    _require_mock_payments_enabled()
+    result = mock_credit_photo_pack(
+        user_id=user.id,
+        email=user.email,
+        package_id=body.package_id,
+    )
+    return MockPhotoPackResponse(
+        status="credited",
+        package_id=result.package_id,
+        photos_added=result.photos_added,
+        balance=result.balance,
+    )
 
 
 @router.post("/payments/rustore/mock-verify", response_model=RuStoreMockVerifyResponse)

@@ -384,3 +384,60 @@ def mock_verify_custom_amount_purchase(
         unused_rub=unused_rub,
         balance=_build_balance(updated_profile),
     )
+
+
+@dataclass(frozen=True, slots=True)
+class MockPhotoPackCreditResult:
+    package_id: str
+    photos_added: int
+    balance: dict
+
+
+def mock_credit_photo_pack(
+    *,
+    user_id: str,
+    email: str | None,
+    package_id: str,
+) -> MockPhotoPackCreditResult:
+    """Credit an active photo pack without RuStore or payment transaction ledger."""
+    import logging
+
+    from app.services.package_catalog import get_active_image_package
+
+    logger = logging.getLogger("uvicorn.error")
+    package = get_active_image_package(package_id)
+
+    try:
+        profile = ensure_profile_exists(user_id, email)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=500, detail="Failed to ensure user profile"
+        ) from exc
+
+    free_before = int(profile.get("free_generations_used") or 0)
+    try:
+        updated_profile = add_paid_balance(
+            profile,
+            package.paid_image_generations,
+            0,
+        )
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=500, detail="Failed to update balance") from exc
+
+    free_after = int(updated_profile.get("free_generations_used") or 0)
+    if free_after != free_before:
+        raise HTTPException(status_code=500, detail="Failed to update balance")
+
+    photos_added = package.paid_image_generations
+    logger.info(
+        "Mock photo pack credited user_id=%s package_id=%s photos_added=%s",
+        user_id,
+        package.id,
+        photos_added,
+    )
+
+    return MockPhotoPackCreditResult(
+        package_id=package.id,
+        photos_added=photos_added,
+        balance=_build_balance(updated_profile),
+    )

@@ -3,7 +3,7 @@ import 'api_service.dart';
 
 /// Which backend path [PaymentService] uses for purchases.
 enum PaymentChannel {
-  /// Development demo: backend mock-verify (no RuStore SDK, no real charges).
+  /// Development demo: backend mock photo-pack (no RuStore SDK, no real charges).
   demo,
 
   /// Future: RuStore Pay SDK purchase + backend ``/payments/rustore/verify``.
@@ -16,7 +16,7 @@ enum PaymentChannel {
 /// or RuStore SDK details directly.
 ///
 /// Current flow (demo):
-/// 1. [purchasePackage] → backend ``/payments/rustore/mock-verify`` (development only).
+/// 1. [purchasePackage] → backend ``/payments/mock/photo-pack``.
 /// 2. Backend credits balance and returns updated ``balance``.
 ///
 /// Future RuStore Pay SDK flow (not implemented):
@@ -47,7 +47,7 @@ class PaymentService {
     }
   }
 
-  /// Development demo: fixed package top-up via backend mock-verify.
+  /// Development demo: fixed package top-up via backend mock photo-pack.
   ///
   /// Prefer [purchasePackage] from UI. This method remains for tests and migration.
   Future<PaymentResult> purchasePackageDemo(String packageId) {
@@ -55,15 +55,17 @@ class PaymentService {
   }
 
   Future<PaymentResult> _purchasePackageDemo(String packageId) async {
-    final providerPaymentId =
-        'dev-package-$packageId-${DateTime.now().millisecondsSinceEpoch}';
-
     try {
-      final response = await _apiService.mockVerifyRuStorePayment(
+      final response = await _apiService.mockPurchasePhotoPack(
         packageId: packageId,
-        providerPaymentId: providerPaymentId,
       );
-      return _mapPackageResponse(response);
+      return PaymentResult(
+        status: PaymentResultStatus.verified,
+        packageId: response.packageId,
+        addedImageGenerations: response.photosAdded,
+        addedPhotoshoots: 0,
+        balance: response.balance,
+      );
     } on MockPaymentUnavailableException {
       return _failedResult(
         packageId: packageId,
@@ -132,18 +134,6 @@ class PaymentService {
     required int paidPhotoshoots,
   }) {
     throw UnimplementedError('RuStore Pay SDK is not connected');
-  }
-
-  PaymentResult _mapPackageResponse(MockVerifyRuStorePaymentResponse response) {
-    return PaymentResult(
-      status: response.status == 'already_processed'
-          ? PaymentResultStatus.alreadyProcessed
-          : PaymentResultStatus.verified,
-      packageId: response.packageId,
-      addedImageGenerations: response.added.paidImageGenerations,
-      addedPhotoshoots: response.added.paidPhotoshoots,
-      balance: response.balance,
-    );
   }
 
   PaymentResult _mapCustomAmountResponse(

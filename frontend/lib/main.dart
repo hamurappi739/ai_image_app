@@ -748,10 +748,6 @@ class _PackOffering {
   String get priceLabel => '$priceRub ₽';
 }
 
-String _formatMockPaymentAddedSummary(int images) {
-  if (images <= 0) return 'Баланс обновлён.';
-  return 'На баланс добавлено $images фото.';
-}
 
 const _demoPurchaseNotice =
     'Демо-режим: деньги не списываются. '
@@ -919,42 +915,25 @@ class _PacksScreenState extends State<PacksScreen> {
     );
   }
 
-  Future<void> _showPackPaymentSoonDialog() {
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Оплата скоро',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+  Future<void> _showPackPaymentUnavailableSnackBar() {
+    if (!mounted) return Future.value();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Покупка временно недоступна'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        content: const Text(
-          'Пополнение баланса пока доступно только в демо-режиме на backend.',
-          style: TextStyle(
-            fontSize: 15,
-            height: 1.45,
-            color: Color(0xFF6B7280),
-          ),
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF5B6CFF),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Понятно'),
-          ),
-        ],
       ),
     );
+    return Future.value();
   }
 
   Future<void> _presentPaymentResult(PaymentResult result) async {
     if (result.isFailed) {
       switch (result.failureReason) {
         case PaymentFailureReason.unavailable:
-          await _showPackPaymentSoonDialog();
+          await _showPackPaymentUnavailableSnackBar();
           return;
         case PaymentFailureReason.serviceUnavailable:
           if (!mounted) return;
@@ -994,74 +973,26 @@ class _PacksScreenState extends State<PacksScreen> {
 
     if (result.isAlreadyProcessed) {
       if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Эта покупка уже была обработана'),
+          behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(12),
           ),
-          title: const Text(
-            'Покупка уже обработана',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          content: const Text(
-            'Эта покупка уже была обработана.',
-            style: TextStyle(
-              fontSize: 15,
-              height: 1.45,
-              color: Color(0xFF6B7280),
-            ),
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF5B6CFF),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Понятно'),
-            ),
-          ],
         ),
       );
       return;
     }
 
-    var successSummary = _formatMockPaymentAddedSummary(
-      result.addedImageGenerations,
-    );
-    final unusedRub = result.unusedRub;
-    if (unusedRub != null && unusedRub > 0) {
-      successSummary += '\n\nОстаток $unusedRub ₽ пока не используется';
-    }
-
     if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Баланс пополнен',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Пакет добавлен'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        content: Text(
-          successSummary,
-          style: const TextStyle(
-            fontSize: 15,
-            height: 1.45,
-            color: Color(0xFF6B7280),
-          ),
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF5B6CFF),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Хорошо'),
-          ),
-        ],
       ),
     );
   }
