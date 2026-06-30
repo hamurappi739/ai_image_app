@@ -5,8 +5,37 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   tearDown(() {
-    galleryNetworkImageLoadingTimeout = const Duration(seconds: 12);
+    galleryNetworkImageLoadingTimeout = const Duration(seconds: 22);
     galleryNetworkImageSlowLoadHintDelay = const Duration(seconds: 3);
+    galleryNetworkImageMaxAutoRetries = 2;
+    galleryNetworkImageAutoRetryDelays = const [
+      Duration(milliseconds: 800),
+      Duration(milliseconds: 1800),
+    ];
+  });
+
+  test('galleryImageShouldShowFallback only after auto retries exhausted', () {
+    expect(
+      galleryImageShouldShowFallback(autoRetryCount: 0),
+      isFalse,
+    );
+    expect(
+      galleryImageShouldShowFallback(autoRetryCount: 1),
+      isFalse,
+    );
+    expect(
+      galleryImageShouldShowFallback(autoRetryCount: 2),
+      isTrue,
+    );
+  });
+
+  test('galleryImageLoadStaggerDelay grows with list index', () {
+    expect(galleryImageLoadStaggerDelay(null), Duration.zero);
+    expect(galleryImageLoadStaggerDelay(0), Duration.zero);
+    expect(
+      galleryImageLoadStaggerDelay(5),
+      const Duration(milliseconds: 600),
+    );
   });
 
   testWidgets('loading placeholder shows slow message when requested', (
@@ -90,9 +119,89 @@ void main() {
     expect(find.text('Не удалось загрузить фото'), findsOneWidget);
   });
 
-  testWidgets('network image errorBuilder shows error fallback', (
+  testWidgets('network image errorBuilder auto-retries before fallback', (
     WidgetTester tester,
   ) async {
+    galleryNetworkImageAutoRetryDelays = const [
+      Duration(milliseconds: 20),
+      Duration(milliseconds: 20),
+    ];
+    galleryNetworkImageMaxAutoRetries = 2;
+    galleryNetworkImageLoadingTimeout = const Duration(seconds: 30);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 320,
+            height: 240,
+            child: GalleryResultImage(
+              url: 'https://example.com/broken-gallery-image.jpg',
+              compact: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Повторить'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 25));
+    await tester.pump();
+    expect(find.text('Повторить'), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 25));
+    await tester.pump();
+    expect(find.text('Повторить'), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 25));
+    await tester.pump();
+    expect(find.text('Не удалось загрузить фото'), findsOneWidget);
+    expect(find.text('Повторить'), findsOneWidget);
+  });
+
+  testWidgets('manual retry after fallback resets load cycle', (
+    WidgetTester tester,
+  ) async {
+    galleryNetworkImageAutoRetryDelays = const [Duration.zero, Duration.zero];
+    galleryNetworkImageMaxAutoRetries = 0;
+    galleryNetworkImageLoadingTimeout = const Duration(seconds: 30);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 320,
+            height: 240,
+            child: GalleryResultImage(
+              url: 'https://example.com/broken-gallery-image.jpg',
+              compact: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+
+    expect(find.text('Повторить'), findsOneWidget);
+    await tester.tap(find.text('Повторить'));
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Не удалось загрузить фото'), findsNothing);
+  });
+
+  testWidgets('network image errorBuilder shows error fallback after retries', (
+    WidgetTester tester,
+  ) async {
+    galleryNetworkImageMaxAutoRetries = 0;
+    galleryNetworkImageAutoRetryDelays = const [];
+
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -145,9 +254,16 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('thumbnail network image error uses compact fallback', (
+  testWidgets('thumbnail network image error keeps spinner during auto-retry', (
     WidgetTester tester,
   ) async {
+    galleryNetworkImageAutoRetryDelays = const [
+      Duration(milliseconds: 20),
+      Duration(milliseconds: 20),
+    ];
+    galleryNetworkImageMaxAutoRetries = 2;
+    galleryNetworkImageLoadingTimeout = const Duration(seconds: 30);
+
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -166,10 +282,15 @@ void main() {
 
     await tester.pump();
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.text('Не загрузилось'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 30));
+      await tester.pump();
+    }
 
     expect(find.text('Не загрузилось'), findsOneWidget);
-    expect(find.text('Фото сохранено, но не загрузилось'), findsNothing);
     expect(find.text('Повторить'), findsNothing);
     expect(tester.takeException(), isNull);
   });

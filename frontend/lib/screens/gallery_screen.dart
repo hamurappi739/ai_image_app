@@ -220,6 +220,7 @@ class _GalleryChronologicalList {
             item: item,
             isNew: isHighlightedItem(item, highlightItemKey),
             onHidePhotoshoot: onHidePhotoshoot,
+            loadStaggerIndex: index,
           ),
         );
       } else {
@@ -228,6 +229,7 @@ class _GalleryChronologicalList {
             item: item,
             isNew: isHighlightedItem(item, highlightItemKey),
             onHideImage: onHideImage,
+            loadStaggerIndex: index,
           ),
         );
       }
@@ -838,11 +840,13 @@ class _GalleryPhotoshootCard extends StatelessWidget {
     required this.item,
     required this.onHidePhotoshoot,
     this.isNew = false,
+    this.loadStaggerIndex,
   });
 
   final GalleryDisplayItem item;
   final ValueChanged<String> onHidePhotoshoot;
   final bool isNew;
+  final int? loadStaggerIndex;
 
   void _openViewer(BuildContext context) {
     GalleryPhotoshootViewer.show(
@@ -875,6 +879,7 @@ class _GalleryPhotoshootCard extends StatelessWidget {
                 child: GalleryPhotoshootTripletPreview(
                   imageUrls: item.imageUrls,
                   description: item.description,
+                  loadStaggerIndex: loadStaggerIndex,
                 ),
               ),
             ),
@@ -939,11 +944,13 @@ class _GallerySinglePhotoCard extends StatelessWidget {
     required this.item,
     required this.onHideImage,
     this.isNew = false,
+    this.loadStaggerIndex,
   });
 
   final GalleryDisplayItem item;
   final ValueChanged<String> onHideImage;
   final bool isNew;
+  final int? loadStaggerIndex;
 
   void _openViewer(BuildContext context) {
     GallerySingleImageViewer.show(
@@ -977,6 +984,7 @@ class _GallerySinglePhotoCard extends StatelessWidget {
                     description: item.description,
                     compact: true,
                     onOpenPressed: () => _openViewer(context),
+                    loadStaggerIndex: loadStaggerIndex,
                   ),
                 ),
               ),

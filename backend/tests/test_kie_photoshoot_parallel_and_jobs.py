@@ -41,6 +41,10 @@ _SIGNED_URL_A = "https://supabase.example.com/signed/a"
 _SIGNED_URL_B = "https://supabase.example.com/signed/b"
 
 
+def _distinct_result_bytes(call_index: int) -> bytes:
+    return _RESULT_IMAGE_BYTES + bytes([call_index % 256])
+
+
 _SIGNED_URL_C = "https://supabase.example.com/signed/c"
 
 
@@ -351,21 +355,24 @@ class KieParallelFailureAtomicityTests(unittest.TestCase):
 
         mock_resolve_provider.return_value = KIE_IMAGE_PROVIDER
         mock_upload_bytes.return_value = ("temp/a", _SIGNED_URL_A)
-        mock_upload_data_url.return_value = ("temp/b", _SIGNED_URL_B)
-        mock_signed_url.side_effect = (
-            lambda *args, **kwargs: _SIGNED_URL_B
-            if args and args[0] == "temp/b"
-            else _SIGNED_URL_A
-        )
+        mock_upload_data_url.side_effect = [
+            ("temp/b", _SIGNED_URL_B),
+            ("temp/c", _SIGNED_URL_C),
+        ]
+        mock_signed_url.side_effect = lambda path, **kwargs: {
+            "temp/a": _SIGNED_URL_A,
+            "temp/b": _SIGNED_URL_B,
+            "temp/c": _SIGNED_URL_C,
+        }.get(path, _SIGNED_URL_A)
 
         call_count = 0
 
         def generate_side_effect(*args, **kwargs):
             nonlocal call_count
             call_count += 1
-            if call_count >= 3:
+            if call_count in (3, 4):
                 raise KieImageGenerationError("kie_task_failed")
-            return (_RESULT_IMAGE_BYTES, "image/png")
+            return (_distinct_result_bytes(call_count), "image/png")
 
         kie_client = MagicMock()
         kie_client.http_calls_count = 0

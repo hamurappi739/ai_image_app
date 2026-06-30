@@ -11,10 +11,12 @@ class GalleryPhotoshootTripletPreview extends StatelessWidget {
     super.key,
     required this.imageUrls,
     required this.description,
+    this.loadStaggerIndex,
   });
 
   final List<String> imageUrls;
   final String description;
+  final int? loadStaggerIndex;
 
   static const previewAspectRatio = 16 / 9;
 
@@ -58,6 +60,9 @@ class GalleryPhotoshootTripletPreview extends StatelessWidget {
                           url: urls[i],
                           description: description,
                           seriesIndex: i,
+                          loadStaggerIndex: loadStaggerIndex == null
+                              ? null
+                              : loadStaggerIndex! * 3 + i,
                         ),
                       ),
                     ),
@@ -76,11 +81,13 @@ class GalleryPhotoshootTripletFrame extends StatelessWidget {
     required this.url,
     required this.description,
     required this.seriesIndex,
+    this.loadStaggerIndex,
   });
 
   final String url;
   final String description;
   final int seriesIndex;
+  final int? loadStaggerIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +102,7 @@ class GalleryPhotoshootTripletFrame extends StatelessWidget {
       compact: true,
       fallbackMode: GalleryImageFallbackMode.thumbnail,
       photoshootSeries: true,
+      loadStaggerIndex: loadStaggerIndex,
     );
   }
 }

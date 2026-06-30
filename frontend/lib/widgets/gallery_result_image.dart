@@ -15,13 +15,52 @@ const Map<String, String> kGalleryImageRequestHeaders = {
 /// Max decode dimension for compact cards on web/desktop (Android/iOS skip cache hints).
 const int kGalleryCompactDecodeMaxPx = 720;
 
-/// How long to wait before showing the timeout fallback instead of a spinner.
+/// How long to wait before treating a load attempt as timed out.
 @visibleForTesting
-Duration galleryNetworkImageLoadingTimeout = const Duration(seconds: 12);
+Duration galleryNetworkImageLoadingTimeout = const Duration(seconds: 22);
 
 /// Delay before showing "still loading" hint under the spinner.
 @visibleForTesting
 Duration galleryNetworkImageSlowLoadHintDelay = const Duration(seconds: 3);
+
+/// Automatic retries after the first load error/timeout (before manual retry).
+@visibleForTesting
+int galleryNetworkImageMaxAutoRetries = 2;
+
+/// Delays before each automatic retry attempt.
+@visibleForTesting
+List<Duration> galleryNetworkImageAutoRetryDelays = const [
+  Duration(milliseconds: 800),
+  Duration(milliseconds: 1800),
+];
+
+/// Stagger gallery list image loads to avoid burst requests on open.
+@visibleForTesting
+Duration galleryImageLoadStaggerDelay(int? index) {
+  if (index == null || index <= 0) {
+    return Duration.zero;
+  }
+  const step = Duration(milliseconds: 120);
+  const maxDelay = Duration(milliseconds: 1800);
+  final delay = step * index;
+  return delay > maxDelay ? maxDelay : delay;
+}
+
+@visibleForTesting
+bool galleryImageShouldShowFallback({
+  required int autoRetryCount,
+  int maxAutoRetries = 2,
+}) {
+  return autoRetryCount >= maxAutoRetries;
+}
+
+@visibleForTesting
+Duration? galleryImageAutoRetryDelayForAttempt(int autoRetryCount) {
+  if (autoRetryCount < 0 || autoRetryCount >= galleryNetworkImageAutoRetryDelays.length) {
+    return null;
+  }
+  return galleryNetworkImageAutoRetryDelays[autoRetryCount];
+}
 
 /// How error/timeout fallback is rendered inside [GalleryResultImage].
 enum GalleryImageFallbackMode {
@@ -45,6 +84,7 @@ class GalleryResultImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.fullQuality = false,
     this.onOpenPressed,
+    this.loadStaggerIndex,
   });
 
   final String url;
@@ -60,6 +100,9 @@ class GalleryResultImage extends StatelessWidget {
 
   /// Called when user taps "Открыть" on timeout/error fallback (e.g. open viewer).
   final VoidCallback? onOpenPressed;
+
+  /// Optional list index for staggered gallery loading (ignored when [fullQuality]).
+  final int? loadStaggerIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +133,7 @@ class GalleryResultImage extends StatelessWidget {
       fit: fit,
       fullQuality: fullQuality,
       onOpenPressed: onOpenPressed,
+      loadStaggerIndex: fullQuality ? null : loadStaggerIndex,
     );
   }
 }
@@ -139,6 +183,7 @@ class _GalleryNetworkImage extends StatefulWidget {
     required this.fit,
     required this.fullQuality,
     this.onOpenPressed,
+    this.loadStaggerIndex,
   });
 
   final String url;
@@ -147,6 +192,7 @@ class _GalleryNetworkImage extends StatefulWidget {
   final BoxFit fit;
   final bool fullQuality;
   final VoidCallback? onOpenPressed;
+  final int? loadStaggerIndex;
 
   bool get _thumbnailFallback =>
       fallbackMode == GalleryImageFallbackMode.thumbnail;
@@ -158,21 +204,27 @@ class _GalleryNetworkImage extends StatefulWidget {
 class _GalleryNetworkImageState extends State<_GalleryNetworkImage> {
   _GalleryImageLoadPhase _phase = _GalleryImageLoadPhase.loading;
   int _retryGeneration = 0;
+  int _autoRetryCount = 0;
+  bool _loadTimedOut = false;
+  bool _staggerReady = false;
   Timer? _slowLoadTimer;
   Timer? _timeoutTimer;
+  Timer? _autoRetryTimer;
+  Timer? _staggerTimer;
   bool _showSlowLoadingMessage = false;
 
   @override
   void initState() {
     super.initState();
-    _startTimers();
+    _beginLoadCycle(resetAutoRetries: true);
   }
 
   @override
   void didUpdateWidget(covariant _GalleryNetworkImage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.url != widget.url) {
-      _resetForNewUrl();
+    if (oldWidget.url != widget.url ||
+        oldWidget.loadStaggerIndex != widget.loadStaggerIndex) {
+      _beginLoadCycle(resetAutoRetries: true);
     }
   }
 
@@ -187,9 +239,45 @@ class _GalleryNetworkImageState extends State<_GalleryNetworkImage> {
     _slowLoadTimer = null;
     _timeoutTimer?.cancel();
     _timeoutTimer = null;
+    _autoRetryTimer?.cancel();
+    _autoRetryTimer = null;
+    _staggerTimer?.cancel();
+    _staggerTimer = null;
   }
 
-  void _startTimers() {
+  void _beginLoadCycle({required bool resetAutoRetries}) {
+    _cancelTimers();
+    setState(() {
+      _phase = _GalleryImageLoadPhase.loading;
+      if (resetAutoRetries) {
+        _retryGeneration = 0;
+        _autoRetryCount = 0;
+      }
+      _loadTimedOut = false;
+      _showSlowLoadingMessage = false;
+      _staggerReady = false;
+    });
+    _scheduleStaggerIfNeeded();
+  }
+
+  void _scheduleStaggerIfNeeded() {
+    final delay = galleryImageLoadStaggerDelay(widget.loadStaggerIndex);
+    if (delay <= Duration.zero) {
+      if (!_staggerReady) {
+        setState(() => _staggerReady = true);
+      }
+      _startAttemptTimers();
+      return;
+    }
+
+    _staggerTimer = Timer(delay, () {
+      if (!mounted) return;
+      setState(() => _staggerReady = true);
+      _startAttemptTimers();
+    });
+  }
+
+  void _startAttemptTimers() {
     _cancelTimers();
     _slowLoadTimer = Timer(galleryNetworkImageSlowLoadHintDelay, () {
       if (!mounted || _phase != _GalleryImageLoadPhase.loading) return;
@@ -197,18 +285,8 @@ class _GalleryNetworkImageState extends State<_GalleryNetworkImage> {
     });
     _timeoutTimer = Timer(galleryNetworkImageLoadingTimeout, () {
       if (!mounted || _phase != _GalleryImageLoadPhase.loading) return;
-      setState(() => _phase = _GalleryImageLoadPhase.timeout);
+      _handleLoadFailure(isTimeout: true);
     });
-  }
-
-  void _resetForNewUrl() {
-    _cancelTimers();
-    setState(() {
-      _phase = _GalleryImageLoadPhase.loading;
-      _retryGeneration = 0;
-      _showSlowLoadingMessage = false;
-    });
-    _startTimers();
   }
 
   void _onFrameReady() {
@@ -218,15 +296,46 @@ class _GalleryNetworkImageState extends State<_GalleryNetworkImage> {
     setState(() {
       _phase = _GalleryImageLoadPhase.loaded;
       _showSlowLoadingMessage = false;
+      _loadTimedOut = false;
     });
   }
 
-  void _onError(Object error) {
-    logGalleryImageLoadError(widget.url, error);
+  void _handleLoadFailure({required bool isTimeout}) {
+    if (!mounted || _phase != _GalleryImageLoadPhase.loading) return;
+
+    if (_autoRetryCount < galleryNetworkImageMaxAutoRetries) {
+      final delay = galleryImageAutoRetryDelayForAttempt(_autoRetryCount);
+      if (delay == null) {
+        _showFinalFailure(isTimeout: isTimeout);
+        return;
+      }
+
+      _autoRetryCount++;
+      _retryGeneration++;
+      _cancelTimers();
+      _autoRetryTimer = Timer(delay, () {
+        if (!mounted) return;
+        setState(() {
+          _phase = _GalleryImageLoadPhase.loading;
+          _showSlowLoadingMessage = false;
+          _loadTimedOut = false;
+        });
+        _startAttemptTimers();
+      });
+      return;
+    }
+
+    _showFinalFailure(isTimeout: isTimeout);
+  }
+
+  void _showFinalFailure({required bool isTimeout}) {
     _cancelTimers();
     if (!mounted) return;
     setState(() {
-      _phase = _GalleryImageLoadPhase.error;
+      _phase = isTimeout
+          ? _GalleryImageLoadPhase.timeout
+          : _GalleryImageLoadPhase.error;
+      _loadTimedOut = isTimeout;
       _showSlowLoadingMessage = false;
     });
   }
@@ -235,10 +344,13 @@ class _GalleryNetworkImageState extends State<_GalleryNetworkImage> {
     _cancelTimers();
     setState(() {
       _retryGeneration++;
+      _autoRetryCount = 0;
       _phase = _GalleryImageLoadPhase.loading;
+      _loadTimedOut = false;
       _showSlowLoadingMessage = false;
+      _staggerReady = true;
     });
-    _startTimers();
+    _startAttemptTimers();
   }
 
   @override
@@ -248,10 +360,18 @@ class _GalleryNetworkImageState extends State<_GalleryNetworkImage> {
       return GalleryImageLoadFailureFallback(
         compact: widget.compact,
         fallbackMode: widget.fallbackMode,
-        isTimeout: _phase == _GalleryImageLoadPhase.timeout,
+        isTimeout: _loadTimedOut,
         onOpenPressed:
             widget._thumbnailFallback ? null : widget.onOpenPressed,
         onRetryPressed: widget._thumbnailFallback ? null : _retry,
+      );
+    }
+
+    if (!_staggerReady) {
+      return GalleryImageLoadingPlaceholder(
+        compact: widget.compact,
+        fallbackMode: widget.fallbackMode,
+        showSlowMessage: false,
       );
     }
 
@@ -294,16 +414,14 @@ class _GalleryNetworkImageState extends State<_GalleryNetworkImage> {
             );
           },
           errorBuilder: (context, error, stackTrace) {
+            logGalleryImageLoadError(widget.url, error);
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              _onError(error);
+              _handleLoadFailure(isTimeout: false);
             });
-            return GalleryImageLoadFailureFallback(
+            return GalleryImageLoadingPlaceholder(
               compact: widget.compact,
               fallbackMode: widget.fallbackMode,
-              isTimeout: false,
-              onOpenPressed:
-                  widget._thumbnailFallback ? null : widget.onOpenPressed,
-              onRetryPressed: widget._thumbnailFallback ? null : _retry,
+              showSlowMessage: false,
             );
           },
         );

@@ -21,6 +21,8 @@ from app.services.photoshoot_prompts import (
 from app.services.photoshoot_similarity import (
     KIE_DUPLICATE_RETRY_PROMPT_SUFFIX,
     find_generated_frame_duplicate,
+    kie_frame_fail_retry_prompt_suffix,
+    kie_generation_error_reason,
 )
 from app.services.photoshoot_styles import PhotoshootStyle
 from app.services.storage_service import storage_service
@@ -29,6 +31,7 @@ FrameStatusCallback: TypeAlias = Callable[[int, str], None]
 
 _PHOTOSHOOT_FAILURE_MESSAGE = "Photoshoot generation failed, please retry"
 _KIE_DUPLICATE_MAX_ATTEMPTS = 2
+_KIE_FRAME_FAIL_MAX_ATTEMPTS = 2
 
 
 def _raise_kie_photoshoot_failure(
@@ -151,7 +154,7 @@ class KiePhotoshootProvider:
             anchor_path: str | None = None
             previous_frame_path: str | None = None
 
-            data_urls[0] = self._generate_unique_frame_data_url(
+            data_urls[0] = self._generate_frame_with_fail_retry(
                 frame_index=0,
                 style=style,
                 client_style_id=client_style_id,
@@ -207,7 +210,7 @@ class KiePhotoshootProvider:
 
             for frame_index in range(1, self._output_count):
                 existing = [url for url in data_urls[:frame_index] if url]
-                data_urls[frame_index] = self._generate_unique_frame_data_url(
+                data_urls[frame_index] = self._generate_frame_with_fail_retry(
                     frame_index=frame_index,
                     style=style,
                     client_style_id=client_style_id,
@@ -277,7 +280,7 @@ class KiePhotoshootProvider:
                 len(temp_paths),
             )
 
-    def _generate_unique_frame_data_url(
+    def _generate_frame_with_fail_retry(
         self,
         *,
         frame_index: int,
@@ -296,29 +299,97 @@ class KiePhotoshootProvider:
         task_cap: int,
         on_frame_status: FrameStatusCallback | None,
     ) -> str:
-        for attempt in range(_KIE_DUPLICATE_MAX_ATTEMPTS):
-            prompt_suffix = (
-                f"\n\n{KIE_DUPLICATE_RETRY_PROMPT_SUFFIX}"
-                if attempt > 0
+        last_reason = "kie_frame_failed"
+        for fail_attempt in range(_KIE_FRAME_FAIL_MAX_ATTEMPTS):
+            fail_suffix = (
+                f"\n\n{kie_frame_fail_retry_prompt_suffix(frame_index)}"
+                if fail_attempt > 0
                 else ""
             )
-            data_url = self._generate_frame_data_url(
-                frame_index=frame_index,
-                style=style,
-                client_style_id=client_style_id,
-                photoshoot_id=photoshoot_id,
-                user_description=user_description,
-                series_mode=series_mode,
-                identity_path=identity_path,
-                anchor_path=anchor_path,
-                previous_frame_path=previous_frame_path,
-                ttl_seconds=ttl_seconds,
-                kie_client=kie_client,
-                task_cap=task_cap,
-                has_generated_frames=frame_index > 0,
-                prompt_suffix=prompt_suffix,
-                on_frame_status=on_frame_status,
-            )
+            try:
+                return self._generate_unique_frame_data_url(
+                    frame_index=frame_index,
+                    style=style,
+                    client_style_id=client_style_id,
+                    photoshoot_id=photoshoot_id,
+                    user_id=user_id,
+                    user_description=user_description,
+                    series_mode=series_mode,
+                    identity_path=identity_path,
+                    anchor_path=anchor_path,
+                    previous_frame_path=previous_frame_path,
+                    existing_data_urls=existing_data_urls,
+                    ttl_seconds=ttl_seconds,
+                    kie_client=kie_client,
+                    task_cap=task_cap,
+                    on_frame_status=on_frame_status,
+                    extra_prompt_suffix=fail_suffix,
+                )
+            except KieImageGenerationError as exc:
+                last_reason = kie_generation_error_reason(exc)
+                if fail_attempt + 1 >= _KIE_FRAME_FAIL_MAX_ATTEMPTS:
+                    break
+                kie_log.warning(
+                    "Kie frame failed, retrying: style_id=%s photoshoot_id=%s "
+                    "frame_index=%s retry=1/1 reason=%s",
+                    client_style_id,
+                    photoshoot_id,
+                    frame_index,
+                    last_reason,
+                )
+
+        self._notify_frame_status(on_frame_status, frame_index, "error")
+        _raise_kie_photoshoot_failure(
+            style_id=client_style_id,
+            stage="kie_batch",
+            reason=last_reason,
+            photoshoot_id=photoshoot_id,
+        )
+
+    def _generate_unique_frame_data_url(
+        self,
+        *,
+        frame_index: int,
+        style: PhotoshootStyle,
+        client_style_id: str,
+        photoshoot_id: str,
+        user_id: str,
+        user_description: str | None,
+        series_mode: str,
+        identity_path: str,
+        anchor_path: str | None,
+        previous_frame_path: str | None,
+        existing_data_urls: list[str],
+        ttl_seconds: int,
+        kie_client: KieImageTaskClient,
+        task_cap: int,
+        on_frame_status: FrameStatusCallback | None,
+        extra_prompt_suffix: str = "",
+    ) -> str:
+        for attempt in range(_KIE_DUPLICATE_MAX_ATTEMPTS):
+            prompt_suffix = extra_prompt_suffix
+            if attempt > 0:
+                prompt_suffix = f"{prompt_suffix}\n\n{KIE_DUPLICATE_RETRY_PROMPT_SUFFIX}"
+            try:
+                data_url = self._generate_frame_data_url(
+                    frame_index=frame_index,
+                    style=style,
+                    client_style_id=client_style_id,
+                    photoshoot_id=photoshoot_id,
+                    user_description=user_description,
+                    series_mode=series_mode,
+                    identity_path=identity_path,
+                    anchor_path=anchor_path,
+                    previous_frame_path=previous_frame_path,
+                    ttl_seconds=ttl_seconds,
+                    kie_client=kie_client,
+                    task_cap=task_cap,
+                    has_generated_frames=frame_index > 0,
+                    prompt_suffix=prompt_suffix,
+                    on_frame_status=on_frame_status,
+                )
+            except KieImageGenerationError:
+                raise
             duplicate_match = find_generated_frame_duplicate(data_url, existing_data_urls)
             if duplicate_match is None:
                 return data_url
@@ -430,14 +501,9 @@ class KiePhotoshootProvider:
                 frame_index=frame_index,
                 max_created_tasks=task_cap,
             )
-        except KieImageGenerationError as exc:
+        except KieImageGenerationError:
             self._notify_frame_status(on_frame_status, frame_index, "error")
-            _raise_kie_photoshoot_failure(
-                style_id=client_style_id,
-                stage="kie_batch",
-                reason=str(exc),
-                photoshoot_id=photoshoot_id,
-            )
+            raise
         except HTTPException as exc:
             self._notify_frame_status(on_frame_status, frame_index, "error")
             _raise_kie_photoshoot_failure(

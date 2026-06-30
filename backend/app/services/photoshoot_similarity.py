@@ -20,6 +20,29 @@ KIE_DUPLICATE_RETRY_PROMPT_SUFFIX = (
     "different crop, body angle, hand position, gaze and background framing."
 )
 
+KIE_FRAME_FAIL_RETRY_PROMPT_SUFFIX = (
+    "Regenerate this frame as a clearly different photo. Keep the same identity "
+    "and style, but use a new pose, camera distance, composition, and background "
+    "arrangement. Do not repeat the previous frame."
+)
+
+KIE_FRAME_FAIL_RETRY_PROMPT_SUFFIX_FRAME0 = (
+    "Regenerate this frame as a clean, high-quality opening photo for the series. "
+    "Keep the same identity and selected style, but use a stable composition, "
+    "natural pose, clear face, and photorealistic result."
+)
+
+
+def kie_frame_fail_retry_prompt_suffix(frame_index: int) -> str:
+    if frame_index <= 0:
+        return KIE_FRAME_FAIL_RETRY_PROMPT_SUFFIX_FRAME0
+    return KIE_FRAME_FAIL_RETRY_PROMPT_SUFFIX
+
+
+def kie_generation_error_reason(exc: Exception) -> str:
+    reason = str(exc).strip()
+    return reason or "kie_task_failed"
+
 
 @dataclass(frozen=True, slots=True)
 class DuplicateFrameMatch:
