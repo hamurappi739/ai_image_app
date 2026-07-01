@@ -16,9 +16,9 @@
     "badge": "Популярно",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/studio_portrait_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/studio_portrait_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/studio_portrait_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/studio_portrait_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/studio_portrait_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/studio_portrait_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening portrait of the studio session. Create a close portrait with a head-and-shoulders to upper-chest crop, camera at eye level, subject facing mostly forward, calm direct gaze and a subtle natural smile. Keep the posture relaxed, shoulders clean, and the face clearly visible. Use the same warm gray-beige studio backdrop, the same soft volumetric light and the same neutral outfit established for the session. Composition should feel simple, premium and centered on the face. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop, gaze direction or framing used in the other frames.",
@@ -43,9 +43,9 @@
     "badge": "Для работы",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_portrait_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_portrait_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_portrait_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_portrait_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_portrait_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_portrait_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the business session. Create a close professional portrait with a shoulders-up to upper-chest crop, mostly frontal angle, direct confident gaze and composed posture. The expression should feel calm, trustworthy and suitable for a business profile. Keep the background clean and light neutral, the lighting soft and professional, and the wardrobe exactly the same as the rest of the session. Emphasize a crisp, polished headshot feel with the face clearly visible and well lit. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze used in the other frames.",
@@ -70,9 +70,9 @@
     "badge": "Для соцсетей",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/urban_portrait_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/urban_portrait_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/urban_portrait_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/urban_portrait_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/urban_portrait_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/urban_portrait_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the urban session. Create a close portrait with a chest-up to half-body crop on a quiet city sidewalk near a light stone facade. The subject should face the camera in a relaxed posture with a gentle direct gaze and understated expression. Keep the same light neutral city outfit, the same daylight quality and the same elegant urban background. Make the face clearly readable while still preserving a sense of location. The composition should feel clean, stylish and social-media ready. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or framing used in the other frames.",
@@ -97,9 +97,9 @@
     "badge": "Для себя",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/evening_look_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/evening_look_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/evening_look_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/evening_look_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/evening_look_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/evening_look_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the evening session. Create a close portrait with a shoulders-up to upper-chest crop, camera near eye level, a composed posture and a calm direct gaze. Keep the face clearly lit by warm soft interior light and use a softly blurred elegant background. The expression should feel confident, relaxed and understated. Use the same refined evening outfit and the same warm neutral palette that will remain constant through the set. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze direction used in the other frames. Preserve the same location, lighting and session mood.",
@@ -124,9 +124,9 @@
     "badge": "Для себя",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/tender_photoshoot_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/tender_photoshoot_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/tender_photoshoot_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/tender_photoshoot_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/tender_photoshoot_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/tender_photoshoot_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the tender session. Create a close portrait with a half-body crop, the subject seated on a cream sofa in soft daylight, shoulders relaxed and a gentle natural smile. The face should be clearly visible and softly lit, with a calm direct gaze and a quiet intimate mood. Keep the same beige-toned interior, the same cream knit outfit and a subtle hint of sofa or soft decor in the background. The composition should feel warm, delicate and inviting. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze used in the other frames. Preserve the same location, lighting and session mood.",
@@ -151,9 +151,9 @@
     "badge": "Для себя",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/summer_photoshoot_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/summer_photoshoot_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/summer_photoshoot_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/summer_photoshoot_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/summer_photoshoot_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/summer_photoshoot_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the summer session. Create a close portrait with a head-and-shoulders to upper-chest crop, soft golden daylight, a gentle direct gaze and a relaxed natural smile. Keep the face clearly visible and flattering, with softly blurred greenery or a terrace background that suggests summer without overpowering the subject. Use the same light seasonal outfit that will stay constant through the series. The image should feel fresh, warm and inviting. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze direction used in the other frames. Preserve the same location, lighting and session mood.",
@@ -178,9 +178,9 @@
     "badge": "Для себя",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/winter_photoshoot_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/winter_photoshoot_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/winter_photoshoot_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/winter_photoshoot_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/winter_photoshoot_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/winter_photoshoot_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the winter session. Create a close winter portrait with a head-and-shoulders to upper-chest crop, soft snow blurred in the background and a calm direct gaze. The subject should look warmly dressed and comfortable, with the face clearly visible and softly lit by natural daylight. Use the same winter coat or outerwear that will remain unchanged throughout the series. The mood should feel cozy, calm and seasonal. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze direction used in the other frames. Preserve the same location, lighting and session mood.",
@@ -205,9 +205,9 @@
     "badge": "Для себя",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/home_portrait_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/home_portrait_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/home_portrait_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/home_portrait_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/home_portrait_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/home_portrait_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the home session. Create a close portrait with a half-body crop, the subject seated on a sofa near a window, relaxed and approachable. Use a calm direct gaze and a soft natural expression. Keep the face clearly visible, with gentle daylight and a softly blurred background hinting at home decor such as a blanket, vase or plant. Use the same soft casual outfit that will remain unchanged across the series. The image should feel warm and real. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze used in the other frames. Preserve the same location, lighting and session mood.",
@@ -232,9 +232,9 @@
     "badge": "Для работы",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/expert_photoshoot_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/expert_photoshoot_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/expert_photoshoot_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/expert_photoshoot_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/expert_photoshoot_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/expert_photoshoot_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the expert session. Create a close professional portrait with a shoulders-up to upper-chest crop, direct confident gaze and composed posture. The expression should feel trustworthy and calm, appropriate for an expert profile. Use a clean neutral background, soft professional light and the same smart-casual outfit that remains constant through the set. Keep the face clearly visible and well defined. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze used in the other frames. Preserve the same location, lighting and session mood.",
@@ -259,9 +259,9 @@
     "badge": "Для работы",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_brand_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_brand_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_brand_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_brand_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_brand_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/business_brand_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the business brand session. Create a close portrait with a chest-up crop, mostly frontal posture and a calm confident gaze. The expression should feel polished, open and suitable for personal branding. Use the same light professional outfit, the same warm neutral studio background and the same soft business light that will remain consistent across the set. Keep the composition clean and focused on the face and upper wardrobe. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze direction used in the other frames. Preserve the same location, lighting and session mood.",
@@ -286,9 +286,9 @@
     "badge": "Для работы",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/personal_brand_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/personal_brand_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/personal_brand_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/personal_brand_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/personal_brand_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/personal_brand_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the personal brand session. Create a close portrait with a head-and-shoulders to upper-chest crop, direct engaging gaze and a confident natural expression. Keep the face clear and inviting, with a clean pleasant background and soft flattering light. Use the same outfit that will remain unchanged through the series, styled for a modern personal-brand look. The image should feel suitable for profile or social media use. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze direction used in the other frames. Preserve the same location, lighting and session mood.",
@@ -313,9 +313,9 @@
     "badge": "Атмосфера",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/travel_portrait_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/travel_portrait_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/travel_portrait_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/travel_portrait_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/travel_portrait_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/travel_portrait_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the travel session. Create a close portrait with a chest-up crop on a charming old-town street, using a relaxed posture and a soft direct gaze. Keep the face clearly visible while still showing enough of the warm stone surroundings to establish the travel setting. Use the same neutral travel outfit that stays constant throughout the series and keep the daylight soft and flattering. The image should feel elegant, relaxed and place-specific. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze used in the other frames. Preserve the same location, lighting and session mood.",
@@ -340,9 +340,9 @@
     "badge": "Атмосфера",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/cafe_city_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/cafe_city_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/cafe_city_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/cafe_city_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/cafe_city_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/cafe_city_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the cafe-city session. Create a close portrait at a small cafe table or beside a large cafe window, with a coffee cup subtly present and a calm confident expression. Use a chest-up crop, direct or near-direct gaze and a relaxed seated posture. Keep the same smart casual outfit, the same warm cafe-window setting and the same city atmosphere visible in the background. The composition should feel cozy, stylish and natural. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze used in the other frames. Preserve the same location, lighting and session mood.",
@@ -367,9 +367,9 @@
     "badge": "Атмосфера",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/park_walk_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/park_walk_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/park_walk_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/park_walk_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/park_walk_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/park_walk_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the park walk session. Create a close portrait with a chest-up crop, relaxed posture and a soft natural smile, set against a green park background with gently blurred trees or a path. Keep the face clearly visible and use soft daylight that feels fresh and flattering. Use the same casual park outfit that will remain unchanged across the series. The image should feel calm, airy and natural. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze direction used in the other frames. Preserve the same location, lighting and session mood.",
@@ -394,9 +394,9 @@
     "badge": "Для себя",
     "isFree": true,
     "previewUrls": [
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/premium_portrait_1_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/premium_portrait_2_v1.jpg",
-      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/premium_portrait_3_v1.jpg"
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/premium_portrait_1_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/premium_portrait_2_v2.jpg",
+      "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/catalog-previews/photoshoots/premium_portrait_3_v2.jpg"
     ],
     "framePrompts": [
       "Opening frame of the premium session. Create a close portrait with a chest-up crop, calm direct gaze and poised posture against the dark graphite studio background. Use soft volumetric light to shape the face while keeping the expression elegant and restrained. The same refined premium outfit should be clearly visible and remain unchanged through the set. The composition should feel intimate, luxurious and editorial. Keep the same identity and the same wardrobe. Photorealistic. Do not duplicate the pose, crop or gaze direction used in the other frames. Preserve the same location, lighting and session mood.",
