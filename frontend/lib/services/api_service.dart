@@ -335,6 +335,7 @@ class PhotoshootJobStatusResponse {
     required this.message,
     required this.frames,
     required this.images,
+    this.thumbnailUrls = const [],
     this.photoshootId,
     this.styleId,
     this.styleTitle,
@@ -347,6 +348,7 @@ class PhotoshootJobStatusResponse {
   final String message;
   final List<PhotoshootJobFrameStatus> frames;
   final List<String> images;
+  final List<String?> thumbnailUrls;
   final String? photoshootId;
   final String? styleId;
   final String? styleTitle;
@@ -361,6 +363,7 @@ class PhotoshootJobStatusResponse {
             .toList() ??
         <String>[];
     final rawBalance = json['balance'];
+    final rawThumbs = json['thumbnail_urls'] as List<dynamic>?;
     return PhotoshootJobStatusResponse(
       status: json['status'] as String? ?? 'queued',
       message: json['message'] as String? ?? '',
@@ -371,6 +374,10 @@ class PhotoshootJobStatusResponse {
           )
           .toList(),
       images: rawImages,
+      thumbnailUrls: rawThumbs
+              ?.map((url) => url is String ? url : null)
+              .toList() ??
+          const [],
       photoshootId: json['photoshoot_id'] as String?,
       styleId: json['style_id'] as String?,
       styleTitle: json['style_title'] as String?,
@@ -391,6 +398,7 @@ class PhotoshootJobStatusResponse {
       styleId: styleId ?? fallbackStyleId,
       styleTitle: styleTitle ?? fallbackStyleTitle,
       imageUrls: images,
+      thumbnailUrls: thumbnailUrls,
       outputCount: resolvedOutputCount,
       photoshootId: photoshootId ?? '',
       balance: balance,

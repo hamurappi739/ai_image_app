@@ -211,6 +211,11 @@ class PhotoshootJobProgressTests(unittest.TestCase):
             on_frame_status(2, "generating")
             return PhotoshootGenerateResult(
                 image_urls=["https://cdn/1.png", "https://cdn/2.png", "https://cdn/3.png"],
+                thumbnail_urls=[
+                    "https://cdn/1-thumb.jpg",
+                    "https://cdn/2-thumb.jpg",
+                    "https://cdn/3-thumb.jpg",
+                ],
                 photoshoot_id="ps-job",
                 storage_paths=["p1", "p2", "p3"],
             )
@@ -224,7 +229,14 @@ class PhotoshootJobProgressTests(unittest.TestCase):
         self.assertEqual(payload["frames"][0]["status"], "done")
         self.assertEqual(payload["frames"][1]["status"], "generating")
         self.assertEqual(payload["frames"][2]["status"], "generating")
-
+        self.assertEqual(
+            payload["thumbnail_urls"],
+            [
+                "https://cdn/1-thumb.jpg",
+                "https://cdn/2-thumb.jpg",
+                "https://cdn/3-thumb.jpg",
+            ],
+        )
 
 class PhotoshootJobEndpointTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -236,6 +248,42 @@ class PhotoshootJobEndpointTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         app.dependency_overrides.clear()
+
+    @patch("app.main.get_photoshoot_job_status")
+    def test_status_endpoint_includes_thumbnail_urls_on_success(
+        self,
+        mock_status: MagicMock,
+    ) -> None:
+        mock_status.return_value = {
+            "status": "success",
+            "message": "Photoshoot ready",
+            "frames": [
+                {"index": 0, "status": "done"},
+                {"index": 1, "status": "done"},
+                {"index": 2, "status": "done"},
+            ],
+            "images": [
+                "https://cdn.example/full-1.jpg",
+                "https://cdn.example/full-2.jpg",
+                "https://cdn.example/full-3.jpg",
+            ],
+            "thumbnail_urls": [
+                "https://cdn.example/thumb-1.jpg",
+                "https://cdn.example/thumb-2.jpg",
+                "https://cdn.example/thumb-3.jpg",
+            ],
+            "photoshoot_id": "ps-async",
+            "output_count": 3,
+        }
+
+        response = self.client.get("/photoshoots/generate/status/job-123")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["status"], "success")
+        self.assertEqual(len(body["thumbnail_urls"]), 3)
+        self.assertTrue(all(url.endswith(".jpg") for url in body["thumbnail_urls"]))
+        self.assertIn("thumb-1", body["thumbnail_urls"][0])
 
     @patch("app.main.start_photoshoot_job", return_value="job-123")
     @patch("app.main.settings")

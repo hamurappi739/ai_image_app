@@ -150,6 +150,7 @@ def _run_photoshoot_job(job_id: str) -> None:
         finished.status = "success"
         finished.message = "Photoshoot ready"
         finished.images = list(result.image_urls)
+        finished.thumbnail_urls = list(result.thumbnail_urls)
         finished.photoshoot_id = result.photoshoot_id
         finished.storage_paths = list(result.storage_paths)
         finished.balance = balance_payload

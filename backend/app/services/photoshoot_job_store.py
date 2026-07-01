@@ -29,6 +29,7 @@ class PhotoshootJobRecord:
     message: str = ""
     frames: list[PhotoshootFrameJobState] = field(default_factory=list)
     images: list[str] = field(default_factory=list)
+    thumbnail_urls: list[str | None] = field(default_factory=list)
     photoshoot_id: str | None = None
     storage_paths: list[str] = field(default_factory=list)
     balance: dict | None = None
@@ -43,6 +44,7 @@ class PhotoshootJobRecord:
                 for frame in self.frames
             ],
             "images": list(self.images),
+            "thumbnail_urls": list(self.thumbnail_urls),
             "photoshoot_id": self.photoshoot_id,
             "style_id": self.style_id,
             "style_title": self.style_title,
@@ -143,6 +145,7 @@ class InMemoryPhotoshootJobStore(PhotoshootJobStore):
                     for frame in job.frames
                 ],
                 images=list(job.images),
+                thumbnail_urls=list(job.thumbnail_urls),
                 photoshoot_id=job.photoshoot_id,
                 storage_paths=list(job.storage_paths),
                 balance=job.balance,

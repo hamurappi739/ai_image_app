@@ -74,6 +74,7 @@ class PhotoshootJobStatusResponse(BaseModel):
     message: str = ""
     frames: list[PhotoshootFrameStatusItem] = Field(default_factory=list)
     images: list[str] = Field(default_factory=list)
+    thumbnail_urls: list[str | None] = Field(default_factory=list)
     photoshoot_id: str | None = None
     style_id: str | None = None
     style_title: str | None = None
