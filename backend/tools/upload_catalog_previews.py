@@ -9,8 +9,8 @@ Usage (from repo root, with backend/.env configured):
 
 Creates/updates objects in the public ``catalog-previews`` bucket:
 
-- templates/{template_id}_v1.jpg
-- photoshoots/{style_id}_1_v1.jpg … _3_v1.jpg
+- templates/{template_id}_v2.jpg
+- photoshoots/{style_id}_1_v2.jpg … _3_v2.jpg
 
 With ``--write-json``, updates ``backend/app/catalog/templates.json``,
 ``photoshoots.json``, and bumps ``catalog_meta.json`` ``updatedAt``.
@@ -34,11 +34,10 @@ from app.config import settings  # noqa: E402
 from app.services.catalog_preview_urls import (  # noqa: E402
     build_photoshoot_preview_urls,
     build_template_preview_url,
-    enrich_photoshoot_catalog_item,
-    enrich_template_catalog_item,
     photoshoot_preview_storage_path,
     template_preview_storage_path,
 )
+from app.services.image_optimize import optimize_catalog_preview_bytes  # noqa: E402
 from app.services.storage_service import storage_service  # noqa: E402
 
 _CATALOG_DIR = _BACKEND_ROOT / "app" / "catalog"
@@ -120,16 +119,22 @@ def upload_catalog_previews(*, dry_run: bool = False) -> tuple[int, int]:
             continue
 
         storage_path = template_preview_storage_path(template_id)
+        content = optimize_catalog_preview_bytes(
+            local_file.read_bytes(),
+            _content_type_for_file(local_file),
+        )[0]
         if dry_run:
-            print(f"[dry-run] template {template_id}: {local_file} -> {storage_path}")
+            print(
+                f"[dry-run] template {template_id}: {local_file} -> {storage_path} "
+                f"({len(content)} bytes jpeg)"
+            )
             uploaded_templates += 1
             continue
 
-        content = local_file.read_bytes()
         public_url = storage_service.upload_catalog_preview_bytes(
             storage_path,
             content,
-            _content_type_for_file(local_file),
+            "image/jpeg",
         )
         print(f"[ok] template {template_id}: {public_url}")
         uploaded_templates += 1
@@ -149,19 +154,22 @@ def upload_catalog_previews(*, dry_run: bool = False) -> tuple[int, int]:
                 continue
 
             storage_path = photoshoot_preview_storage_path(style_id, frame_index)
+            content = optimize_catalog_preview_bytes(
+                local_file.read_bytes(),
+                _content_type_for_file(local_file),
+            )[0]
             if dry_run:
                 print(
                     f"[dry-run] photoshoot {style_id} frame {frame_index + 1}: "
-                    f"{local_file} -> {storage_path}"
+                    f"{local_file} -> {storage_path} ({len(content)} bytes jpeg)"
                 )
                 uploaded_photoshoot_frames += 1
                 continue
 
-            content = local_file.read_bytes()
             public_url = storage_service.upload_catalog_preview_bytes(
                 storage_path,
                 content,
-                _content_type_for_file(local_file),
+                "image/jpeg",
             )
             print(f"[ok] photoshoot {style_id} frame {frame_index + 1}: {public_url}")
             uploaded_photoshoot_frames += 1
@@ -172,14 +180,19 @@ def upload_catalog_previews(*, dry_run: bool = False) -> tuple[int, int]:
 def write_catalog_json_urls() -> None:
     templates = _load_json_array(_TEMPLATES_JSON)
     for item in templates:
-        enriched = enrich_template_catalog_item(item)
-        item["previewUrl"] = enriched.get("previewUrl")
-        item["referenceUrl"] = enriched.get("referenceUrl")
+        template_id = str(item.get("id") or "").strip()
+        if not template_id:
+            continue
+        preview_url = build_template_preview_url(template_id)
+        item["previewUrl"] = preview_url
+        item["referenceUrl"] = preview_url
 
     photoshoots = _load_json_array(_PHOTOSHOOTS_JSON)
     for item in photoshoots:
-        enriched = enrich_photoshoot_catalog_item(item)
-        item["previewUrls"] = enriched.get("previewUrls", [])
+        style_id = str(item.get("id") or "").strip()
+        if not style_id:
+            continue
+        item["previewUrls"] = build_photoshoot_preview_urls(style_id)
 
     _TEMPLATES_JSON.write_text(
         json.dumps(templates, ensure_ascii=False, indent=2) + "\n",

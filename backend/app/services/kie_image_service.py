@@ -38,6 +38,18 @@ _MAX_CONSECUTIVE_POLL_NETWORK_ERRORS = 5
 class KieImageGenerationError(Exception):
     """Terminal Kie image generation failure (safe to map to HTTP 502)."""
 
+    def __init__(
+        self,
+        reason: str,
+        *,
+        fail_code: str | None = None,
+        fail_message: str | None = None,
+    ) -> None:
+        super().__init__(reason)
+        self.reason = reason
+        self.fail_code = fail_code
+        self.fail_message = fail_message
+
 
 class KieRetryableCreateTaskError(Exception):
     """Transient createTask HTTP failure (429/455/500/503) — safe to retry."""
@@ -347,7 +359,7 @@ class KieImageTaskClient:
             poll_attempt += 1
             started = time.monotonic()
             try:
-                state, result_urls = self._poll_task_once(
+                state, result_urls, fail_info = self._poll_task_once(
                     task_id,
                     style_id=style_id,
                     photoshoot_id=photoshoot_id,
@@ -445,6 +457,7 @@ class KieImageTaskClient:
                 return result_urls[0]
 
             if state == _FAIL_STATE:
+                sanitized = _sanitize_task_fail_info(fail_info)
                 self._log_kie_event(
                     event="poll",
                     template_id=template_id,
@@ -456,7 +469,22 @@ class KieImageTaskClient:
                     state=state,
                     elapsed_ms=elapsed_ms,
                 )
-                raise KieImageGenerationError("kie_task_failed")
+                kie_log.warning(
+                    "Kie task failed: template_id=%s style_id=%s photoshoot_id=%s "
+                    "frame_index=%s task_id=%s fail_code=%s fail_message=%s",
+                    template_id,
+                    style_id,
+                    photoshoot_id,
+                    frame_index,
+                    task_id,
+                    sanitized.get("code", ""),
+                    sanitized.get("message", ""),
+                )
+                raise KieImageGenerationError(
+                    "kie_task_failed",
+                    fail_code=sanitized.get("code"),
+                    fail_message=sanitized.get("message"),
+                )
 
             if poll_attempt % 5 == 0:
                 self._log_kie_event(
@@ -501,7 +529,7 @@ class KieImageTaskClient:
         photoshoot_id: str | None,
         frame_index: int | None,
         attempt: int,
-    ) -> tuple[str, list[str]]:
+    ) -> tuple[str, list[str], dict[str, str]]:
         base_url = (settings.kie_api_base_url or "").rstrip("/")
         url = f"{base_url}/api/v1/jobs/recordInfo"
         headers = {"Authorization": f"Bearer {settings.kie_api_key.strip()}"}
@@ -524,7 +552,8 @@ class KieImageTaskClient:
         body = response.json()
         state = _extract_task_state(body)
         result_urls = _extract_result_urls(body) if state == _SUCCESS_STATE else []
-        return state, result_urls
+        fail_info = _extract_task_fail_info(body) if state == _FAIL_STATE else {}
+        return state, result_urls, fail_info
 
     def _download_result_image(
         self,
@@ -663,6 +692,40 @@ def _urls_from_result_payload(payload: Any) -> list[str]:
     if not isinstance(urls, list):
         return []
     return [url.strip() for url in urls if isinstance(url, str) and url.strip()]
+
+
+def _extract_task_fail_info(body: Any) -> dict[str, str]:
+    if not isinstance(body, dict):
+        return {}
+    data = body.get("data")
+    candidates: list[dict[str, Any]] = []
+    if isinstance(data, dict):
+        candidates.append(data)
+    candidates.append(body)
+
+    info: dict[str, str] = {}
+    for candidate in candidates:
+        for key in ("failCode", "fail_code", "code", "errorCode", "error_code"):
+            value = candidate.get(key)
+            if isinstance(value, str) and value.strip():
+                info.setdefault("code", value.strip())
+        for key in ("failMsg", "fail_msg", "message", "errorMessage", "error_message"):
+            value = candidate.get(key)
+            if isinstance(value, str) and value.strip():
+                info.setdefault("message", value.strip())
+        fail_reason = candidate.get("failReason") or candidate.get("fail_reason")
+        if isinstance(fail_reason, str) and fail_reason.strip():
+            info.setdefault("reason", fail_reason.strip())
+    return info
+
+
+def _sanitize_task_fail_info(info: dict[str, str]) -> dict[str, str]:
+    sanitized: dict[str, str] = {}
+    for key, value in info.items():
+        cleaned = _sanitize_log_value(value.strip())
+        if cleaned and cleaned != "redacted":
+            sanitized[key] = cleaned[:240]
+    return sanitized
 
 
 def _sanitize_log_value(value: str) -> str:

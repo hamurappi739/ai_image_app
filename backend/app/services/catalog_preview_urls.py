@@ -8,7 +8,7 @@ from urllib.parse import quote, urlparse
 
 from app.config import settings
 
-_CATALOG_PREVIEW_VERSION_SUFFIX = "v1"
+_CATALOG_PREVIEW_VERSION_SUFFIX = "v2"
 _TEMPLATE_STORAGE_PREFIX = "templates"
 _PHOTOSHOOT_STORAGE_PREFIX = "photoshoots"
 _PUBLIC_OBJECT_PATH_RE = re.compile(
@@ -107,10 +107,11 @@ def enrich_template_catalog_item(item: dict[str, Any]) -> dict[str, Any]:
     if not template_id:
         return enriched
 
-    if not _is_non_empty_http_url(enriched.get("previewUrl")):
-        preview_url = build_template_preview_url(template_id)
-        if preview_url is not None:
-            enriched["previewUrl"] = preview_url
+    preview_url = enriched.get("previewUrl")
+    if not _is_current_catalog_preview_url(preview_url, template_id=template_id):
+        built = build_template_preview_url(template_id)
+        if built is not None:
+            enriched["previewUrl"] = built
 
     if not _is_non_empty_http_url(enriched.get("referenceUrl")):
         reference_url = enriched.get("previewUrl")
@@ -131,6 +132,7 @@ def enrich_photoshoot_catalog_item(item: dict[str, Any]) -> dict[str, Any]:
         isinstance(preview_urls, list)
         and len(preview_urls) >= 3
         and all(_is_non_empty_http_url(url) for url in preview_urls[:3])
+        and _photoshoot_preview_urls_match_version(preview_urls[:3], style_id)
     )
     if not has_valid_urls:
         built_urls = build_photoshoot_preview_urls(style_id)
@@ -138,6 +140,43 @@ def enrich_photoshoot_catalog_item(item: dict[str, Any]) -> dict[str, Any]:
             enriched["previewUrls"] = built_urls
 
     return enriched
+
+
+def _current_catalog_preview_filename_suffix() -> str:
+    return f"_{_CATALOG_PREVIEW_VERSION_SUFFIX}.jpg"
+
+
+def _is_current_catalog_preview_url(
+    url: object,
+    *,
+    template_id: str | None = None,
+    style_id: str | None = None,
+    frame_index: int | None = None,
+) -> bool:
+    if not _is_non_empty_http_url(url):
+        return False
+    trimmed = str(url).strip()
+    if not trimmed.endswith(_current_catalog_preview_filename_suffix()):
+        return False
+    if template_id:
+        return f"/templates/{template_id}_{_CATALOG_PREVIEW_VERSION_SUFFIX}.jpg" in trimmed
+    if style_id is not None and frame_index is not None:
+        return (
+            f"/photoshoots/{style_id}_{frame_index + 1}_"
+            f"{_CATALOG_PREVIEW_VERSION_SUFFIX}.jpg"
+        ) in trimmed
+    return True
+
+
+def _photoshoot_preview_urls_match_version(urls: list[str], style_id: str) -> bool:
+    return all(
+        _is_current_catalog_preview_url(
+            url,
+            style_id=style_id,
+            frame_index=index,
+        )
+        for index, url in enumerate(urls[:3])
+    )
 
 
 def allowed_supabase_catalog_preview_host() -> str | None:

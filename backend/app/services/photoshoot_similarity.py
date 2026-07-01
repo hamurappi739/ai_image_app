@@ -9,6 +9,7 @@ from io import BytesIO
 from fastapi import HTTPException
 from PIL import Image
 
+from app.services.kie_image_service import KieImageGenerationError
 from app.services.storage_service import storage_service
 
 _PERCEPTUAL_DHASH_WIDTH = 9
@@ -40,6 +41,13 @@ def kie_frame_fail_retry_prompt_suffix(frame_index: int) -> str:
 
 
 def kie_generation_error_reason(exc: Exception) -> str:
+    if isinstance(exc, KieImageGenerationError):
+        parts = [exc.reason or "kie_task_failed"]
+        if exc.fail_code:
+            parts.append(f"code={exc.fail_code}")
+        if exc.fail_message:
+            parts.append(f"message={exc.fail_message[:120]}")
+        return ":".join(parts)
     reason = str(exc).strip()
     return reason or "kie_task_failed"
 

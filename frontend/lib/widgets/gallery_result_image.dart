@@ -85,6 +85,7 @@ class GalleryResultImage extends StatelessWidget {
     this.fullQuality = false,
     this.onOpenPressed,
     this.loadStaggerIndex,
+    this.deferNetworkLoad = false,
   });
 
   final String url;
@@ -103,6 +104,9 @@ class GalleryResultImage extends StatelessWidget {
 
   /// Optional list index for staggered gallery loading (ignored when [fullQuality]).
   final int? loadStaggerIndex;
+
+  /// When true, skip automatic network load for legacy full-image cards.
+  final bool deferNetworkLoad;
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +127,13 @@ class GalleryResultImage extends StatelessWidget {
         seriesIndex: seriesIndex,
         compact: compact,
         photoshootSeries: photoshootSeries,
+      );
+    }
+
+    if (deferNetworkLoad && compact && !fullQuality) {
+      return GalleryLegacyDeferredPreview(
+        compact: compact,
+        onOpenPressed: onOpenPressed,
       );
     }
 
@@ -633,6 +644,62 @@ class _ThumbnailFailureFallback extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Lightweight placeholder for legacy gallery rows without thumbnails.
+class GalleryLegacyDeferredPreview extends StatelessWidget {
+  const GalleryLegacyDeferredPreview({
+    super.key,
+    this.compact = true,
+    this.onOpenPressed,
+  });
+
+  final bool compact;
+  final VoidCallback? onOpenPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      color: const Color(0xFFF0F2F8),
+      alignment: Alignment.center,
+      padding: EdgeInsets.all(compact ? 12 : 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.photo_outlined,
+            size: compact ? 28 : 36,
+            color: const Color(0xFF9CA3AF),
+          ),
+          SizedBox(height: compact ? 8 : 10),
+          Text(
+            'Фото сохранено',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: compact ? 12 : 13,
+              color: const Color(0xFF6B7280),
+            ),
+          ),
+          if (onOpenPressed != null) ...[
+            SizedBox(height: compact ? 8 : 10),
+            TextButton(
+              onPressed: onOpenPressed,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 8 : 12,
+                  vertical: compact ? 4 : 8,
+                ),
+              ),
+              child: Text(compact ? 'Открыть' : 'Открыть фото'),
+            ),
+          ],
+        ],
       ),
     );
   }

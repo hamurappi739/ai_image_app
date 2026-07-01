@@ -160,6 +160,29 @@ def get_generations_by_user_id(user_id: str, limit: int = 10) -> list[dict]:
     return _fetch_supabase_list(url, "Failed to fetch generations")
 
 
+def list_generations_missing_thumbnails(*, limit: int = 100) -> list[dict]:
+    base_url = _require_supabase_config()
+    url = (
+        f"{base_url}/rest/v1/generations"
+        "?thumbnail_url=is.null"
+        "&select=id,user_id,image_url,thumbnail_url,created_at"
+        "&order=created_at.desc"
+        f"&limit={limit}"
+    )
+    return _fetch_supabase_list(url, "Failed to fetch generations missing thumbnails")
+
+
+def update_generation_thumbnail_url(generation_id: str, thumbnail_url: str) -> dict:
+    base_url = _require_supabase_config()
+    safe_id = quote(generation_id.strip(), safe="")
+    url = f"{base_url}/rest/v1/generations?id=eq.{safe_id}"
+    response = _supabase_patch(url, json={"thumbnail_url": thumbnail_url})
+    rows = _parse_supabase_response(response, "Failed to update generation thumbnail")
+    if isinstance(rows, list):
+        return rows[0] if rows else {}
+    return rows if isinstance(rows, dict) else {}
+
+
 def get_credit_transactions_by_user_id(user_id: str, limit: int = 10) -> list[dict]:
     base_url = _require_supabase_config()
     url = (

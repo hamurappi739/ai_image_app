@@ -8,11 +8,26 @@ bool isHttpPreviewUrl(String? url) {
   return lower.startsWith('http://') || lower.startsWith('https://');
 }
 
-/// Shows a bundled [Image.asset] or remote [Image.network] preview.
+const _previewDecodeMaxPx = 900;
+
+@visibleForTesting
+int previewAssetDecodeCachePx(double layoutPx, double devicePixelRatio) {
+  if (!layoutPx.isFinite || layoutPx <= 0) {
+    return _previewDecodeMaxPx;
+  }
+  final scaled = (layoutPx * devicePixelRatio).round();
+  if (scaled <= 0) {
+    return _previewDecodeMaxPx;
+  }
+  return scaled > _previewDecodeMaxPx ? _previewDecodeMaxPx : scaled;
+}
+
+/// Shows a bundled [Image.asset] under an optional remote [Image.network] preview.
 ///
-/// Network URL takes priority when it starts with http(s). On network failure
-/// the widget falls back to [assetPath], then to [placeholder].
-class PreviewAssetImage extends StatelessWidget {
+/// When both asset and network URLs are present, the asset is shown immediately
+/// while the network image loads and fades in on the first decoded frame.
+/// Network failures keep the asset visible instead of an empty block.
+class PreviewAssetImage extends StatefulWidget {
   const PreviewAssetImage({
     super.key,
     this.assetPath,
@@ -33,51 +48,135 @@ class PreviewAssetImage extends StatelessWidget {
   final BoxFit fit;
 
   @override
-  Widget build(BuildContext context) {
-    final content = _buildImage();
+  State<PreviewAssetImage> createState() => _PreviewAssetImageState();
+}
 
-    Widget sized = content;
-    if (height != null || width != null) {
-      sized = SizedBox(
-        height: height,
-        width: width ?? double.infinity,
+class _PreviewAssetImageState extends State<PreviewAssetImage> {
+  bool _networkLoaded = false;
+  bool _networkFailed = false;
+
+  @override
+  void didUpdateWidget(covariant PreviewAssetImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.networkUrl != widget.networkUrl ||
+        oldWidget.assetPath != widget.assetPath) {
+      _networkLoaded = false;
+      _networkFailed = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Widget content = LayoutBuilder(
+      builder: (context, constraints) {
+        final dpr = MediaQuery.devicePixelRatioOf(context);
+        final cacheWidth = previewAssetDecodeCachePx(
+          constraints.maxWidth,
+          dpr,
+        );
+        final cacheHeight = previewAssetDecodeCachePx(
+          constraints.maxHeight,
+          dpr,
+        );
+
+        final asset = _buildAssetImage(cacheWidth: cacheWidth, cacheHeight: cacheHeight);
+        final network = _buildNetworkLayer(
+          cacheWidth: cacheWidth,
+          cacheHeight: cacheHeight,
+        );
+
+        if (network == null) {
+          return asset;
+        }
+
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            asset,
+            AnimatedOpacity(
+              opacity: _networkLoaded && !_networkFailed ? 1 : 0,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              child: network,
+            ),
+          ],
+        );
+      },
+    );
+
+    if (widget.height != null || widget.width != null) {
+      content = SizedBox(
+        height: widget.height,
+        width: widget.width ?? double.infinity,
         child: content,
       );
     }
 
-    if (borderRadius == BorderRadius.zero) {
-      return sized;
+    if (widget.borderRadius == BorderRadius.zero) {
+      return content;
     }
 
     return ClipRRect(
-      borderRadius: borderRadius,
-      child: sized,
+      borderRadius: widget.borderRadius,
+      child: content,
     );
   }
 
-  Widget _buildImage() {
-    if (isHttpPreviewUrl(networkUrl)) {
-      return Image.network(
-        networkUrl!.trim(),
-        fit: fit,
-        gaplessPlayback: true,
-        errorBuilder: (context, error, stackTrace) => _buildAssetImage(),
-      );
+  Widget? _buildNetworkLayer({
+    required int cacheWidth,
+    required int cacheHeight,
+  }) {
+    if (_networkFailed || !isHttpPreviewUrl(widget.networkUrl)) {
+      return null;
     }
-    return _buildAssetImage();
+
+    return Image.network(
+      widget.networkUrl!.trim(),
+      fit: widget.fit,
+      gaplessPlayback: true,
+      cacheWidth: cacheWidth,
+      cacheHeight: cacheHeight,
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded || frame != null) {
+          if (!_networkLoaded) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              setState(() => _networkLoaded = true);
+            });
+          }
+          return child;
+        }
+        return const SizedBox.shrink();
+      },
+      errorBuilder: (context, error, stackTrace) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _networkFailed = true;
+            _networkLoaded = false;
+          });
+        });
+        return const SizedBox.shrink();
+      },
+    );
   }
 
-  Widget _buildAssetImage() {
-    final path = assetPath?.trim();
+  Widget _buildAssetImage({
+    required int cacheWidth,
+    required int cacheHeight,
+  }) {
+    final path = widget.assetPath?.trim();
     if (path == null || path.isEmpty) {
-      return placeholder;
+      return widget.placeholder;
     }
 
     return Image.asset(
       path,
-      fit: fit,
+      fit: widget.fit,
       gaplessPlayback: true,
-      errorBuilder: (context, error, stackTrace) => placeholder,
+      cacheWidth: cacheWidth,
+      cacheHeight: cacheHeight,
+      errorBuilder: (context, error, stackTrace) => widget.placeholder,
     );
   }
 }

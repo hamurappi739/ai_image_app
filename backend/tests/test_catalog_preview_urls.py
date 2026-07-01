@@ -44,11 +44,11 @@ class CatalogPreviewUrlBuilderTests(unittest.TestCase):
         _settings_patch(mock_settings)
         self.assertEqual(
             template_preview_storage_path("business_portrait"),
-            "templates/business_portrait_v1.jpg",
+            "templates/business_portrait_v2.jpg",
         )
         self.assertEqual(
             photoshoot_preview_storage_path("studio_portrait", 0),
-            "photoshoots/studio_portrait_1_v1.jpg",
+            "photoshoots/studio_portrait_1_v2.jpg",
         )
 
     @patch("app.services.catalog_preview_urls.settings")
@@ -59,7 +59,7 @@ class CatalogPreviewUrlBuilderTests(unittest.TestCase):
             url,
             (
                 f"{_SUPABASE_BASE}/storage/v1/object/public/"
-                f"{_BUCKET}/templates/product_photo_v1.jpg"
+                f"{_BUCKET}/templates/product_photo_v2.jpg"
             ),
         )
 
@@ -103,17 +103,34 @@ class CatalogPreviewUrlBuilderTests(unittest.TestCase):
         self.assertEqual(len(enriched["previewUrls"]), 3)
 
     @patch("app.services.catalog_preview_urls.settings")
+    def test_enrich_template_rewrites_stale_v1_preview_url(
+        self,
+        mock_settings: MagicMock,
+    ) -> None:
+        _settings_patch(mock_settings)
+        enriched = enrich_template_catalog_item(
+            {
+                "id": "ocean_portrait",
+                "previewUrl": (
+                    f"{_SUPABASE_BASE}/storage/v1/object/public/"
+                    f"{_BUCKET}/templates/ocean_portrait_v1.jpg"
+                ),
+            }
+        )
+        self.assertTrue(enriched["previewUrl"].endswith("/templates/ocean_portrait_v2.jpg"))
+
+    @patch("app.services.catalog_preview_urls.settings")
     def test_allowlist_rejects_foreign_host(self, mock_settings: MagicMock) -> None:
         _settings_patch(mock_settings)
         allowed = (
             f"{_SUPABASE_BASE}/storage/v1/object/public/"
-            f"{_BUCKET}/templates/product_photo_v1.jpg"
+            f"{_BUCKET}/templates/product_photo_v2.jpg"
         )
         self.assertTrue(is_allowed_catalog_preview_url(allowed))
         self.assertFalse(
             is_allowed_catalog_preview_url(
                 "https://evil.example.com/storage/v1/object/public/"
-                f"{_BUCKET}/templates/product_photo_v1.jpg"
+                f"{_BUCKET}/templates/product_photo_v2.jpg"
             )
         )
         self.assertFalse(
@@ -221,7 +238,7 @@ class TemplateReferenceUrlTests(unittest.TestCase):
         mock_local.return_value = (b"local-bytes", "image/jpeg")
         template = {
             "referenceUrl": f"{_SUPABASE_BASE}/storage/v1/object/public/"
-            f"{_BUCKET}/templates/missing_v1.jpg",
+            f"{_BUCKET}/templates/missing_v2.jpg",
             "referenceAsset": "assets/previews/templates/business_portrait.jpg",
         }
         loaded = load_template_reference_for_catalog_item(template)

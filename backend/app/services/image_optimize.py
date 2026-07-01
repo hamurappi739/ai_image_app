@@ -17,6 +17,31 @@ _MAX_LONG_EDGE = 2048
 _MIN_LONG_EDGE = 720
 _THUMBNAIL_MAX_LONG_EDGE = 480
 _THUMBNAIL_JPEG_QUALITY = 82
+_CATALOG_PREVIEW_MAX_LONG_EDGE = 720
+_CATALOG_PREVIEW_JPEG_QUALITY = 80
+_CATALOG_PREVIEW_JPEG_QUALITY_FLOOR = 78
+
+
+def optimize_catalog_preview_bytes(
+    content: bytes,
+    content_type: str,
+) -> tuple[bytes, str]:
+    """Resize catalog template/photoshoot previews for fast card loads (~720px JPEG)."""
+    try:
+        image = _prepare_rgb_image(content)
+        image.thumbnail(
+            (_CATALOG_PREVIEW_MAX_LONG_EDGE, _CATALOG_PREVIEW_MAX_LONG_EDGE),
+            Image.Resampling.LANCZOS,
+        )
+        quality = _CATALOG_PREVIEW_JPEG_QUALITY
+        encoded = _encode_jpeg(image, quality)
+        while len(encoded) > 350_000 and quality > _CATALOG_PREVIEW_JPEG_QUALITY_FLOOR:
+            quality -= 2
+            encoded = _encode_jpeg(image, quality)
+        return encoded, "image/jpeg"
+    except Exception:
+        logger.exception("Catalog preview optimization failed; storing original bytes")
+        return content, (content_type or "application/octet-stream").strip().lower()
 
 
 def optimize_generated_image_bytes(

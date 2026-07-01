@@ -12,11 +12,15 @@ class GalleryPhotoshootTripletPreview extends StatelessWidget {
     required this.imageUrls,
     required this.description,
     this.loadStaggerIndex,
+    this.deferNetworkLoad = false,
+    this.onOpenPressed,
   });
 
   final List<String> imageUrls;
   final String description;
   final int? loadStaggerIndex;
+  final bool deferNetworkLoad;
+  final VoidCallback? onOpenPressed;
 
   static const previewAspectRatio = 16 / 9;
 
@@ -36,6 +40,18 @@ class GalleryPhotoshootTripletPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (deferNetworkLoad) {
+      return AspectRatio(
+        aspectRatio: previewAspectRatio,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: GalleryLegacyDeferredPreview(
+            onOpenPressed: onOpenPressed,
+          ),
+        ),
+      );
+    }
+
     final urls = _normalizedUrls;
     final allMock = urls.isNotEmpty &&
         urls.every((url) => url.isEmpty || isMockPlaceholderImageUrl(url));

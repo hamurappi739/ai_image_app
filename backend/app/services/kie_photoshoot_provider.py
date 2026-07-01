@@ -16,12 +16,12 @@ from app.services.kie_image_service import (
 from app.services.kie_logging import kie_log
 from app.services.photoshoot_prompts import (
     build_kie_photoshoot_frame_prompt,
+    build_kie_rescue_frame_prompt,
     resolve_prompt_source,
 )
 from app.services.photoshoot_similarity import (
     KIE_DUPLICATE_RETRY_PROMPT_SUFFIX,
     find_generated_frame_duplicate,
-    kie_frame_fail_retry_prompt_suffix,
     kie_generation_error_reason,
 )
 from app.services.photoshoot_styles import PhotoshootStyle
@@ -201,11 +201,7 @@ class KiePhotoshootProvider:
     ) -> str:
         last_reason = "kie_frame_failed"
         for fail_attempt in range(_KIE_FRAME_FAIL_MAX_ATTEMPTS):
-            fail_suffix = (
-                f"\n\n{kie_frame_fail_retry_prompt_suffix(frame_index)}"
-                if fail_attempt > 0
-                else ""
-            )
+            use_rescue_prompt = fail_attempt > 0
             try:
                 return self._generate_unique_frame_data_url(
                     frame_index=frame_index,
@@ -220,15 +216,27 @@ class KiePhotoshootProvider:
                     kie_client=kie_client,
                     task_cap=task_cap,
                     on_frame_status=on_frame_status,
-                    extra_prompt_suffix=fail_suffix,
+                    use_rescue_prompt=use_rescue_prompt,
                 )
             except KieImageGenerationError as exc:
                 last_reason = kie_generation_error_reason(exc)
+                if exc.fail_code or exc.fail_message:
+                    kie_log.warning(
+                        "Kie frame failed: style_id=%s photoshoot_id=%s frame_index=%s "
+                        "attempt=%s fail_code=%s fail_message=%s reason=%s",
+                        client_style_id,
+                        photoshoot_id,
+                        frame_index,
+                        fail_attempt + 1,
+                        exc.fail_code or "",
+                        exc.fail_message or "",
+                        last_reason,
+                    )
                 if fail_attempt + 1 >= _KIE_FRAME_FAIL_MAX_ATTEMPTS:
                     break
                 kie_log.warning(
-                    "Kie frame failed, retrying: style_id=%s photoshoot_id=%s "
-                    "frame_index=%s retry=1/1 reason=%s",
+                    "Kie frame failed, retrying with rescue prompt: style_id=%s "
+                    "photoshoot_id=%s frame_index=%s retry=1/1 reason=%s",
                     client_style_id,
                     photoshoot_id,
                     frame_index,
@@ -259,6 +267,7 @@ class KiePhotoshootProvider:
         task_cap: int,
         on_frame_status: FrameStatusCallback | None,
         extra_prompt_suffix: str = "",
+        use_rescue_prompt: bool = False,
     ) -> str:
         for attempt in range(_KIE_DUPLICATE_MAX_ATTEMPTS):
             prompt_suffix = extra_prompt_suffix
@@ -278,6 +287,7 @@ class KiePhotoshootProvider:
                     task_cap=task_cap,
                     prompt_suffix=prompt_suffix,
                     on_frame_status=on_frame_status,
+                    use_rescue_prompt=use_rescue_prompt,
                 )
             except KieImageGenerationError:
                 raise
@@ -346,19 +356,23 @@ class KiePhotoshootProvider:
         task_cap: int,
         prompt_suffix: str = "",
         on_frame_status: FrameStatusCallback | None,
+        use_rescue_prompt: bool = False,
     ) -> str:
         self._notify_frame_status(on_frame_status, frame_index, "generating")
 
-        instruction = build_kie_photoshoot_frame_prompt(
-            client_style_id,
-            style,
-            frame_index=frame_index,
-            output_count=self._output_count,
-            user_description=user_description,
-            series_reference_mode=series_mode,
-        )
-        if prompt_suffix:
-            instruction = f"{instruction}{prompt_suffix}"
+        if use_rescue_prompt:
+            instruction = build_kie_rescue_frame_prompt(style, frame_index=frame_index)
+        else:
+            instruction = build_kie_photoshoot_frame_prompt(
+                client_style_id,
+                style,
+                frame_index=frame_index,
+                output_count=self._output_count,
+                user_description=user_description,
+                series_reference_mode=series_mode,
+            )
+            if prompt_suffix:
+                instruction = f"{instruction}{prompt_suffix}"
 
         input_urls = self._build_input_urls(
             identity_path=identity_path,

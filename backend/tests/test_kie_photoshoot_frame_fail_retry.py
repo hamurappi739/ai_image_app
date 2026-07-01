@@ -13,10 +13,9 @@ from app.config import settings
 from app.main import app
 from app.services.kie_image_service import KieImageGenerationError
 from app.services.kie_photoshoot_provider import KiePhotoshootProvider
-from app.services.photoshoot_similarity import (
-    KIE_FRAME_FAIL_RETRY_PROMPT_SUFFIX,
-    KIE_FRAME_FAIL_RETRY_PROMPT_SUFFIX_FRAME0,
-    kie_frame_fail_retry_prompt_suffix,
+from app.services.photoshoot_prompts import (
+    KIE_RESCUE_NEGATIVE_RULES,
+    build_kie_rescue_frame_prompt,
 )
 from app.services.photoshoot_service import PhotoshootGenerateResult, PhotoshootService
 from app.services.photoshoot_styles import get_photoshoot_style
@@ -171,24 +170,22 @@ def _run_three_frame_photoshoot(
 
 
 class KieIndependentFramesUnitTests(unittest.TestCase):
-    def test_frame_zero_retry_suffix_is_opening_photo_prompt(self) -> None:
-        self.assertEqual(
-            kie_frame_fail_retry_prompt_suffix(0),
-            KIE_FRAME_FAIL_RETRY_PROMPT_SUFFIX_FRAME0,
-        )
-        self.assertEqual(
-            kie_frame_fail_retry_prompt_suffix(1),
-            KIE_FRAME_FAIL_RETRY_PROMPT_SUFFIX,
-        )
+    def test_rescue_prompt_is_short_and_style_agnostic(self) -> None:
+        style = get_photoshoot_style("studio_portrait")
+        prompt = build_kie_rescue_frame_prompt(style, frame_index=1)
+        self.assertIn(style.title, prompt)
+        self.assertIn("Rescue regeneration", prompt)
+        self.assertIn(KIE_RESCUE_NEGATIVE_RULES, prompt)
+        self.assertLess(len(prompt), 1200)
 
-    def test_fail_retry_logs_and_uses_frame_zero_suffix(self) -> None:
+    def test_fail_retry_uses_rescue_prompt_on_second_attempt(self) -> None:
         provider = KiePhotoshootProvider(output_count=1)
-        prompts: list[str] = []
+        rescue_flags: list[bool] = []
 
-        def capture_generate(*, extra_prompt_suffix: str = "", **kwargs):
-            prompts.append(extra_prompt_suffix)
-            if len(prompts) == 1:
-                raise KieImageGenerationError("kie_task_failed")
+        def capture_generate(*, use_rescue_prompt: bool = False, **kwargs):
+            rescue_flags.append(use_rescue_prompt)
+            if len(rescue_flags) == 1:
+                raise KieImageGenerationError("kie_task_failed", fail_code="GEN_FAIL")
             return "data:image/png;base64,NEW"
 
         with patch.object(provider, "_generate_unique_frame_data_url", side_effect=capture_generate):
@@ -209,9 +206,9 @@ class KieIndependentFramesUnitTests(unittest.TestCase):
                 )
 
         self.assertEqual(result, "data:image/png;base64,NEW")
-        self.assertIn(KIE_FRAME_FAIL_RETRY_PROMPT_SUFFIX_FRAME0, prompts[1])
+        self.assertEqual(rescue_flags, [False, True])
         self.assertTrue(
-            any("Kie frame failed, retrying" in message for message in logs.output),
+            any("rescue prompt" in message for message in logs.output),
             logs.output,
         )
 

@@ -364,6 +364,28 @@ def build_kie_independent_frame_composition(frame_index: int) -> str:
     )
 
 
+KIE_RESCUE_NEGATIVE_RULES = (
+    "No text, logos, watermarks, distorted faces, extra fingers, plastic skin, "
+    "or duplicate people."
+)
+
+
+def build_kie_rescue_frame_prompt(
+    style: PhotoshootStyle,
+    *,
+    frame_index: int,
+) -> str:
+    """Short rescue prompt after Kie task failure (identity + style + frame shot)."""
+    title = (style.title or "Photoshoot").strip()
+    return (
+        f"Rescue regeneration for photoshoot style: {title}.\n"
+        f"{KIE_IDENTITY_ONLY_REFERENCE_INSTRUCTION}\n"
+        f"{build_kie_independent_frame_composition(frame_index)}\n"
+        f"{KIE_RESCUE_NEGATIVE_RULES}\n"
+        f"{KIE_VERTICAL_PORTRAIT_FORMAT_INSTRUCTION}"
+    )
+
+
 def build_kie_photoshoot_frame_prompt(
     client_style_id: str,
     style: PhotoshootStyle,

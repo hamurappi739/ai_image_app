@@ -864,6 +864,7 @@ class _GalleryPhotoshootCard extends StatelessWidget {
     final countLabel = item.imageUrls.length == 3
         ? '3 фото'
         : galleryPhotoshootPhotoCountLabel(item.imageUrls.length);
+    final deferPreview = shouldDeferLegacyGalleryPreview(item, loadStaggerIndex);
 
     return _GalleryResultCardShell(
       isNew: isNew,
@@ -880,6 +881,8 @@ class _GalleryPhotoshootCard extends StatelessWidget {
                   imageUrls: item.previewUrls,
                   description: item.description,
                   loadStaggerIndex: loadStaggerIndex,
+                  deferNetworkLoad: deferPreview,
+                  onOpenPressed: () => _openViewer(context),
                 ),
               ),
             ),
@@ -965,6 +968,7 @@ class _GallerySinglePhotoCard extends StatelessWidget {
     final theme = Theme.of(context);
     final textPrimary = context.appTextPrimary;
     final title = item.displayTitle;
+    final deferPreview = shouldDeferLegacyGalleryPreview(item, loadStaggerIndex);
 
     return _GalleryResultCardShell(
       isNew: isNew,
@@ -985,6 +989,7 @@ class _GallerySinglePhotoCard extends StatelessWidget {
                     compact: true,
                     onOpenPressed: () => _openViewer(context),
                     loadStaggerIndex: loadStaggerIndex,
+                    deferNetworkLoad: deferPreview,
                   ),
                 ),
               ),

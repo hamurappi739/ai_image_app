@@ -5,6 +5,9 @@ import 'package:ai_image_generator/utils/gallery_item_key.dart';
 export 'package:ai_image_generator/utils/gallery_display_title.dart'
     show galleryPhotoshootStyleTitle, gallerySinglePhotoTitle;
 
+/// Auto-load legacy full-image gallery cards only for the first N visible rows.
+const galleryLegacyFullPreviewAutoLoadLimit = 5;
+
 /// One row in the Gallery grid: a single image or a photoshoot group.
 class GalleryDisplayItem {
   const GalleryDisplayItem({
@@ -30,6 +33,11 @@ class GalleryDisplayItem {
       ? galleryPhotoshootStyleTitle(description)
       : gallerySinglePhotoTitle(description);
 
+  bool get hasDedicatedThumbnails {
+    final thumbs = thumbnailUrls;
+    return thumbs != null && thumbs.isNotEmpty;
+  }
+
   /// Preview URLs for gallery cards; falls back per frame to [imageUrls].
   List<String> get previewUrls => List<String>.generate(
         imageUrls.length,
@@ -45,6 +53,15 @@ class GalleryDisplayItem {
         },
         growable: false,
       );
+}
+
+bool shouldDeferLegacyGalleryPreview(
+  GalleryDisplayItem item,
+  int? loadStaggerIndex, {
+  int autoLoadLimit = galleryLegacyFullPreviewAutoLoadLimit,
+}) {
+  return !item.hasDedicatedThumbnails &&
+      (loadStaggerIndex ?? 0) >= autoLoadLimit;
 }
 
 String galleryPhotoshootPhotoCountLabel(int count) => '$count фото';
