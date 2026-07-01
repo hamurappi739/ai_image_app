@@ -29,8 +29,9 @@ from app.schemas import (
     PhotoshootJobStartResponse,
     PhotoshootJobStatusResponse,
 )
-from app.routes.health import router as health_router
+from app.services.upload_photo_validation import validate_upload_image_bytes
 from app.routes.image_proxy import router as image_proxy_router
+from app.routes.health import router as health_router
 from app.routes.payments import router as payments_router
 from app.services.balance_service import (
     add_paid_balance,
@@ -324,6 +325,7 @@ def _validate_upload_photo(photo: UploadFile | None) -> tuple[bytes, str]:
     file_bytes = photo.file.read(_MAX_PHOTOSHOOT_FILE_SIZE_BYTES + 1)
     if len(file_bytes) > _MAX_PHOTOSHOOT_FILE_SIZE_BYTES:
         raise HTTPException(status_code=400, detail="Photo is too large")
+    validate_upload_image_bytes(file_bytes)
     return file_bytes, photo.content_type
 
 

@@ -28,6 +28,7 @@ from app.services.photoshoot_service import (
 from app.services.photoshoot_styles import get_photoshoot_style
 from app.services.storage_service import storage_service
 from fastapi.testclient import TestClient
+from tests.valid_upload_test_bytes import VALID_TEST_JPEG_BYTES
 
 _TEST_PHOTO_BYTES = b"fake-photo"
 _TEST_PHOTO_TYPE = "image/jpeg"
@@ -826,7 +827,7 @@ class KiePhotoshootEndpointTests(unittest.TestCase):
             "/photoshoots/generate",
             data={"style_id": "studio_portrait"},
             files={
-                "photo": ("photo.jpg", io.BytesIO(b"\xff\xd8\xff\xe0" + b"\x00" * 16), "image/jpeg"),
+                "photo": ("photo.jpg", io.BytesIO(VALID_TEST_JPEG_BYTES), "image/jpeg"),
             },
         )
 

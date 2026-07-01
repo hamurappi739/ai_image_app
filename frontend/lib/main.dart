@@ -33,7 +33,6 @@ import 'theme/app_theme.dart';
 import 'services/photoshoots_help_service.dart';
 import 'utils/gallery_display_title.dart';
 import 'utils/gallery_item_key.dart';
-import 'utils/mock_photoshoot_photo.dart';
 import 'widgets/app_balance_summary.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/app_navigation_scope.dart';
@@ -2361,25 +2360,6 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
   Uint8List? _selectedPhotoBytes;
   bool _isPickingPhoto = false;
   bool _isPreparingPhotoshoot = false;
-  bool _usingMockPhoto = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (MockPhotoshootPhoto.shouldAutoUseOnPlatform) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _applyMockPhoto();
-      });
-    }
-  }
-
-  void _applyMockPhoto() {
-    setState(() {
-      _selectedPhotoFile = MockPhotoshootPhoto.asXFile();
-      _selectedPhotoBytes = MockPhotoshootPhoto.bytes;
-      _usingMockPhoto = true;
-    });
-  }
 
   static const _outcomes = [
     '3 готовых фото',
@@ -2391,7 +2371,6 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
     setState(() {
       _selectedPhotoFile = null;
       _selectedPhotoBytes = null;
-      _usingMockPhoto = false;
     });
   }
 
@@ -2406,7 +2385,6 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
       setState(() {
         _selectedPhotoFile = file;
         _selectedPhotoBytes = bytes;
-        _usingMockPhoto = false;
       });
     } catch (_) {
       if (!mounted) return;
@@ -2606,31 +2584,6 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    if (_usingMockPhoto) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colors.accentTintFill,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _accentColor.withValues(alpha: 0.2),
-                          ),
-                        ),
-                        child: Text(
-                          'Для проверки на эмуляторе используется тестовое фото.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 12,
-                            height: 1.35,
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                    ],
                     if (!hasPhoto)
                       SizedBox(
                         height: 44,
@@ -2884,38 +2837,11 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
   Uint8List? _selectedPhotoBytes;
   bool _isPickingPhoto = false;
   bool _isPreparingPhotoshoot = false;
-  bool _usingMockPhoto = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (MockPhotoshootPhoto.shouldAutoUseOnPlatform) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _applyMockPhoto();
-      });
-    }
-  }
 
   @override
   void dispose() {
     _descriptionController.dispose();
     super.dispose();
-  }
-
-  void _applyMockPhoto() {
-    setState(() {
-      _selectedPhotoFile = MockPhotoshootPhoto.asXFile();
-      _selectedPhotoBytes = MockPhotoshootPhoto.bytes;
-      _usingMockPhoto = true;
-    });
-  }
-
-  void _clearPhoto() {
-    setState(() {
-      _selectedPhotoFile = null;
-      _selectedPhotoBytes = null;
-      _usingMockPhoto = false;
-    });
   }
 
   void _applyIdea(String text) {
@@ -2924,6 +2850,13 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
       _descriptionController.selection = TextSelection.fromPosition(
         TextPosition(offset: text.length),
       );
+    });
+  }
+
+  void _clearPhoto() {
+    setState(() {
+      _selectedPhotoFile = null;
+      _selectedPhotoBytes = null;
     });
   }
 
@@ -2938,7 +2871,6 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
       setState(() {
         _selectedPhotoFile = file;
         _selectedPhotoBytes = bytes;
-        _usingMockPhoto = false;
       });
     } catch (_) {
       if (!mounted) return;
@@ -3258,15 +3190,6 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
                           foregroundColor: colors.textSecondary,
                           padding: const EdgeInsets.symmetric(horizontal: 4),
                         ),
-                      ),
-                    ),
-                  ],
-                  if (_usingMockPhoto) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Для проверки на эмуляторе используется тестовое фото.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colors.textSecondary,
                       ),
                     ),
                   ],

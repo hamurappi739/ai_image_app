@@ -33,9 +33,11 @@ from app.services.photoshoot_service import (
 )
 from app.services.photoshoot_styles import get_photoshoot_style
 from app.services.storage_service import storage_service
+from tests.valid_upload_test_bytes import VALID_TEST_JPEG_BYTES
 
 _TEST_PHOTO_BYTES = b"fake-photo"
 _TEST_PHOTO_TYPE = "image/jpeg"
+_TEST_JPEG_BYTES = VALID_TEST_JPEG_BYTES
 _RESULT_IMAGE_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 _SIGNED_URL_A = "https://supabase.example.com/signed/a"
 _SIGNED_URL_B = "https://supabase.example.com/signed/b"
@@ -302,7 +304,7 @@ class PhotoshootJobEndpointTests(unittest.TestCase):
             "/photoshoots/generate/start",
             data={"style_id": "studio_portrait"},
             files={
-                "photo": ("photo.jpg", io.BytesIO(b"\xff\xd8\xff\xe0" + b"\x00" * 16), "image/jpeg"),
+                "photo": ("photo.jpg", io.BytesIO(_TEST_JPEG_BYTES), "image/jpeg"),
             },
         )
 
@@ -365,7 +367,7 @@ class LegacyPhotoshootEndpointTests(unittest.TestCase):
             "/photoshoots/generate",
             data={"style_id": "studio_portrait"},
             files={
-                "photo": ("photo.jpg", io.BytesIO(b"\xff\xd8\xff\xe0" + b"\x00" * 16), "image/jpeg"),
+                "photo": ("photo.jpg", io.BytesIO(_TEST_JPEG_BYTES), "image/jpeg"),
             },
         )
 

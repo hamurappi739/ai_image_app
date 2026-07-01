@@ -16,6 +16,7 @@ from app.services.generation_image_url import (
     is_blocked_generation_placeholder_url,
     should_persist_generation_image_url,
 )
+from tests.valid_upload_test_bytes import VALID_TEST_JPEG_BYTES
 
 _ALLOWED_HOST = "cvzzceastvlbcxsckoqd.supabase.co"
 _SUPABASE_IMAGE_URL = (
@@ -25,7 +26,7 @@ _SUPABASE_IMAGE_URL = (
 _MOCK_CDN_URL = "https://cdn.example.com/generated.png"
 _DATA_URL = "data:image/png;base64,iVBORw0KGgo="
 _TEST_USER = CurrentUser(id="user-demo-1", email="demo@example.com")
-_TEST_PHOTO_BYTES = b"fake-user-photo"
+_TEST_PHOTO_BYTES = VALID_TEST_JPEG_BYTES
 _TEST_PHOTO_TYPE = "image/jpeg"
 _MOCK_PROMPT = "Custom portrait prompt"
 _GENERATION_ROW = {

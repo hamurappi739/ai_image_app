@@ -30,6 +30,7 @@ from app.services.photoshoot_service import (
 )
 from app.services.photoshoot_styles import PHOTOSHOOT_STYLES
 from app.services.storage_service import storage_service
+from tests.valid_upload_test_bytes import VALID_TEST_JPEG_BYTES
 
 _TEST_DATA_URL = "data:image/png;base64,iVBORw0KGgo="
 _TEST_DATA_URL_2 = "data:image/png;base64,QUJDRA=="
@@ -37,7 +38,7 @@ _TEST_DATA_URL_3 = "data:image/png;base64,QUJDREVG"
 _TEST_DATA_URL_4 = "data:image/png;base64,QUJDRUZX"
 _TEST_PHOTO_BYTES = b"fake-photo"
 _TEST_PHOTO_TYPE = "image/jpeg"
-_TEST_JPEG_BYTES = b"\xff\xd8\xff\xe0" + b"\x00" * 16
+_TEST_JPEG_BYTES = VALID_TEST_JPEG_BYTES
 
 
 def _mock_storage_upload(

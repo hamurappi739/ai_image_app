@@ -13,11 +13,12 @@ from app.main import app
 from app.services.catalog_service import invalidate_template_catalog_cache
 from app.services.gemini_quality_instructions import build_photo_edit_instruction
 from app.services.template_generation_service import resolve_template_generation_inputs
+from tests.valid_upload_test_bytes import VALID_TEST_JPEG_BYTES
 
-_TEST_PHOTO_BYTES = b"fake-user-photo"
-_TEST_EXTRA_1_BYTES = b"fake-extra-photo-1"
-_TEST_EXTRA_2_BYTES = b"fake-extra-photo-2"
-_TEST_PET_BYTES = b"fake-pet-photo"
+_TEST_PHOTO_BYTES = VALID_TEST_JPEG_BYTES
+_TEST_EXTRA_1_BYTES = VALID_TEST_JPEG_BYTES
+_TEST_EXTRA_2_BYTES = VALID_TEST_JPEG_BYTES
+_TEST_PET_BYTES = VALID_TEST_JPEG_BYTES
 _TEST_PHOTO_TYPE = "image/jpeg"
 _MOCK_IMAGE_URL = "https://cdn.example.com/generated.png"
 

@@ -11,6 +11,7 @@ from fastapi import HTTPException, UploadFile
 from app.services.catalog_service import get_template_catalog_item
 from app.services.gemini_quality_instructions import append_template_reference_prompt_block
 from app.services.template_reference_service import load_template_reference_for_catalog_item
+from app.services.upload_photo_validation import validate_upload_image_bytes
 
 _ALLOWED_CONTENT_TYPES = {
     "image/jpeg",
@@ -52,6 +53,7 @@ def _read_upload_file(photo: UploadFile) -> tuple[bytes, str]:
     file_bytes = photo.file.read(_MAX_FILE_SIZE_BYTES + 1)
     if len(file_bytes) > _MAX_FILE_SIZE_BYTES:
         raise HTTPException(status_code=400, detail="Photo is too large")
+    validate_upload_image_bytes(file_bytes)
     return file_bytes, photo.content_type
 
 

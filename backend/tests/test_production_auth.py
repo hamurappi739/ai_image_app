@@ -10,8 +10,9 @@ from fastapi.testclient import TestClient
 
 from app.config import settings
 from app.main import app
+from tests.valid_upload_test_bytes import VALID_TEST_JPEG_BYTES
 
-_TEST_PHOTO_BYTES = b"fake-user-photo"
+_TEST_PHOTO_BYTES = VALID_TEST_JPEG_BYTES
 _TEST_PHOTO_TYPE = "image/jpeg"
 
 

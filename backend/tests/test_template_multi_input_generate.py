@@ -19,11 +19,12 @@ from app.services.template_generation_service import (
     validate_cake_digit,
     validate_child_name,
 )
+from tests.valid_upload_test_bytes import VALID_TEST_JPEG_BYTES
 
-_TEST_PHOTO_BYTES = b"fake-user-photo"
-_TEST_PET_BYTES = b"fake-pet-photo"
-_TEST_CHILD_BYTES = b"fake-child-photo"
-_TEST_BABY_BYTES = b"fake-baby-photo"
+_TEST_PHOTO_BYTES = VALID_TEST_JPEG_BYTES
+_TEST_PET_BYTES = VALID_TEST_JPEG_BYTES
+_TEST_CHILD_BYTES = VALID_TEST_JPEG_BYTES
+_TEST_BABY_BYTES = VALID_TEST_JPEG_BYTES
 _TEST_PHOTO_TYPE = "image/jpeg"
 _MOCK_IMAGE_URL = "https://cdn.example.com/generated.png"
 

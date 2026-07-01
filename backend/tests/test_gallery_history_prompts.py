@@ -18,8 +18,9 @@ from app.services.photoshoot_service import (
 from app.services.photoshoot_style_locks import CUSTOM_PHOTOSHOOT_STYLE_ID
 from app.services.photoshoot_styles import PHOTOSHOOT_STYLES
 from app.services.template_generation_service import resolve_template_history_prompt
+from tests.valid_upload_test_bytes import VALID_TEST_JPEG_BYTES
 
-_TEST_PHOTO_BYTES = b"fake-user-photo"
+_TEST_PHOTO_BYTES = VALID_TEST_JPEG_BYTES
 _TEST_PHOTO_TYPE = "image/jpeg"
 _SUPABASE_IMAGE_URL = (
     "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/"

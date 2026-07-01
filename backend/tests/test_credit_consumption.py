@@ -23,6 +23,7 @@ from app.services.balance_service import (
     total_available_images,
 )
 from app.services.photoshoot_service import PhotoshootGenerateResult
+from tests.valid_upload_test_bytes import VALID_TEST_JPEG_BYTES
 
 _ALLOWED_HOST = "cvzzceastvlbcxsckoqd.supabase.co"
 _SUPABASE_IMAGE_URL = (
@@ -30,8 +31,8 @@ _SUPABASE_IMAGE_URL = (
     "generated-images/generations/user-1/photo.jpg"
 )
 _TEST_USER = CurrentUser(id="credit-test-user", email="credit@example.com")
-_TEST_PHOTO_BYTES = b"fake-user-photo"
-_TEST_JPEG_BYTES = b"\xff\xd8\xff\xe0" + b"\x00" * 16
+_TEST_PHOTO_BYTES = VALID_TEST_JPEG_BYTES
+_TEST_JPEG_BYTES = VALID_TEST_JPEG_BYTES
 _FREE_LIMIT = 3
 
 

@@ -24,8 +24,9 @@ from app.services.kie_image_service import (
 from app.services.photo_generation_service import KiePhotoGenerationProvider
 from app.services.storage_service import storage_service
 from fastapi.testclient import TestClient
+from tests.valid_upload_test_bytes import VALID_TEST_JPEG_BYTES
 
-_TEST_PHOTO_BYTES = b"fake-photo"
+_TEST_PHOTO_BYTES = VALID_TEST_JPEG_BYTES
 _TEST_PHOTO_TYPE = "image/jpeg"
 _SIGNED_URL_A = "https://supabase.example.com/signed/a?token=secret-a"
 _MOCK_IMAGE_URL = "data:image/png;base64,iVBORw0KGgo="
