@@ -40,6 +40,33 @@ _TEST_PHOTO_TYPE = "image/jpeg"
 _TEST_JPEG_BYTES = b"\xff\xd8\xff\xe0" + b"\x00" * 16
 
 
+def _mock_storage_upload(
+    path: str,
+    url: str,
+    *,
+    thumb_path: str | None = None,
+    thumb_url: str | None = None,
+) -> tuple[str, str, str | None, str | None]:
+    return (
+        path,
+        url,
+        thumb_path
+        if thumb_path is not None
+        else path.replace("frame-", "thumb-").replace(".png", ".jpg"),
+        thumb_url if thumb_url is not None else f"{url.rsplit('.', 1)[0]}-thumb.jpg",
+    )
+
+
+def _mock_storage_upload_paths(upload_results: list[tuple[str, str]]) -> list[str]:
+    paths: list[str] = []
+    for path, url in upload_results:
+        full_path, _, thumb_path, _ = _mock_storage_upload(path, url)
+        paths.append(full_path)
+        if thumb_path:
+            paths.append(thumb_path)
+    return paths
+
+
 def _empty_image_http_exception() -> HTTPException:
     return HTTPException(
         status_code=502,
@@ -397,7 +424,9 @@ class PhotoshootAtomicityTests(unittest.TestCase):
         mock_create_record: MagicMock,
     ) -> None:
         mock_storage.upload_generated_image_data_url_with_path.side_effect = [
-            ("photoshoots/user-1/frame-0.png", "https://cdn.example/0.png"),
+            _mock_storage_upload(
+                "photoshoots/user-1/frame-0.png", "https://cdn.example/0.png"
+            ),
             HTTPException(status_code=503, detail="storage down"),
         ]
 
@@ -411,7 +440,9 @@ class PhotoshootAtomicityTests(unittest.TestCase):
 
         self.assertEqual(ctx.exception.status_code, 502)
         mock_storage.delete_objects_best_effort.assert_called_once_with(
-            ["photoshoots/user-1/frame-0.png"]
+            _mock_storage_upload_paths(
+                [("photoshoots/user-1/frame-0.png", "https://cdn.example/0.png")]
+            )
         )
         mock_create_record.assert_not_called()
 
@@ -431,10 +462,13 @@ class PhotoshootAtomicityTests(unittest.TestCase):
         provider.generate.return_value = [_TEST_DATA_URL, _TEST_DATA_URL, _TEST_DATA_URL]
         mock_get_provider.return_value = provider
 
-        mock_storage.upload_generated_image_data_url_with_path.side_effect = [
+        upload_results = [
             ("photoshoots/user-1/frame-0.png", "https://cdn.example/0.png"),
             ("photoshoots/user-1/frame-1.png", "https://cdn.example/1.png"),
             ("photoshoots/user-1/frame-2.png", "https://cdn.example/2.png"),
+        ]
+        mock_storage.upload_generated_image_data_url_with_path.side_effect = [
+            _mock_storage_upload(path, url) for path, url in upload_results
         ]
         mock_create_record.side_effect = [
             {"id": "gen-1"},
@@ -453,11 +487,7 @@ class PhotoshootAtomicityTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 502)
         mock_delete_generations.assert_called_once()
         mock_storage.delete_objects_best_effort.assert_called_once_with(
-            [
-                "photoshoots/user-1/frame-0.png",
-                "photoshoots/user-1/frame-1.png",
-                "photoshoots/user-1/frame-2.png",
-            ]
+            _mock_storage_upload_paths(upload_results)
         )
 
     @patch("app.services.photoshoot_service.storage_service")
@@ -492,10 +522,13 @@ class PhotoshootAtomicityTests(unittest.TestCase):
         provider.generate.return_value = [_TEST_DATA_URL, _TEST_DATA_URL, _TEST_DATA_URL]
         mock_get_provider.return_value = provider
 
-        mock_storage.upload_generated_image_data_url_with_path.side_effect = [
+        upload_results = [
             ("photoshoots/user-1/frame-0.png", "https://cdn.example/0.png"),
             ("photoshoots/user-1/frame-1.png", "https://cdn.example/1.png"),
             ("photoshoots/user-1/frame-2.png", "https://cdn.example/2.png"),
+        ]
+        mock_storage.upload_generated_image_data_url_with_path.side_effect = [
+            _mock_storage_upload(path, url) for path, url in upload_results
         ]
         mock_create_record.return_value = {"id": "gen"}
 
@@ -508,7 +541,7 @@ class PhotoshootAtomicityTests(unittest.TestCase):
         )
 
         self.assertEqual(len(result.image_urls), 3)
-        self.assertEqual(len(result.storage_paths), 3)
+        self.assertEqual(len(result.storage_paths), 6)
         self.assertTrue(result.photoshoot_id)
         photoshoot_ids = {
             call.kwargs.get("photoshoot_id")
@@ -1413,9 +1446,12 @@ class PhotoshootSeriesReferenceModeTests(unittest.TestCase):
 
         mock_storage._parse_generated_image_data_url.side_effect = _parse_data_url
         mock_storage.upload_generated_image_data_url_with_path.side_effect = [
-            ("photoshoots/user-1/frame-0.png", "https://cdn.example/0.png"),
-            ("photoshoots/user-1/frame-1.png", "https://cdn.example/1.png"),
-            ("photoshoots/user-1/frame-2.png", "https://cdn.example/2.png"),
+            _mock_storage_upload(path, url)
+            for path, url in [
+                ("photoshoots/user-1/frame-0.png", "https://cdn.example/0.png"),
+                ("photoshoots/user-1/frame-1.png", "https://cdn.example/1.png"),
+                ("photoshoots/user-1/frame-2.png", "https://cdn.example/2.png"),
+            ]
         ]
         mock_call_frame.side_effect = [
             _TEST_DATA_URL,

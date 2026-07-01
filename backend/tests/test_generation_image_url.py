@@ -140,13 +140,14 @@ class DemoGenerationPersistTests(unittest.TestCase):
             prompt="Своя идея",
             image_url=_SUPABASE_IMAGE_URL,
             payment_type="free",
+            thumbnail_url=None,
         )
         mock_consume.assert_not_called()
 
     @patch.object(settings, "supabase_url", f"https://{_ALLOWED_HOST}")
     @patch("app.main._optional_user_for_generation", return_value=_TEST_USER)
     @patch("app.main.ensure_profile_exists", return_value={"id": _TEST_USER.id})
-    @patch("app.main._store_generated_image_if_needed", return_value=_SUPABASE_IMAGE_URL)
+    @patch("app.main._store_generated_image_if_needed", return_value=(_SUPABASE_IMAGE_URL, None))
     @patch("app.main.consume_generation")
     @patch("app.main.create_generation_record")
     @patch("app.main.photo_generation_service")
@@ -176,6 +177,7 @@ class DemoGenerationPersistTests(unittest.TestCase):
             prompt="Своя идея",
             image_url=_SUPABASE_IMAGE_URL,
             payment_type="free",
+            thumbnail_url=None,
         )
 
     @patch.object(settings, "supabase_url", f"https://{_ALLOWED_HOST}")

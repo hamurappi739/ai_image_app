@@ -205,18 +205,28 @@ def _ensure_profile_for_user(user: CurrentUser) -> None:
         raise HTTPException(status_code=500, detail="Failed to ensure user profile")
 
 
-def _store_generated_image_if_needed(user_id: str, image_url: str) -> str:
+def _store_generated_image_if_needed(
+    user_id: str, image_url: str
+) -> tuple[str, str | None]:
     """Upload Gemini-style data URLs to Storage; pass through ordinary URLs."""
     if not image_url.startswith("data:image/"):
-        return image_url
-    return storage_service.upload_generated_image_data_url(
-        user_id, image_url, folder="generations"
+        return image_url, None
+    _path, public_url, _thumb_path, thumbnail_url = (
+        storage_service.upload_generated_image_data_url_with_path(
+            user_id, image_url, folder="generations"
+        )
     )
+    return public_url, thumbnail_url
 
 
-def _rollback_stored_generation_image(image_url: str) -> None:
+def _rollback_stored_generation_image(
+    image_url: str,
+    thumbnail_url: str | None = None,
+) -> None:
     """Best-effort cleanup when billing fails after storage upload."""
     storage_service.delete_public_url_best_effort(image_url)
+    if thumbnail_url:
+        storage_service.delete_public_url_best_effort(thumbnail_url)
 
 
 def _resolve_user_for_image_storage(
@@ -234,6 +244,7 @@ def _save_generation_in_demo_mode(
     authorization: str | None,
     prompt: str,
     image_url: str,
+    thumbnail_url: str | None = None,
     endpoint: str,
 ) -> None:
     """Persist a gallery row when credit consumption is disabled (staging/demo)."""
@@ -268,6 +279,7 @@ def _save_generation_in_demo_mode(
             prompt=prompt,
             image_url=image_url,
             payment_type="free",
+            thumbnail_url=thumbnail_url,
         )
     except RuntimeError as exc:
         pipeline_log.warning(
@@ -320,6 +332,7 @@ def _build_generate_response_after_consume(
     prompt: str,
     payment_type: str,
     updated_profile: dict,
+    thumbnail_url: str | None = None,
 ) -> GenerateResponse:
     balance = build_balance_response(
         updated_profile,
@@ -328,6 +341,7 @@ def _build_generate_response_after_consume(
     )
     return GenerateResponse(
         image_url=image_url,
+        thumbnail_url=thumbnail_url,
         prompt=prompt,
         payment_type=payment_type,
         credit_consumed=True,
@@ -676,9 +690,12 @@ def generate(
             raise HTTPException(status_code=402, detail=decision["reason"])
 
     image_url = generate_image(prompt)
+    thumbnail_url: str | None = None
     if image_url.startswith("data:image/"):
         storage_user = _resolve_user_for_image_storage(user, authorization)
-        image_url = _store_generated_image_if_needed(storage_user.id, image_url)
+        image_url, thumbnail_url = _store_generated_image_if_needed(
+            storage_user.id, image_url
+        )
 
     if not settings.enable_credit_consumption:
         _save_generation_in_demo_mode(
@@ -686,10 +703,12 @@ def generate(
             authorization=authorization,
             prompt=prompt,
             image_url=image_url,
+            thumbnail_url=thumbnail_url,
             endpoint="POST /generate",
         )
         return GenerateResponse(
             image_url=image_url,
+            thumbnail_url=thumbnail_url,
             prompt=prompt,
         )
 
@@ -702,14 +721,16 @@ def generate(
             settings.free_generations_limit,
             prompt,
             image_url,
+            thumbnail_url=thumbnail_url,
         )
     except RuntimeError as exc:
-        _rollback_stored_generation_image(image_url)
+        _rollback_stored_generation_image(image_url, thumbnail_url)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     updated_profile = result["profile"]
     return _build_generate_response_after_consume(
         image_url=image_url,
+        thumbnail_url=thumbnail_url,
         prompt=prompt,
         payment_type=result["payment_type"],
         updated_profile=updated_profile,
@@ -830,10 +851,13 @@ def generate_with_photo(
             )
         raise
 
+    thumbnail_url: str | None = None
     if image_url.startswith("data:image/"):
         try:
             storage_user = _resolve_user_for_image_storage(user, authorization)
-            image_url = _store_generated_image_if_needed(storage_user.id, image_url)
+            image_url, thumbnail_url = _store_generated_image_if_needed(
+                storage_user.id, image_url
+            )
         except HTTPException as exc:
             pipeline_log.warning(
                 "POST /generate-with-photo failed template_id=%s stage=storage "
@@ -851,6 +875,7 @@ def generate_with_photo(
             authorization=authorization,
             prompt=history_prompt,
             image_url=image_url,
+            thumbnail_url=thumbnail_url,
             endpoint="POST /generate-with-photo",
         )
         pipeline_log.info(
@@ -859,6 +884,7 @@ def generate_with_photo(
         )
         return GenerateResponse(
             image_url=image_url,
+            thumbnail_url=thumbnail_url,
             prompt=prompt,
         )
 
@@ -877,9 +903,10 @@ def generate_with_photo(
             settings.free_generations_limit,
             history_prompt,
             image_url,
+            thumbnail_url=thumbnail_url,
         )
     except RuntimeError as exc:
-        _rollback_stored_generation_image(image_url)
+        _rollback_stored_generation_image(image_url, thumbnail_url)
         pipeline_log.warning(
             "POST /generate-with-photo failed template_id=%s stage=db "
             "error_type=RuntimeError reason=%s",
@@ -894,6 +921,7 @@ def generate_with_photo(
     )
     return _build_generate_response_after_consume(
         image_url=image_url,
+        thumbnail_url=thumbnail_url,
         prompt=prompt,
         payment_type=result["payment_type"],
         updated_profile=result["profile"],
@@ -1035,6 +1063,7 @@ def generate_photoshoot(
         style_id=style.id,
         style_title=style.title,
         image_urls=photoshoot_result.image_urls,
+        thumbnail_urls=photoshoot_result.thumbnail_urls,
         output_count=len(photoshoot_result.image_urls),
         photoshoot_id=photoshoot_result.photoshoot_id,
         balance=balance,

@@ -38,6 +38,7 @@ def consume_generation(
     free_limit: int,
     prompt: str,
     image_url: str,
+    thumbnail_url: str | None = None,
 ) -> dict:
     if not should_persist_generation_image_url(image_url):
         raise RuntimeError("Generation image URL is not persistable")
@@ -54,6 +55,7 @@ def consume_generation(
             prompt=prompt,
             image_url=image_url,
             payment_type="free",
+            thumbnail_url=thumbnail_url,
         )
         transaction = insert_credit_transaction(
             {
@@ -70,6 +72,7 @@ def consume_generation(
             prompt=prompt,
             image_url=image_url,
             payment_type="paid",
+            thumbnail_url=thumbnail_url,
         )
         transaction = insert_credit_transaction(
             {

@@ -6,7 +6,7 @@ import logging
 import re
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TypeAlias
 from uuid import uuid4
 
@@ -599,6 +599,7 @@ class PhotoshootGenerateResult:
     image_urls: list[str]
     photoshoot_id: str
     storage_paths: list[str]
+    thumbnail_urls: list[str | None] = field(default_factory=list)
 
 
 def _rollback_photoshoot_storage(
@@ -666,6 +667,7 @@ def _save_photoshoot_results_to_history(
     user_description: str | None = None,
     photoshoot_id: str | None = None,
     storage_paths: list[str] | None = None,
+    thumbnail_urls: list[str | None] | None = None,
 ) -> str:
     if not image_urls:
         _raise_photoshoot_failure(
@@ -686,6 +688,9 @@ def _save_photoshoot_results_to_history(
 
     try:
         for index, image_url in enumerate(image_urls):
+            thumb_url = None
+            if thumbnail_urls and index < len(thumbnail_urls):
+                thumb_url = thumbnail_urls[index]
             logger.info(
                 "Photoshoot DB save start: style_id=%s photoshoot_id=%s "
                 "frame_index=%s frame=%s/%s",
@@ -701,6 +706,7 @@ def _save_photoshoot_results_to_history(
                 image_url=image_url,
                 payment_type=payment_type,
                 photoshoot_id=batch_id,
+                thumbnail_url=thumb_url,
             )
             saved_frames += 1
             logger.info(
@@ -787,8 +793,9 @@ def _upload_photoshoot_frames_to_storage(
     client_style_id: str,
     data_urls: list[str],
     photoshoot_id: str,
-) -> tuple[list[str], list[str]]:
+) -> tuple[list[str], list[str | None], list[str]]:
     uploaded_urls: list[str] = []
+    uploaded_thumbnail_urls: list[str | None] = []
     uploaded_paths: list[str] = []
     try:
         for index, data_url in enumerate(data_urls):
@@ -801,13 +808,18 @@ def _upload_photoshoot_frames_to_storage(
                 index + 1,
                 len(data_urls),
             )
-            storage_path, public_url = storage_service.upload_generated_image_data_url_with_path(
-                user_id=user_id,
-                data_url=data_url,
-                folder="photoshoots",
+            storage_path, public_url, thumb_path, thumb_url = (
+                storage_service.upload_generated_image_data_url_with_path(
+                    user_id=user_id,
+                    data_url=data_url,
+                    folder="photoshoots",
+                )
             )
             uploaded_paths.append(storage_path)
+            if thumb_path:
+                uploaded_paths.append(thumb_path)
             uploaded_urls.append(public_url)
+            uploaded_thumbnail_urls.append(thumb_url)
             logger.info(
                 "Photoshoot storage upload ok: style_id=%s photoshoot_id=%s "
                 "frame_index=%s frame=%s/%s",
@@ -871,7 +883,7 @@ def _upload_photoshoot_frames_to_storage(
             photoshoot_id=photoshoot_id,
         )
 
-    return uploaded_urls, uploaded_paths
+    return uploaded_urls, uploaded_thumbnail_urls, uploaded_paths
 
 
 class MockPhotoshootProvider:
@@ -1593,7 +1605,8 @@ class PhotoshootService:
                 user_description=user_description,
             )
             self._notify_all_frames(on_frame_status, output_count, "done")
-            storage_paths: list[str] = []
+            storage_paths = []
+            thumbnail_urls: list[str | None] = []
             if len(image_urls) != output_count:
                 _raise_photoshoot_failure(
                     style_id=client_style_id,
@@ -1625,7 +1638,7 @@ class PhotoshootService:
                     reason=f"frame_count_mismatch:{len(data_urls)}/{output_count}",
                     photoshoot_id=pending_photoshoot_id,
                 )
-            image_urls, storage_paths = _upload_photoshoot_frames_to_storage(
+            image_urls, thumbnail_urls, storage_paths = _upload_photoshoot_frames_to_storage(
                 user_id=user_id,
                 client_style_id=client_style_id,
                 data_urls=data_urls,
@@ -1640,6 +1653,7 @@ class PhotoshootService:
             user_description=user_description,
             photoshoot_id=pending_photoshoot_id,
             storage_paths=storage_paths,
+            thumbnail_urls=thumbnail_urls,
         )
 
         if len(image_urls) != output_count:
@@ -1660,6 +1674,7 @@ class PhotoshootService:
             image_urls=image_urls,
             photoshoot_id=photoshoot_id,
             storage_paths=storage_paths,
+            thumbnail_urls=thumbnail_urls,
         )
 
     @staticmethod

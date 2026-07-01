@@ -26,7 +26,10 @@ import httpx
 from fastapi import HTTPException
 
 from app.config import settings
-from app.services.image_optimize import optimize_generated_image_bytes
+from app.services.image_optimize import (
+    generate_thumbnail_bytes,
+    optimize_generated_image_bytes,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +239,9 @@ class SupabaseStorageService:
         content: bytes,
         content_type: str,
         folder: str = "generations",
-    ) -> tuple[str, str]:
+    ) -> tuple[str, str, str | None, str | None]:
+        thumbnail_path: str | None = None
+        thumbnail_url: str | None = None
         if folder in {"generations", "photoshoots"}:
             content, content_type = optimize_generated_image_bytes(
                 content, content_type
@@ -250,21 +255,37 @@ class SupabaseStorageService:
             user_id=user_id, filename=filename, folder=folder
         )
         public_url = self.upload_bytes(path, content, content_type)
-        return path, public_url
+
+        if folder in {"generations", "photoshoots"}:
+            thumb_bytes, thumb_type = generate_thumbnail_bytes(content, content_type)
+            if thumb_bytes:
+                thumb_filename = f"thumb-{timestamp}.jpg"
+                thumbnail_path = self.build_storage_path(
+                    user_id=user_id,
+                    filename=thumb_filename,
+                    folder=folder,
+                )
+                thumbnail_url = self.upload_bytes(
+                    thumbnail_path,
+                    thumb_bytes,
+                    thumb_type,
+                )
+
+        return path, public_url, thumbnail_path, thumbnail_url
 
     def upload_generated_image_data_url(
         self, user_id: str, data_url: str, folder: str = "generations"
     ) -> str:
         """Decode a generated image data URL, upload to Storage, return public URL."""
-        _, public_url = self.upload_generated_image_data_url_with_path(
+        _, public_url, _, _ = self.upload_generated_image_data_url_with_path(
             user_id, data_url, folder=folder
         )
         return public_url
 
     def upload_generated_image_data_url_with_path(
         self, user_id: str, data_url: str, folder: str = "generations"
-    ) -> tuple[str, str]:
-        """Upload a data URL; return ``(storage_path, public_url)`` for rollback flows."""
+    ) -> tuple[str, str, str | None, str | None]:
+        """Upload a data URL; return storage paths/URLs for full image and thumbnail."""
         content_type, content = self._parse_generated_image_data_url(data_url)
         return self._upload_decoded_image(
             user_id, content, content_type, folder=folder

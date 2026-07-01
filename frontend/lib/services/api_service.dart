@@ -31,6 +31,7 @@ class GenerateImageResponse {
   const GenerateImageResponse({
     required this.imageUrl,
     required this.prompt,
+    this.thumbnailUrl,
     this.paymentType,
     this.creditConsumed = false,
     this.remainingFreeGenerations,
@@ -40,6 +41,7 @@ class GenerateImageResponse {
 
   final String imageUrl;
   final String prompt;
+  final String? thumbnailUrl;
   final String? paymentType;
   final bool creditConsumed;
   final int? remainingFreeGenerations;
@@ -51,6 +53,7 @@ class GenerateImageResponse {
     return GenerateImageResponse(
       imageUrl: json['image_url'] as String,
       prompt: json['prompt'] as String,
+      thumbnailUrl: json['thumbnail_url'] as String?,
       paymentType: json['payment_type'] as String?,
       creditConsumed: json['credit_consumed'] as bool? ?? false,
       remainingFreeGenerations: json['remaining_free_generations'] as int?,
@@ -70,6 +73,7 @@ class GenerationHistoryItem {
     required this.paymentType,
     required this.createdAt,
     this.photoshootId,
+    this.thumbnailUrl,
   });
 
   final String id;
@@ -78,6 +82,7 @@ class GenerationHistoryItem {
   final String paymentType;
   final DateTime createdAt;
   final String? photoshootId;
+  final String? thumbnailUrl;
 
   factory GenerationHistoryItem.fromJson(Map<String, dynamic> json) {
     final rawPhotoshootId = json['photoshoot_id'];
@@ -88,6 +93,7 @@ class GenerationHistoryItem {
       paymentType: json['payment_type'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
       photoshootId: rawPhotoshootId is String ? rawPhotoshootId : null,
+      thumbnailUrl: json['thumbnail_url'] as String?,
     );
   }
 
@@ -98,6 +104,7 @@ class GenerationHistoryItem {
       imageUrl: imageUrl,
       createdAt: createdAt,
       photoshootId: photoshootId,
+      thumbnailUrl: thumbnailUrl,
     );
   }
 }
@@ -248,6 +255,7 @@ class PhotoshootGenerateResponse {
     required this.imageUrls,
     required this.outputCount,
     required this.photoshootId,
+    this.thumbnailUrls = const [],
     this.balance,
     this.description,
   });
@@ -257,6 +265,7 @@ class PhotoshootGenerateResponse {
   final List<String> imageUrls;
   final int outputCount;
   final String photoshootId;
+  final List<String?> thumbnailUrls;
   final UserBalance? balance;
   final String? description;
 
@@ -277,12 +286,17 @@ class PhotoshootGenerateResponse {
       throw const PhotoshootGenerationFailedException();
     }
     final rawBalance = json['balance'];
+    final rawThumbs = json['thumbnail_urls'] as List<dynamic>?;
     return PhotoshootGenerateResponse(
       styleId: json['style_id'] as String,
       styleTitle: json['style_title'] as String,
       imageUrls: rawUrls,
       outputCount: outputCount,
       photoshootId: json['photoshoot_id'] as String? ?? '',
+      thumbnailUrls: rawThumbs
+              ?.map((url) => url is String ? url : null)
+              .toList() ??
+          const [],
       balance: rawBalance is Map<String, dynamic>
           ? UserBalance.fromJson(rawBalance)
           : null,

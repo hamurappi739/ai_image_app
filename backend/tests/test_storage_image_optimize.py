@@ -9,7 +9,10 @@ from unittest.mock import ANY, patch
 
 from PIL import Image
 
-from app.services.image_optimize import optimize_generated_image_bytes
+from app.services.image_optimize import (
+    generate_thumbnail_bytes,
+    optimize_generated_image_bytes,
+)
 from app.services.storage_service import storage_service
 
 
@@ -54,14 +57,29 @@ class StorageImageOptimizeTests(unittest.TestCase):
         self.assertEqual(content_type, "image/jpeg")
         self.assertEqual(optimized, original)
 
-    @patch.object(storage_service, "upload_bytes", return_value="https://cdn.example/img.jpg")
+    def test_generate_thumbnail_bytes_resizes_large_image(self) -> None:
+        png_bytes = _make_png_bytes(1536, 2048)
+        optimized, _ = optimize_generated_image_bytes(png_bytes, "image/png")
+
+        thumb_bytes, thumb_type = generate_thumbnail_bytes(optimized, "image/jpeg")
+
+        self.assertEqual(thumb_type, "image/jpeg")
+        self.assertLess(len(thumb_bytes), len(optimized))
+        with Image.open(io.BytesIO(thumb_bytes)) as image:
+            self.assertEqual(image.format, "JPEG")
+            self.assertLessEqual(max(image.size), 480)
+
+    @patch.object(storage_service, "upload_bytes", side_effect=[
+        "https://cdn.example/img.jpg",
+        "https://cdn.example/thumb.jpg",
+    ])
     def test_upload_decoded_image_uses_jpeg_for_generations(
         self,
         mock_upload_bytes,
     ) -> None:
         png_bytes = _make_png_bytes(1536, 2048)
 
-        path, public_url = storage_service._upload_decoded_image(
+        path, public_url, thumb_path, thumb_url = storage_service._upload_decoded_image(
             "user-1",
             png_bytes,
             "image/png",
@@ -70,16 +88,24 @@ class StorageImageOptimizeTests(unittest.TestCase):
 
         self.assertTrue(path.endswith(".jpg"))
         self.assertEqual(public_url, "https://cdn.example/img.jpg")
-        mock_upload_bytes.assert_called_once()
-        uploaded_content = mock_upload_bytes.call_args.args[1]
-        uploaded_type = mock_upload_bytes.call_args.args[2]
+        self.assertIsNotNone(thumb_path)
+        self.assertTrue(thumb_path.endswith(".jpg"))
+        self.assertEqual(thumb_url, "https://cdn.example/thumb.jpg")
+        self.assertEqual(mock_upload_bytes.call_count, 2)
+        uploaded_content = mock_upload_bytes.call_args_list[0].args[1]
+        uploaded_type = mock_upload_bytes.call_args_list[0].args[2]
         self.assertEqual(uploaded_type, "image/jpeg")
         self.assertLess(len(uploaded_content), len(png_bytes))
+        thumb_content = mock_upload_bytes.call_args_list[1].args[1]
+        self.assertLess(len(thumb_content), len(uploaded_content))
 
     @patch.object(
         storage_service,
         "upload_bytes",
-        return_value="https://cdn.example/photoshoot.jpg",
+        side_effect=[
+            "https://cdn.example/photoshoot.jpg",
+            "https://cdn.example/photoshoot-thumb.jpg",
+        ],
     )
     def test_upload_decoded_image_uses_jpeg_for_photoshoots(
         self,
@@ -87,7 +113,7 @@ class StorageImageOptimizeTests(unittest.TestCase):
     ) -> None:
         png_bytes = _make_png_bytes(1536, 2048)
 
-        path, public_url = storage_service._upload_decoded_image(
+        path, public_url, thumb_path, thumb_url = storage_service._upload_decoded_image(
             "user-1",
             png_bytes,
             "image/png",
@@ -96,9 +122,11 @@ class StorageImageOptimizeTests(unittest.TestCase):
 
         self.assertTrue(path.endswith(".jpg"))
         self.assertEqual(public_url, "https://cdn.example/photoshoot.jpg")
-        mock_upload_bytes.assert_called_once()
-        uploaded_content = mock_upload_bytes.call_args.args[1]
-        uploaded_type = mock_upload_bytes.call_args.args[2]
+        self.assertIsNotNone(thumb_path)
+        self.assertEqual(thumb_url, "https://cdn.example/photoshoot-thumb.jpg")
+        self.assertEqual(mock_upload_bytes.call_count, 2)
+        uploaded_content = mock_upload_bytes.call_args_list[0].args[1]
+        uploaded_type = mock_upload_bytes.call_args_list[0].args[2]
         self.assertEqual(uploaded_type, "image/jpeg")
         self.assertLess(len(uploaded_content), len(png_bytes))
 
@@ -114,7 +142,7 @@ class StorageImageOptimizeTests(unittest.TestCase):
     ) -> None:
         png_bytes = _make_png_bytes(800, 1066)
 
-        path, _ = storage_service._upload_decoded_image(
+        path, public_url, thumb_path, thumb_url = storage_service._upload_decoded_image(
             "user-1",
             png_bytes,
             "image/png",
@@ -122,6 +150,9 @@ class StorageImageOptimizeTests(unittest.TestCase):
         )
 
         self.assertTrue(path.endswith(".png"))
+        self.assertEqual(public_url, "https://cdn.example/raw.png")
+        self.assertIsNone(thumb_path)
+        self.assertIsNone(thumb_url)
         mock_upload_bytes.assert_called_once_with(ANY, png_bytes, "image/png")
 
     @patch.object(storage_service, "create_signed_url", return_value="https://signed.example/temp")

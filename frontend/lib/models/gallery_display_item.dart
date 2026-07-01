@@ -11,6 +11,7 @@ class GalleryDisplayItem {
     required this.description,
     required this.createdAt,
     required this.imageUrls,
+    this.thumbnailUrls,
     this.photoshootId,
     this.hideKey,
   });
@@ -18,6 +19,7 @@ class GalleryDisplayItem {
   final String description;
   final DateTime createdAt;
   final List<String> imageUrls;
+  final List<String>? thumbnailUrls;
   final String? photoshootId;
   final String? hideKey;
 
@@ -27,6 +29,22 @@ class GalleryDisplayItem {
   String get displayTitle => isPhotoshootGroup
       ? galleryPhotoshootStyleTitle(description)
       : gallerySinglePhotoTitle(description);
+
+  /// Preview URLs for gallery cards; falls back per frame to [imageUrls].
+  List<String> get previewUrls => List<String>.generate(
+        imageUrls.length,
+        (index) {
+          final thumbs = thumbnailUrls;
+          if (thumbs != null && index < thumbs.length) {
+            final thumb = thumbs[index].trim();
+            if (thumb.isNotEmpty) {
+              return thumb;
+            }
+          }
+          return imageUrls[index];
+        },
+        growable: false,
+      );
 }
 
 String galleryPhotoshootPhotoCountLabel(int count) => '$count фото';
@@ -53,6 +71,9 @@ List<GalleryDisplayItem> groupGalleryItems(List<GeneratedImageItem> items) {
           description: item.description,
           createdAt: item.createdAt,
           imageUrls: [item.imageUrl],
+          thumbnailUrls: item.thumbnailUrl != null
+              ? [item.previewUrl]
+              : null,
           hideKey: galleryImageHideKey(item),
         ),
       );
@@ -67,11 +88,19 @@ List<GalleryDisplayItem> groupGalleryItems(List<GeneratedImageItem> items) {
     final newestCreatedAt = groupItems
         .map((item) => item.createdAt)
         .reduce((a, b) => a.isAfter(b) ? a : b);
+    final thumbs = groupItems
+        .map((item) => item.previewUrl)
+        .toList(growable: false);
+    final hasDistinctThumbs = groupItems.any(
+      (item) =>
+          item.thumbnailUrl != null && item.thumbnailUrl!.trim().isNotEmpty,
+    );
 
     return GalleryDisplayItem(
       description: groupItems.first.description,
       createdAt: newestCreatedAt,
       imageUrls: groupItems.map((item) => item.imageUrl).toList(),
+      thumbnailUrls: hasDistinctThumbs ? thumbs : null,
       photoshootId: entry.key,
     );
   });

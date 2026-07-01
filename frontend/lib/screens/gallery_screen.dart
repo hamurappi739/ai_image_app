@@ -877,7 +877,7 @@ class _GalleryPhotoshootCard extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
                 child: GalleryPhotoshootTripletPreview(
-                  imageUrls: item.imageUrls,
+                  imageUrls: item.previewUrls,
                   description: item.description,
                   loadStaggerIndex: loadStaggerIndex,
                 ),
@@ -980,7 +980,7 @@ class _GallerySinglePhotoCard extends StatelessWidget {
                 child: AspectRatio(
                   aspectRatio: 4 / 3,
                   child: GalleryResultImage(
-                    url: item.imageUrls.isNotEmpty ? item.imageUrls.first : '',
+                    url: item.previewUrls.isNotEmpty ? item.previewUrls.first : '',
                     description: item.description,
                     compact: true,
                     onOpenPressed: () => _openViewer(context),

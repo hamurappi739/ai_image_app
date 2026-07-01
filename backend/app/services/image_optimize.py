@@ -15,6 +15,8 @@ _GENERATED_TARGET_MAX_BYTES = 1_500_000
 _SKIP_OPTIMIZE_UNDER_BYTES = 450_000
 _MAX_LONG_EDGE = 2048
 _MIN_LONG_EDGE = 720
+_THUMBNAIL_MAX_LONG_EDGE = 480
+_THUMBNAIL_JPEG_QUALITY = 82
 
 
 def optimize_generated_image_bytes(
@@ -35,18 +37,7 @@ def optimize_generated_image_bytes(
         return content, "image/jpeg"
 
     try:
-        image = Image.open(BytesIO(content))
-        image = ImageOps.exif_transpose(image)
-        if image.mode in ("RGBA", "LA") or (
-            image.mode == "P" and "transparency" in image.info
-        ):
-            background = Image.new("RGB", image.size, (255, 255, 255))
-            alpha = image.convert("RGBA")
-            background.paste(alpha, mask=alpha.split()[-1])
-            image = background
-        else:
-            image = image.convert("RGB")
-
+        image = _prepare_rgb_image(content)
         working = image
         quality = _GENERATED_JPEG_QUALITY
         encoded = _encode_jpeg(working, quality)
@@ -95,3 +86,35 @@ def _encode_jpeg(image: Image.Image, quality: int) -> bytes:
         progressive=True,
     )
     return buffer.getvalue()
+
+
+def _prepare_rgb_image(content: bytes) -> Image.Image:
+    image = Image.open(BytesIO(content))
+    image = ImageOps.exif_transpose(image)
+    if image.mode in ("RGBA", "LA") or (
+        image.mode == "P" and "transparency" in image.info
+    ):
+        background = Image.new("RGB", image.size, (255, 255, 255))
+        alpha = image.convert("RGBA")
+        background.paste(alpha, mask=alpha.split()[-1])
+        image = background
+    else:
+        image = image.convert("RGB")
+    return image
+
+
+def generate_thumbnail_bytes(
+    content: bytes,
+    content_type: str,
+) -> tuple[bytes, str]:
+    """Small JPEG preview for gallery cards (~480px long edge)."""
+    try:
+        image = _prepare_rgb_image(content)
+        image.thumbnail(
+            (_THUMBNAIL_MAX_LONG_EDGE, _THUMBNAIL_MAX_LONG_EDGE),
+            Image.Resampling.LANCZOS,
+        )
+        return _encode_jpeg(image, _THUMBNAIL_JPEG_QUALITY), "image/jpeg"
+    except Exception:
+        logger.exception("Thumbnail generation failed; skipping thumbnail upload")
+        return b"", content_type or "application/octet-stream"

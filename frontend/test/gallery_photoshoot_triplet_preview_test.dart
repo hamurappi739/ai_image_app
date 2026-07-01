@@ -3,7 +3,33 @@ import 'package:ai_image_generator/widgets/gallery_result_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+Future<void> _pumpThroughThumbnailLoadFailures(WidgetTester tester) async {
+  galleryNetworkImageAutoRetryDelays = const [
+    Duration(milliseconds: 10),
+    Duration(milliseconds: 10),
+  ];
+  galleryNetworkImageMaxAutoRetries = 2;
+  galleryNetworkImageLoadingTimeout = const Duration(seconds: 30);
+
+  await tester.pump();
+  await tester.pump();
+  for (var i = 0; i < 24; i++) {
+    await tester.pump(const Duration(milliseconds: 30));
+    await tester.pump();
+  }
+}
+
 void main() {
+  tearDown(() {
+    galleryNetworkImageLoadingTimeout = const Duration(seconds: 22);
+    galleryNetworkImageSlowLoadHintDelay = const Duration(seconds: 3);
+    galleryNetworkImageMaxAutoRetries = 2;
+    galleryNetworkImageAutoRetryDelays = const [
+      Duration(milliseconds: 800),
+      Duration(milliseconds: 1800),
+    ];
+  });
+
   testWidgets('photoshoot triplet preview loads all three network images', (
     WidgetTester tester,
   ) async {
@@ -106,9 +132,7 @@ void main() {
         ),
       );
 
-      await tester.pump();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+      await _pumpThroughThumbnailLoadFailures(tester);
 
       expect(tester.takeException(), isNull);
       expect(find.text('Фото сохранено, но не загрузилось'), findsNothing);
@@ -141,9 +165,7 @@ void main() {
         ),
       );
 
-      await tester.pump();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+      await _pumpThroughThumbnailLoadFailures(tester);
 
       expect(tester.takeException(), isNull);
       expect(find.text('Не загрузилось'), findsNWidgets(3));

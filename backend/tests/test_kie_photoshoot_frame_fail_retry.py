@@ -87,6 +87,7 @@ def _configure_kie_pipeline_mocks(
     mock_signed_url.return_value = _SIGNED_URL_A
     mock_upload_frames.return_value = (
         ["https://public/1", "https://public/2", "https://public/3"],
+        [None, None, None],
         ["p1", "p2", "p3"],
     )
     mock_save_history.return_value = "ps-done"

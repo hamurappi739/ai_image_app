@@ -551,6 +551,7 @@ class KiePhotoshootAtomicityTests(unittest.TestCase):
             ):
                 mock_upload.return_value = (
                     ["https://public/1", "https://public/2", "https://public/3"],
+                    [None, None, None],
                     ["p1", "p2", "p3"],
                 )
                 service = PhotoshootService()
@@ -622,6 +623,7 @@ class KiePhotoshootAtomicityTests(unittest.TestCase):
         ]
         mock_upload_frames.return_value = (
             ["https://public/1", "https://public/2", "https://public/3"],
+            [None, None, None],
             ["p1", "p2", "p3"],
         )
         mock_save_history.return_value = "ps-done"

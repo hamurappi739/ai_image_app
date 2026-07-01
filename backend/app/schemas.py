@@ -42,6 +42,7 @@ class PhotoshootGenerateResponse(BaseModel):
     style_id: str
     style_title: str
     image_urls: list[str]
+    thumbnail_urls: list[str | None] = Field(default_factory=list)
     output_count: int
     photoshoot_id: str
     balance: BalanceResponse | None = None
@@ -83,6 +84,7 @@ class PhotoshootJobStatusResponse(BaseModel):
 
 class GenerateResponse(BaseModel):
     image_url: str
+    thumbnail_url: str | None = None
     prompt: str
     payment_type: str | None = None
     credit_consumed: bool = False
@@ -95,6 +97,7 @@ class GenerationItem(BaseModel):
     id: str
     prompt: str
     image_url: str
+    thumbnail_url: str | None = None
     payment_type: str
     photoshoot_id: str | None = None
     created_at: datetime

@@ -153,7 +153,7 @@ def get_generations_by_user_id(user_id: str, limit: int = 10) -> list[dict]:
     url = (
         f"{base_url}/rest/v1/generations"
         f"?user_id=eq.{quote(user_id, safe='')}"
-        "&select=id,prompt,image_url,payment_type,photoshoot_id,created_at"
+        "&select=id,prompt,image_url,thumbnail_url,payment_type,photoshoot_id,created_at"
         "&order=created_at.desc"
         f"&limit={limit}"
     )
@@ -234,6 +234,7 @@ def create_generation_record(
     image_url: str,
     payment_type: str,
     photoshoot_id: str | None = None,
+    thumbnail_url: str | None = None,
 ) -> dict:
     """Insert a row into ``generations`` without consuming credits."""
     from app.services.generation_image_url import should_persist_generation_image_url
@@ -247,6 +248,8 @@ def create_generation_record(
         "image_url": image_url,
         "payment_type": payment_type,
     }
+    if thumbnail_url and should_persist_generation_image_url(thumbnail_url):
+        payload["thumbnail_url"] = thumbnail_url
     if photoshoot_id is not None:
         payload["photoshoot_id"] = photoshoot_id
     return insert_generation(payload)

@@ -323,6 +323,7 @@ class _TemplateCreateSheetState extends State<TemplateCreateSheet> {
         GeneratedImageItem(
           description: '$galleryTemplatePrefix${widget.template.title}',
           imageUrl: response.imageUrl,
+          thumbnailUrl: response.thumbnailUrl,
           createdAt: DateTime.now(),
         ),
       );

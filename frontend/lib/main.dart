@@ -2476,16 +2476,21 @@ class _PhotoshootDetailSheetState extends State<_PhotoshootDetailSheet> {
       final description = 'Фотосессия: ${result.styleTitle}';
       final createdAt = DateTime.now();
       final photoshootId = result.photoshootId.trim();
-      final galleryItems = result.imageUrls
-          .map(
-            (url) => GeneratedImageItem(
-              description: description,
-              imageUrl: url,
-              createdAt: createdAt,
-              photoshootId: photoshootId.isEmpty ? null : photoshootId,
-            ),
-          )
-          .toList();
+      final galleryItems = <GeneratedImageItem>[];
+      for (var i = 0; i < result.imageUrls.length; i++) {
+        final thumb = i < result.thumbnailUrls.length
+            ? result.thumbnailUrls[i]
+            : null;
+        galleryItems.add(
+          GeneratedImageItem(
+            description: description,
+            imageUrl: result.imageUrls[i],
+            thumbnailUrl: thumb,
+            createdAt: createdAt,
+            photoshootId: photoshootId.isEmpty ? null : photoshootId,
+          ),
+        );
+      }
       Navigator.of(context).pop();
       widget.onPhotoshootGenerated(galleryItems);
       widget.onShowMessage('Фотосессия готова');
@@ -3013,16 +3018,21 @@ class _CustomPhotoshootSheetState extends State<_CustomPhotoshootSheet> {
       );
       final createdAt = DateTime.now();
       final photoshootId = result.photoshootId.trim();
-      final galleryItems = result.imageUrls
-          .map(
-            (url) => GeneratedImageItem(
-              description: galleryDescription,
-              imageUrl: url,
-              createdAt: createdAt,
-              photoshootId: photoshootId.isEmpty ? null : photoshootId,
-            ),
-          )
-          .toList();
+      final galleryItems = <GeneratedImageItem>[];
+      for (var i = 0; i < result.imageUrls.length; i++) {
+        final thumb = i < result.thumbnailUrls.length
+            ? result.thumbnailUrls[i]
+            : null;
+        galleryItems.add(
+          GeneratedImageItem(
+            description: galleryDescription,
+            imageUrl: result.imageUrls[i],
+            thumbnailUrl: thumb,
+            createdAt: createdAt,
+            photoshootId: photoshootId.isEmpty ? null : photoshootId,
+          ),
+        );
+      }
 
       Navigator.of(context).pop();
       widget.onPhotoshootGenerated(galleryItems);
@@ -3578,6 +3588,7 @@ class _CreateScreenState extends State<CreateScreen> {
         GeneratedImageItem(
           description: galleryCustomIdeaLabel,
           imageUrl: response.imageUrl,
+          thumbnailUrl: response.thumbnailUrl,
           createdAt: DateTime.now(),
         ),
       );
