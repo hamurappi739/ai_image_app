@@ -183,6 +183,8 @@ class KieIndependentFramesUnitTests(unittest.TestCase):
         )
         self.assertIn(style.title, prompt)
         self.assertIn("Image 2 is the selected photoshoot preview reference", prompt)
+        self.assertIn("Do not copy the uploaded photo pose or face angle", prompt)
+        self.assertIn("Recreate the same identity in the preview pose", prompt)
         self.assertIn("safe, modest", prompt.lower())
         self.assertIn(KIE_RESCUE_NEGATIVE_RULES, prompt)
 

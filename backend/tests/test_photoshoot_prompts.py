@@ -135,8 +135,27 @@ class PhotoshootContinuationPromptTests(unittest.TestCase):
         self.assertIn("main visual blueprint", prompt)
         self.assertIn("Replace only the person from Image 2", prompt)
         self.assertIn("Do not copy the face, identity", prompt)
+        self.assertIn("Do not paste, clone, or transplant the face or head from Image 1", prompt)
+        self.assertIn(
+            "Match Image 2 head angle, gaze direction, facial orientation",
+            prompt,
+        )
         self.assertNotIn("Universal photoshoot diversity rules", prompt)
         self.assertNotIn("Independent frame shot", prompt)
+
+    def test_kie_preview_prompt_excludes_image_two_for_identity_only(self) -> None:
+        style = PHOTOSHOOT_STYLES["studio_portrait"]
+        prompt = build_kie_photoshoot_frame_prompt(
+            "studio_portrait",
+            style,
+            frame_index=0,
+            output_count=3,
+            series_reference_mode="identity_anchor",
+            use_preview_reference=False,
+        )
+        self.assertIn("Use Image 1 only as the identity reference", prompt)
+        self.assertNotIn("Image 2 is the selected photoshoot preview reference", prompt)
+        self.assertNotIn("Do not paste, clone, or transplant the face or head from Image 1", prompt)
 
     def test_custom_prompt_does_not_mention_image_two(self) -> None:
         style = PHOTOSHOOT_STYLES[CUSTOM_PHOTOSHOOT_STYLE_ID]
