@@ -1,4 +1,4 @@
-"""Kie API photoshoot provider (independent frames, identity-only references)."""
+"""Kie API photoshoot provider (sequential frames with preview references)."""
 
 from __future__ import annotations
 
@@ -18,6 +18,10 @@ from app.services.photoshoot_prompts import (
     build_kie_photoshoot_frame_prompt,
     build_kie_rescue_frame_prompt,
     resolve_prompt_source,
+)
+from app.services.photoshoot_reference_service import (
+    is_custom_photoshoot_style,
+    resolve_photoshoot_preview_references_for_session,
 )
 from app.services.photoshoot_similarity import (
     KIE_DUPLICATE_RETRY_PROMPT_SUFFIX,
@@ -73,6 +77,7 @@ class KiePhotoshootProvider:
         self._output_count = (
             output_count if output_count is not None else settings.photoshoot_output_count
         )
+        self._preview_input_urls: list[str | None] = []
 
     @property
     def output_count(self) -> int:
@@ -103,13 +108,17 @@ class KiePhotoshootProvider:
         ttl_seconds = int(settings.kie_temp_signed_url_ttl_seconds)
         series_mode = settings.photoshoot_series_reference_mode.strip().lower()
         task_cap = max(1, int(settings.kie_max_photoshoot_tasks))
+        is_custom = is_custom_photoshoot_style(client_style_id)
+        reference_strategy = (
+            "identity_only" if is_custom else "photoshoot_preview_frames"
+        )
 
         for index in range(self._output_count):
             self._notify_frame_status(on_frame_status, index, "queued")
 
         kie_log.info(
             "Kie photoshoot start: style_id=%s photoshoot_id=%s output_count=%s "
-            "model=%s series_reference_mode=%s prompt_source=%s reference_strategy=independent_frames",
+            "model=%s series_reference_mode=%s prompt_source=%s reference_strategy=%s",
             client_style_id,
             photoshoot_id,
             self._output_count,
@@ -120,6 +129,7 @@ class KiePhotoshootProvider:
                 style,
                 user_description=user_description,
             ),
+            reference_strategy,
         )
 
         try:
@@ -150,6 +160,17 @@ class KiePhotoshootProvider:
                 photoshoot_id,
             )
 
+            preview_refs = resolve_photoshoot_preview_references_for_session(
+                style_id=client_style_id,
+                output_count=self._output_count,
+                user_id=user_id,
+                ttl_seconds=ttl_seconds,
+            )
+            self._preview_input_urls = [ref.input_url for ref in preview_refs]
+            for ref in preview_refs:
+                if ref.temp_path:
+                    temp_paths.append(ref.temp_path)
+
             data_urls: list[str | None] = [None] * self._output_count
             for frame_index in range(self._output_count):
                 existing = [url for url in data_urls[:frame_index] if url]
@@ -175,6 +196,7 @@ class KiePhotoshootProvider:
                 kie_client=kie_client,
             )
         finally:
+            self._preview_input_urls = []
             storage_service.delete_temp_objects_best_effort(temp_paths)
             kie_log.info(
                 "Kie temp cleanup done: style_id=%s photoshoot_id=%s objects=%s",
@@ -182,6 +204,28 @@ class KiePhotoshootProvider:
                 photoshoot_id,
                 len(temp_paths),
             )
+
+    def _preview_reference_for_frame(
+        self,
+        frame_index: int,
+        client_style_id: str,
+    ) -> bool:
+        if is_custom_photoshoot_style(client_style_id):
+            return False
+        if frame_index < 0 or frame_index >= len(self._preview_input_urls):
+            return False
+        return self._preview_input_urls[frame_index] is not None
+
+    def _preview_reference_log_token(
+        self,
+        frame_index: int,
+        client_style_id: str,
+    ) -> str:
+        if is_custom_photoshoot_style(client_style_id):
+            return "custom"
+        if self._preview_reference_for_frame(frame_index, client_style_id):
+            return "present"
+        return "missing"
 
     def _generate_frame_with_fail_retry(
         self,
@@ -360,8 +404,16 @@ class KiePhotoshootProvider:
     ) -> str:
         self._notify_frame_status(on_frame_status, frame_index, "generating")
 
+        use_preview_reference = self._preview_reference_for_frame(
+            frame_index,
+            client_style_id,
+        )
         if use_rescue_prompt:
-            instruction = build_kie_rescue_frame_prompt(style, frame_index=frame_index)
+            instruction = build_kie_rescue_frame_prompt(
+                style,
+                frame_index=frame_index,
+                use_preview_reference=use_preview_reference,
+            )
         else:
             instruction = build_kie_photoshoot_frame_prompt(
                 client_style_id,
@@ -370,23 +422,26 @@ class KiePhotoshootProvider:
                 output_count=self._output_count,
                 user_description=user_description,
                 series_reference_mode=series_mode,
+                use_preview_reference=use_preview_reference,
             )
             if prompt_suffix:
                 instruction = f"{instruction}{prompt_suffix}"
 
         input_urls = self._build_input_urls(
             identity_path=identity_path,
+            frame_index=frame_index,
             ttl_seconds=ttl_seconds,
             client_style_id=client_style_id,
             photoshoot_id=photoshoot_id,
         )
         kie_log.info(
             "Kie frame start: style_id=%s photoshoot_id=%s frame_index=%s "
-            "reference_count=%s",
+            "reference_count=%s preview_reference=%s",
             client_style_id,
             photoshoot_id,
             frame_index,
             len(input_urls),
+            self._preview_reference_log_token(frame_index, client_style_id),
         )
 
         try:
@@ -427,6 +482,7 @@ class KiePhotoshootProvider:
         self,
         *,
         identity_path: str,
+        frame_index: int,
         ttl_seconds: int,
         client_style_id: str,
         photoshoot_id: str,
@@ -447,4 +503,10 @@ class KiePhotoshootProvider:
                 stage="kie_signed_url",
             )
 
-        return [identity_signed]
+        input_urls = [identity_signed]
+        if frame_index < len(self._preview_input_urls):
+            preview_url = self._preview_input_urls[frame_index]
+            if preview_url:
+                input_urls.append(preview_url)
+
+        return input_urls

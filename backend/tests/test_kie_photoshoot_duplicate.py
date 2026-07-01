@@ -96,8 +96,49 @@ class KiePhotoshootDuplicateGuardTests(unittest.TestCase):
 
         self.assertEqual(ctx.exception.status_code, 502)
 
-    def test_build_input_urls_always_returns_identity_only(self) -> None:
+    def test_build_input_urls_returns_identity_and_preview_for_catalog(self) -> None:
         provider = KiePhotoshootProvider(output_count=3)
+        preview_urls = [
+            "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/"
+            "catalog-previews/photoshoots/studio_portrait_1_v2.jpg",
+            "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/"
+            "catalog-previews/photoshoots/studio_portrait_2_v2.jpg",
+            "https://cvzzceastvlbcxsckoqd.supabase.co/storage/v1/object/public/"
+            "catalog-previews/photoshoots/studio_portrait_3_v2.jpg",
+        ]
+        provider._preview_input_urls = preview_urls
+        with patch.object(
+            storage_service,
+            "create_signed_url",
+            return_value="https://signed/identity",
+        ):
+            frame_zero_urls = provider._build_input_urls(
+                identity_path="temp/a",
+                frame_index=0,
+                ttl_seconds=3600,
+                client_style_id="studio_portrait",
+                photoshoot_id="ps-urls",
+            )
+            frame_one_urls = provider._build_input_urls(
+                identity_path="temp/a",
+                frame_index=1,
+                ttl_seconds=3600,
+                client_style_id="studio_portrait",
+                photoshoot_id="ps-urls",
+            )
+
+        self.assertEqual(
+            frame_zero_urls,
+            ["https://signed/identity", preview_urls[0]],
+        )
+        self.assertEqual(
+            frame_one_urls,
+            ["https://signed/identity", preview_urls[1]],
+        )
+
+    def test_build_input_urls_returns_identity_only_for_custom(self) -> None:
+        provider = KiePhotoshootProvider(output_count=3)
+        provider._preview_input_urls = [None, None, None]
         with patch.object(
             storage_service,
             "create_signed_url",
@@ -105,8 +146,9 @@ class KiePhotoshootDuplicateGuardTests(unittest.TestCase):
         ):
             urls = provider._build_input_urls(
                 identity_path="temp/a",
+                frame_index=0,
                 ttl_seconds=3600,
-                client_style_id="studio_portrait",
+                client_style_id="custom_photoshoot",
                 photoshoot_id="ps-urls",
             )
 

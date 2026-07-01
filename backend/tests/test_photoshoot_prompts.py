@@ -120,7 +120,39 @@ class PhotoshootContinuationPromptTests(unittest.TestCase):
         self.assertNotEqual(frame_zero, frame_one)
         self.assertNotEqual(frame_one, frame_two)
 
-    def test_built_prompts_include_universal_diversity_for_any_style(self) -> None:
+    def test_catalog_prompts_use_preview_reference_roles(self) -> None:
+        style = PHOTOSHOOT_STYLES["studio_portrait"]
+        prompt = build_kie_photoshoot_frame_prompt(
+            "studio_portrait",
+            style,
+            frame_index=0,
+            output_count=3,
+            series_reference_mode="identity_anchor",
+            use_preview_reference=True,
+        )
+        self.assertIn("Image 1 is the uploaded user photo", prompt)
+        self.assertIn("Image 2 is the selected photoshoot preview reference", prompt)
+        self.assertIn("main visual blueprint", prompt)
+        self.assertIn("Replace only the person from Image 2", prompt)
+        self.assertIn("Do not copy the face, identity", prompt)
+        self.assertNotIn("Universal photoshoot diversity rules", prompt)
+        self.assertNotIn("Independent frame shot", prompt)
+
+    def test_custom_prompt_does_not_mention_image_two(self) -> None:
+        style = PHOTOSHOOT_STYLES[CUSTOM_PHOTOSHOOT_STYLE_ID]
+        prompt = build_kie_photoshoot_frame_prompt(
+            CUSTOM_PHOTOSHOOT_STYLE_ID,
+            style,
+            frame_index=0,
+            output_count=3,
+            user_description="A calm outdoor portrait",
+            series_reference_mode="identity_anchor",
+            use_preview_reference=False,
+        )
+        self.assertIn("Use Image 1 only as the identity reference", prompt)
+        self.assertNotIn("Image 2 is the selected photoshoot preview reference", prompt)
+
+    def test_built_prompts_include_universal_diversity_without_preview_reference(self) -> None:
         for style_id in PHOTOSHOOT_STYLES:
             style = PHOTOSHOOT_STYLES[style_id]
             for frame_index in range(3):
@@ -130,6 +162,7 @@ class PhotoshootContinuationPromptTests(unittest.TestCase):
                     frame_index=frame_index,
                     output_count=3,
                     series_reference_mode="identity_anchor",
+                    use_preview_reference=False,
                 )
                 self.assertIn(
                     "Universal photoshoot diversity rules",
@@ -143,6 +176,11 @@ class PhotoshootContinuationPromptTests(unittest.TestCase):
                 )
                 self.assertIn(
                     "Use Image 1 only as the identity reference",
+                    prompt,
+                    f"{style_id} frame {frame_index}",
+                )
+                self.assertNotIn(
+                    "Image 2 is the selected photoshoot preview reference",
                     prompt,
                     f"{style_id} frame {frame_index}",
                 )
@@ -425,13 +463,11 @@ class PhotoshootPromptPackV1Tests(unittest.TestCase):
             style = get_photoshoot_style(style_id)
             prompts = resolve_frame_prompts(style_id, style, output_count=3)
             lower = prompts[0].lower()
-            self.assertIn("keep the same identity", lower, style_id)
-            self.assertTrue(
-                "opening" in lower or "first frame" in lower or "frame 1" in lower,
-                style_id,
-            )
+            self.assertIn("image 1 as the identity reference", lower, style_id)
+            self.assertIn("image 2 as the exact visual blueprint", lower, style_id)
+            self.assertIn("frame 1", lower, style_id)
 
-    def test_pack_v1_continuation_frames_include_independent_diversity_rules(self) -> None:
+    def test_pack_v1_continuation_frames_include_blueprint_language(self) -> None:
         from app.services.photoshoot_prompts import (
             PHOTOSHOOT_PROMPT_PACK_V1_STYLE_IDS,
             resolve_frame_prompts,
@@ -443,21 +479,25 @@ class PhotoshootPromptPackV1Tests(unittest.TestCase):
             prompts = resolve_frame_prompts(style_id, style, output_count=3)
             for frame_index, prompt in enumerate(prompts[1:], start=1):
                 lower = prompt.lower()
-                self.assertIn("keep the same identity", lower, f"{style_id} frame {frame_index}")
+                self.assertIn("image 1 as the identity reference", lower, f"{style_id} frame {frame_index}")
+                self.assertIn("image 2 as the exact visual blueprint", lower, f"{style_id} frame {frame_index}")
                 self.assertTrue(
                     any(
                         phrase in lower
                         for phrase in (
-                            "clearly differ",
-                            "no duplicate",
-                            "do not duplicate",
-                            "do not repeat",
+                            "do not copy the preview",
+                            "do not copy identity from image 2",
+                            "do not copy identity from the preview",
+                            "do not copy the preview person's identity",
+                            "preserving the uploaded person's identity",
+                            "keep the uploaded person's identity",
+                            "preserving identity,",
                         )
                     ),
                     f"{style_id} frame {frame_index}",
                 )
 
-    def test_parallel_frames_include_anti_duplicate_instruction(self) -> None:
+    def test_parallel_frames_include_identity_guardrails(self) -> None:
         import json
         from pathlib import Path
 
@@ -468,10 +508,11 @@ class PhotoshootPromptPackV1Tests(unittest.TestCase):
             Path(__file__).resolve().parent.parent / "app" / "catalog" / "photoshoots.json"
         )
         catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
-        needles = (
-            "do not duplicate",
-            "no duplicate",
-            "do not repeat",
+        identity_guard_needles = (
+            "do not copy the preview",
+            "do not copy identity from image 2",
+            "do not copy identity from the preview",
+            "do not copy the preview person's identity",
         )
         for item in catalog:
             style_id = item["id"]
@@ -479,8 +520,10 @@ class PhotoshootPromptPackV1Tests(unittest.TestCase):
             prompts = resolve_frame_prompts(style_id, style, output_count=3)
             for frame_index in range(3):
                 lower = prompts[frame_index].lower()
+                self.assertIn("image 1 as the identity reference", lower, f"{style_id} frame {frame_index}")
+                self.assertIn("image 2 as the exact visual blueprint", lower, f"{style_id} frame {frame_index}")
                 self.assertTrue(
-                    any(needle in lower for needle in needles),
+                    any(needle in lower for needle in identity_guard_needles),
                     f"{style_id} frame {frame_index}",
                 )
 

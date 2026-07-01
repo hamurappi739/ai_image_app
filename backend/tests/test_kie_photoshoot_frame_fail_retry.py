@@ -60,12 +60,16 @@ def _apply_kie_pipeline_settings() -> dict[str, object]:
         "supabase_temp_storage_bucket": settings.supabase_temp_storage_bucket,
         "kie_image_model": settings.kie_image_model,
         "kie_max_photoshoot_tasks": settings.kie_max_photoshoot_tasks,
+        "supabase_url": settings.supabase_url,
+        "supabase_catalog_previews_bucket": settings.supabase_catalog_previews_bucket,
     }
     settings.photoshoot_series_reference_mode = "identity_anchor"
     settings.kie_temp_signed_url_ttl_seconds = 3600
     settings.supabase_temp_storage_bucket = "temp-bucket"
     settings.kie_image_model = "test-model"
     settings.kie_max_photoshoot_tasks = 5
+    settings.supabase_url = "https://cvzzceastvlbcxsckoqd.supabase.co"
+    settings.supabase_catalog_previews_bucket = "catalog-previews"
     return saved
 
 
@@ -170,9 +174,21 @@ def _run_three_frame_photoshoot(
 
 
 class KieIndependentFramesUnitTests(unittest.TestCase):
-    def test_rescue_prompt_is_short_and_style_agnostic(self) -> None:
+    def test_rescue_prompt_is_preview_aware_for_catalog(self) -> None:
         style = get_photoshoot_style("studio_portrait")
-        prompt = build_kie_rescue_frame_prompt(style, frame_index=1)
+        prompt = build_kie_rescue_frame_prompt(
+            style,
+            frame_index=1,
+            use_preview_reference=True,
+        )
+        self.assertIn(style.title, prompt)
+        self.assertIn("Image 2 is the selected photoshoot preview reference", prompt)
+        self.assertIn("safe, modest", prompt.lower())
+        self.assertIn(KIE_RESCUE_NEGATIVE_RULES, prompt)
+
+    def test_rescue_prompt_is_short_and_style_agnostic_without_preview(self) -> None:
+        style = get_photoshoot_style("studio_portrait")
+        prompt = build_kie_rescue_frame_prompt(style, frame_index=1, use_preview_reference=False)
         self.assertIn(style.title, prompt)
         self.assertIn("Rescue regeneration", prompt)
         self.assertIn(KIE_RESCUE_NEGATIVE_RULES, prompt)
@@ -240,14 +256,17 @@ class KieIndependentFramesUnitTests(unittest.TestCase):
         self.assertEqual(ctx.exception.detail, _PHOTOSHOOT_FAILURE_MESSAGE)
 
 
-class KieIndependentFramesPipelineTests(unittest.TestCase):
-    def test_all_frames_use_identity_reference_only(self) -> None:
+class KiePreviewFramesPipelineTests(unittest.TestCase):
+    def test_all_frames_use_identity_and_preview_references(self) -> None:
         call_count = 0
 
         def generate_side_effect(_instruction, input_urls, **_kwargs):
             nonlocal call_count
             call_count += 1
-            self.assertEqual(len(input_urls), 1)
+            self.assertEqual(len(input_urls), 2)
+            self.assertEqual(input_urls[0], _SIGNED_URL_A)
+            self.assertIn("photoshoots/studio_portrait_", input_urls[1])
+            self.assertIn(f"_{call_count}_v2.jpg", input_urls[1])
             return (_distinct_result_bytes(call_count), "image/png")
 
         count, refs, result, exc, mock_upload_data_url, mock_upload_bytes = (
@@ -257,7 +276,7 @@ class KieIndependentFramesPipelineTests(unittest.TestCase):
         assert result is not None
         self.assertEqual(len(result.image_urls), 3)
         self.assertEqual(count, 3)
-        self.assertEqual(refs, [1, 1, 1])
+        self.assertEqual(refs, [2, 2, 2])
         mock_upload_bytes.assert_called_once()
         mock_upload_data_url.assert_not_called()
 
@@ -276,7 +295,7 @@ class KieIndependentFramesPipelineTests(unittest.TestCase):
         assert result is not None
         self.assertEqual(len(result.image_urls), 3)
         self.assertEqual(count, 4)
-        self.assertTrue(all(ref == 1 for ref in refs))
+        self.assertTrue(all(ref == 2 for ref in refs))
 
     def test_frame_one_fail_once_then_success(self) -> None:
         call_count = 0
@@ -293,7 +312,7 @@ class KieIndependentFramesPipelineTests(unittest.TestCase):
         assert result is not None
         self.assertEqual(len(result.image_urls), 3)
         self.assertEqual(count, 4)
-        self.assertEqual(refs, [1, 1, 1, 1])
+        self.assertEqual(refs, [2, 2, 2, 2])
 
     def test_frame_two_fail_twice_aborts_without_persist(self) -> None:
         call_count = 0
@@ -310,7 +329,7 @@ class KieIndependentFramesPipelineTests(unittest.TestCase):
         assert exc is not None
         self.assertEqual(exc.status_code, 502)
         self.assertEqual(count, 4)
-        self.assertEqual(refs, [1, 1, 1, 1])
+        self.assertEqual(refs, [2, 2, 2, 2])
 
 
 class KieIndependentFramesDebitTests(unittest.TestCase):

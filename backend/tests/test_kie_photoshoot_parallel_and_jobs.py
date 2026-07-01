@@ -81,7 +81,7 @@ class KieSequentialPipelineTests(unittest.TestCase):
         self.assertEqual(call_log, [0, 1, 2])
         mock_upload_data_url.assert_not_called()
 
-    def test_independent_frames_do_not_upload_generated_temp_refs(self) -> None:
+    def test_preview_frames_do_not_upload_generated_temp_refs(self) -> None:
         provider = KiePhotoshootProvider(output_count=3)
         captured: list[int] = []
 
@@ -99,6 +99,8 @@ class KieSequentialPipelineTests(unittest.TestCase):
                             mock_settings.kie_temp_signed_url_ttl_seconds = 3600
                             mock_settings.supabase_temp_storage_bucket = "ai-temp-inputs"
                             mock_settings.kie_image_model = "gpt-image-2-image-to-image"
+                            mock_settings.supabase_url = "https://cvzzceastvlbcxsckoqd.supabase.co"
+                            mock_settings.supabase_catalog_previews_bucket = "catalog-previews"
                             provider.generate(
                                 get_photoshoot_style("studio_portrait"),
                                 _TEST_PHOTO_BYTES,
